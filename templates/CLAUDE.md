@@ -5,6 +5,7 @@
 # <Projeto> — <objetivo em 1 frase>
 
 ## Modo de trabalho (nunca violar)
+- **Base do projeto (ler PRIMEIRO)**: se existir um `projeto.md` na raiz, leia-o antes de qualquer outra coisa — é a base/contexto fundamental do projeto. Se não existir, siga normalmente.
 - **Não codar antes do meu OK explícito**: diagnosticar → plano curto → esperar OK → verificar no real (nada de "análise de memória").
 - **Siga as skills do superpowers à risca** (brainstorming, test-driven-development, verification-before-completion, systematic-debugging, requesting-code-review). Precisão acima de velocidade.
 - **Índices do projeto**: no início, leia `memory/MEMORY.md` (aprendizados) e `docs/superpowers/INDEX.md` (tarefas). Ambos são só índices (1 linha por item). Abra o arquivo individual só quando o índice apontar relevância; nunca leia a pasta inteira. Fallback: Grep/Glob sobre `docs/`.
@@ -17,6 +18,7 @@
 - **Banco:** <não | qual> — DDL versionada em `sql/NN_*.sql`, revisada por mim e rodada **FORA** do app; acesso isolado por fonte; credenciais só em `.env` (nunca commit/hardcode).
 
 ## Mapa de arquivos
+- `projeto.md` — base/contexto fundamental do projeto (lido primeiro; pode não existir)
 - `docs/AMBIENTE.md` — referência de ambiente corporativo MSIG (rede Docker, proxy, Postgres, SQL Server, Azure)
 - `docs/superpowers/INDEX.md` — índice das tarefas (specs/planos)
 - `<arquivo>` — <responsabilidade>
