@@ -1,7 +1,8 @@
 # Playbook Spec-Driven (mínimo) — manual do owner
 
-> Referência (fica no kit-fonte; não precisa ser copiada em todo projeto). O que faz o fluxo rodar num
-> projeto é: o plugin **superpowers** + os 2 comandos (`/kickoff`, `/nova-feature`) + o `CLAUDE.md`.
+> Referência (fica no repo do plugin; não vai pros projetos). O que faz o fluxo rodar num projeto é: o
+> plugin **superpowers** + o plugin **mss-spec** (comandos `/mss-spec:kickoff`, `/mss-spec:nova-feature`,
+> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`) + o `CLAUDE.md`.
 > Aqui está o "como" e o "porquê", enxuto.
 
 ## Princípio: a disciplina já vem do superpowers
@@ -19,8 +20,8 @@ Não há hooks nem gates próprios — as skills do superpowers auto-ativam e **
 O kit só adiciona o que falta: **atalhos nomeados** + um **`CLAUDE.md`** certo + **`settings.json`** correto.
 
 ## Fluxo
-1. **Constituir** — `/kickoff` entrevista (1 pergunta por vez via brainstorming) e gera o `CLAUDE.md`. Serve para projeto novo **e existente** (faz scan antes de perguntar).
-2. **Por feature** — `/nova-feature <nome>`: brainstorming → objetivo + **Critérios de Aceite** (suas validações) + fora de escopo → seu OK → `writing-plans` → tasks pequenas → executa **uma por vez** (TDD → roda → cola a saída → próxima).
+1. **Constituir** — `/mss-spec:kickoff` entrevista (1 pergunta por vez via brainstorming), gera o `CLAUDE.md` e faz o scaffolding (memória, índice de tarefas, AMBIENTE). Serve para projeto novo **e existente** (faz scan antes de perguntar).
+2. **Por feature** — `/mss-spec:nova-feature <nome>`: brainstorming → objetivo + **Critérios de Aceite** (suas validações) + fora de escopo → seu OK → `writing-plans` → tasks pequenas → executa **uma por vez** (TDD → roda → cola a saída → próxima).
 3. **Fechar** — review → fecha a branch → se surgiu regra durável, 1 linha nas "Regras críticas" do `CLAUDE.md`.
 
 ## Tipos de mudança (sem cerimônia desnecessária)
@@ -49,12 +50,12 @@ credenciais só em `.env`. Mudança de schema = decisão + migração + seu OK a
 ## Ambiente corporativo MSIG
 Fatos e padrões de infraestrutura que se repetem entre projetos (rede Docker `mitiai_network`, proxy
 corporativo, Postgres compartilhado, SQL Server, pipeline Azure) ficam em `docs/AMBIENTE.md` (copiado de
-`modelo/AMBIENTE.md.modelo` no `/kickoff`) — não no `CLAUDE.md`, que fica só com o que é específico deste
-projeto. Levantado em 2026-07-02 varrendo 7 projetos reais (ver `modelo/AMBIENTE.md.modelo` para o
-conteúdo). Pra verificar como um projeto qualquer (novo ou legado) segue ou diverge desse padrão, use
-`PROMPT-MAPEAR-AMBIENTE.md` (prompt avulso, roda no Claude Code na raiz do projeto-alvo). Pra saber se um
-problema de arquitetura (RAG/vetores, extração de documento com LLM, etc.) já foi resolvido em outro
-projeto, consulte a skill global `precedentes-msig` (`~/.claude/skills/precedentes-msig/`), fora deste kit.
+`templates/AMBIENTE.md`, embutido no plugin, pelo `/mss-spec:kickoff`) — não no `CLAUDE.md`, que fica só
+com o que é específico deste projeto. Levantado em 2026-07-02 varrendo 7 projetos reais (ver
+`templates/AMBIENTE.md` para o conteúdo). Pra gerar os arquivos de infra (docker-compose + override de
+proxy) no padrão MSIG, use `/mss-spec:ambiente`. Pra saber se um problema de arquitetura (RAG/vetores,
+extração de documento com LLM, etc.) já foi resolvido em outro projeto, use `/mss-spec:precedentes` (ou a
+skill `precedentes-msig`, que dispara sozinha), embutida no plugin.
 
 ## Adiado (entra só quando um projeto pedir)
 `docs/ESTADO.md` + um SessionStart **advisory** (não-bloqueante; reusar o wrapper polyglot que o superpowers já
