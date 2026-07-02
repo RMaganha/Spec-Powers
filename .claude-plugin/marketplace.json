@@ -1,0 +1,14 @@
+{
+  "name": "mss-local",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "mss-spec",
+      "description": "Fluxo Spec-Driven MSIG sobre superpowers.",
+      "source": {
+        "source": "relative-path",
+        "path": "."
+      }
+    }
+  ]
+}
