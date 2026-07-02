@@ -1,0 +1,10 @@
+{
+  "name": "mss-spec",
+  "displayName": "MSS Spec-Driven",
+  "version": "0.1.0",
+  "description": "Fluxo Spec-Driven MSIG sobre superpowers: kickoff, nova-feature, ambiente, banco e catalogo de precedentes.",
+  "author": {
+    "name": "Ronaldo Maganha",
+    "email": "rmaganha@msig.com.br"
+  }
+}
