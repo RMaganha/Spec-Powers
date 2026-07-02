@@ -1,0 +1,28 @@
+=== KIT SPEC-DRIVEN — como iniciar um projeto novo ===
+
+1) COPIAR estes 6 arquivos de Spec-Powers\modelo\ para o projeto novo, RENOMEANDO:
+   CLAUDE.md.modelo         ->  CLAUDE.md                        (raiz do projeto)
+   settings.json.modelo     ->  .claude\settings.json
+   comando-kickoff.md       ->  .claude\commands\kickoff.md
+   comando-nova-feature.md  ->  .claude\commands\nova-feature.md
+   MEMORY.md.modelo         ->  memory\MEMORY.md                 (indice de memoria, vazio)
+   AMBIENTE.md.modelo       ->  docs\AMBIENTE.md                 (padrao de infra MSIG, ja preenchido)
+   (NAO copiar LEIA-ME / ROTEIRO / referencia / PROMPT-MAPEAR-AMBIENTE — sao manual, ficam no kit.)
+
+2) ABRIR o projeto no Claude Code e ACEITAR o "trust" da pasta na 1a vez
+   (senao settings.json / plugin / comandos nao valem). O CLAUDE.md carrega sozinho.
+
+3) PRIMEIRO PROMPT (literal):
+   /kickoff "em 1 frase: o que e o projeto e pra quem"
+   -> ele te entrevista (1 pergunta por vez) e PREENCHE o CLAUDE.md.
+
+4) POR FEATURE (depois):
+   /nova-feature <nome-da-feature>
+   -> Criterios de Aceite (suas validacoes) -> seu OK -> tasks -> 1 por vez (TDD + verifica).
+
+Mudanca pequena (bugfix / refactor / chore) NAO precisa de /nova-feature — so pedir.
+
+--- LEMBRETES (onde a anotacao costuma sair errada) ---
+- Sao 6 copias COM RENAME, nao a pasta inteira.
+- O primeiro prompt e /kickoff "...", NAO "ler o CLAUDE.md" (ele carrega sozinho; o /kickoff e que preenche).
+- CLAUDE.md vem com <...> em branco de proposito; quem preenche e o /kickoff.
