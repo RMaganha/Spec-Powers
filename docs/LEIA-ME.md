@@ -1,50 +1,58 @@
-# Spec-Powers — kit Spec-Driven mínimo + registro (NÃO são instruções do robô ATM)
+# mss-spec — plugin Spec-Driven MSIG (sobre superpowers)
 
-> ⚠️ **Leia primeiro:** esta pasta é um **kit/referência isolado**. Não altera o ATM Robô V2 nem o
-> `CLAUDE.md` do projeto. Nada desta conversa virou memória do assistente. Os templates ficam em
-> `modelo/` com nomes **neutros** (ex.: `CLAUDE.md.modelo`) de propósito, para não serem carregados como
-> instrução enquanto vivem dentro deste repositório.
+Plugin do Claude Code que adiciona um fluxo **Spec-Driven** leve por cima do plugin **superpowers**.
+A disciplina (não codar sem OK, TDD, verificação, code review) vem do superpowers; o `mss-spec`
+adiciona comandos nomeados que fazem o *scaffolding* e carregam o padrão corporativo MSIG (rede
+Docker, proxy, Postgres/SQL Server, Azure). Instala uma vez, vale em todo projeto — não se copia mais
+arquivo à mão.
 
-## O que é
-Um **kit mínimo** para começar **projetos novos** (ou adotar existentes) com fluxo Spec-Driven sobre o
-plugin **superpowers**. A disciplina (não codar sem OK, TDD, verificação, review) **já vem do superpowers**;
-o kit só adiciona o que falta: 2 comandos nomeados, um `CLAUDE.md` enxuto e o `settings.json` correto.
+## Instalação (marketplace local)
 
-## Como usar (bootstrap de um projeto novo)
-Copie os arquivos de `modelo/` para o projeto, renomeando para o destino:
+Numa sessão do Claude Code:
+```
+/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers
+/plugin install mss-spec@mss-local
+```
+Escolha escopo `user` (vale em todos os projetos da máquina). Requer o **superpowers** habilitado e
+Claude Code **v2.1.140+**.
 
-| Arquivo no kit | Copie para (no projeto novo) | O que é |
-|---|---|---|
-| `modelo/CLAUDE.md.modelo` | `CLAUDE.md` (raiz) | constituição enxuta; preencha os `<...>` |
-| `modelo/settings.json.modelo` | `.claude/settings.json` | liga o superpowers (formato **objeto**) + effort |
-| `modelo/comando-kickoff.md` | `.claude/commands/kickoff.md` | comando `/kickoff` |
-| `modelo/comando-nova-feature.md` | `.claude/commands/nova-feature.md` | comando `/nova-feature` |
-| `modelo/MEMORY.md.modelo` | `memory/MEMORY.md` | índice da memória do projeto (vazio, só cabeçalho) |
-| `modelo/AMBIENTE.md.modelo` | `docs/AMBIENTE.md` | referência de ambiente corporativo MSIG (rede, proxy, Postgres, SQL Server, Azure) — fatos fixos prontos + padrões com `<...>` a preencher |
+Promoção pro time depois: trocar a `source` em `.claude-plugin/marketplace.json` de caminho local para
+um repositório git.
 
-Depois, **dentro do projeto**: rode **`/kickoff "sua ideia"`** (entrevista → gera o `CLAUDE.md`) e, por
-feature, **`/nova-feature <nome>`** (spec com Critérios de Aceite → tasks → executa uma por vez com TDD + verificação).
+## Comandos
 
-## Como funciona (resumo)
-- **`/kickoff`** te entrevista (1 pergunta por vez) e escreve o `CLAUDE.md`. Serve para projeto **novo e existente** (faz scan antes).
-- **`/nova-feature`** define os **Critérios de Aceite** (suas validações), espera seu OK, gera as tasks e executa **uma por vez** (teste → código → roda e cola a saída).
-- **Memória** = pasta `memory/` do **projeto** (dentro do repo, versionada, índice em `memory/MEMORY.md` — NÃO em `~/.claude/projects/<proj>/memory/`), nunca no `CLAUDE.md`. **Estado** = plan files do superpowers. **"O que não fazer"** = seção "Regras críticas" do `CLAUDE.md`.
-- **Sem hooks bloqueantes** (quebravam no Windows e travavam o bootstrap); a orquestração vem das skills do superpowers + do `CLAUDE.md` sempre carregado.
+| Comando | O que faz |
+|---|---|
+| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md` e `.claude/settings.json` |
+| `/mss-spec:nova-feature <nome>` | Abre feature: Critérios de Aceite → seu OK → plano → tasks (TDD + verificação); mantém o `INDEX.md` |
+| `/mss-spec:ambiente` | Gera infra no padrão MSIG (docker-compose com `mitiai_network`; override de proxy do escritório) |
+| `/mss-spec:banco` | Gera o módulo de conexão (SQL Server via pyodbc, ou Postgres) no padrão MSIG |
+| `/mss-spec:precedentes <assunto>` | Consulta o catálogo do que já foi resolvido em outro projeto MSIG |
 
-## Arquivos desta pasta
-- `modelo/` — os 6 templates a copiar (tabela acima).
-- `ROTEIRO-SPEC-DRIVEN.md` — o **playbook** (manual do owner): princípio, fluxo, tipos de mudança, DoD, banco, memória/estado, ambiente corporativo, o que ficou adiado.
-- `referencia-spec-driven.md` — o **porquê**: análise do CLI `@igoruehara/spec-driven` × superpowers, comparação, caminho recomendado e lições do ATM.
-- `PROMPT-MAPEAR-AMBIENTE.md` — prompt avulso (não copiado pro projeto novo) pra rodar no Claude Code de **qualquer** projeto existente e comparar as convenções dele com o padrão MSIG documentado em `modelo/AMBIENTE.md.modelo`. Exige acesso a arquivo exato (Claude Code, ou configs anexados no chat).
-- `PROMPT-CONHECER-PROJETO.md` — prompt avulso complementar: entender O QUE um projeto faz (propósito, arquitetura, funcionalidades, regras de negócio) em vez de infra/deploy. Funciona em qualquer chat, não só Claude Code.
-- `LEIA-ME.md` — este guia.
+## Fluxo
 
-## Além do kit: skill global de precedentes
-Fora desta pasta, em `~/.claude/skills/precedentes-msig/`, existe uma skill do Claude Code (disponível em
-**qualquer** projeto, não só os que usam este kit) que indica qual projeto MSIG já resolveu um problema
-parecido (ex.: RAG/busca vetorial, extração de PDF com LLM) antes de desenhar do zero. Cresce por linha,
-sem cerimônia — ver o próprio arquivo da skill para o formato.
+1. Num projeto (novo ou existente): `/mss-spec:kickoff "em 1 frase o que é e pra quem"` — entrevista e faz o scaffolding.
+2. Por feature: `/mss-spec:nova-feature <nome>`.
+3. Mudança pequena (bugfix/refactor/chore) não precisa de `/mss-spec:nova-feature` — só pedir.
 
-## Limites (a pedido do owner)
-- Nenhuma alteração no `CLAUDE.md` do projeto (V2 ou diretório pai), nem na memória do assistente.
-- Nenhuma mudança de código ou no comportamento do ATM Robô.
+## Memória e estado (não poluir o CLAUDE.md)
+- **Aprendizados** → `memory/` (por-tópico, índice em `memory/MEMORY.md`), dentro do repo, versionado.
+- **Tarefas** → `docs/superpowers/specs` + `plans`, índice em `docs/superpowers/INDEX.md`.
+- Ambos: índice barato lido no início; arquivos abertos **sob demanda**; `Grep`/`Glob` de fallback.
+- `CLAUDE.md` = só regras/fatos sempre-verdadeiros; nunca journal/registro.
+
+## Branch / git
+`nova-feature` **não** cria branch nem worktree. Se quiser isolamento, peça explicitamente
+(superpowers `using-git-worktrees`) antes ou durante a feature.
+
+## Skill de precedentes
+O plugin traz a skill `precedentes-msig` (em `skills/`), que dispara sozinha quando você vai
+implementar algo que pode já existir em outro projeto (RAG/busca vetorial, extração de PDF com LLM,
+etc.) — além do comando `/mss-spec:precedentes` para consulta explícita. Cresce por linha, sem
+cerimônia.
+
+## Documentos deste repo (não vão pros projetos)
+- `docs/ROTEIRO-SPEC-DRIVEN.md` — playbook do owner (princípio, fluxo, tipos de mudança, DoD, memória, ambiente).
+- `docs/referencia-spec-driven.md` — o porquê do kit (comparação com o CLI `@igoruehara/spec-driven`, lições do ATM).
+- `docs/superpowers/specs/2026-07-02-mss-spec-plugin-design.md` — design deste plugin.
+- `docs/superpowers/plans/2026-07-02-mss-spec-plugin.md` — plano de implementação.
