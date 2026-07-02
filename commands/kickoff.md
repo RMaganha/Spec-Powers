@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta etapa.
 
+**Nunca invente fatos concretos.** Caminhos, paths de deploy, hosts, portas, nomes de container/recurso, estrutura de pastas — use SÓ o que está no `projeto.md`, no repositório, ou o que o owner disser. Ao propor opções (A/B/C) ou um rascunho de contexto, não preencha um detalhe específico que você não verificou: deixe genérico ("um diretório de deploy", "o host do Postgres"), marque como `<a confirmar>`, ou pergunte. Um caminho chutado que não existe é pior que uma lacuna.
+
 1. Invoque a skill **superpowers:brainstorming**.
 2. **Garanta a dependência**: verifique se o superpowers está habilitado. Se não houver `.claude/settings.json` ou ele não listar o superpowers, crie/atualize copiando de `${CLAUDE_PLUGIN_ROOT}/templates/settings.json`.
 3. **Se já existe código** (brownfield): faça um scan primeiro — estrutura de pastas, stack, entrypoints (`main.py`/`app.py`), como roda, integrações — e proponha um rascunho do contexto e do propósito do projeto (nome + a que se destina) antes de perguntar.
