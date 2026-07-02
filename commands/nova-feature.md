@@ -11,7 +11,7 @@ Feature: **$ARGUMENTS**
 3. **Atualize o índice de tarefas**: acrescente 1 linha em `docs/superpowers/INDEX.md`:
    `- [<nome-da-feature>](specs/<arquivo>-design.md) — <objetivo em 1 frase> — aberta`
 4. Execute **uma task por vez** (superpowers:executing-plans / subagent-driven-development): TDD (teste do AC → vermelho → código → verde) e **rode e cole a saída** (verification-before-completion) antes da próxima.
-5. Ao concluir: `requesting-code-review` → `finishing-a-development-branch`. Mude o status da linha no `INDEX.md` para `fechada`. Se surgiu regra durável, 1 linha em "Regras críticas" do `CLAUDE.md`; se surgiu aprendizado durável, grave em `memory/` (arquivo + linha no `MEMORY.md`).
+5. Ao concluir: `requesting-code-review` → **rode `/mss-spec:plano-teste`** (a suíte inteira; as validações desta feature dobram no baseline anti-regressão, que só é atualizado se passar 100%) → `finishing-a-development-branch`. Mude o status da linha no `INDEX.md` para `fechada`. Se surgiu regra durável, 1 linha em "Regras críticas" do `CLAUDE.md`; se surgiu aprendizado durável, grave em `memory/` (arquivo + linha no `MEMORY.md`).
 
 **Git/branch:** este comando NÃO cria branch nem worktree. Se quiser isolamento, peça explicitamente (`superpowers:using-git-worktrees`) antes ou durante.
 

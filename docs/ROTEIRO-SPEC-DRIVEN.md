@@ -2,7 +2,7 @@
 
 > Referência (fica no repo do plugin; não vai pros projetos). O que faz o fluxo rodar num projeto é: o
 > plugin **superpowers** + o plugin **mss-spec** (comandos `/mss-spec:kickoff`, `/mss-spec:nova-feature`,
-> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`) + o `CLAUDE.md`.
+> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`, `/mss-spec:plano-teste`) + o `CLAUDE.md`.
 > Aqui está o "como" e o "porquê", enxuto.
 
 ## Princípio: a disciplina já vem do superpowers
@@ -33,6 +33,7 @@ O kit só adiciona o que falta: **atalhos nomeados** + um **`CLAUDE.md`** certo 
 
 ## Definition of Done (antes de dizer "pronto")
 - [ ] Cada Critério de Aceite tem teste **e os testes passam** (saída colada).
+- [ ] **Plano de teste base 100% verde** (`/mss-spec:plano-teste`); baseline atualizado se cresceu.
 - [ ] Review feito; findings resolvidos.
 - [ ] Branch fechada; `CLAUDE.md` atualizado se nasceu regra/decisão durável.
 

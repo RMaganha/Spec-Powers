@@ -131,6 +131,7 @@ li{margin-bottom:6px}
       <li><a href="#c-ambiente"><span class="nav-num">C3</span>ambiente</a></li>
       <li><a href="#c-banco"><span class="nav-num">C4</span>banco</a></li>
       <li><a href="#c-precedentes"><span class="nav-num">C5</span>precedentes</a></li>
+      <li><a href="#c-plano-teste"><span class="nav-num">C6</span>plano-teste</a></li>
       <div class="nav-group">Fundamentos</div>
       <li><a href="#memoria"><span class="nav-num">04</span>Memória &amp; índices</a></li>
       <li><a href="#ambiente-msig"><span class="nav-num">05</span>Ambiente MSIG</a></li>
@@ -150,7 +151,7 @@ li{margin-bottom:6px}
   <h1>Um <em>plugin</em>, cinco comandos,<br>zero cópia <em>manual</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> adiciona um fluxo Spec-Driven leve ao Claude Code, por cima do plugin <strong>superpowers</strong>. Instala uma vez, vale em todo projeto, e faz o <em>scaffolding</em> dos arquivos que antes você copiava à mão — já carregando o padrão de infraestrutura MSIG (rede Docker, proxy, Postgres/SQL Server, Azure).</p>
   <div class="hero-meta">
-    <div>Comandos<span>5 namespaced</span></div>
+    <div>Comandos<span>6 namespaced</span></div>
     <div>Templates<span>5 embutidos</span></div>
     <div>Memória<span>2 camadas / 2 índices</span></div>
     <div>Dependência<span>superpowers</span></div>
@@ -270,7 +271,7 @@ li{margin-bottom:6px}
 │   └── <b>marketplace.json</b>    marketplace local (mss-local)
 ├── commands/
 │   ├── kickoff.md   nova-feature.md   ambiente.md
-│   └── banco.md     precedentes.md
+│   └── banco.md     precedentes.md    plano-teste.md
 ├── skills/
 │   └── precedentes-msig/SKILL.md   catálogo de auto-disparo
 ├── templates/                  embutidos; os comandos copiam pro projeto
@@ -289,7 +290,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">Comandos</div>
-  <h2>Os cinco <em>comandos</em>, um a um</h2>
+  <h2>Os seis <em>comandos</em>, um a um</h2>
   <p class="lead">Todos são namespaced (<code>/mss-spec:&lt;nome&gt;</code>) e marcados com <code>disable-model-invocation: true</code> — só você os dispara, o modelo não os invoca sozinho.</p>
 
   <div class="node" id="c-kickoff">
@@ -362,6 +363,21 @@ li{margin-bottom:6px}
       <div class="label-row"><span class="pill graph">consulta</span><span class="pill ok">+ skill auto</span></div>
       <p class="subhead">Uso</p>
       <p><code>/mss-spec:precedentes RAG</code> · <code>/mss-spec:precedentes "extração de PDF"</code></p>
+    </div>
+  </div>
+
+  <div class="node" id="c-plano-teste">
+    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">/mss-spec:plano-teste</span><span class="node-type">baseline anti-regressão</span></div>
+    <div class="node-body">
+      <p><strong>O que faz:</strong> roda o plano de teste base (pytest) — a rede anti-regressão ("se isso passa 100%, nada quebrou"). Se a suíte passa inteira, grava/atualiza o baseline; se não, reporta as falhas e mantém o baseline anterior.</p>
+      <div class="kv">
+        <dt>Baseline</dt><dd><code>docs/superpowers/PLANO-TESTE.md</code> — o comando de rodar, o que cobre, e o carimbo do último 100% (data + commit)</dd>
+        <dt>Regra</dt><dd>só vira baseline com a suíte <strong>100% verde</strong>; o anterior é substituído (o git guarda o histórico)</dd>
+        <dt>Disciplina</dt><dd>o <code>CLAUDE.md</code> manda rodar antes de declarar qualquer coisa pronta — feature nova ou alteração</dd>
+      </div>
+      <div class="label-row"><span class="pill ok">pytest</span><span class="pill warn">100% ou nada</span></div>
+      <p class="subhead">Uso</p>
+      <p><code>/mss-spec:plano-teste</code></p>
     </div>
   </div>
 </section>
@@ -467,7 +483,7 @@ li{margin-bottom:6px}
   <ol>
     <li>Registrar: <code>/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers</code></li>
     <li>Instalar (escopo <code>user</code>): <code>/plugin install mss-spec@mss-local</code></li>
-    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 5 comandos; a skill <code>precedentes-msig</code> aparece.</li>
+    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 6 comandos; a skill <code>precedentes-msig</code> aparece.</li>
     <li>Numa pasta vazia: <code>/mss-spec:kickoff "teste"</code> gera os 5 arquivos.</li>
     <li>Testar os demais: <code>nova-feature</code>, <code>banco</code>, <code>ambiente</code>, <code>precedentes</code>.</li>
     <li>Confirmado, remover a skill pessoal duplicada: <code>rm -rf ~/.claude/skills/precedentes-msig</code></li>

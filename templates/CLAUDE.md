@@ -10,6 +10,7 @@
 - **Não inventar fatos concretos**: caminhos, paths de deploy, hosts, portas, nomes de recurso/container, estrutura de pastas — use só o que está no repo/`projeto.md` ou o que eu confirmar. Na dúvida, deixe genérico, marque `<a confirmar>` ou pergunte; nunca chute um valor concreto (um caminho errado é pior que uma lacuna).
 - **Siga as skills do superpowers à risca** (brainstorming, test-driven-development, verification-before-completion, systematic-debugging, requesting-code-review). Precisão acima de velocidade.
 - **Índices do projeto**: no início, leia `memory/MEMORY.md` (aprendizados) e `docs/superpowers/INDEX.md` (tarefas). Ambos são só índices (1 linha por item). Abra o arquivo individual só quando o índice apontar relevância; nunca leia a pasta inteira. Fallback: Grep/Glob sobre `docs/`.
+- **Plano de teste base (anti-regressão)**: antes de declarar qualquer coisa pronta (feature nova OU alteração), rode o plano de teste base (`/mss-spec:plano-teste` → `docs/superpowers/PLANO-TESTE.md`). Só afirme sucesso com **100% verde**; suíte nova só vira baseline quando passa inteira.
 
 ## Contexto
 - **Stack/runtime:** <ex.: Python 3.x / Node / ...>
