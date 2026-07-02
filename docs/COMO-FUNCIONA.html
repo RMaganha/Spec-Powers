@@ -184,7 +184,7 @@ li{margin-bottom:6px}
 
   <h4>No início de cada sessão</h4>
   <ol>
-    <li>Lê e injeta o <code>CLAUDE.md</code> (do projeto + pais + global) — vira instrução permanente.</li>
+    <li>Lê e injeta o <code>CLAUDE.md</code> (do projeto + pais + global) — vira instrução permanente. O <code>CLAUDE.md</code> pode instruir a ler um <code>projeto.md</code> da raiz <strong>antes de tudo</strong>, se existir.</li>
     <li>Lê o <code>settings.json</code> e habilita os <strong>plugins</strong> (superpowers, mss-spec).</li>
     <li><strong>Enumera as skills</strong> disponíveis e apresenta ao modelo só <code>name</code> + <code>description</code> — o corpo carrega sob demanda.</li>
     <li>Enumera os <strong>slash commands</strong> dos plugins.</li>
@@ -217,6 +217,32 @@ li{margin-bottom:6px}
 /plugin install mss-spec@mss-local</code></pre>
 
   <p>Escolha o escopo <code>user</code> — assim os comandos e a skill ficam disponíveis em <strong>todos</strong> os projetos da máquina, exatamente como o superpowers. Requer o <code>superpowers</code> habilitado e Claude Code <strong>v2.1.140+</strong>.</p>
+
+  <div class="callout danger">
+    <div class="callout-label">Precisa de restart COMPLETO</div>
+    Mudança de plugin/marketplace só carrega quando o Claude Code <strong>fecha por inteiro e reabre</strong> — nova aba ou nova conversa não recarrega. Faça Quit de verdade (inclusive o ícone da bandeja) e reabra. É o mesmo fenômeno do backend do Docker que ignora "Apply &amp; Restart" até um Quit completo.
+  </div>
+
+  <h4>Registro manual — quando os /plugin não abrem</h4>
+  <p>Os comandos <code>/plugin</code> só abrem o painel numa sessão <strong>interativa</strong> do Claude Code. Fora disso, registre editando <code>~/.claude/settings.json</code> (escopo user, sem tela de trust) — mesmo formato do superpowers, trocando a fonte remota por pasta local (<code>directory</code>):</p>
+  <pre><code>{
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "mss-spec@mss-local": true
+  },
+  "extraKnownMarketplaces": {
+    "mss-local": {
+      "source": { "source": "directory", "path": "C:/Ronaldo/_Mitsui/Python/Spec-Powers" }
+    }
+  }
+}</code></pre>
+  <p>Caminho com barras normais <code>/</code>. A chave em <code>enabledPlugins</code> é <code>&lt;plugin&gt;@&lt;marketplace&gt;</code> (<code>mss-spec@mss-local</code>). Depois, restart completo.</p>
+
+  <h4>Fallbacks garantidos</h4>
+  <ul>
+    <li><strong>Auto-load sem marketplace:</strong> pasta <code>~/.claude/skills/mss-spec/</code> com o <code>.claude-plugin/plugin.json</code> dentro → carrega sozinha como <code>mss-spec@skills-dir</code>, sem editar settings.</li>
+    <li><strong>Por sessão (CLI):</strong> <code>claude --plugin-dir "C:/Ronaldo/_Mitsui/Python/Spec-Powers"</code>.</li>
+  </ul>
 
   <div class="table-wrap"><table>
     <thead><tr><th>Escopo</th><th>Arquivo</th><th>Alcance</th></tr></thead>
@@ -273,6 +299,7 @@ li{margin-bottom:6px}
       <div class="kv">
         <dt>Escreve</dt><dd><code>CLAUDE.md</code>, <code>.claude/settings.json</code>, <code>memory/MEMORY.md</code>, <code>docs/superpowers/INDEX.md</code>, <code>docs/AMBIENTE.md</code></dd>
         <dt>Garante</dt><dd>a dependência do superpowers (verifica e, se faltar, habilita no settings)</dd>
+        <dt>Base</dt><dd>o <code>CLAUDE.md</code> gerado instrui ler <code>projeto.md</code> da raiz <strong>antes de tudo</strong>, se existir (opcional por projeto)</dd>
         <dt>Quando usar</dt><dd>uma vez, ao adotar o padrão num projeto</dd>
       </div>
       <div class="label-row"><span class="pill ok">scaffolding</span><span class="pill graph">scan brownfield</span></div>
@@ -479,6 +506,8 @@ li{margin-bottom:6px}
       <div class="glossary-body">Ação do <code>kickoff</code> de criar <code>CLAUDE.md</code>, <code>memory/</code>, <code>INDEX.md</code> e <code>AMBIENTE.md</code> no projeto, copiando de <code>templates/</code>. Substitui a antiga cópia manual de arquivos.</div></details>
     <details class="glossary-item"><summary><span class="glossary-term">superpowers</span><span class="glossary-short">plugin de disciplina (dependência)</span></summary>
       <div class="glossary-body">Plugin oficial que fornece as skills de processo (brainstorming, TDD, verificação, debugging, code review). O mss-spec depende dele — o <code>kickoff</code> garante que esteja habilitado.</div></details>
+    <details class="glossary-item"><summary><span class="glossary-term">projeto.md</span><span class="glossary-short">base do projeto, lida antes de tudo</span></summary>
+      <div class="glossary-body">Arquivo opcional na raiz do projeto com o contexto/base fundamental. O <code>CLAUDE.md</code> gerado pelo <code>kickoff</code> instrui lê-lo primeiro, no início de toda sessão, se existir. Como o <code>CLAUDE.md</code> é sempre carregado, é o mecanismo de "ler antes de tudo" — e o "se existir" evita erro nos projetos que não têm.</div></details>
     <details class="glossary-item"><summary><span class="glossary-term">${CLAUDE_PLUGIN_ROOT}</span><span class="glossary-short">caminho do plugin em runtime</span></summary>
       <div class="glossary-body">Variável que os comandos usam para referenciar arquivos embutidos no próprio plugin (ex.: <code>${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE.md</code>). Se não resolver, o fallback é embutir o conteúdo no comando.</div></details>
   </div>
