@@ -7,7 +7,7 @@
 ## Modo de trabalho (nunca violar)
 - **Não codar antes do meu OK explícito**: diagnosticar → plano curto → esperar OK → verificar no real (nada de "análise de memória").
 - **Siga as skills do superpowers à risca** (brainstorming, test-driven-development, verification-before-completion, systematic-debugging, requesting-code-review). Precisão acima de velocidade.
-- **Memória do projeto**: no início do trabalho, leia `memory/MEMORY.md` (é só um índice, 1 linha por item). Abra um arquivo individual em `memory/` somente se o índice apontar relevância para a tarefa atual — nunca leia a pasta inteira de uma vez.
+- **Índices do projeto**: no início, leia `memory/MEMORY.md` (aprendizados) e `docs/superpowers/INDEX.md` (tarefas). Ambos são só índices (1 linha por item). Abra o arquivo individual só quando o índice apontar relevância; nunca leia a pasta inteira. Fallback: Grep/Glob sobre `docs/`.
 
 ## Contexto
 - **Stack/runtime:** <ex.: Python 3.x / Node / ...>
@@ -18,6 +18,7 @@
 
 ## Mapa de arquivos
 - `docs/AMBIENTE.md` — referência de ambiente corporativo MSIG (rede Docker, proxy, Postgres, SQL Server, Azure)
+- `docs/superpowers/INDEX.md` — índice das tarefas (specs/planos)
 - `<arquivo>` — <responsabilidade>
 
 ## Regras críticas (nunca violar) — cada uma nasce de um bug ou decisão real
