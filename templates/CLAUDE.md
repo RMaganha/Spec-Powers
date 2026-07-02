@@ -14,7 +14,7 @@
 ## Contexto
 - **Stack/runtime:** <ex.: Python 3.x / Node / ...>
 - **Como roda:** <CLI | serviço/porta | container | cron>
-- **UI:** <não | FastAPI + Jinja — descreva guias e ações>   <!-- se houver HTML, padrão = FastAPI -->
+- **UI:** <não | web — servidor FastAPI + Jinja; CSS = Tailwind + `@tailwindcss/typography`; descreva guias e ações>   <!-- HTML de aplicação: ver regra de front-end nas Regras críticas -->
 - **Integrações externas:** <sites / APIs / filas, ou "nenhuma">
 - **Banco:** <não | qual> — DDL versionada em `sql/NN_*.sql`, revisada por mim e rodada **FORA** do app; acesso isolado por fonte; credenciais só em `.env` (nunca commit/hardcode).
 
@@ -27,7 +27,8 @@
 ## Regras críticas (nunca violar) — cada uma nasce de um bug ou decisão real
 1. **Registro/memória/notas NUNCA em um arquivo `CLAUDE.md`** (ele é instrução sempre-ativa e polui o contexto). Memória persistente = pasta `memory/` deste projeto (dentro do repo, versionada com `MEMORY.md` como índice — NÃO em `~/.claude/projects/<proj>/memory/`); estado/handoff = plan files do superpowers.
 2. Nunca commitar `.env` nem segredos; nunca hardcode de credencial.
-3. <regra específica do seu projeto…>
+3. **Front-end de aplicação sempre com Tailwind CSS + plugin `@tailwindcss/typography`**; separe JS, CSS e estilos em arquivos e pastas próprias (ex.: `static/js/`, `static/css/`), nunca tudo inline num único HTML. Exceção: doc/relatório standalone de arquivo único e portável (aberto direto no navegador) — mantém self-contained.
+4. <regra específica do seu projeto…>
 
 <!-- Mantenha este arquivo curto. Se uma seção crescer demais, mova o detalhe para a spec da feature
      (docs/superpowers/specs/) ou para um doc em docs/, e deixe aqui só um ponteiro. -->
