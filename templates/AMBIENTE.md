@@ -31,55 +31,61 @@ services:
       - mitiai_network
 ```
 
-## 2. Proxy corporativo MSIG
+## 2. Proxy corporativo e SSL (via ambiente, não via código)
 
-Necessário pra `pip`, Docker Desktop e qualquer chamada HTTP saindo da rede da empresa.
+O proxy (`http://10.170.200.120:8080`) e o SSL são resolvidos **100% por variáveis de ambiente** —
+nada em código Python, e **zero config no Docker Desktop**.
 
-**Pip:**
+### Runtime — chamadas de saída do app (Graph, webhooks, APIs)
+No `.env` do projeto:
 ```
-pip config set global.proxy http://10.170.200.120:8080
+HTTP_PROXY=http://10.170.200.120:8080
+HTTPS_PROXY=http://10.170.200.120:8080
+NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,postgres-db,.ms-seg.com.br,.msig.com.br,.local
+SSL_VERIFY=false
 ```
+O `docker-compose.yml` injeta tudo no container via `env_file: [.env]`. O `httpx` lê
+`HTTP_PROXY/HTTPS_PROXY/NO_PROXY` sozinho porque o default é `trust_env=True` — **não** passe
+`proxies=` no código, e **nunca** use `trust_env=False` (mata o proxy). O `psycopg`/Postgres é TCP
+puro: **ignora** essas variáveis (por isso o banco não passa pelo proxy, mesmo sem estar no `NO_PROXY`).
 
-**Variáveis de ambiente globais (Windows, usuário):**
-```
-setx HTTP_PROXY "http://10.170.200.120:8080"
-setx HTTPS_PROXY "http://10.170.200.120:8080"
-```
-Precisa fechar e abrir um terminal novo depois — `setx` só afeta janelas abertas depois do comando.
-
-**Docker Desktop** (via interface, não tem comando): Settings → Resources → Proxies → Manual proxy
-configuration → Web Server (HTTP) e Secure Web Server (HTTPS) = `http://10.170.200.120:8080` →
-Apply & Restart. Se não pegar mesmo com "Apply & Restart": o backend (`com.docker.backend`) pode já
-estar rodando desde antes da config ser salva — dê Quit completo no Docker Desktop (botão direito no
-ícone da bandeja → Quit, não só fechar a janela), abra de novo, confirme a config e rode o build de novo.
-
-**Dentro de um container** (build args + env, normalmente num `docker-compose.office.yml` separado do
-compose principal, pra só ativar quando rodando na rede da empresa):
+### Build — download de libs pelo pip
+No `docker-compose.yml`, passe o proxy como build-arg (interpolado do próprio `.env`):
 ```yaml
 services:
-  <seu-servico>:
+  <servico>:
     build:
+      context: .
       args:
-        HTTP_PROXY: http://10.170.200.120:8080
-        HTTPS_PROXY: http://10.170.200.120:8080
-    environment:
-      - HTTP_PROXY=http://10.170.200.120:8080
-      - HTTPS_PROXY=http://10.170.200.120:8080
-      - NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,postgres-db,<outros-hosts-internos>,.ms-seg.com.br,.msig.com.br,.local
+        PIP_PROXY: ${HTTP_PROXY:-}
+    env_file: [.env]
+```
+No `Dockerfile`, use o arg SÓ no pip (não vaza pro runtime):
+```dockerfile
+ARG PIP_PROXY
+RUN pip install ${PIP_PROXY:+--proxy $PIP_PROXY} --no-cache-dir -r requirements.txt
 ```
 
-**Certificado corporativo (interceptação TLS do proxy)** — se o container faz chamadas HTTPS pra fora
-(ex.: API da OpenAI/Gemini), precisa confiar na CA da empresa, senão dá erro de SSL:
-```dockerfile
-COPY certs/corp-ca.pem /usr/local/share/ca-certificates/corp-ca.crt
-RUN update-ca-certificates || true \
-    && cat /usr/local/share/ca-certificates/corp-ca.crt >> /etc/ssl/certs/ca-certificates.crt
-ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-    PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
-    CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-```
-Peça o arquivo `corp-ca.pem` (mesmo de todos os projetos) se ainda não tiver.
+### SSL_VERIFY — aceitar a interceptação TLS do FortiGate
+O proxy intercepta TLS com um CA próprio. Em vez de injetar o `corp-ca.pem` na imagem, o padrão é
+**desligar a verificação nos clients de saída** via env:
+1. `app/config.py` (pydantic-settings): campo `ssl_verify: bool = True` (default seguro; `.env` com
+   `SSL_VERIFY=false` ativa a exceção — `pydantic` converte `false/0/no` → `False`).
+2. **Todo** `httpx.Client` de saída criado com `verify=settings.ssl_verify` — não esqueça nenhum
+   (Graph, webhook, etc.). `verify=False` aceita o CA autoassinado da interceptação.
+
+**Gotcha:** se os clients são criados a nível de módulo (no import), `SSL_VERIFY` é lido **uma vez** →
+mudar exige **reiniciar o app**. Se precisar trocar ao vivo, construa o `httpx.Client` por request com
+`verify=settings.ssl_verify` (cuidando pra não vazar conexão).
+
+**Fluxo completo:** `.env` → `env_file` no compose → env vars do container → `Settings()` lê
+`SSL_VERIFY` → `verify=` nos `httpx.Client`; e `HTTP_PROXY/HTTPS_PROXY` são lidos direto pelo `httpx`
+(`trust_env`). Proxy = `.env` (runtime) + `PIP_PROXY` build-arg (só build); cert corporativo fica de
+fora — `SSL_VERIFY=false` cobre.
+
+### Dev na máquina host (fora de container)
+Para `pip install` direto no Windows, uma vez: `pip config set global.proxy http://10.170.200.120:8080`.
+O app rodando com `uvicorn` local lê o proxy/SSL do mesmo `.env` (via pydantic + `trust_env` do httpx).
 
 ## 3. Postgres compartilhado
 

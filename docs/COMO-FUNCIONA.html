@@ -327,14 +327,15 @@ li{margin-bottom:6px}
   <div class="node" id="c-ambiente">
     <div class="node-head"><span class="node-idx">C3</span><span class="node-name">/mss-spec:ambiente</span><span class="node-type">infra no padrão MSIG</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> gera os arquivos de infraestrutura no padrão MSIG. Pergunta "containerizado?" e "roda no escritório?" e gera conforme. Mostra e confirma antes de gravar.</p>
+      <p><strong>O que faz:</strong> gera os arquivos de infraestrutura no padrão MSIG. Proxy e SSL ficam <strong>100% no <code>.env</code></strong> — zero config no Docker Desktop, sem certificado na imagem. Mostra e confirma antes de gravar.</p>
       <div class="kv">
-        <dt>Escreve</dt><dd><code>docker-compose.yml</code> (rede <code>mitiai_network</code> externa) e, se container-no-escritório, <code>docker-compose.office.yml</code> (override de proxy)</dd>
-        <dt>Fora de escopo</dt><dd>certificado corporativo (<code>corp-ca.pem</code>) — tratado manualmente se preciso</dd>
+        <dt>Escreve</dt><dd><code>docker-compose.yml</code> (rede <code>mitiai_network</code>, <code>env_file: [.env]</code> no runtime, <code>build.args.PIP_PROXY: ${HTTP_PROXY:-}</code>) + <code>Dockerfile</code> com <code>ARG PIP_PROXY</code> só no <code>pip install</code></dd>
+        <dt>.env</dt><dd><code>HTTP_PROXY</code>/<code>HTTPS_PROXY</code>/<code>NO_PROXY</code> + <code>SSL_VERIFY=false</code></dd>
+        <dt>SSL</dt><dd><code>SSL_VERIFY=false</code> + <code>verify=settings.ssl_verify</code> em todo <code>httpx.Client</code> — substitui a injeção de <code>corp-ca.pem</code></dd>
       </div>
-      <div class="label-row"><span class="pill ok">docker-compose</span><span class="pill db">proxy override</span></div>
+      <div class="label-row"><span class="pill ok">docker-compose</span><span class="pill db">proxy via .env</span><span class="pill warn">SSL_VERIFY</span></div>
       <p class="subhead">Sensível a</p>
-      <p>Se o container fizer HTTPS externo atrás do proxy do escritório, o certificado não é injetado por este comando — assume-se deploy em Azure (sem proxy) ou sem chamada externa local.</p>
+      <p><code>httpx</code> lê o proxy sozinho (<code>trust_env=True</code>) — nunca use <code>trust_env=False</code>. <code>psycopg</code>/TCP ignora proxy. Mudar <code>SSL_VERIFY</code> exige reiniciar o app (clients criados no import).</p>
     </div>
   </div>
 
