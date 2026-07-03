@@ -19,6 +19,8 @@ Não há hooks nem gates próprios — as skills do superpowers auto-ativam e **
 
 O kit só adiciona o que falta: **atalhos nomeados** + um **`CLAUDE.md`** certo + **`settings.json`** correto.
 
+Além disso, o `CLAUDE.md` gerado instrui o assistente a **assumir o papel de especialista sênior do domínio de cada tarefa** (UI/UX, desenvolvimento, DBA, segurança…) e voltar ao padrão (arquiteto/engenheiro sênior de desenvolvimento) depois do OK — persona especialista eleva a qualidade (nasceu de entregas de layout genéricas ruins).
+
 ## Fluxo
 1. **Constituir** — `/mss-spec:kickoff` entrevista (1 pergunta por vez via brainstorming), gera o `CLAUDE.md` e faz o scaffolding (memória, índice de tarefas, AMBIENTE). Serve para projeto novo **e existente** (faz scan antes de perguntar).
 2. **Por feature** — `/mss-spec:nova-feature <nome>`: brainstorming → objetivo + **Critérios de Aceite** (suas validações) + fora de escopo → seu OK → `writing-plans` → tasks pequenas → executa **uma por vez** (TDD → roda → cola a saída → próxima).
