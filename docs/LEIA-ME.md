@@ -29,6 +29,7 @@ um repositório git.
 | `/mss-spec:banco` | Gera o módulo de conexão (SQL Server via pyodbc, ou Postgres) no padrão MSIG |
 | `/mss-spec:precedentes <assunto>` | Consulta o catálogo do que já foi resolvido em outro projeto MSIG |
 | `/mss-spec:plano-teste` | Roda o plano de teste base (pytest); se 100% verde, vira o novo baseline anti-regressão |
+| `/mss-spec:modo <nível>` | Alterna o nível de cerimônia do fluxo: mínimo · médio (padrão) · alto |
 
 ## Fluxo
 

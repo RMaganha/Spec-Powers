@@ -6,6 +6,11 @@ disable-model-invocation: true
 
 Feature: **$ARGUMENTS**
 
+Conduza no **nível de cerimônia atual** (padrão **médio**; troque com `/mss-spec:modo`). Os passos abaixo descrevem o nível **alto**; ajuste ao nível ativo:
+- **médio**: design curto (poucas frases, sem doc de spec grande) + plano curto em tópicos + execução **inline** — sem subagentes nem dupla revisão. Ainda: OK antes de codar, TDD, verificação.
+- **mínimo**: pule spec/plano; alinhe em 1-2 perguntas e vá direto ao código com TDD leve.
+- **alto**: siga os passos como estão (spec doc + `writing-plans` + `subagent-driven-development`).
+
 1. Invoque **superpowers:brainstorming** para esta feature: objetivo (1 frase), **Critérios de Aceite testáveis** (formato "DADO… QUANDO… ENTÃO…") e fora de escopo. **Espere o OK do owner** antes de qualquer código.
 2. Invoque **superpowers:writing-plans**: quebre em tasks pequenas e ordenadas, cada uma cobrindo ≥1 Critério de Aceite por teste.
 3. **Atualize o índice de tarefas**: acrescente 1 linha em `docs/superpowers/INDEX.md`:

@@ -2,7 +2,7 @@
 
 > Referência (fica no repo do plugin; não vai pros projetos). O que faz o fluxo rodar num projeto é: o
 > plugin **superpowers** + o plugin **mss-spec** (comandos `/mss-spec:kickoff`, `/mss-spec:nova-feature`,
-> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`, `/mss-spec:plano-teste`) + o `CLAUDE.md`.
+> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`, `/mss-spec:plano-teste`, `/mss-spec:modo`) + o `CLAUDE.md`.
 > Aqui está o "como" e o "porquê", enxuto.
 
 ## Princípio: a disciplina já vem do superpowers
@@ -18,6 +18,8 @@ Não há hooks nem gates próprios — as skills do superpowers auto-ativam e **
 | Isolar e fechar | `using-git-worktrees` / `finishing-a-development-branch` |
 
 O kit só adiciona o que falta: **atalhos nomeados** + um **`CLAUDE.md`** certo + **`settings.json`** correto.
+
+**Nível de cerimônia** (o ritual completo do superpowers é lento): o fluxo tem 3 níveis — **mínimo** (executa direto), **médio** (padrão: design curto + plano curto + execução inline) e **alto** (ritual completo com subagentes/dupla revisão, só p/ feature grande). Troque com `/mss-spec:modo`. Ortogonal ao `effortLevel` do `settings.json` (padrão `medium`) — os dois juntos controlam velocidade × profundidade.
 
 Além disso, o `CLAUDE.md` gerado instrui o assistente a **assumir o papel de especialista sênior do domínio de cada tarefa** (UI/UX, desenvolvimento, DBA, segurança…) e voltar ao padrão (arquiteto/engenheiro sênior de desenvolvimento) depois do OK — persona especialista eleva a qualidade (nasceu de entregas de layout genéricas ruins).
 
