@@ -133,6 +133,7 @@ li{margin-bottom:6px}
       <li><a href="#c-precedentes"><span class="nav-num">C5</span>precedentes</a></li>
       <li><a href="#c-plano-teste"><span class="nav-num">C6</span>plano-teste</a></li>
       <li><a href="#c-modo"><span class="nav-num">C7</span>modo</a></li>
+      <li><a href="#c-documentacao"><span class="nav-num">C8</span>documentacao</a></li>
       <div class="nav-group">Fundamentos</div>
       <li><a href="#memoria"><span class="nav-num">04</span>Memória &amp; índices</a></li>
       <li><a href="#ambiente-msig"><span class="nav-num">05</span>Ambiente MSIG</a></li>
@@ -152,7 +153,7 @@ li{margin-bottom:6px}
   <h1>Um <em>plugin</em>, cinco comandos,<br>zero cópia <em>manual</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> adiciona um fluxo Spec-Driven leve ao Claude Code, por cima do plugin <strong>superpowers</strong>. Instala uma vez, vale em todo projeto, e faz o <em>scaffolding</em> dos arquivos que antes você copiava à mão — já carregando o padrão de infraestrutura MSIG (rede Docker, proxy, Postgres/SQL Server, Azure).</p>
   <div class="hero-meta">
-    <div>Comandos<span>7 namespaced</span></div>
+    <div>Comandos<span>8 namespaced</span></div>
     <div>Templates<span>5 embutidos</span></div>
     <div>Memória<span>2 camadas / 2 índices</span></div>
     <div>Dependência<span>superpowers</span></div>
@@ -280,6 +281,7 @@ li{margin-bottom:6px}
 │   ├── CLAUDE.md   settings.json   MEMORY.md   INDEX.md
 │   ├── AMBIENTE.md   FRONTEND.md   (design system MSIG)
 │   ├── docker/     docker-compose.yml · docker-compose.office.yml · Dockerfile · dockerignore
+│   ├── doc/template.html   (estilo editorial p/ documentação)
 │   ├── certs/corp-ca.pem   (CA corporativa MSIG)
 │   └── assets/logo.png   (logo MSIG)
 └── docs/                       manuais (não vão pros projetos)
@@ -295,7 +297,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">Comandos</div>
-  <h2>Os sete <em>comandos</em>, um a um</h2>
+  <h2>Os oito <em>comandos</em>, um a um</h2>
   <p class="lead">Todos são namespaced (<code>/mss-spec:&lt;nome&gt;</code>) e marcados com <code>disable-model-invocation: true</code> — só você os dispara, o modelo não os invoca sozinho.</p>
 
   <div class="node" id="c-kickoff">
@@ -402,6 +404,21 @@ li{margin-bottom:6px}
       <p><code>/mss-spec:modo mínimo</code> · <code>/mss-spec:modo alto</code>. Ortogonal ao <code>effortLevel</code> do <code>settings.json</code> (padrão <code>medium</code>) — juntos controlam velocidade × profundidade.</p>
     </div>
   </div>
+
+  <div class="node" id="c-documentacao">
+    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">/mss-spec:documentacao</span><span class="node-type">doc HTML editorial</span></div>
+    <div class="node-body">
+      <p><strong>O que faz:</strong> gera documentação HTML no <strong>estilo editorial MSIG</strong> — este mesmo layout que você está lendo. Copia o template padrão e substitui só o conteúdo, mantendo a `&lt;style&gt;` intacta.</p>
+      <div class="kv">
+        <dt>Base</dt><dd><code>templates/doc/template.html</code> (mesmo CSS/fontes/classes); exemplo completo = este documento</dd>
+        <dt>Blocos</dt><dd>hero · section · callout · node/card · table · flow · scorebar · glossary · foot</dd>
+        <dt>Saída</dt><dd><strong>arquivo único self-contained</strong> em <code>docs/&lt;nome&gt;.html</code> — a exceção à regra de separar CSS/JS (doc portável)</dd>
+      </div>
+      <div class="label-row"><span class="pill ok">estilo fixo</span><span class="pill graph">self-contained</span></div>
+      <p class="subhead">Uso</p>
+      <p><code>/mss-spec:documentacao "arquitetura do painel"</code></p>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="memoria">
@@ -505,7 +522,7 @@ li{margin-bottom:6px}
   <ol>
     <li>Registrar: <code>/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers</code></li>
     <li>Instalar (escopo <code>user</code>): <code>/plugin install mss-spec@mss-local</code></li>
-    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 7 comandos; a skill <code>precedentes-msig</code> aparece.</li>
+    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 8 comandos; a skill <code>precedentes-msig</code> aparece.</li>
     <li>Numa pasta vazia: <code>/mss-spec:kickoff "teste"</code> gera os 5 arquivos.</li>
     <li>Testar os demais: <code>nova-feature</code>, <code>banco</code>, <code>ambiente</code>, <code>precedentes</code>.</li>
     <li>Confirmado, remover a skill pessoal duplicada: <code>rm -rf ~/.claude/skills/precedentes-msig</code></li>
