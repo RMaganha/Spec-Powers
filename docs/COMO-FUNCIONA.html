@@ -134,6 +134,7 @@ li{margin-bottom:6px}
       <li><a href="#c-plano-teste"><span class="nav-num">C6</span>plano-teste</a></li>
       <li><a href="#c-modo"><span class="nav-num">C7</span>modo</a></li>
       <li><a href="#c-documentacao"><span class="nav-num">C8</span>documentacao</a></li>
+      <li><a href="#c-memory"><span class="nav-num">C9</span>memory</a></li>
       <div class="nav-group">Fundamentos</div>
       <li><a href="#memoria"><span class="nav-num">04</span>Memória &amp; índices</a></li>
       <li><a href="#ambiente-msig"><span class="nav-num">05</span>Ambiente MSIG</a></li>
@@ -153,7 +154,7 @@ li{margin-bottom:6px}
   <h1>Um <em>plugin</em>, cinco comandos,<br>zero cópia <em>manual</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> adiciona um fluxo Spec-Driven leve ao Claude Code, por cima do plugin <strong>superpowers</strong>. Instala uma vez, vale em todo projeto, e faz o <em>scaffolding</em> dos arquivos que antes você copiava à mão — já carregando o padrão de infraestrutura MSIG (rede Docker, proxy, Postgres/SQL Server, Azure).</p>
   <div class="hero-meta">
-    <div>Comandos<span>8 namespaced</span></div>
+    <div>Comandos<span>9 namespaced</span></div>
     <div>Templates<span>5 embutidos</span></div>
     <div>Memória<span>2 camadas / 2 índices</span></div>
     <div>Dependência<span>superpowers</span></div>
@@ -297,7 +298,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">Comandos</div>
-  <h2>Os oito <em>comandos</em>, um a um</h2>
+  <h2>Os nove <em>comandos</em>, um a um</h2>
   <p class="lead">Todos são namespaced (<code>/mss-spec:&lt;nome&gt;</code>) e marcados com <code>disable-model-invocation: true</code> — só você os dispara, o modelo não os invoca sozinho.</p>
 
   <div class="node" id="c-kickoff">
@@ -419,6 +420,21 @@ li{margin-bottom:6px}
       <p><code>/mss-spec:documentacao "arquitetura do painel"</code></p>
     </div>
   </div>
+
+  <div class="node" id="c-memory">
+    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">/mss-spec:memory</span><span class="node-type">resgate de memória</span></div>
+    <div class="node-body">
+      <p><strong>O que faz:</strong> traz pro repositório a memória que ficou na pasta <strong>nativa</strong> do Claude (`~/.claude/projects/&lt;proj&gt;/memory/`) — volátil e fora do git. Não-destrutivo: só copia; a nativa fica intacta como fallback.</p>
+      <div class="kv">
+        <dt>Por quê</dt><dd>a pasta nativa some se o `.claude` for limpo/reinstalado e não viaja com o código — risco de perder tudo</dd>
+        <dt>Quando</dt><dd>em projeto sem <code>/mss-spec:kickoff</code> (onde a memória cai no default nativo), pra migrar pro repo</dd>
+        <dt>Prevenção</dt><dd>a regra no <code>~/.claude/CLAUDE.md</code> global manda memória nova já nascer no repo, em todo projeto</dd>
+      </div>
+      <div class="label-row"><span class="pill ok">não-destrutivo</span><span class="pill warn">anti-perda</span></div>
+      <p class="subhead">Uso</p>
+      <p><code>/mss-spec:memory</code></p>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="memoria">
@@ -522,7 +538,7 @@ li{margin-bottom:6px}
   <ol>
     <li>Registrar: <code>/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers</code></li>
     <li>Instalar (escopo <code>user</code>): <code>/plugin install mss-spec@mss-local</code></li>
-    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 8 comandos; a skill <code>precedentes-msig</code> aparece.</li>
+    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 9 comandos; a skill <code>precedentes-msig</code> aparece.</li>
     <li>Numa pasta vazia: <code>/mss-spec:kickoff "teste"</code> gera os 5 arquivos.</li>
     <li>Testar os demais: <code>nova-feature</code>, <code>banco</code>, <code>ambiente</code>, <code>precedentes</code>.</li>
     <li>Confirmado, remover a skill pessoal duplicada: <code>rm -rf ~/.claude/skills/precedentes-msig</code></li>

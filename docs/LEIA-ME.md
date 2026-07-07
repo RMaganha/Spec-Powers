@@ -31,6 +31,7 @@ um repositório git.
 | `/mss-spec:plano-teste` | Roda o plano de teste base (pytest); se 100% verde, vira o novo baseline anti-regressão |
 | `/mss-spec:modo <nível>` | Alterna o nível de cerimônia do fluxo: mínimo · médio (padrão) · alto |
 | `/mss-spec:documentacao <tema>` | Gera documentação HTML no estilo editorial MSIG (arquivo único self-contained) |
+| `/mss-spec:memory` | Resgata memória da pasta nativa (`~/.claude/...`) pro `memory/` do repo (não-destrutivo) |
 
 ## Fluxo
 

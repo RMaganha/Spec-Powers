@@ -2,7 +2,7 @@
 
 > Referência (fica no repo do plugin; não vai pros projetos). O que faz o fluxo rodar num projeto é: o
 > plugin **superpowers** + o plugin **mss-spec** (comandos `/mss-spec:kickoff`, `/mss-spec:nova-feature`,
-> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`, `/mss-spec:plano-teste`, `/mss-spec:modo`, `/mss-spec:documentacao`) + o `CLAUDE.md`.
+> `/mss-spec:ambiente`, `/mss-spec:banco`, `/mss-spec:precedentes`, `/mss-spec:plano-teste`, `/mss-spec:modo`, `/mss-spec:documentacao`, `/mss-spec:memory`) + o `CLAUDE.md`.
 > Aqui está o "como" e o "porquê", enxuto.
 
 ## Princípio: a disciplina já vem do superpowers
