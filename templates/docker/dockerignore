@@ -1,0 +1,27 @@
+# Copie para `.dockerignore` na raiz. Segredos e artefatos que NÃO entram na imagem.
+.env
+.env.*
+.git/
+.gitignore
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / build do Tailwind (o app.css compilado já está em static/css/)
+node_modules/
+
+# Dev não necessário em runtime
+tests/
+docs/
+sql/
+memory/
+*.md
+.claude/
+.vscode/
+.idea/

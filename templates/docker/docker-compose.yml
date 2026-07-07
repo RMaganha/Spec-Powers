@@ -1,0 +1,26 @@
+# Compose BASE — use sozinho em CASA (VPN, sem proxy):
+#   docker compose up -d --build
+# Ajuste: <servico> (nome do serviço/imagem/container) e a porta, se necessário.
+services:
+  <servico>:
+    build:
+      context: .
+      args:
+        # Proxy do pip no build — vem do HTTP_PROXY do .env (vazio em casa; o office.yml sobrescreve).
+        PIP_PROXY: ${HTTP_PROXY:-}
+    image: <servico>
+    container_name: <servico>
+    ports:
+      - "8000:8000"
+    # env_file passa TODAS as vars do .env pro runtime (HTTP_PROXY/HTTPS_PROXY/NO_PROXY,
+    # SSL_VERIFY, DATABASE_URL, etc.) — sem depender do proxy do Docker Desktop.
+    env_file:
+      - .env
+    networks:
+      - mitiai_network              # mesma rede dos demais containers internos
+    mem_limit: 512m
+    restart: unless-stopped
+networks:
+  mitiai_network:
+    name: mitiai_network
+    external: true                  # já existe (criada por outro stack); não recriar aqui

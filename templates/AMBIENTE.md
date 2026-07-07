@@ -31,61 +31,39 @@ services:
       - mitiai_network
 ```
 
-## 2. Proxy corporativo e SSL (via ambiente, não via código)
+## 2. Proxy e TLS corporativo — 4 camadas que NÃO se confundem
 
-O proxy (`http://10.170.200.120:8080`) e o SSL são resolvidos **100% por variáveis de ambiente** —
-nada em código Python, e **zero config no Docker Desktop**.
+Atrás da rede MSIG, proxy e TLS aparecem em **4 pontos independentes**; cada um resolve uma coisa.
+Confundi-los é a maior fonte de "funciona no build mas não no runtime" (e vice-versa).
 
-### Runtime — chamadas de saída do app (Graph, webhooks, APIs)
-No `.env` do projeto:
-```
-HTTP_PROXY=http://10.170.200.120:8080
-HTTPS_PROXY=http://10.170.200.120:8080
-NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,postgres-db,.ms-seg.com.br,.msig.com.br,.local
-SSL_VERIFY=false
-```
-O `docker-compose.yml` injeta tudo no container via `env_file: [.env]`. O `httpx` lê
-`HTTP_PROXY/HTTPS_PROXY/NO_PROXY` sozinho porque o default é `trust_env=True` — **não** passe
-`proxies=` no código, e **nunca** use `trust_env=False` (mata o proxy). O `psycopg`/Postgres é TCP
-puro: **ignora** essas variáveis (por isso o banco não passa pelo proxy, mesmo sem estar no `NO_PROXY`).
+| Camada | Onde se configura | Para quê |
+|---|---|---|
+| **Pull da imagem base (`FROM`)** | **daemon** → Docker Desktop → Settings → Resources → Proxies | baixar `python:3.14-slim` do Docker Hub |
+| **Build (pip/apt)** | `build.args` `HTTP_PROXY`/`PIP_PROXY` (no `docker-compose.office.yml`; o base pega `${HTTP_PROXY}` do `.env`) | instalar deps durante o build |
+| **Runtime (saída do app: Graph, n8n, APIs)** | `.env` via `env_file` (`HTTP_PROXY/HTTPS_PROXY/NO_PROXY`) | chamadas HTTP de saída do container |
+| **TLS interceptado (FortiGate)** | CA corporativa **embutida na imagem** (`certs/corp-ca.pem` → store do sistema, no `Dockerfile`) **+** `SSL_VERIFY=false` no `.env` | aceitar o CA autoassinado do proxy |
 
-### Build — download de libs pelo pip
-No `docker-compose.yml`, passe o proxy como build-arg (interpolado do próprio `.env`):
-```yaml
-services:
-  <servico>:
-    build:
-      context: .
-      args:
-        PIP_PROXY: ${HTTP_PROXY:-}
-    env_file: [.env]
-```
-No `Dockerfile`, use o arg SÓ no pip (não vaza pro runtime):
-```dockerfile
-ARG PIP_PROXY
-RUN pip install ${PIP_PROXY:+--proxy $PIP_PROXY} --no-cache-dir -r requirements.txt
-```
+Notas que evitam pegadinha:
+- O `httpx` lê `HTTP_PROXY/HTTPS_PROXY/NO_PROXY` sozinho (`trust_env=True`) — **não** passe `proxies=` no código nem use `trust_env=False`.
+- `SSL_VERIFY` é lido no `config.py` (pydantic) e vira `verify=` de **todo** `httpx.Client` de saída. Clients criados no import → mudar `SSL_VERIFY` **pede restart**.
+- **`psycopg`/Postgres é TCP puro: ignora o proxy** (por isso o banco não passa por ele).
+- `corp-ca.pem` = bundle de raízes do Windows (inclui a CA da MSIG). Inofensivo fora da empresa e não quebra o build se faltar. Projetos com **Chrome/Selenium headless** precisam registrar a CA também no NSS (`/root/.pki/nssdb`) — ver bloco opcional no `Dockerfile`.
 
-### SSL_VERIFY — aceitar a interceptação TLS do FortiGate
-O proxy intercepta TLS com um CA próprio. Em vez de injetar o `corp-ca.pem` na imagem, o padrão é
-**desligar a verificação nos clients de saída** via env:
-1. `app/config.py` (pydantic-settings): campo `ssl_verify: bool = True` (default seguro; `.env` com
-   `SSL_VERIFY=false` ativa a exceção — `pydantic` converte `false/0/no` → `False`).
-2. **Todo** `httpx.Client` de saída criado com `verify=settings.ssl_verify` — não esqueça nenhum
-   (Graph, webhook, etc.). `verify=False` aceita o CA autoassinado da interceptação.
+### Subir o Docker — casa (VPN) vs escritório (proxy)
+- **Casa (VPN, sem proxy):** `docker compose up -d --build`
+- **Escritório (proxy MSIG):** `docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build`
 
-**Gotcha:** se os clients são criados a nível de módulo (no import), `SSL_VERIFY` é lido **uma vez** →
-mudar exige **reiniciar o app**. Se precisar trocar ao vivo, construa o `httpx.Client` por request com
-`verify=settings.ssl_verify` (cuidando pra não vazar conexão).
+**Gotcha — `load metadata for python:3.14-slim ... i/o timeout`:** o pull do `FROM` é do **daemon** e NÃO usa `build.args`/`.env`. Resolva com **um** dos dois:
+1. Proxy no **Docker Desktop** (Settings → Resources → Proxies → Manual → HTTP/HTTPS = `http://10.170.200.120:8080` → Apply & Restart; se persistir, **Quit** total pela bandeja + reabrir).
+2. **Pré-baixar a base** numa rede que funcione: `docker pull python:3.14-slim`. O cache é **por máquina**, então o build reusa e não vai mais no Docker Hub. ← costuma ser o que resolve.
 
-**Fluxo completo:** `.env` → `env_file` no compose → env vars do container → `Settings()` lê
-`SSL_VERIFY` → `verify=` nos `httpx.Client`; e `HTTP_PROXY/HTTPS_PROXY` são lidos direto pelo `httpx`
-(`trust_env`). Proxy = `.env` (runtime) + `PIP_PROXY` build-arg (só build); cert corporativo fica de
-fora — `SSL_VERIFY=false` cobre.
+Os arquivos `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile`, `.dockerignore` e
+`certs/corp-ca.pem` já vêm padronizados (o `/mss-spec:ambiente` os copia); ajuste só o nome do serviço
+e os `COPY` do app.
 
 ### Dev na máquina host (fora de container)
 Para `pip install` direto no Windows, uma vez: `pip config set global.proxy http://10.170.200.120:8080`.
-O app rodando com `uvicorn` local lê o proxy/SSL do mesmo `.env` (via pydantic + `trust_env` do httpx).
+O app rodando com `uvicorn` local lê proxy/SSL do mesmo `.env` (pydantic + `trust_env` do httpx).
 
 ## 3. Postgres compartilhado
 
