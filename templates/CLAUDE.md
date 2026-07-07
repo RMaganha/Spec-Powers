@@ -24,13 +24,14 @@
 ## Mapa de arquivos
 - `projeto.md` — base/contexto fundamental do projeto (lido primeiro; pode não existir)
 - `docs/AMBIENTE.md` — referência de ambiente corporativo MSIG (rede Docker, proxy, Postgres, SQL Server, Azure)
+- `docs/FRONTEND.md` — design system MSIG (só se tiver UI web): tokens, layout admin, ícones, JS, componentização
 - `docs/superpowers/INDEX.md` — índice das tarefas (specs/planos)
 - `<arquivo>` — <responsabilidade>
 
 ## Regras críticas (nunca violar) — cada uma nasce de um bug ou decisão real
 1. **Registro/memória/notas NUNCA em um arquivo `CLAUDE.md`** (ele é instrução sempre-ativa e polui o contexto). Memória persistente = pasta `memory/` deste projeto (dentro do repo, versionada com `MEMORY.md` como índice — NÃO em `~/.claude/projects/<proj>/memory/`); estado/handoff = plan files do superpowers.
 2. Nunca commitar `.env` nem segredos; nunca hardcode de credencial.
-3. **Front-end de aplicação sempre com Tailwind CSS + plugin `@tailwindcss/typography`**; separe JS, CSS e estilos em arquivos e pastas próprias (ex.: `static/js/`, `static/css/`), nunca tudo inline num único HTML. Exceção: doc/relatório standalone de arquivo único e portável (aberto direto no navegador) — mantém self-contained.
+3. **Front-end de aplicação sempre com Tailwind CSS + plugin `@tailwindcss/typography`**; separe JS, CSS e estilos em arquivos e pastas próprias (ex.: `static/js/`, `static/css/`), nunca tudo inline num único HTML. Siga o **design system MSIG em `docs/FRONTEND.md`** (tokens navy/brand-red/canvas, sidebar admin colapsável, ícones SVG inline estilo Lucide, JS vanilla com hooks `data-*`, componentização Jinja). Exceção: doc/relatório standalone de arquivo único e portável — mantém self-contained.
 4. <regra específica do seu projeto…>
 
 <!-- Mantenha este arquivo curto. Se uma seção crescer demais, mova o detalhe para a spec da feature
