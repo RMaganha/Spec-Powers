@@ -18,6 +18,7 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - `templates/INDEX.md`    → `docs/superpowers/INDEX.md`
    - `templates/AMBIENTE.md` → `docs/AMBIENTE.md` (ajuste os `<...>` do projeto; apague seções que não se aplicam, ex.: sem SQL Server)
    - `templates/settings.json` → `.claude/settings.json` (se ainda não existir do passo 2)
+   - `templates/gitignore` → `.gitignore` (se não existir; se existir, garanta que `.env` está ignorado — adicione a linha se faltar). Protege segredo de subir.
    - **Se o projeto tem UI web:** `templates/FRONTEND.md` → `docs/FRONTEND.md` (design system MSIG) e `templates/assets/logo.png` → `static/img/logo.png` (logo MSIG). Se não tem UI, pule os dois.
 6. NÃO crie specs/planos agora — features vêm depois com `/mss-spec:nova-feature`.
 

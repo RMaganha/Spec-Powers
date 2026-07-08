@@ -279,7 +279,7 @@ li{margin-bottom:6px}
 ├── skills/
 │   └── precedentes-msig/SKILL.md   catálogo de auto-disparo
 ├── templates/                  embutidos; os comandos copiam pro projeto
-│   ├── CLAUDE.md   settings.json   MEMORY.md   INDEX.md
+│   ├── CLAUDE.md   settings.json   gitignore   MEMORY.md   INDEX.md
 │   ├── AMBIENTE.md   FRONTEND.md   (design system MSIG)
 │   ├── docker/     docker-compose.yml · docker-compose.office.yml · Dockerfile · dockerignore
 │   ├── doc/template.html   (estilo editorial p/ documentação)
@@ -306,7 +306,7 @@ li{margin-bottom:6px}
     <div class="node-body">
       <p><strong>O que faz:</strong> constitui um projeto (novo ou existente). Invoca <code>brainstorming</code>, faz scan se for brownfield, entrevista você uma coisa por vez e, ao final, faz o scaffolding.</p>
       <div class="kv">
-        <dt>Escreve</dt><dd><code>CLAUDE.md</code>, <code>.claude/settings.json</code>, <code>memory/MEMORY.md</code>, <code>docs/superpowers/INDEX.md</code>, <code>docs/AMBIENTE.md</code> e — se tiver UI — <code>docs/FRONTEND.md</code> + <code>static/img/logo.png</code></dd>
+        <dt>Escreve</dt><dd><code>CLAUDE.md</code>, <code>.claude/settings.json</code>, <code>.gitignore</code>, <code>memory/MEMORY.md</code>, <code>docs/superpowers/INDEX.md</code>, <code>docs/AMBIENTE.md</code> e — se tiver UI — <code>docs/FRONTEND.md</code> + <code>static/img/logo.png</code></dd>
         <dt>Garante</dt><dd>a dependência do superpowers (verifica e, se faltar, habilita no settings)</dd>
         <dt>Base</dt><dd>o <code>CLAUDE.md</code> gerado instrui ler <code>projeto.md</code> da raiz <strong>antes de tudo</strong>, se existir (opcional por projeto)</dd>
         <dt>Quando usar</dt><dd>uma vez, ao adotar o padrão num projeto</dd>
@@ -424,7 +424,7 @@ li{margin-bottom:6px}
   <div class="node" id="c-memory">
     <div class="node-head"><span class="node-idx">C9</span><span class="node-name">/mss-spec:memory</span><span class="node-type">resgate de memória</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> traz pro repositório a memória que ficou na pasta <strong>nativa</strong> do Claude (`~/.claude/projects/&lt;proj&gt;/memory/`) — volátil e fora do git. Não-destrutivo: só copia; a nativa fica intacta como fallback.</p>
+      <p><strong>O que faz:</strong> traz pro repositório a memória que ficou na pasta <strong>nativa</strong> do Claude (`~/.claude/projects/&lt;proj&gt;/memory/`) — volátil e fora do git. Copia (não-destrutivo; a nativa fica intacta) e depois <strong>commita</strong> o <code>memory/</code> — <code>git add</code> nominal, local, sem push. É o commit que torna a memória durável de fato.</p>
       <div class="kv">
         <dt>Por quê</dt><dd>a pasta nativa some se o `.claude` for limpo/reinstalado e não viaja com o código — risco de perder tudo</dd>
         <dt>Quando</dt><dd>em projeto sem <code>/mss-spec:kickoff</code> (onde a memória cai no default nativo), pra migrar pro repo</dd>

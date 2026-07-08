@@ -23,7 +23,7 @@ um repositório git.
 
 | Comando | O que faz |
 |---|---|
-| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `.claude/settings.json` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
+| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
 | `/mss-spec:nova-feature <nome>` | Abre feature: Critérios de Aceite → seu OK → plano → tasks (TDD + verificação); mantém o `INDEX.md` |
 | `/mss-spec:ambiente` | Gera infra no padrão MSIG (docker-compose com `mitiai_network`; override de proxy do escritório) |
 | `/mss-spec:banco` | Gera o módulo de conexão (SQL Server via pyodbc, ou Postgres) no padrão MSIG |
