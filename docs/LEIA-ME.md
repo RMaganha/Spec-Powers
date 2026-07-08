@@ -55,6 +55,12 @@ implementar algo que pode já existir em outro projeto (RAG/busca vetorial, extr
 etc.) — além do comando `/mss-spec:precedentes` para consulta explícita. Cresce por linha, sem
 cerimônia.
 
+## Autoteste do kit
+`python -m pytest tests/ -q` — smoke que confere que todo caminho citado nos commands/skills existe
+(`${CLAUDE_PLUGIN_ROOT}/...` e `templates/...`), que os manifestos são JSON válidos e coerentes, e que
+os compose templates parseiam. Rode antes de commitar mudança em comando/template. Baseline em
+`docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
+
 ## Documentos deste repo (não vão pros projetos)
 - `docs/ROTEIRO-SPEC-DRIVEN.md` — playbook do owner (princípio, fluxo, tipos de mudança, DoD, memória, ambiente).
 - `docs/referencia-spec-driven.md` — o porquê do kit (comparação com o CLI `@igoruehara/spec-driven`, lições do ATM).

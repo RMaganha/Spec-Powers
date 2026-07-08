@@ -12,18 +12,22 @@
 #
 # Gotcha: o pull da imagem base (FROM) é tarefa do DAEMON e NÃO usa estes args. Se der
 # `load metadata ... i/o timeout`, ver docs/AMBIENTE.md (proxy no Docker Desktop OU `docker pull python:3.14-slim`).
+# Valores do proxy MSIG num lugar só (anchor YAML reusado em build.args e environment).
+# Alternativa: preencher HTTP(S)_PROXY/NO_PROXY no .env da máquina do escritório — o compose base
+# já repassa .env pro build E pro runtime; este arquivo é o caminho pra manter UM .env igual em
+# todas as máquinas e ligar o proxy só pelo -f.
+x-office-proxy: &office-proxy
+  HTTP_PROXY: http://10.170.200.120:8080
+  HTTPS_PROXY: http://10.170.200.120:8080
+  NO_PROXY: localhost,127.0.0.1,::1,host.docker.internal,MSSQLD0,10.170.210.36,postgres-db,.ms-seg.com.br,.msig.com.br,.local
 services:
   <servico>:
     build:
       context: .
       args:
-        HTTP_PROXY: http://10.170.200.120:8080
-        HTTPS_PROXY: http://10.170.200.120:8080
-        NO_PROXY: localhost,127.0.0.1,::1,host.docker.internal,MSSQLD0,10.170.210.36,postgres-db,.ms-seg.com.br,.msig.com.br,.local
+        <<: *office-proxy
     environment:
-      - HTTP_PROXY=http://10.170.200.120:8080
-      - HTTPS_PROXY=http://10.170.200.120:8080
-      - NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,MSSQLD0,10.170.210.36,postgres-db,.ms-seg.com.br,.msig.com.br,.local
+      <<: *office-proxy
     networks:
       - mitiai_network
 networks:

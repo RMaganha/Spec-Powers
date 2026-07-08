@@ -1,0 +1,27 @@
+# Copie para `.gitignore` na raiz do projeto.
+
+# Segredos — NUNCA commitar. Mantém o .env.example (esse sim é versionado).
+.env
+.env.*
+!.env.example
+
+# Config local do Claude Code (a compartilhada .claude/settings.json vai; a local não)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / build do Tailwind (o static/css/app.css compilado FICA versionado)
+node_modules/
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

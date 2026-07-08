@@ -9,8 +9,10 @@ ARG PIP_PROXY=
 
 # --- CA corporativa MSIG (proxy FortiGate intercepta TLS) — confiar no certificado ---
 # certs/corp-ca.pem = bundle de raízes do Windows (inclui a CA da MSIG). Inofensivo fora da empresa
-# (só adiciona CAs confiáveis) e não quebra o build se o arquivo não existir. Entra no store do
-# sistema, usado por Python/requests/curl/ODBC.
+# (só adiciona CAs confiáveis). Entra no store do sistema, usado por Python/requests/curl/ODBC.
+# O COPY é obrigatório: RUN não enxerga o build context — sem ele o `if` abaixo nunca acha o arquivo
+# e a CA não entra na imagem. O /mss-spec:ambiente garante o certs/corp-ca.pem no projeto.
+COPY certs ./certs
 RUN if [ -f certs/corp-ca.pem ]; then \
       cp certs/corp-ca.pem /usr/local/share/ca-certificates/corp-ca.crt && \
       (update-ca-certificates || true) && \

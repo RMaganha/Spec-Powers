@@ -13,8 +13,9 @@ Conduza no **nível de cerimônia atual** (padrão **médio**; troque com `/mss-
 
 1. Invoque **superpowers:brainstorming** para esta feature: objetivo (1 frase), **Critérios de Aceite testáveis** (formato "DADO… QUANDO… ENTÃO…") e fora de escopo. **Espere o OK do owner** antes de qualquer código.
 2. Invoque **superpowers:writing-plans**: quebre em tasks pequenas e ordenadas, cada uma cobrindo ≥1 Critério de Aceite por teste.
-3. **Atualize o índice de tarefas**: acrescente 1 linha em `docs/superpowers/INDEX.md`:
-   `- [<nome-da-feature>](specs/<arquivo>-design.md) — <objetivo em 1 frase> — aberta`
+3. **Atualize o índice de tarefas**: acrescente 1 linha em `docs/superpowers/INDEX.md`. O link aponta pro doc que **existe de fato** no nível ativo:
+   - **alto** (tem doc de spec): `- [<nome-da-feature>](specs/<arquivo>-design.md) — <objetivo em 1 frase> — aberta`
+   - **médio/mínimo** (sem doc de spec): `- <nome-da-feature> — <objetivo em 1 frase> — aberta` (sem link; se houver plan file, linke-o no lugar). Nunca linke arquivo que não foi criado.
 4. Execute **uma task por vez** (superpowers:executing-plans / subagent-driven-development): TDD (teste do AC → vermelho → código → verde) e **rode e cole a saída** (verification-before-completion) antes da próxima.
 5. Ao concluir: `requesting-code-review` → **rode `/mss-spec:plano-teste`** (a suíte inteira; as validações desta feature dobram no baseline anti-regressão, que só é atualizado se passar 100%) → `finishing-a-development-branch`. Mude o status da linha no `INDEX.md` para `fechada`. Se surgiu regra durável, 1 linha em "Regras críticas" do `CLAUDE.md`; se surgiu aprendizado durável, grave em `memory/` (arquivo + linha no `MEMORY.md`).
 

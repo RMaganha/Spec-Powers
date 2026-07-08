@@ -6,8 +6,12 @@ services:
     build:
       context: .
       args:
-        # Proxy do pip no build — vem do HTTP_PROXY do .env (vazio em casa; o office.yml sobrescreve).
+        # Proxy do BUILD — vem do .env (vazio em casa; o office.yml sobrescreve com valores fixos).
+        # PIP_PROXY cobre o pip; HTTP(S)_PROXY são ARGs predefinidos do Docker e cobrem apt/curl etc.
         PIP_PROXY: ${HTTP_PROXY:-}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
     image: <servico>
     container_name: <servico>
     ports:

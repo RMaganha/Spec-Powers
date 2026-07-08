@@ -3,3 +3,4 @@
 - [Front-end: Tailwind + arquivos separados](feedback_frontend_tailwind_arquivos_separados.md) — HTML de app: Tailwind + @tailwindcss/typography, JS/CSS em pastas próprias, nunca inline (exceto doc standalone)
 - [Assumir papel de especialista por domínio](feedback_assumir_papel_especialista.md) — cada tarefa: persona sênior do domínio (UI/dev/DBA…), anuncia, faz, OK, volta ao arquiteto/dev sênior
 - [Nível de cerimônia / velocidade](feedback_nivel_cerimonia_velocidade.md) — superpowers completo é lento; padrão médio (/mss-spec:modo) + effortLevel medium; alto só p/ feature grande
+- [Review 2026-07: aplicado na v0.2.0](project_review_2026-07_pendencias.md) — TLS opção (a) escolhida; RESTA: mesmo bug da CA no Dockerfile real do painel + extrair CA FortiGate + testar junction

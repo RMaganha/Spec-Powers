@@ -21,7 +21,7 @@ A rede **não é criada pelo compose** — precisa existir antes:
 ```
 docker network create mitiai_network
 ```
-(Se já existe na máquina, o comando falha silenciosamente avisando que já existe — sem problema.)
+(Se já existe na máquina, o comando retorna um erro avisando que já existe — sem efeito colateral, pode ignorar.)
 
 Adicione seu(s) serviço(s) a essa rede no `docker-compose.yml`:
 ```yaml
@@ -41,7 +41,7 @@ Confundi-los é a maior fonte de "funciona no build mas não no runtime" (e vice
 | **Pull da imagem base (`FROM`)** | **daemon** → Docker Desktop → Settings → Resources → Proxies | baixar `python:3.14-slim` do Docker Hub |
 | **Build (pip/apt)** | `build.args` `HTTP_PROXY`/`PIP_PROXY` (no `docker-compose.office.yml`; o base pega `${HTTP_PROXY}` do `.env`) | instalar deps durante o build |
 | **Runtime (saída do app: Graph, n8n, APIs)** | `.env` via `env_file` (`HTTP_PROXY/HTTPS_PROXY/NO_PROXY`) | chamadas HTTP de saída do container |
-| **TLS interceptado (FortiGate)** | CA corporativa **embutida na imagem** (`certs/corp-ca.pem` → store do sistema, no `Dockerfile`) **+** `SSL_VERIFY=false` no `.env` | aceitar o CA autoassinado do proxy |
+| **TLS interceptado (FortiGate)** | CA corporativa **embutida na imagem** (`Dockerfile`: `COPY certs` → `certs/corp-ca.pem` → store do sistema) com **`SSL_VERIFY=true`** | confiar no CA do proxy SEM desligar a validação TLS (`false` = só fallback temporário de diagnóstico) |
 
 Notas que evitam pegadinha:
 - O `httpx` lê `HTTP_PROXY/HTTPS_PROXY/NO_PROXY` sozinho (`trust_env=True`) — **não** passe `proxies=` no código nem use `trust_env=False`.
@@ -106,20 +106,25 @@ SQL_CONNECTION_STRING_<BANCO>=Driver={ODBC Driver 17 for SQL Server};Server=MSSQ
 Se o app for Streamlit e a conexão for reaproveitada durante a sessão, cacheie com
 `@st.cache_resource`.
 
-**Variante endurecida** (credencial criptografada — recomendada pra produção):
+**Variante com credencial cifrada** (Fernet):
 ```python
 import os
 import pyodbc
 from cryptography.fernet import Fernet
 
 def get_connection() -> pyodbc.Connection:
-    key = os.getenv("ENCRYPTION_KEY").encode()
-    ciphertext = os.getenv("ENCRYPTED_CONN").encode()
-    connection_string = Fernet(key).decrypt(ciphertext).decode()
+    key = os.getenv("ENCRYPTION_KEY")
+    ciphertext = os.getenv("ENCRYPTED_CONN")
+    if not key or not ciphertext:
+        raise RuntimeError("ENCRYPTION_KEY/ENCRYPTED_CONN não definidas no ambiente")
+    connection_string = Fernet(key.encode()).decrypt(ciphertext.encode()).decode()
+    # autocommit=True: cada statement commita sozinho — sem rollback; cuidado em escrita multi-passo.
     return pyodbc.connect(connection_string, autocommit=True)
 ```
-Em dev, pode cair pra credencial simples (`DB_SERVER`, `DB_USER`, `DB_PASS`, `DB_DATABASE`); em
-produção, usar sempre `ENCRYPTION_KEY`/`ENCRYPTED_CONN`.
+**Nota honesta:** se `ENCRYPTION_KEY` mora no **mesmo `.env`** que `ENCRYPTED_CONN`, isso é
+**ofuscação, não segurança** — quem lê o arquivo decifra na hora. Só vira proteção real quando a
+chave vem de **outro store** (Azure Key Vault, app settings do Web App, variável injetada pelo
+pipeline). Em dev, credencial simples (`SQL_CONNECTION_STRING_*`) dá no mesmo com menos peça móvel.
 
 Se o container precisar resolver `MSSQLD0` por nome, adicione no `docker-compose.yml`:
 ```yaml
