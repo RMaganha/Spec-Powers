@@ -1,0 +1,5 @@
+- [Memória deve ficar dentro do repo, não em ~/.claude](project_memoria_local_ao_repo.md) — kit Spec-Powers: pasta memory/ do projeto, nunca ~/.claude/projects/<proj>/memory/
+- [Não inventar fatos concretos](feedback_nao_inventar_fatos_concretos.md) — nunca chutar caminho/host/recurso; usar só repo/projeto.md ou o que o owner confirmar
+- [Front-end: Tailwind + arquivos separados](feedback_frontend_tailwind_arquivos_separados.md) — HTML de app: Tailwind + @tailwindcss/typography, JS/CSS em pastas próprias, nunca inline (exceto doc standalone)
+- [Assumir papel de especialista por domínio](feedback_assumir_papel_especialista.md) — cada tarefa: persona sênior do domínio (UI/dev/DBA…), anuncia, faz, OK, volta ao arquiteto/dev sênior
+- [Nível de cerimônia / velocidade](feedback_nivel_cerimonia_velocidade.md) — superpowers completo é lento; padrão médio (/mss-spec:modo) + effortLevel medium; alto só p/ feature grande
