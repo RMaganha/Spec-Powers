@@ -17,6 +17,7 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - `templates/MEMORY.md`   → `memory/MEMORY.md`
    - `templates/INDEX.md`    → `docs/superpowers/INDEX.md`
    - `templates/AMBIENTE.md` → `docs/AMBIENTE.md` (ajuste os `<...>` do projeto; apague seções que não se aplicam, ex.: sem SQL Server)
+   - `templates/ESTRUTURA.md` → `docs/ESTRUTURA.md` (estrutura de pastas em camadas — vale pra TODO projeto; adapte pelo tipo: sem UI, CLI/cron). **Todo arquivo novo nasce na pasta da sua camada — nunca achatado numa pasta única.**
    - `templates/settings.json` → `.claude/settings.json` (se ainda não existir do passo 2)
    - `templates/gitignore` → `.gitignore` (se não existir; se existir, garanta que `.env` está ignorado — adicione a linha se faltar). Protege segredo de subir.
    - **Se o projeto tem UI web:** `templates/FRONTEND.md` → `docs/FRONTEND.md` (design system MSIG) e `templates/assets/logo.png` → `static/img/logo.png` (logo MSIG). Se não tem UI, pule os dois.

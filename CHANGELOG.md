@@ -2,6 +2,9 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.3.0 — 2026-07-08
+- feat: `templates/ESTRUTURA.md` (estrutura de pastas em camadas: app/{config,models,services,routers,utils} + templates/static/tests/sql) — kickoff copia pra `docs/ESTRUTURA.md` e o CLAUDE.md ganha regra crítica; nasceu de projeto novo que saiu com tudo achatado em `app/`
+
 ## 0.2.0 — 2026-07-08 (rodada do review)
 - fix: CA corporativa agora entra de fato na imagem (`COPY certs` faltava — o `RUN if` nunca achava o arquivo)
 - feat: estratégia TLS canônica = CA embutida + `SSL_VERIFY=true` (false rebaixado a fallback de diagnóstico) — docs alinhadas (ambiente, AMBIENTE.md, HTML)
