@@ -2,6 +2,9 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.3.1 — 2026-07-08
+- fix: ESTRUTURA.md alinhado ao layout REAL consolidado (MSS-SSC/estilo jedai): camadas na RAIZ (`main.py` + config/models/services/routers/utils) e `pages/` fora de `templates/` via ChoiceLoader — não mais pacote `app/`; Dockerfile (COPYs por camada + `uvicorn main:app`), regra do CLAUDE.md e ambiente.md (`config/settings.py`) acompanham
+
 ## 0.3.0 — 2026-07-08
 - feat: `templates/ESTRUTURA.md` (estrutura de pastas em camadas: app/{config,models,services,routers,utils} + templates/static/tests/sql) — kickoff copia pra `docs/ESTRUTURA.md` e o CLAUDE.md ganha regra crítica; nasceu de projeto novo que saiu com tudo achatado em `app/`
 

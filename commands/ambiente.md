@@ -17,10 +17,10 @@ Você vai montar a **infra Docker** deste projeto no padrão MSIG. Referência c
 3. **Copie os arquivos padrão** de `${CLAUDE_PLUGIN_ROOT}/templates/` para o projeto e ajuste:
    - `templates/docker/docker-compose.yml`        → `docker-compose.yml` (troque `<servico>`)
    - `templates/docker/docker-compose.office.yml` → `docker-compose.office.yml` (troque `<servico>`)
-   - `templates/docker/Dockerfile`                → `Dockerfile` (ajuste os `COPY app`/`templates`/`static`)
+   - `templates/docker/Dockerfile`                → `Dockerfile` (ajuste os `COPY` às camadas do projeto — ver `docs/ESTRUTURA.md`)
    - `templates/docker/dockerignore`              → `.dockerignore`
    - `templates/certs/corp-ca.pem`                → `certs/corp-ca.pem` (CA corporativa embutida na imagem)
-4. **SSL no código:** garanta `app/config.py` com `ssl_verify: bool = True` (pydantic-settings) e **todo** `httpx.Client` de saída com `verify=settings.ssl_verify`. Quem cobre a interceptação TLS do FortiGate é a **CA embutida na imagem** (Dockerfile: `COPY certs` + store do sistema) — com ela, `SSL_VERIFY=true` funciona inclusive no escritório. `SSL_VERIFY=false` é só fallback temporário de diagnóstico (desliga a validação TLS de TODA saída, não só do proxy — não deixe assim). Lembre: `psycopg`/TCP ignora proxy; mudar `SSL_VERIFY` pede restart (clients criados no import).
+4. **SSL no código:** garanta `config/settings.py` com `ssl_verify: bool = True` (pydantic-settings; ver `docs/ESTRUTURA.md`) e **todo** `httpx.Client` de saída com `verify=settings.ssl_verify`. Quem cobre a interceptação TLS do FortiGate é a **CA embutida na imagem** (Dockerfile: `COPY certs` + store do sistema) — com ela, `SSL_VERIFY=true` funciona inclusive no escritório. `SSL_VERIFY=false` é só fallback temporário de diagnóstico (desliga a validação TLS de TODA saída, não só do proxy — não deixe assim). Lembre: `psycopg`/TCP ignora proxy; mudar `SSL_VERIFY` pede restart (clients criados no import).
 5. **Explique as 4 camadas** (pull da base = daemon/Docker Desktop · build = build.args/PIP_PROXY · runtime = `.env` · TLS = CA embutida + `SSL_VERIFY`) e **como subir**:
    - Casa (VPN): `docker compose up -d --build`
    - Escritório (proxy): `docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build`

@@ -1,5 +1,6 @@
 # Imagem standalone. Conecta em serviços existentes via .env (não sobe banco próprio).
-# Se usar Tailwind: compile static/css/app.css e comite (sem Node aqui). Ajuste os COPY do app.
+# Se usar Tailwind: compile static/css/app.css e comite (sem Node aqui).
+# Os COPY seguem as camadas de docs/ESTRUTURA.md — ajuste às pastas que o projeto tem.
 FROM python:3.14-slim
 
 WORKDIR /app
@@ -39,9 +40,16 @@ RUN pip install --no-cache-dir ${PIP_PROXY:+--proxy $PIP_PROXY} \
         --trusted-host pypi.python.org \
         -r requirements.txt
 
-COPY app ./app
-# COPY templates ./templates      # descomente se tiver UI (Jinja)
+# Camadas na raiz (docs/ESTRUTURA.md) — um COPY por pasta; remova/adicione conforme o projeto.
+COPY main.py ./
+COPY config ./config
+COPY models ./models
+COPY services ./services
+COPY routers ./routers
+COPY utils ./utils
+# COPY templates ./templates      # descomente se tiver UI (Jinja: base + partials)
+# COPY pages ./pages              # descomente se tiver UI (telas que estendem o base)
 # COPY static ./static            # descomente se tiver UI (assets)
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
