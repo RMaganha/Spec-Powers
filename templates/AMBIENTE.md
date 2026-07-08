@@ -82,53 +82,35 @@ postgresql://<usuario>:<senha>@<host>/miti_ai_<projeto>
 
 Peça ao owner do Postgres pra criar o banco `miti_ai_<projeto>` e as credenciais antes de usar.
 
-## 4. SQL Server (`get_connection.py`)
+## 4. SQL Server (`get_connection.py` multi-ambiente — padrão canônico da casa)
 
-Host interno compartilhado: `MSSQLD0` (`10.170.210.36`). **Porta: confirme com um projeto que já
-conecta** — o jedai usa `Server=10.170.210.36,1435` (instância na porta **1435**); não assuma 1433.
-Fora da rede corporativa (sem VPN), o host não resolve nem responde — erro 53/timeout é rede, não
-credencial. Acesso via `pyodbc`. **Credencial: se outro projeto MSIG já conecta no mesmo servidor,
-copie do `.env` local dele (ajustando `Database=`) em vez de pedir ao owner — nunca ecoar/commitar.**
-Duas variantes conhecidas — escolha uma:
+**Referência REAL** (com os pares das bases SSC · MS10=`tkgs_corp` · TRP · OnBase já prontos):
+`C:\Ronaldo\_Mitsui\Python\Transportes\V2\get_connection.py`. O `/mss-spec:banco` copia o template
+do plugin (`templates/get_connection.py`) pro projeto.
 
-**Variante simples** (um ou mais bancos, credencial em variável de ambiente comum — bom pra
-dev/homolog ou quando a máquina já é protegida por outros meios):
-```python
-import os
-import pyodbc
+Regras do padrão:
+- **Credencial NUNCA em `.env` nem em texto plano** (regra do owner: "no `.env` no máximo o
+  ambiente"). Cada base tem par Fernet `KEY`/`CIPHERTEXT` **por ambiente** (DEV/D0 · HML/HI · PROD)
+  embutido no próprio `get_connection.py`.
+- **`.env` só carrega o seletor**: `CONEXAO_PRD` (vazio/ausente = DEV; qualquer valor = PROD) e
+  `API_ENV=PRD` em produção.
+- **Base já usada em outro projeto** → os pares prontos estão no arquivo de referência acima;
+  **copiar par entre projetos é decisão do owner** (o assistente aponta o caminho/constantes, não
+  cola). **Base nova** → gerar o par localmente por script (snippet no docstring do template), sem
+  ecoar segredo.
+- Helpers do padrão: `mask_password` (log sem senha), `_build_conn_str` (`Encrypt`/`timeout`
+  automáticos), `_connect` (log + erro padronizados), `is_ambiente_prd()`; apps Streamlit têm cache
+  de conexão por sessão (ver referência).
 
-_CONN_STR = os.getenv("SQL_CONNECTION_STRING_<BANCO>")
+**Fatos verificados** (2026-07-08, decriptação local no Transportes V2): SSC dev =
+`10.170.210.36,1435`; `tkgs_corp` (MS10) e `MSS_TRP` dev = `10.170.210.36` (sem porta explícita);
+SSC prod = `10.170.210.48`. As instâncias corporativas usam portas **1434/1435** (owner) — onde
+entra a 1434: `<a confirmar>`. Não assuma `MSSQLD0:1433`. Fora da rede corporativa (sem VPN), nada
+resolve/responde — **erro 53/timeout do pyodbc é rede, não credencial**.
 
-def get_connection_<banco>() -> pyodbc.Connection:
-    if not _CONN_STR:
-        raise RuntimeError("SQL_CONNECTION_STRING_<BANCO> não definida no .env")
-    return pyodbc.connect(_CONN_STR)
-```
-```
-SQL_CONNECTION_STRING_<BANCO>=Driver={ODBC Driver 17 for SQL Server};Server=MSSQLD0;Database=<banco>;UID=<usuario>;PWD=<senha>;TrustServerCertificate=yes;
-```
-Se o app for Streamlit e a conexão for reaproveitada durante a sessão, cacheie com
-`@st.cache_resource`.
-
-**Variante com credencial cifrada** (Fernet):
-```python
-import os
-import pyodbc
-from cryptography.fernet import Fernet
-
-def get_connection() -> pyodbc.Connection:
-    key = os.getenv("ENCRYPTION_KEY")
-    ciphertext = os.getenv("ENCRYPTED_CONN")
-    if not key or not ciphertext:
-        raise RuntimeError("ENCRYPTION_KEY/ENCRYPTED_CONN não definidas no ambiente")
-    connection_string = Fernet(key.encode()).decrypt(ciphertext.encode()).decode()
-    # autocommit=True: cada statement commita sozinho — sem rollback; cuidado em escrita multi-passo.
-    return pyodbc.connect(connection_string, autocommit=True)
-```
-**Nota honesta:** se `ENCRYPTION_KEY` mora no **mesmo `.env`** que `ENCRYPTED_CONN`, isso é
-**ofuscação, não segurança** — quem lê o arquivo decifra na hora. Só vira proteção real quando a
-chave vem de **outro store** (Azure Key Vault, app settings do Web App, variável injetada pelo
-pipeline). Em dev, credencial simples (`SQL_CONNECTION_STRING_*`) dá no mesmo com menos peça móvel.
+**Nota honesta:** chave+cifra no mesmo repo = quem tem o repo decripta. Aceito porque os repos são
+privados/internos e isso evita credencial circulando em texto plano; segurança real (repo exposto)
+exigiria a chave fora do repo (Azure Key Vault).
 
 Se o container precisar resolver `MSSQLD0` por nome, adicione no `docker-compose.yml`:
 ```yaml

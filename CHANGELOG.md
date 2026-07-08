@@ -2,6 +2,11 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.4.0 — 2026-07-08
+- feat: `templates/get_connection.py` — padrão canônico de conexão SQL Server multi-ambiente (Transportes V2): par Fernet KEY/CIPHERTEXT por base+ambiente NO CÓDIGO, `.env` só com `CONEXAO_PRD`/`API_ENV`; helpers mask_password/Encrypt/timeout/logging
+- fix: banco.md e AMBIENTE §4 reescritos em torno do padrão canônico — as variantes "conn string no .env" e "Fernet com chave no .env" saem (feedback do owner: credencial NUNCA no .env, "no máximo o ambiente"); pares prontos das bases corporativas apontados no Transportes V2 (copiar entre projetos = decisão do owner)
+- docs: fatos de porta verificados por decriptação local — SSC dev `10.170.210.36,1435`, tkgs_corp/MSS_TRP dev sem porta explícita, SSC prod `10.170.210.48`; instâncias 1434/1435 (owner), 1434 `<a confirmar>`
+
 ## 0.3.2 — 2026-07-08
 - feat: regra de credencial no `/mss-spec:banco` + AMBIENTE §4 + catálogo de precedentes — antes de pedir usuário/senha ao owner, reusar o `.env` local de projeto precedente que já conecta (jedai), ajustando só `Database=`; nunca ecoar/commitar
 - fix: AMBIENTE §4 não afirma mais "porta 1433" — porta real verificada no jedai é `10.170.210.36,1435`; confirmar sempre com o `.env` que funciona (anti-fabricação)
