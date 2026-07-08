@@ -84,8 +84,12 @@ Peça ao owner do Postgres pra criar o banco `miti_ai_<projeto>` e as credenciai
 
 ## 4. SQL Server (`get_connection.py`)
 
-Host interno compartilhado: `MSSQLD0` (`10.170.210.36`), porta 1433. Acesso via `pyodbc`. Duas
-variantes conhecidas — escolha uma:
+Host interno compartilhado: `MSSQLD0` (`10.170.210.36`). **Porta: confirme com um projeto que já
+conecta** — o jedai usa `Server=10.170.210.36,1435` (instância na porta **1435**); não assuma 1433.
+Fora da rede corporativa (sem VPN), o host não resolve nem responde — erro 53/timeout é rede, não
+credencial. Acesso via `pyodbc`. **Credencial: se outro projeto MSIG já conecta no mesmo servidor,
+copie do `.env` local dele (ajustando `Database=`) em vez de pedir ao owner — nunca ecoar/commitar.**
+Duas variantes conhecidas — escolha uma:
 
 **Variante simples** (um ou mais bancos, credencial em variável de ambiente comum — bom pra
 dev/homolog ou quando a máquina já é protegida por outros meios):

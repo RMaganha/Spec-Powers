@@ -16,6 +16,7 @@ um padrão, **abra o caminho indicado e leia o código atual**, porque ele pode 
 | RAG / busca vetorial | `C:\Ronaldo\_Mitsui\Python\IA Bot Agent\V2 - IA Bot Agent\api\_opcao4` | Usa `pgvector` no Postgres compartilhado (tabelas `rag_documents`, `rag_avaliacao`) | **Não replicar** o Chromadb do projeto antigo (mesma pasta, um nível acima, em `api\`) — ficou obsoleto. `_opcao4` é a evolução. |
 | Extração de PDF + multi-LLM | `C:\Ronaldo\_Mitsui\Python\IA Jeday Cosseguro\Azure` | Lê PDF com PyMuPDF, extrai dados via prompts Gemini + GPT | Ver `utils/`, `config/settings.py` e `config/seguradora/` (config por cliente com fallback) pra estrutura geral do pipeline |
 | Ambiente/infra corporativa (rede, proxy, Postgres, SQL Server, Azure pipeline) | plugin `mss-spec` — ver `templates/AMBIENTE.md` (copiado pro projeto pelo `/mss-spec:kickoff`) | Fatos fixos + padrões já consolidados num único doc de referência | Use esse arquivo diretamente em vez de reinvestigar do zero |
+| Conexão SQL Server REAL (host/porta/credencial que funcionam) | `C:\Ronaldo\_Mitsui\Python\IA Jeday Cosseguro\Azure` → `.env` (`SQL_CONNECTION_STRING_SSC`) | Conecta em `Server=10.170.210.36,1435` (porta 1435!) | Copie o valor local ajustando `Database=` — nunca peça ao owner credencial que já existe na máquina; nunca ecoar/commitar |
 
 ## Como crescer este catálogo
 

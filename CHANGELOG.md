@@ -2,6 +2,10 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.3.2 — 2026-07-08
+- feat: regra de credencial no `/mss-spec:banco` + AMBIENTE §4 + catálogo de precedentes — antes de pedir usuário/senha ao owner, reusar o `.env` local de projeto precedente que já conecta (jedai), ajustando só `Database=`; nunca ecoar/commitar
+- fix: AMBIENTE §4 não afirma mais "porta 1433" — porta real verificada no jedai é `10.170.210.36,1435`; confirmar sempre com o `.env` que funciona (anti-fabricação)
+
 ## 0.3.1 — 2026-07-08
 - fix: ESTRUTURA.md alinhado ao layout REAL consolidado (MSS-SSC/estilo jedai): camadas na RAIZ (`main.py` + config/models/services/routers/utils) e `pages/` fora de `templates/` via ChoiceLoader — não mais pacote `app/`; Dockerfile (COPYs por camada + `uvicorn main:app`), regra do CLAUDE.md e ambiente.md (`config/settings.py`) acompanham
 
