@@ -5,3 +5,4 @@
 - [Nível de cerimônia / velocidade](feedback_nivel_cerimonia_velocidade.md) — superpowers completo é lento; padrão médio (/mss-spec:modo) + effortLevel medium; alto só p/ feature grande
 - [Review 2026-07: aplicado na v0.2.0](project_review_2026-07_pendencias.md) — TLS opção (a) escolhida; RESTA: mesmo bug da CA no Dockerfile real do painel + extrair CA FortiGate + testar junction
 - [Conexão SQL: padrão Transportes V2](feedback_credencial_reusar_env_precedente.md) — credencial cifrada NO CÓDIGO (par Fernet por base+ambiente), .env só CONEXAO_PRD; nunca pedir digitada; portas SSC 1435 dev/10.170.210.48 prod
+- [Build Docker + ODBC atrás do FortiGate](project_docker_build_fortigate.md) — 3 fixes validados em build real: base -bookworm (trixie quebra ODBC), apt via HTTPS (CA vence o intercept), repo MS sem duplo colchete

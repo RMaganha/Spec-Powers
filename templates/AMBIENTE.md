@@ -48,6 +48,9 @@ Notas que evitam pegadinha:
 - `SSL_VERIFY` é lido no `config.py` (pydantic) e vira `verify=` de **todo** `httpx.Client` de saída. Clients criados no import → mudar `SSL_VERIFY` **pede restart**.
 - **`psycopg`/Postgres é TCP puro: ignora o proxy** (por isso o banco não passa por ele).
 - `corp-ca.pem` = bundle de raízes do Windows (inclui a CA da MSIG). Inofensivo fora da empresa e não quebra o build se faltar. Projetos com **Chrome/Selenium headless** precisam registrar a CA também no NSS (`/root/.pki/nssdb`) — ver bloco opcional no `Dockerfile`.
+- **`apt` no build atrás do FortiGate**: os mirrors Debian usam **HTTP (porta 80)** por padrão, e o proxy intercepta o cleartext e devolve lixo (`Bad header data ... :80` → `apt-get update` falha, "Unable to locate package"). O `Dockerfile` troca os mirrors pra **HTTPS** (`deb.debian.org`/`security.debian.org`): aí o intercept é TLS e a CA embutida o torna confiável. Vale pro escritório mesmo **sem** proxy explícito.
+- **Base fixada em `-bookworm`**: a tag `python:3.x-slim` (sem sufixo) migrou pra **trixie (Debian 13)**; o repo ODBC da Microsoft é `debian/12` (bookworm). Use `python:3.x-slim-bookworm` — senão o `apt-get update` do repo MS quebra.
+- **Repo ODBC da MS**: escreva a linha à mão (`echo "deb [arch=amd64 signed-by=...] .../debian/12/prod bookworm main"`). NÃO faça `curl prod.list | sed`: o `prod.list` já traz `[arch=...]` e um segundo `[signed-by=...]` gera `Malformed entry (URI parse)`.
 
 ### Subir o Docker — casa (VPN) vs escritório (proxy)
 - **Casa (VPN, sem proxy):** `docker compose up -d --build`

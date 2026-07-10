@@ -1,7 +1,10 @@
 # Imagem standalone. Conecta em serviços existentes via .env (não sobe banco próprio).
 # Se usar Tailwind: compile static/css/app.css e comite (sem Node aqui).
-# Base 3.12-slim (bookworm) — padrão da casa (Transportes/jedai/MSS-SSC); casa com o repo ODBC debian/12.
-FROM python:3.12-slim
+# Base FIXADA em `-bookworm` (Debian 12): as tags `python:3.x-slim` migraram pra trixie/Debian 13,
+# que NÃO casa com o repo ODBC `debian/12` da Microsoft. O sufixo `-bookworm` trava a base certa.
+# Ajuste a versão (3.12/3.14) à que o dev usa e que já esteja em cache (o daemon no escritório não
+# puxa do Docker Hub — ver AMBIENTE.md §2, camada 1).
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
@@ -26,13 +29,21 @@ RUN if [ -f certs/corp-ca.pem ]; then \
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
+# apt via HTTPS: no escritório o FortiGate intercepta a porta 80 em cleartext e devolve lixo
+# ("Bad header data" → apt-get update falha). Em HTTPS o intercept é TLS e a CA acima o torna
+# confiável. Troca os mirrors http→https (deb822 do bookworm e/ou sources.list clássico).
+RUN for f in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do \
+      [ -f "$f" ] && sed -i 's|http://deb.debian.org|https://deb.debian.org|g; s|http://security.debian.org|https://security.debian.org|g' "$f"; \
+    done; true
+
 # --- ODBC Driver 17 for SQL Server (repo Microsoft, Debian 12/bookworm) ---
 # Necessário pro pyodbc. REMOVA este bloco se o projeto não usa SQL Server (Postgres/sem banco).
+# A linha do repo é escrita à mão (um único grupo [ ] com signed-by). NÃO usar o prod.list via sed:
+# ele já traz [arch=...], e um segundo [signed-by=...] gera "Malformed entry (URI parse)".
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl gnupg2 apt-transport-https ca-certificates \
  && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
- && curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list \
-      | sed 's|https://|[signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://|' \
+ && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" \
       > /etc/apt/sources.list.d/mssql-release.list \
  && apt-get update \
  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 unixodbc-dev \

@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.5.1 — 2026-07-08 (build real MSS-SSC no escritório expôs 3 bugs)
+- fix: base `python:3.x-slim` → **`-slim-bookworm`** — a tag sem sufixo migrou pra trixie/Debian 13 e o `apt-get update` do repo ODBC `debian/12` quebrava
+- fix: `apt` do build via **HTTPS** (mirrors Debian) — porta 80 é interceptada pelo FortiGate em cleartext (`Bad header data`); em HTTPS a CA embutida torna o intercept confiável (funciona sem proxy explícito)
+- fix: linha do repo ODBC da MS escrita à mão (um `[ ]` com `signed-by`) no lugar de `curl prod.list | sed` — o prod.list já traz `[arch=...]` e o segundo colchete gerava `Malformed entry (URI parse)`
+- docs: AMBIENTE §2 com as 3 pegadinhas; memória `project_docker_build_fortigate`. **Validado com build real** (`pyodbc.drivers()` → ODBC Driver 17)
+
 ## 0.5.0 — 2026-07-08 (deriva MSS-SSC → plugin)
 - fix: `templates/docker/Dockerfile` ganha a receita do **ODBC Driver 17** (msodbcsql17, repo Microsoft debian/12) — furo real: projetos SQL nasciam sem driver e o `pyodbc` não conectava. Portado do canário MSS-SSC
 - change: base `python:3.14-slim` → **`3.12-slim`** (padrão da casa: Transportes/jedai/MSS-SSC; casa com o repo ODBC debian/12)
