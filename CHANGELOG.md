@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.5.0 — 2026-07-08 (deriva MSS-SSC → plugin)
+- fix: `templates/docker/Dockerfile` ganha a receita do **ODBC Driver 17** (msodbcsql17, repo Microsoft debian/12) — furo real: projetos SQL nasciam sem driver e o `pyodbc` não conectava. Portado do canário MSS-SSC
+- change: base `python:3.14-slim` → **`3.12-slim`** (padrão da casa: Transportes/jedai/MSS-SSC; casa com o repo ODBC debian/12)
+- change: mecanismo de proxy alinhado ao MSS-SSC — `ARG HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` predefinidos (pip/apt usam sozinhos), no lugar do `PIP_PROXY` custom; base compose sem build.args, `office.yml` injeta o proxy do `.env` (sem IP hardcoded — fecha a contradição do review)
+- docs: AMBIENTE §2, ambiente.md e COMO-FUNCIONA.html atualizados (3.12, novo fluxo de proxy)
+
 ## 0.4.0 — 2026-07-08
 - feat: `templates/get_connection.py` — padrão canônico de conexão SQL Server multi-ambiente (Transportes V2): par Fernet KEY/CIPHERTEXT por base+ambiente NO CÓDIGO, `.env` só com `CONEXAO_PRD`/`API_ENV`; helpers mask_password/Encrypt/timeout/logging
 - fix: banco.md e AMBIENTE §4 reescritos em torno do padrão canônico — as variantes "conn string no .env" e "Fernet com chave no .env" saem (feedback do owner: credencial NUNCA no .env, "no máximo o ambiente"); pares prontos das bases corporativas apontados no Transportes V2 (copiar entre projetos = decisão do owner)

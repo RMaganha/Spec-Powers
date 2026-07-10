@@ -338,12 +338,12 @@ li{margin-bottom:6px}
       <p><strong>O que faz:</strong> copia a infra Docker <strong>padronizada</strong> (compose base + office, Dockerfile, CA corporativa, .dockerignore) e explica como subir. Proxy/TLS em <strong>4 camadas independentes</strong>. Mostra e confirma antes de gravar.</p>
       <div class="kv">
         <dt>Copia</dt><dd><code>docker-compose.yml</code> + <code>docker-compose.office.yml</code> + <code>Dockerfile</code> + <code>.dockerignore</code> + <code>certs/corp-ca.pem</code> (padrões do plugin)</dd>
-        <dt>4 camadas</dt><dd>pull da base = <strong>daemon</strong>/Docker Desktop · build = <code>build.args/PIP_PROXY</code> · runtime = <code>.env</code> · TLS = CA embutida na imagem (<code>COPY certs</code>) com <code>SSL_VERIFY=true</code> (<code>false</code> = só fallback de diagnóstico)</dd>
+        <dt>4 camadas</dt><dd>pull da base = <strong>daemon</strong>/Docker Desktop · build = <code>build.args HTTP_PROXY</code> (office.yml, do <code>.env</code>) · runtime = <code>.env</code> · TLS = CA embutida na imagem (<code>COPY certs</code>) com <code>SSL_VERIFY=true</code> (<code>false</code> = só fallback de diagnóstico)</dd>
         <dt>Subir</dt><dd>casa (VPN): <code>docker compose up -d --build</code> · escritório: <code>… -f docker-compose.office.yml …</code></dd>
       </div>
       <div class="label-row"><span class="pill ok">compose base+office</span><span class="pill db">4 camadas proxy/TLS</span><span class="pill warn">CA + SSL_VERIFY</span></div>
       <p class="subhead">Gotcha</p>
-      <p><code>load metadata … i/o timeout</code> = pull da base (é do <strong>daemon</strong>, não usa build.args/.env). Resolva com proxy no Docker Desktop <strong>ou</strong> <code>docker pull python:3.14-slim</code> (cache por máquina — costuma resolver). <code>psycopg</code>/TCP ignora proxy.</p>
+      <p><code>load metadata … i/o timeout</code> = pull da base (é do <strong>daemon</strong>, não usa build.args/.env). Resolva com proxy no Docker Desktop <strong>ou</strong> <code>docker pull python:3.12-slim</code> (cache por máquina — costuma resolver). <code>psycopg</code>/TCP ignora proxy.</p>
     </div>
   </div>
 

@@ -3,15 +3,10 @@
 # Ajuste: <servico> (nome do serviço/imagem/container) e a porta, se necessário.
 services:
   <servico>:
+    # Build sem proxy (casa/VPN). No escritório, o docker-compose.office.yml injeta o proxy do .env
+    # nos build.args (pip/apt). Runtime pega tudo do .env via env_file abaixo.
     build:
       context: .
-      args:
-        # Proxy do BUILD — vem do .env (vazio em casa; o office.yml sobrescreve com valores fixos).
-        # PIP_PROXY cobre o pip; HTTP(S)_PROXY são ARGs predefinidos do Docker e cobrem apt/curl etc.
-        PIP_PROXY: ${HTTP_PROXY:-}
-        HTTP_PROXY: ${HTTP_PROXY:-}
-        HTTPS_PROXY: ${HTTPS_PROXY:-}
-        NO_PROXY: ${NO_PROXY:-}
     image: <servico>
     container_name: <servico>
     ports:

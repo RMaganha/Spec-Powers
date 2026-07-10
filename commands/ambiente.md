@@ -21,8 +21,8 @@ Você vai montar a **infra Docker** deste projeto no padrão MSIG. Referência c
    - `templates/docker/dockerignore`              → `.dockerignore`
    - `templates/certs/corp-ca.pem`                → `certs/corp-ca.pem` (CA corporativa embutida na imagem)
 4. **SSL no código:** garanta `config/settings.py` com `ssl_verify: bool = True` (pydantic-settings; ver `docs/ESTRUTURA.md`) e **todo** `httpx.Client` de saída com `verify=settings.ssl_verify`. Quem cobre a interceptação TLS do FortiGate é a **CA embutida na imagem** (Dockerfile: `COPY certs` + store do sistema) — com ela, `SSL_VERIFY=true` funciona inclusive no escritório. `SSL_VERIFY=false` é só fallback temporário de diagnóstico (desliga a validação TLS de TODA saída, não só do proxy — não deixe assim). Lembre: `psycopg`/TCP ignora proxy; mudar `SSL_VERIFY` pede restart (clients criados no import).
-5. **Explique as 4 camadas** (pull da base = daemon/Docker Desktop · build = build.args/PIP_PROXY · runtime = `.env` · TLS = CA embutida + `SSL_VERIFY`) e **como subir**:
+5. **Explique as 4 camadas** (pull da base = daemon/Docker Desktop · build = build.args `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` do `.env` via office.yml · runtime = `.env` · TLS = CA embutida `COPY certs` + `SSL_VERIFY=true`) e **como subir**:
    - Casa (VPN): `docker compose up -d --build`
    - Escritório (proxy): `docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build`
-   - Se der `load metadata ... i/o timeout` no build: proxy no Docker Desktop **ou** `docker pull python:3.14-slim` (cache por máquina — costuma resolver).
+   - Se der `load metadata ... i/o timeout` no build: proxy no Docker Desktop **ou** `docker pull python:3.12-slim` (cache por máquina — costuma resolver).
 6. Lembre de criar a rede uma vez, se não existir: `docker network create mitiai_network`.

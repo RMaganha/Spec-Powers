@@ -38,8 +38,8 @@ Confundi-los é a maior fonte de "funciona no build mas não no runtime" (e vice
 
 | Camada | Onde se configura | Para quê |
 |---|---|---|
-| **Pull da imagem base (`FROM`)** | **daemon** → Docker Desktop → Settings → Resources → Proxies | baixar `python:3.14-slim` do Docker Hub |
-| **Build (pip/apt)** | `build.args` `HTTP_PROXY`/`PIP_PROXY` (no `docker-compose.office.yml`; o base pega `${HTTP_PROXY}` do `.env`) | instalar deps durante o build |
+| **Pull da imagem base (`FROM`)** | **daemon** → Docker Desktop → Settings → Resources → Proxies | baixar `python:3.12-slim` do Docker Hub |
+| **Build (pip/apt)** | `build.args` `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` — ARGs predefinidos do Docker, usados sozinhos por pip/apt (o `docker-compose.office.yml` os injeta do `.env`) | instalar deps durante o build |
 | **Runtime (saída do app: Graph, n8n, APIs)** | `.env` via `env_file` (`HTTP_PROXY/HTTPS_PROXY/NO_PROXY`) | chamadas HTTP de saída do container |
 | **TLS interceptado (FortiGate)** | CA corporativa **embutida na imagem** (`Dockerfile`: `COPY certs` → `certs/corp-ca.pem` → store do sistema) com **`SSL_VERIFY=true`** | confiar no CA do proxy SEM desligar a validação TLS (`false` = só fallback temporário de diagnóstico) |
 
@@ -53,9 +53,9 @@ Notas que evitam pegadinha:
 - **Casa (VPN, sem proxy):** `docker compose up -d --build`
 - **Escritório (proxy MSIG):** `docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build`
 
-**Gotcha — `load metadata for python:3.14-slim ... i/o timeout`:** o pull do `FROM` é do **daemon** e NÃO usa `build.args`/`.env`. Resolva com **um** dos dois:
+**Gotcha — `load metadata for python:3.12-slim ... i/o timeout`:** o pull do `FROM` é do **daemon** e NÃO usa `build.args`/`.env`. Resolva com **um** dos dois:
 1. Proxy no **Docker Desktop** (Settings → Resources → Proxies → Manual → HTTP/HTTPS = `http://10.170.200.120:8080` → Apply & Restart; se persistir, **Quit** total pela bandeja + reabrir).
-2. **Pré-baixar a base** numa rede que funcione: `docker pull python:3.14-slim`. O cache é **por máquina**, então o build reusa e não vai mais no Docker Hub. ← costuma ser o que resolve.
+2. **Pré-baixar a base** numa rede que funcione: `docker pull python:3.12-slim`. O cache é **por máquina**, então o build reusa e não vai mais no Docker Hub. ← costuma ser o que resolve.
 
 Os arquivos `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile`, `.dockerignore` e
 `certs/corp-ca.pem` já vêm padronizados (o `/mss-spec:ambiente` os copia); ajuste só o nome do serviço

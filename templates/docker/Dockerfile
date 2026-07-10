@@ -1,18 +1,22 @@
 # Imagem standalone. Conecta em serviços existentes via .env (não sobe banco próprio).
 # Se usar Tailwind: compile static/css/app.css e comite (sem Node aqui).
-# Os COPY seguem as camadas de docs/ESTRUTURA.md — ajuste às pastas que o projeto tem.
-FROM python:3.14-slim
+# Base 3.12-slim (bookworm) — padrão da casa (Transportes/jedai/MSS-SSC); casa com o repo ODBC debian/12.
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Proxy do pip só no build (não fica no runtime). Vem do build-arg (office.yml / ${HTTP_PROXY} do .env).
-ARG PIP_PROXY=
+# Proxy do BUILD (pip/apt). Vazio em casa; o docker-compose.office.yml injeta do .env no escritório.
+# HTTP_PROXY/HTTPS_PROXY/NO_PROXY são ARGs predefinidos do Docker — apt e pip os usam sozinhos.
+ARG HTTP_PROXY=""
+ARG HTTPS_PROXY=""
+ARG NO_PROXY=""
+ENV HTTP_PROXY=${HTTP_PROXY} HTTPS_PROXY=${HTTPS_PROXY} NO_PROXY=${NO_PROXY}
+ENV DEBIAN_FRONTEND=noninteractive
 
-# --- CA corporativa MSIG (proxy FortiGate intercepta TLS) — confiar no certificado ---
-# certs/corp-ca.pem = bundle de raízes do Windows (inclui a CA da MSIG). Inofensivo fora da empresa
-# (só adiciona CAs confiáveis). Entra no store do sistema, usado por Python/requests/curl/ODBC.
-# O COPY é obrigatório: RUN não enxerga o build context — sem ele o `if` abaixo nunca acha o arquivo
-# e a CA não entra na imagem. O /mss-spec:ambiente garante o certs/corp-ca.pem no projeto.
+# --- CA corporativa MSIG (proxy FortiGate intercepta TLS) — confiar ANTES de apt/pip ---
+# certs/corp-ca.pem = bundle de raízes do Windows (inclui a CA da MSIG). Inofensivo fora da empresa.
+# COPY é obrigatório: RUN não enxerga o build context. Registrada aqui, cobre apt, pip e o runtime
+# (chamadas HTTPS de saída do app). O `cat >>` funciona mesmo sem update-ca-certificates.
 COPY certs ./certs
 RUN if [ -f certs/corp-ca.pem ]; then \
       cp certs/corp-ca.pem /usr/local/share/ca-certificates/corp-ca.crt && \
@@ -22,23 +26,20 @@ RUN if [ -f certs/corp-ca.pem ]; then \
 ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-# (OPCIONAL — só se o projeto roda Chrome/Selenium headless: o Chrome no Linux NÃO lê o store do
-#  sistema, valida pela base NSS. Descomente pra registrar a CA em /root/.pki/nssdb também.)
-# RUN apt-get update && apt-get install -y --no-install-recommends libnss3-tools && rm -rf /var/lib/apt/lists/* \
-#  && if [ -f certs/corp-ca.pem ]; then mkdir -p /root/.pki/nssdb \
-#     && (certutil -d sql:/root/.pki/nssdb -N --empty-password || true) \
-#     && awk 'BEGIN{n=0} /BEGIN CERTIFICATE/{n++} {print >> ("/tmp/ca-"n".pem")}' certs/corp-ca.pem \
-#     && for f in /tmp/ca-*.pem; do certutil -d sql:/root/.pki/nssdb -A -t "C,," -n "msig-$(basename "$f" .pem)" -i "$f" || true; done \
-#     && rm -f /tmp/ca-*.pem; fi
+# --- ODBC Driver 17 for SQL Server (repo Microsoft, Debian 12/bookworm) ---
+# Necessário pro pyodbc. REMOVA este bloco se o projeto não usa SQL Server (Postgres/sem banco).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl gnupg2 apt-transport-https ca-certificates \
+ && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
+ && curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list \
+      | sed 's|https://|[signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://|' \
+      > /etc/apt/sources.list.d/mssql-release.list \
+ && apt-get update \
+ && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 unixodbc-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# Sem o corp-ca.pem em mãos, o pip confiaria nos hosts do PyPI (--trusted-host). Com o CA embutido
-# acima, o TLS já é confiável; mantemos os trusted-host como rede de segurança pro proxy.
 COPY requirements.txt .
-RUN pip install --no-cache-dir ${PIP_PROXY:+--proxy $PIP_PROXY} \
-        --trusted-host pypi.org \
-        --trusted-host files.pythonhosted.org \
-        --trusted-host pypi.python.org \
-        -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Camadas na raiz (docs/ESTRUTURA.md) — um COPY por pasta; remova/adicione conforme o projeto.
 COPY main.py ./

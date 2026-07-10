@@ -1,36 +1,17 @@
-# ============================================================
-# Override SÓ PRA EMPRESA (rede MSIG com proxy corporativo)
-# ============================================================
+# Override SÓ PRA EMPRESA (rede MSIG com proxy corporativo).
 # Em CASA (VPN, sem proxy):  docker compose up -d --build
 # Na EMPRESA (proxy MSIG):   docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build
 #
-# O que este arquivo faz:
-#   - build.args HTTP(S)_PROXY  -> apt/pip do BUILD saem pelo proxy MSIG
-#   - environment HTTP(S)_PROXY -> o container em RUNTIME chega em Graph/OpenAI/n8n pelo proxy
-#   - NO_PROXY                  -> mantém SQL Server (MSSQLD0), Postgres e hosts internos FORA do proxy
-#   - A CA corporativa já está EMBUTIDA na imagem (ver Dockerfile) -> NÃO monta volume de cert aqui.
+# O que este arquivo faz: injeta o proxy do `.env` nos build.args (pip/apt do BUILD saem pelo proxy).
+# O runtime já pega o proxy do `.env` via env_file do compose base. Preencha HTTP_PROXY/HTTPS_PROXY/
+# NO_PROXY no `.env` da máquina do escritório (valores em docs/AMBIENTE.md §2) — NADA hardcoded aqui.
 #
 # Gotcha: o pull da imagem base (FROM) é tarefa do DAEMON e NÃO usa estes args. Se der
-# `load metadata ... i/o timeout`, ver docs/AMBIENTE.md (proxy no Docker Desktop OU `docker pull python:3.14-slim`).
-# Valores do proxy MSIG num lugar só (anchor YAML reusado em build.args e environment).
-# Alternativa: preencher HTTP(S)_PROXY/NO_PROXY no .env da máquina do escritório — o compose base
-# já repassa .env pro build E pro runtime; este arquivo é o caminho pra manter UM .env igual em
-# todas as máquinas e ligar o proxy só pelo -f.
-x-office-proxy: &office-proxy
-  HTTP_PROXY: http://10.170.200.120:8080
-  HTTPS_PROXY: http://10.170.200.120:8080
-  NO_PROXY: localhost,127.0.0.1,::1,host.docker.internal,MSSQLD0,10.170.210.36,postgres-db,.ms-seg.com.br,.msig.com.br,.local
+# `load metadata ... i/o timeout`, ver docs/AMBIENTE.md (proxy no Docker Desktop OU `docker pull python:3.12-slim`).
 services:
   <servico>:
     build:
-      context: .
       args:
-        <<: *office-proxy
-    environment:
-      <<: *office-proxy
-    networks:
-      - mitiai_network
-networks:
-  mitiai_network:
-    name: mitiai_network
-    external: true
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
