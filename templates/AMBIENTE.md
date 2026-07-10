@@ -95,8 +95,9 @@ Regras do padrão:
 - **Credencial NUNCA em `.env` nem em texto plano** (regra do owner: "no `.env` no máximo o
   ambiente"). Cada base tem par Fernet `KEY`/`CIPHERTEXT` **por ambiente** (DEV/D0 · HML/HI · PROD)
   embutido no próprio `get_connection.py`.
-- **`.env` só carrega o seletor**: `CONEXAO_PRD` (vazio/ausente = DEV; qualquer valor = PROD) e
-  `API_ENV=PRD` em produção.
+- **`.env` só carrega dois seletores** (comentários em LINHA PRÓPRIA — nada inline, senão o Docker
+  Compose passa o comentário junto do valor e quebra): `CONEXAO_SQL=D0` (D0|HML|PRD; padrão D0,
+  escolhe o par) e `CONEXAO_SQL_PORTA=` (vazio = porta padrão do SQL; preenchida sobrescreve).
 - **Base já usada em outro projeto** → os pares prontos estão no arquivo de referência acima;
   **copiar par entre projetos é decisão do owner** (o assistente aponta o caminho/constantes, não
   cola). **Base nova** → gerar o par localmente por script (snippet no docstring do template), sem

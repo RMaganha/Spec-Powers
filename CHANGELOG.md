@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.6.0 — 2026-07-10 (seletor de ambiente CONEXAO_SQL — validado no MSS-SSC)
+- feat: `.env` passa a ter **`CONEXAO_SQL`** (`D0`|`HML`|`PRD`, padrão D0) no lugar de `CONEXAO_PRD` — escolhe o par Fernet; e **`CONEXAO_SQL_PORTA`** opcional (vazio = porta padrão do SQL; preenchida sobrescreve o Server via regex, mantendo o host cifrado)
+- feat: `get_connection.py` interpreta os dois seletores num só ponto (`_ambiente()` + `_PARES`); `is_ambiente_prd()` deriva de `CONEXAO_SQL`; funções `_hml()` separadas removidas (HML agora é `CONEXAO_SQL=HML`)
+- fix: `_build_conn_str` faz `rstrip(';')` — par terminando em `;` gerava `;;` (segmento vazio) → connection string inválida `[87]`
+- fix: **comentário no `.env` SEMPRE em linha própria** — inline o Docker Compose `env_file` passa o comentário junto do valor (quebrou a porta em teste real). Documentado em banco.md, AMBIENTE §4, template
+- Validado no MSS-SSC com conexão real (D0 default, override de porta, guardas de ambiente inválido/placeholder)
+
 ## 0.5.1 — 2026-07-08 (build real MSS-SSC no escritório expôs 3 bugs)
 - fix: base `python:3.x-slim` → **`-slim-bookworm`** — a tag sem sufixo migrou pra trixie/Debian 13 e o `apt-get update` do repo ODBC `debian/12` quebrava
 - fix: `apt` do build via **HTTPS** (mirrors Debian) — porta 80 é interceptada pelo FortiGate em cleartext (`Bad header data`); em HTTPS a CA embutida torna o intercept confiável (funciona sem proxy explícito)

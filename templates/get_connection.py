@@ -8,8 +8,10 @@ bases SSC / MS10=tkgs_corp / TRP / OnBase já prontos):
 Regras do padrão:
 - Credencial NUNCA em `.env` nem em texto plano: cada base tem um par Fernet
   KEY/CIPHERTEXT **por ambiente** (DEV/D0 · HML/HI · PROD), embutido NESTE arquivo.
-- O `.env` carrega SÓ o seletor de ambiente: `CONEXAO_PRD` (vazio/ausente = DEV;
-  qualquer valor = PROD) e `API_ENV=PRD` em produção.
+- O `.env` carrega SÓ dois seletores (comentários em LINHA PRÓPRIA — nada inline no
+  `.env`, senão o Docker Compose passa o comentário junto do valor e quebra):
+      CONEXAO_SQL=D0          # D0 (padrão) | HML | PRD  -> escolhe o par
+      CONEXAO_SQL_PORTA=      # vazio = porta padrão do SQL; preenchida = sobrescreve
 - Base já usada em outro projeto → copie o par pronto do arquivo de referência
   (decisão do owner). Base nova → gere o par localmente, SEM ecoar segredo:
       from cryptography.fernet import Fernet
@@ -24,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 
 from cryptography.fernet import Fernet
@@ -63,6 +66,7 @@ def mask_password(conn_str: str) -> str:
 
 def _build_conn_str(raw: str, label: str) -> str:
     """Aplica TLS e timeout à connection string descriptografada (lógica central)."""
+    raw = raw.rstrip(";")  # evita ';;' (segmento vazio => connection string inválida [87])
     if "encrypt" not in raw.lower():
         raw += ";Encrypt=yes;TrustServerCertificate=yes"
     if "timeout" not in raw.lower():
@@ -94,28 +98,41 @@ def _decrypt(key: bytes, ciphertext: bytes, label: str) -> str:
 # -----------------------------------------------------------------------------
 
 
+# CONEXAO_SQL (D0|HML|PRD) -> par Fernet correspondente.
+_PARES = {
+    "D0":  (DEV_<BASE>_KEY,  DEV_<BASE>_CIPHERTEXT),
+    "HML": (HML_<BASE>_KEY,  HML_<BASE>_CIPHERTEXT),
+    "PRD": (PROD_<BASE>_KEY, PROD_<BASE>_CIPHERTEXT),
+}
+
+
+def _ambiente() -> str:
+    amb = (os.getenv("CONEXAO_SQL") or "D0").strip().upper()
+    if amb not in _PARES:
+        raise RuntimeError(f"CONEXAO_SQL inválido: {amb!r} — use D0, HML ou PRD.")
+    return amb
+
+
 def get_connection_<base>():
-    """Conexão com a base <BASE>. Sem CONEXAO_PRD = DEV (D0); com = PROD."""
-    prd = bool(os.getenv("CONEXAO_PRD"))
-    label = "<BASE>"
-    logger.info(f"[{label}] Iniciando conexão (ambiente: {'PROD' if prd else 'DEV'})")
+    """Conexão com a base <BASE>.
 
-    key = PROD_<BASE>_KEY if prd else DEV_<BASE>_KEY
-    ciphertext = PROD_<BASE>_CIPHERTEXT if prd else DEV_<BASE>_CIPHERTEXT
+    Ambiente vem de ``CONEXAO_SQL`` (D0|HML|PRD; padrão D0). Porta vem de
+    ``CONEXAO_SQL_PORTA`` — vazia usa a padrão do SQL; preenchida sobrescreve.
+    """
+    amb = _ambiente()
+    logger.info(f"[<BASE>] Iniciando conexão (ambiente: {amb})")
+    conn_str = _decrypt(*_PARES[amb], amb)
 
-    return _connect(_build_conn_str(_decrypt(key, ciphertext, label), label), label)
+    porta = (os.getenv("CONEXAO_SQL_PORTA") or "").strip()
+    if porta:  # sobrescreve a porta do Server (host,porta), mantendo o host cifrado
+        conn_str = re.sub(r"(Server=[^;,]+)(?:,\d+)?", rf"\g<1>,{porta}", conn_str, count=1)
 
-
-def get_connection_<base>_hml():
-    """Conexão com a <BASE> de Homologação (HI) — só fora de produção."""
-    label = "<BASE>-HML"
-    logger.info(f"[{label}] Iniciando conexão (ambiente: HML)")
-    return _connect(_build_conn_str(_decrypt(HML_<BASE>_KEY, HML_<BASE>_CIPHERTEXT, label), label), label)
+    return _connect(_build_conn_str(conn_str, amb), amb)
 
 
 def is_ambiente_prd() -> bool:
-    """True quando o app roda em produção (API_ENV=PRD)."""
-    return os.getenv("API_ENV", "").upper() == "PRD"
+    """True quando o app aponta pra produção (CONEXAO_SQL=PRD)."""
+    return _ambiente() == "PRD"
 
 
 # -----------------------------------------------------------------------------

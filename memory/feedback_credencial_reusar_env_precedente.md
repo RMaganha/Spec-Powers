@@ -12,7 +12,8 @@ Dois feedbacks do owner na mesma frente (2026-07-08, sessões MSS-SSC):
    o ambiente!" O padrão canônico da casa é
    `C:\Ronaldo\_Mitsui\Python\Transportes\V2\get_connection.py`: par Fernet KEY/CIPHERTEXT **por
    base e por ambiente** (DEV/D0 · HML/HI · PROD) embutido no próprio arquivo; `.env` só carrega
-   `CONEXAO_PRD`/`API_ENV`.
+   `CONEXAO_SQL` (D0|HML|PRD) + `CONEXAO_SQL_PORTA` (opcional; vazio = porta padrão). Comentário
+   no `.env` SEMPRE em linha própria — inline o Docker Compose passa junto do valor e quebra.
 
 **Why:** credencial em texto plano no `.env` circula e vaza; pedir digitação é atrito e erro. O
 arquivo do Transportes já tem os pares prontos das bases corporativas (SSC, MS10=`tkgs_corp`, TRP,
