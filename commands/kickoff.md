@@ -20,7 +20,7 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - `templates/ESTRUTURA.md` → `docs/ESTRUTURA.md` (estrutura de pastas em camadas — vale pra TODO projeto; adapte pelo tipo: sem UI, CLI/cron). **Todo arquivo novo nasce na pasta da sua camada — nunca achatado numa pasta única.**
    - `templates/settings.json` → `.claude/settings.json` (se ainda não existir do passo 2)
    - `templates/gitignore` → `.gitignore` (se não existir; se existir, garanta que `.env` está ignorado — adicione a linha se faltar). Protege segredo de subir.
-   - **Se o projeto tem UI web:** `templates/FRONTEND.md` → `docs/FRONTEND.md` (design system MSIG) e `templates/assets/logo.png` → `static/img/logo.png` (logo MSIG). Se não tem UI, pule os dois.
+   - **Se o projeto tem UI web:** `templates/FRONTEND.md` → `docs/FRONTEND.md` (design system MSIG — Nível 1 Jinja+Tailwind e Nível 2 React+Mantine) e `templates/assets/logo.png` → `static/img/logo.png` (logo MSIG). Se não tem UI, pule os dois. Para telas **densas** (grids/muitos campos), o front moderno (Nível 2) entra depois via `/mss-spec:frontend`.
 6. NÃO crie specs/planos agora — features vêm depois com `/mss-spec:nova-feature`.
 
 Ideia/insumo do owner: $ARGUMENTS

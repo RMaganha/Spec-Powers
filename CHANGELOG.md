@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.7.0 — 2026-07-13 (front moderno: React + TS + Mantine) [branch plugin-v2]
+- feat: **`/mss-spec:frontend`** — instala o front moderno (Nível 2) para telas densas
+- feat: `templates/frontend/` — scaffold Vite + React + TS + Mantine com tema MSIG (`src/theme.ts`: brand/navy), `ExemploGrid` com mantine-datatable, README com ilha×SPA e o atrito de build/proxy
+- feat: `templates/FRONTEND.md` reestruturado em **dois níveis** (Nível 1 Jinja+Tailwind server-rendered · Nível 2 React+TS+Mantine SPA) com regra de decisão por-tela; Tailwind e Mantine não se misturam no mesmo app
+- docs: LEIA-ME, COMO-FUNCIONA.html (node C5 + renumeração) e kickoff citam o front moderno
+- nota: Next/Remix ficaram de fora de propósito — para app interno autenticado, SPA (Vite) é mais simples que SSR
+
 ## 0.6.0 — 2026-07-10 (seletor de ambiente CONEXAO_SQL — validado no MSS-SSC)
 - feat: `.env` passa a ter **`CONEXAO_SQL`** (`D0`|`HML`|`PRD`, padrão D0) no lugar de `CONEXAO_PRD` — escolhe o par Fernet; e **`CONEXAO_SQL_PORTA`** opcional (vazio = porta padrão do SQL; preenchida sobrescreve o Server via regex, mantendo o host cifrado)
 - feat: `get_connection.py` interpreta os dois seletores num só ponto (`_ambiente()` + `_PARES`); `is_ambiente_prd()` deriva de `CONEXAO_SQL`; funções `_hml()` separadas removidas (HML agora é `CONEXAO_SQL=HML`)

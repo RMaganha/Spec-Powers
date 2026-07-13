@@ -2,11 +2,28 @@
      É o padrão visual/estrutural do front-end. Extraído do painel Atas Teams (2026-07). O nome/subtítulo
      do sistema e o rótulo do rodapé são por-projeto; o resto (tokens, layout, ícones, JS) é o padrão MSIG. -->
 
-# Front-end MSIG — design system (painel admin)
+# Front-end MSIG — design system
 
 Padrão visual e estrutural para UIs de aplicação. Objetivo: minimalista, profissional, consistente
 entre os sistemas MSIG. **Regra-mãe:** componentizado, com HTML/CSS/JS em arquivos e pastas separadas —
 nunca tudo embolado num arquivo (ver Regra crítica de front-end no `CLAUDE.md`).
+
+## Dois níveis de front (escolha por tela, não por projeto)
+
+O mesmo projeto pode ter os dois — a decisão é **por tela**, pela densidade de interação:
+
+| | **Nível 1 — Jinja + Tailwind** | **Nível 2 — React + TS + Mantine** |
+|---|---|---|
+| Quando | Páginas simples/institucionais, formulários leves, conteúdo, telas 80% estáticas | Telas **densas de dados/interação**: grids com sort/filtro/paginação, muitos campos, date pickers, máscaras, seleção múltipla, wizard |
+| Render | Servidor (FastAPI + Jinja) | SPA React servida pelo FastAPI (bundle estático) |
+| Interatividade extra | HTMX/Alpine (sem build pesado) | Componentes Mantine prontos |
+| Custo | Baixo (1 runtime) | Build JS (Vite/Node) — atrito no proxy/Docker (ver §Nível 2) |
+
+**Regra de decisão:** comece no Nível 1. Suba pro Nível 2 **só** quando a tela pedir componentes que doeria construir à mão (DataTable, DatePicker, Select com busca, forms complexos). Não misture Tailwind e Mantine **no mesmo app/tela** — a Mantine já traz tema, espaçamento, dark mode e responsivo; onde ela entra, o Tailwind sai.
+
+---
+
+# Nível 1 — Jinja + Tailwind (painel admin server-rendered)
 
 ## Stack e build
 - **Tailwind CSS v4** + plugin **`@tailwindcss/typography`**.
@@ -60,3 +77,34 @@ Pills pequenas: estado positivo (ex.: "ativo") em verde suave; neutro/negativo (
 
 ## Assets
 - Logo MSIG: `static/img/logo.png` (o `/mss-spec:kickoff` copia do plugin quando o projeto tem UI).
+
+---
+
+# Nível 2 — React + TypeScript + Mantine (telas densas)
+
+Para telas de dados/back-office (o grosso da modernização dos sistemas legados). Instale com
+`/mss-spec:frontend` — ele copia o scaffold de `${CLAUDE_PLUGIN_ROOT}/templates/frontend/` e aplica o tema MSIG.
+
+## Stack
+- **React + TypeScript**, build com **Vite** (bundle estático servido pelo FastAPI).
+- **Mantine** (`@mantine/core`, `@mantine/hooks`) para os componentes; **mantine-datatable** para grids (sort/paginação/seleção prontos).
+- **TypeScript centraliza a lógica** — vale desde cedo: o ganho é na manutenção/refactor conforme cresce.
+
+## Ilha × Rota SPA (decida pelo tamanho da mudança)
+- **Ilha React:** monta **um** componente React num `<div>` de uma página Jinja (o resto segue Jinja). Bom para introduzir Mantine em **um pedaço** (ex.: só a grid) com risco mínimo.
+- **Rota SPA:** a página **inteira** vira React (Jinja só serve o HTML-casca + o bundle). Certo quando a tela toda moderniza (campos, botões, date pickers, grid juntos).
+- Regra: um pedaço → ilha; tela inteira → rota SPA. Ilha é passo de transição; não espalhe muitas ilhas na mesma tela.
+
+## Tema MSIG na Mantine
+Os mesmos tokens do Nível 1, mapeados no tema Mantine (ver `templates/frontend/src/theme.ts`):
+`brand` (#E63329) como `primaryColor`, `navy` (#0E1A3A) para chrome/sidebar. Não reimplemente com Tailwind — a Mantine é a fonte de estilo no app React.
+
+## Componentização
+- Um componente por arquivo, tipado, em `frontend/src/components/`.
+- Dados vêm do FastAPI como **JSON** (endpoints dedicados) — o React **não** lê HTML renderizado; a camada Python vira API/BFF sobre o banco.
+- Estado local com hooks; nada de framework de estado global até doer (YAGNI).
+
+## Build e o atrito corporativo (leia antes de containerizar)
+- Dev local: `npm install` + `npm run dev` (Vite). Build: `npm run build` → bundle em `static/js/` (versionado, igual o `app.css`).
+- **Atrás do FortiGate**, `npm install` sofre o mesmo que pip/apt (ver `AMBIENTE.md` §2): resolva com registry npm interno/proxy **ou** rode o `npm ci` num estágio de build que tenha rede. No Docker, use **multi-stage** (estágio Node só pra buildar o bundle; a imagem final Python só copia o `static/js/` pronto — sem Node em runtime).
+- Regra prática: **buildar o bundle e versioná-lo** (como o Tailwind) mantém a imagem de runtime sem Node e evita `npm` no build do container.

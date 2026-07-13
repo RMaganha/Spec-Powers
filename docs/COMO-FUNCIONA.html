@@ -361,8 +361,24 @@ li{margin-bottom:6px}
     </div>
   </div>
 
+  <div class="node" id="c-frontend">
+    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">/mss-spec:frontend</span><span class="node-type">front moderno (Mantine)</span></div>
+    <div class="node-body">
+      <p><strong>O que faz:</strong> instala o <strong>Nível 2</strong> do front (React + TypeScript + Mantine, tema MSIG) para telas densas — grids, muitos campos, date pickers. Telas simples ficam no Nível 1 (Jinja + Tailwind). Copia o scaffold Vite e confirma antes de gravar.</p>
+      <div class="kv">
+        <dt>Copia</dt><dd><code>templates/frontend/</code> → <code>frontend/</code> (Vite + React + TS + Mantine; tema MSIG em <code>src/theme.ts</code>)</dd>
+        <dt>Ilha × SPA</dt><dd>um pedaço de página → ilha (<code>#mantine-root</code> + bundle); tela inteira → rota SPA servida pelo FastAPI</dd>
+        <dt>Dados</dt><dd>React consome <strong>JSON</strong> do FastAPI (API/BFF) — nunca lê HTML renderizado</dd>
+        <dt>Regra</dt><dd>onde a Mantine entra, o Tailwind sai (não misturar no mesmo app)</dd>
+      </div>
+      <div class="label-row"><span class="pill db">React + TS + Mantine</span><span class="pill warn">build/proxy: ver AMBIENTE §2</span></div>
+      <p class="subhead">Uso</p>
+      <p><code>/mss-spec:frontend "grid de apólice"</code>. A tela em si vem depois com <code>/mss-spec:nova-feature</code>.</p>
+    </div>
+  </div>
+
   <div class="node" id="c-precedentes">
-    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">/mss-spec:precedentes</span><span class="node-type">consulta catálogo</span></div>
+    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">/mss-spec:precedentes</span><span class="node-type">consulta catálogo</span></div>
     <div class="node-body">
       <p><strong>O que faz:</strong> consulta explícita ao catálogo de precedentes entre projetos MSIG — "isso já foi resolvido em outro projeto?". A skill homônima também dispara sozinha quando relevante.</p>
       <div class="kv">
@@ -376,7 +392,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-plano-teste">
-    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">/mss-spec:plano-teste</span><span class="node-type">baseline anti-regressão</span></div>
+    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">/mss-spec:plano-teste</span><span class="node-type">baseline anti-regressão</span></div>
     <div class="node-body">
       <p><strong>O que faz:</strong> roda o plano de teste base (pytest) — a rede anti-regressão ("se isso passa 100%, nada quebrou"). Se a suíte passa inteira, grava/atualiza o baseline; se não, reporta as falhas e mantém o baseline anterior.</p>
       <div class="kv">
@@ -391,7 +407,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-modo">
-    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">/mss-spec:modo</span><span class="node-type">nível de cerimônia</span></div>
+    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">/mss-spec:modo</span><span class="node-type">nível de cerimônia</span></div>
     <div class="node-body">
       <p><strong>O que faz:</strong> alterna o quanto do ritual Spec-Driven é aplicado — o antídoto pra lentidão do fluxo completo. Vale da chamada em diante, até trocar. Padrão: <strong>médio</strong>.</p>
       <div class="kv">
@@ -407,7 +423,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-documentacao">
-    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">/mss-spec:documentacao</span><span class="node-type">doc HTML editorial</span></div>
+    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">/mss-spec:documentacao</span><span class="node-type">doc HTML editorial</span></div>
     <div class="node-body">
       <p><strong>O que faz:</strong> gera documentação HTML no <strong>estilo editorial MSIG</strong> — este mesmo layout que você está lendo. Copia o template padrão e substitui só o conteúdo, mantendo a `&lt;style&gt;` intacta.</p>
       <div class="kv">
@@ -422,7 +438,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-memory">
-    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">/mss-spec:memory</span><span class="node-type">resgate de memória</span></div>
+    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">/mss-spec:memory</span><span class="node-type">resgate de memória</span></div>
     <div class="node-body">
       <p><strong>O que faz:</strong> traz pro repositório a memória que ficou na pasta <strong>nativa</strong> do Claude (`~/.claude/projects/&lt;proj&gt;/memory/`) — volátil e fora do git. Copia (não-destrutivo; a nativa fica intacta) e depois <strong>commita</strong> o <code>memory/</code> — <code>git add</code> nominal, local, sem push. É o commit que torna a memória durável de fato.</p>
       <div class="kv">
