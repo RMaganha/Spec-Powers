@@ -17,3 +17,10 @@ parruda que `mantine-datatable`, mas no **Mantine 7 só existe em beta** (`2.0.0
 existe em beta/rc, **não usar**; ficar na alternativa estável e reavaliar quando sair estável. No front:
 grid = `mantine-datatable` (estável), NÃO `mantine-react-table` enquanto beta. Codificado no
 `templates/FRONTEND.md` e no scaffold `templates/frontend/`. Relacionado: [[front-moderno-mantine]].
+
+**Nuance (2026-07-13): estável ≠ bleeding-edge.** Régua refinada: no **runtime** (o que o usuário roda —
+Mantine/React) use o **mais novo estável**. Mas um **major recém-lançado de ferramenta** (ex.:
+**TypeScript 7**, reescrita nova do compilador) é "estável no papel" mas o ecossistema ainda não assentou
+→ **esperar**, mesmo não sendo beta. Caso concreto: build tools = **vite 8 + @vitejs/plugin-react 6**
+(atuais, andam juntos, limpam vuln dev-only), mas **TypeScript no 5.x maduro**, não o 7. Não é
+"usar obsoleto" (5.x é a linha em uso) — é não ser cobaia de major de dias.
