@@ -85,10 +85,11 @@ Pills pequenas: estado positivo (ex.: "ativo") em verde suave; neutro/negativo (
 Para telas de dados/back-office (o grosso da modernização dos sistemas legados). Instale com
 `/mss-spec:frontend` — ele copia o scaffold de `${CLAUDE_PLUGIN_ROOT}/templates/frontend/` e aplica o tema MSIG.
 
-## Stack
-- **React + TypeScript**, build com **Vite** (bundle estático servido pelo FastAPI).
-- **Mantine** (`@mantine/core`, `@mantine/hooks`) para os componentes; **`@mantine/dates`** para datas.
-- **Grid: `mantine-datatable`** (estável no Mantine 7; sort/paginação/seleção prontos) — o **default** do scaffold. A MRT ("parruda") fica de fora enquanto for beta — ver *Regra: só estável* e *Grid parruda* abaixo.
+## Stack (versões envelhecem — confirme o estável atual no npm ao instalar)
+- **React 19 + TypeScript**, build com **Vite** (bundle estático servido pelo FastAPI). O Mantine 9 **exige React 19** (`@mantine/dates` peer `react ^19.2`).
+- **Mantine 9** (`@mantine/core`, `@mantine/hooks`, **mesma versão exata** nos três) para os componentes; **`@mantine/dates`** para datas.
+- **Grid: `mantine-datatable`** (estável no Mantine 9 — peer `@mantine/core >=9`, `react >=19`, `clsx`; sort/paginação/seleção prontos) — o **default** do scaffold. A MRT ("parruda") fica de fora enquanto não tiver estável no Mantine atual — ver *Regra: só estável* e *Grid parruda* abaixo.
+- **Números exatos rot** (o Mantine passou de 7→9, React 18→19 sem a gente ver): o scaffold pina o estável do dia; no install, **confira o `latest` no npm** e rode `npm run typecheck`.
 - **Datas: SEMPRE `DatePickerInput`** do `@mantine/dates` (calendário em popover, pt-BR via `DatesProvider locale="pt-br"` + `dayjs/locale/pt-br`). **Nunca** `<input type="date">` nativo — fica cru e refém do locale do navegador.
 - **TypeScript centraliza a lógica** — vale desde cedo: o ganho é na manutenção/refactor conforme cresce.
 
@@ -98,11 +99,12 @@ padrão de plugin vira dívida herdada por todos os projetos (breaking changes, 
 Se a lib "parruda" que você quer só existe em beta, **ela fica fora até sair estável** — use a alternativa
 estável enquanto isso.
 
-## Grid parruda — `mantine-react-table` (MRT): AGUARDANDO estável, NÃO usar
+## Grid parruda — `mantine-react-table` (MRT): SEM estável pro Mantine atual, NÃO usar
 A **MRT** (menu de coluna, densidade, colunas escondíveis, header fixo) seria a opção mais parruda —
-**mas no Mantine 7 ela só existe em beta** (`mantine-react-table@2.0.0-beta.*`; o estável `1.x` é do
-Mantine 6). Pela regra acima, **não entra** enquanto for beta. **Grid = `mantine-datatable`** (estável,
-Mantine 7). Reavaliar a MRT só quando houver `2.x` estável.
+**mas não tem release estável compatível com o Mantine atual**: o `latest` estável é `1.3.4` (Mantine
+antigo, peer `>=5.7`) e a v2 só existe em `alpha`/`beta` (`2.0.0-beta.*`). Pela regra acima, **não
+entra**. **Grid = `mantine-datatable`** (estável no Mantine 9). Reavaliar só quando a MRT tiver `2.x`
+estável pro Mantine em uso.
 
 ## Ilha × Rota SPA (decida pelo tamanho da mudança)
 - **Ilha React:** monta **um** componente React num `<div>` de uma página Jinja (o resto segue Jinja). Bom para introduzir Mantine em **um pedaço** (ex.: só a grid) com risco mínimo.

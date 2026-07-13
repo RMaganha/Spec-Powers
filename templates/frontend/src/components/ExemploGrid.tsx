@@ -11,7 +11,9 @@ export function ExemploGrid() {
   const [dados, setDados] = useState<Registro[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState("");
-  const [data, setData] = useState<Date | null>(null);
+  // Mantine 8+ (inclui a 9): DatePickerInput trabalha com STRING de data (não Date).
+  // Se você fixar uma versão diferente, confirme o tipo do value no primeiro typecheck.
+  const [data, setData] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/apolice/mssc.json")

@@ -11,7 +11,8 @@ Você vai instalar o **front moderno** (Nível 2 do `docs/FRONTEND.md`: React + 
 3. **Garanta o `.gitignore`:** `node_modules/` ignorado; o **bundle compilado** (`static/js/frontend.js`/`.css`) é **versionado** (igual ao `app.css` do Tailwind). Se faltar, ajuste (base em `${CLAUDE_PLUGIN_ROOT}/templates/gitignore`).
 4. **Decida ilha × rota SPA** e explique ao owner (regra no `docs/FRONTEND.md`): um pedaço de uma página → **ilha** (`<div id="mantine-root">` + bundle); tela inteira → **rota SPA** (o FastAPI serve a casca). Não espalhe várias ilhas na mesma tela.
 5. **Endpoint de dados:** o React consome **JSON** do FastAPI — crie/aponte o endpoint dedicado (a camada Python vira API/BFF). Nunca fazer o React ler HTML renderizado.
-6. **Explique o build e o atrito** (ver `docs/AMBIENTE.md` §2 e `frontend/README.md`): `npm install`/`npm run build` → bundle em `static/js/`; atrás do FortiGate, `npm install` pede registry/proxy ou build numa rede boa; no Docker, **multi-stage** (Node só builda; runtime Python só copia o `static/js/` pronto) ou bundle versionado no host.
-7. NÃO misture Tailwind e Mantine no mesmo app React — onde a Mantine entra, o Tailwind sai (ela já traz tema/espaçamento/dark mode).
+6. **Confirme as versões (elas envelhecem):** o `package.json` do scaffold pina o estável do dia, mas Mantine/React sobem major sem avisar (o kit já pegou 7→9 / React 18→19). No install, cheque o `latest` no npm dos `@mantine/*` (mesma versão nos três), `mantine-datatable`, `react`/`react-dom`, e rode `npm run typecheck`. Nunca aceitar beta/rc (regra: só estável).
+7. **Explique o build e o atrito** (ver `docs/AMBIENTE.md` §2 e `frontend/README.md`): `npm install`/`npm run build` → bundle em `static/js/`; atrás do FortiGate, `npm install` pede registry/proxy ou build numa rede boa; no Docker, **multi-stage** (Node só builda; runtime Python só copia o `static/js/` pronto) ou bundle versionado no host.
+8. NÃO misture Tailwind e Mantine no mesmo app React — onde a Mantine entra, o Tailwind sai (ela já traz tema/espaçamento/dark mode).
 
 Feito o scaffold, a tela em si vem depois com `/mss-spec:nova-feature` (spec → OK → plano → TDD → verificação).

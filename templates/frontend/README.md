@@ -29,10 +29,12 @@ O `main.tsx` monta no elemento `#mantine-root` — se ele não existir, a págin
 O React consome **JSON** de endpoints do FastAPI (a camada Python vira API/BFF). Não lê HTML
 renderizado. Ex.: `GET /apolice/mssc.json` → `{ "registros": [...] }` (ver `ExemploGrid.tsx`).
 
-## Componentes
+## Componentes (versões envelhecem — confira o `latest` no npm ao instalar)
 - **Regra: só dependências ESTÁVEIS** — nada de beta/rc/alpha/next.
-- **Grid:** `mantine-datatable` (estável no Mantine 7). A `mantine-react-table` ("parruda") **não entra
-  enquanto for beta** no Mantine 7 (o estável 1.x é Mantine 6) — reavaliar quando sair 2.x estável.
+- **Stack estável atual (verificado 2026-07-13):** Mantine **9** + React **19** + `mantine-datatable` **9.x**.
+  Os `@mantine/*` ficam **na mesma versão exata**. Rode `npm run typecheck` após instalar.
+- **Grid:** `mantine-datatable` (estável no Mantine 9). A `mantine-react-table` ("parruda") **não tem
+  estável pro Mantine atual** (latest 1.3.4 é Mantine antigo; v2 só alpha/beta) → fora até ter 2.x estável.
 - **Datas:** `DatePickerInput` (`@mantine/dates`) em pt-BR (`DatesProvider locale="pt-br"`). **Nunca**
   `<input type="date">` nativo (fica cru e depende do locale do navegador).
 
