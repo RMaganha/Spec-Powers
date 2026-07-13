@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Group, Stack, TextInput, Title } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
 import { DataTable } from "mantine-datatable";
 
 // EXEMPLO ilustrativo do padrão: grid consumindo um endpoint JSON do FastAPI.
@@ -10,6 +11,7 @@ export function ExemploGrid() {
   const [dados, setDados] = useState<Registro[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState("");
+  const [data, setData] = useState<Date | null>(null);
 
   useEffect(() => {
     fetch("/apolice/mssc.json")
@@ -25,11 +27,21 @@ export function ExemploGrid() {
     <Stack gap="sm">
       <Group justify="space-between">
         <Title order={3} c="navy.9">Cotações</Title>
-        <TextInput
-          placeholder="Buscar Nº"
-          value={filtro}
-          onChange={(e) => setFiltro(e.currentTarget.value)}
-        />
+        <Group gap="xs">
+          <TextInput
+            placeholder="Buscar Nº"
+            value={filtro}
+            onChange={(e) => setFiltro(e.currentTarget.value)}
+          />
+          {/* DatePickerInput (calendário em popover, pt-BR) — NUNCA <input type="date"> nativo. */}
+          <DatePickerInput
+            placeholder="Data"
+            valueFormat="DD/MM/YYYY"
+            clearable
+            value={data}
+            onChange={setData}
+          />
+        </Group>
       </Group>
       <DataTable
         withTableBorder

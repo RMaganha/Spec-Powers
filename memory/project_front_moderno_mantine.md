@@ -12,7 +12,13 @@ MSIG (MS10/MSS Digital, telas ASP.NET WebForms densas de campos/grids):
   para telas simples/server-rendered; **Nível 2** = React + TypeScript + Mantine (SPA via Vite) para
   telas densas (grids sort/filtro, muitos campos, date pickers). Regra: comece no 1, suba pro 2 só
   quando a tela pedir componentes que doeria fazer à mão.
-- **Mantine** escolhida (não MUI/Chakra) como lib de componentes; `mantine-datatable` para grids.
+- **Mantine** escolhida (não MUI/Chakra) como lib de componentes; **`mantine-datatable`** para grids
+  (default, **estável** no Mantine 7). **`mantine-react-table` (MRT)** é a "parruda" (menu de coluna,
+  densidade, esconder coluna) mas **no Mantine 7 só existe em beta** (`2.0.0-beta.*`; o `1.x` estável é
+  Mantine 6) → mantida como **opt-in documentado**, não default (beta não vira padrão de plugin). Achado
+  no MSS-SSC (2026-07-13) ao tentar a MRT. **Datas: sempre `DatePickerInput` (`@mantine/dates`, pt-BR)** —
+  nunca `<input type="date">` nativo (foi o "amador" que apareceu no 1º piloto por faltar `@mantine/dates`
+  no scaffold; corrigido no scaffold).
   **Next/Remix ficaram de fora de propósito**: app interno autenticado não precisa de SSR/SEO — SPA
   Vite é mais simples (um bundle estático servido pelo FastAPI). Ver [[docker-build-fortigate]] p/ o
   atrito de Node/npm no proxy (build multi-stage; runtime Python sem Node; ou bundle versionado).

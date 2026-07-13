@@ -29,6 +29,12 @@ O `main.tsx` monta no elemento `#mantine-root` — se ele não existir, a págin
 O React consome **JSON** de endpoints do FastAPI (a camada Python vira API/BFF). Não lê HTML
 renderizado. Ex.: `GET /apolice/mssc.json` → `{ "registros": [...] }` (ver `ExemploGrid.tsx`).
 
+## Componentes
+- **Grid:** `mantine-datatable` (estável no Mantine 7). Grid "parruda" (menu de coluna, densidade):
+  `mantine-react-table` é opt-in, mas **no Mantine 7 é beta** — ver `docs/FRONTEND.md`.
+- **Datas:** `DatePickerInput` (`@mantine/dates`) em pt-BR (`DatesProvider locale="pt-br"`). **Nunca**
+  `<input type="date">` nativo (fica cru e depende do locale do navegador).
+
 ## Atrito corporativo (proxy / Docker)
 - `npm install` atrás do FortiGate sofre o mesmo que pip/apt (ver `docs/AMBIENTE.md` §2): registry
   npm interno/proxy, **ou** rode num ambiente com rede (casa/VPN) e versione o bundle.
