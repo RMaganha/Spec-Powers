@@ -18,9 +18,11 @@ existe em beta/rc, **não usar**; ficar na alternativa estável e reavaliar quan
 grid = `mantine-datatable` (estável), NÃO `mantine-react-table` enquanto beta. Codificado no
 `templates/FRONTEND.md` e no scaffold `templates/frontend/`. Relacionado: [[front-moderno-mantine]].
 
-**Nuance (2026-07-13): estável ≠ bleeding-edge.** Régua refinada: no **runtime** (o que o usuário roda —
-Mantine/React) use o **mais novo estável**. Mas um **major recém-lançado de ferramenta** (ex.:
-**TypeScript 7**, reescrita nova do compilador) é "estável no papel" mas o ecossistema ainda não assentou
-→ **esperar**, mesmo não sendo beta. Caso concreto: build tools = **vite 8 + @vitejs/plugin-react 6**
-(atuais, andam juntos, limpam vuln dev-only), mas **TypeScript no 5.x maduro**, não o 7. Não é
-"usar obsoleto" (5.x é a linha em uso) — é não ser cobaia de major de dias.
+**Refinamento (2026-07-13): "só estável" = usar o mais novo ESTÁVEL, inclusive major novo.** A régua é
+contra **beta/rc/alpha**, NÃO contra release GA recém-saído. Eu (assistente) errei tentando barrar o
+**TypeScript 7** (GA) como "bleeding-edge, esperar" — isso foi cautela minha sem dado verificado, o mesmo
+erro do Mantine 7/vite 6. Correção do owner: se é **estável (GA)**, usa. Build tools no último estável:
+**vite 8 + @vitejs/plugin-react 6 + TypeScript 7**. Rede de segurança p/ major novo de ferramenta: é
+**empírico e instantâneo** — o `tsc` só roda no `npm run typecheck` (o build vite/esbuild não usa tsc);
+se o typecheck do TS 7 reclamar, cai pra `typescript ^5.6` numa linha. Adotar > adiar por medo não
+verificado. (Beta continua fora, sempre.)

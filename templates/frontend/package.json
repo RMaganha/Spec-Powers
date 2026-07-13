@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "//": "Scaffold do front moderno MSIG (Nível 2). Versões = estável atual verificado no npm em 2026-07-13. ELAS ENVELHECEM: no install, confirme/atualize (npm install <pkg>@latest) e rode 'npm run typecheck'. Os @mantine/* ficam TODOS na MESMA versão (peer exato entre eles). Build tools: vite 8 + plugin-react 6 (andam juntos; limpam a vuln dev-only). TypeScript fica no 5.x MADURO — evitar o 7 (reescrita recém-lançada do compilador) até o ecossistema assentar; não é beta, mas é bleeding-edge.",
+  "//": "Scaffold do front moderno MSIG (Nível 2). Versões = estável atual verificado no npm em 2026-07-13. ELAS ENVELHECEM: no install, confirme/atualize (npm install <pkg>@latest) e rode 'npm run typecheck'. Os @mantine/* ficam TODOS na MESMA versão (peer exato entre eles). Build tools no último estável: vite 8 + plugin-react 6 (peer vite ^8; limpam vuln dev-only) + TypeScript 7. O typecheck é o juiz — o build (vite/esbuild) não depende do tsc; se o TS 7 reclamar na checagem, caia pra typescript ^5.6 (só essa linha). Nada de beta/rc.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -23,7 +23,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.0",
-    "typescript": "^5.6.0",
+    "typescript": "^7.0.2",
     "vite": "^8.0.0"
   }
 }
