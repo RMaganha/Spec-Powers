@@ -30,8 +30,9 @@ O React consome **JSON** de endpoints do FastAPI (a camada Python vira API/BFF).
 renderizado. Ex.: `GET /apolice/mssc.json` → `{ "registros": [...] }` (ver `ExemploGrid.tsx`).
 
 ## Componentes
-- **Grid:** `mantine-datatable` (estável no Mantine 7). Grid "parruda" (menu de coluna, densidade):
-  `mantine-react-table` é opt-in, mas **no Mantine 7 é beta** — ver `docs/FRONTEND.md`.
+- **Regra: só dependências ESTÁVEIS** — nada de beta/rc/alpha/next.
+- **Grid:** `mantine-datatable` (estável no Mantine 7). A `mantine-react-table` ("parruda") **não entra
+  enquanto for beta** no Mantine 7 (o estável 1.x é Mantine 6) — reavaliar quando sair 2.x estável.
 - **Datas:** `DatePickerInput` (`@mantine/dates`) em pt-BR (`DatesProvider locale="pt-br"`). **Nunca**
   `<input type="date">` nativo (fica cru e depende do locale do navegador).
 

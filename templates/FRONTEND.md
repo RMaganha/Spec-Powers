@@ -88,17 +88,21 @@ Para telas de dados/back-office (o grosso da modernização dos sistemas legados
 ## Stack
 - **React + TypeScript**, build com **Vite** (bundle estático servido pelo FastAPI).
 - **Mantine** (`@mantine/core`, `@mantine/hooks`) para os componentes; **`@mantine/dates`** para datas.
-- **Grid: `mantine-datatable`** (estável no Mantine 7; sort/paginação/seleção prontos) — o **default** do scaffold. Para grid "parruda" (menu de coluna, densidade, esconder coluna), veja *Grid parruda (opt-in)* abaixo.
+- **Grid: `mantine-datatable`** (estável no Mantine 7; sort/paginação/seleção prontos) — o **default** do scaffold. A MRT ("parruda") fica de fora enquanto for beta — ver *Regra: só estável* e *Grid parruda* abaixo.
 - **Datas: SEMPRE `DatePickerInput`** do `@mantine/dates` (calendário em popover, pt-BR via `DatesProvider locale="pt-br"` + `dayjs/locale/pt-br`). **Nunca** `<input type="date">` nativo — fica cru e refém do locale do navegador.
 - **TypeScript centraliza a lógica** — vale desde cedo: o ganho é na manutenção/refactor conforme cresce.
 
-## Grid parruda (opt-in) — `mantine-react-table` (MRT)
-Quer menu de coluna, densidade, colunas escondíveis, header fixo e localização nativa? A **MRT** entrega
-tudo isso — mas **no Mantine 7 ela só existe em beta** (`mantine-react-table@2.0.0-beta.*`; o estável
-`1.x` é do Mantine 6). A `mantine-datatable` (default) é **estável**. Custo do opt-in: +3 deps
-(`mantine-react-table`, `@tanstack/react-table`, `@tabler/icons-react`, ~+200 KB) e uma **dependência
-beta** (breaking changes possíveis; rode `npm audit` e decida sobre transitivas). Só troque quando a
-tela justificar a parruda; caso contrário, fique na `mantine-datatable` + `DatePickerInput`.
+## Regra: só dependências ESTÁVEIS (nada de beta/rc/pre-release)
+Todo componente/lib do front é **release estável** — nada de `beta`, `rc`, `alpha` ou `next`. Beta em
+padrão de plugin vira dívida herdada por todos os projetos (breaking changes, abandono, vulnerabilidades).
+Se a lib "parruda" que você quer só existe em beta, **ela fica fora até sair estável** — use a alternativa
+estável enquanto isso.
+
+## Grid parruda — `mantine-react-table` (MRT): AGUARDANDO estável, NÃO usar
+A **MRT** (menu de coluna, densidade, colunas escondíveis, header fixo) seria a opção mais parruda —
+**mas no Mantine 7 ela só existe em beta** (`mantine-react-table@2.0.0-beta.*`; o estável `1.x` é do
+Mantine 6). Pela regra acima, **não entra** enquanto for beta. **Grid = `mantine-datatable`** (estável,
+Mantine 7). Reavaliar a MRT só quando houver `2.x` estável.
 
 ## Ilha × Rota SPA (decida pelo tamanho da mudança)
 - **Ilha React:** monta **um** componente React num `<div>` de uma página Jinja (o resto segue Jinja). Bom para introduzir Mantine em **um pedaço** (ex.: só a grid) com risco mínimo.

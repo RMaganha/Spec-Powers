@@ -7,3 +7,4 @@
 - [Conexão SQL: par Fernet por ambiente](feedback_credencial_reusar_env_precedente.md) — credencial cifrada NO CÓDIGO; .env só CONEXAO_SQL (D0|HML|PRD) + CONEXAO_SQL_PORTA (opcional); comentário no .env em linha própria (inline quebra no Compose); nunca pedir credencial digitada
 - [Build Docker + ODBC atrás do FortiGate](project_docker_build_fortigate.md) — 3 fixes validados em build real: base -bookworm (trixie quebra ODBC), apt via HTTPS (CA vence o intercept), repo MS sem duplo colchete
 - [Front moderno: 2 níveis + Mantine](project_front_moderno_mantine.md) — Jinja+Tailwind (simples) × React+TS+Mantine (denso), decisão por-tela; Next/Remix fora; /mss-spec:frontend no plugin (v0.7.0, branch plugin-v2)
+- [Só dependência estável (nada de beta)](feedback_so_dependencia_estavel.md) — regra do owner: só releases estáveis em todo componente; MRT fica fora enquanto Mantine 7 for beta → grid = mantine-datatable

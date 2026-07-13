@@ -9,7 +9,7 @@
 - docs: LEIA-ME, COMO-FUNCIONA.html (node C5 + renumeração) e kickoff citam o front moderno
 - nota: Next/Remix ficaram de fora de propósito — para app interno autenticado, SPA (Vite) é mais simples que SSR
 - fix (feedback do 1º piloto MSS-SSC): scaffold ganha **`@mantine/dates` + `DatePickerInput` pt-BR** (`DatesProvider locale=pt-br` + `dayjs`) — o exemplo usava `<input type="date">` nativo (cru); nunca mais o nativo
-- docs: FRONTEND.md documenta **grid parruda opt-in** (`mantine-react-table`) com o aviso de que no Mantine 7 é **beta** (o estável 1.x é Mantine 6); default do plugin segue `mantine-datatable` estável
+- **regra: só dependências ESTÁVEIS (nada de beta/rc)** — decisão do owner; codificada no FRONTEND.md, scaffold e memória. A `mantine-react-table` ("parruda") fica **de fora enquanto for beta** no Mantine 7 (o estável 1.x é Mantine 6); grid = `mantine-datatable` estável
 
 ## 0.6.0 — 2026-07-10 (seletor de ambiente CONEXAO_SQL — validado no MSS-SSC)
 - feat: `.env` passa a ter **`CONEXAO_SQL`** (`D0`|`HML`|`PRD`, padrão D0) no lugar de `CONEXAO_PRD` — escolhe o par Fernet; e **`CONEXAO_SQL_PORTA`** opcional (vazio = porta padrão do SQL; preenchida sobrescreve o Server via regex, mantendo o host cifrado)
