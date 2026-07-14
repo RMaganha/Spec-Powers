@@ -3,6 +3,7 @@
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
 ## 0.7.0 — 2026-07-13 (front moderno: React + TS + Mantine) [branch plugin-v2]
+- feat: `/mss-spec:frontend` agora **re-sincroniza `docs/FRONTEND.md` do template a cada run** (projeto pega as melhorias do molde sem depender de foto antiga); o **scaffold** só é copiado na 1ª vez (não sobrescreve os componentes do projeto num re-run)
 - feat: **`/mss-spec:frontend`** — instala o front moderno (Nível 2) para telas densas
 - feat: `templates/frontend/` — scaffold Vite + React + TS + Mantine com tema MSIG (`src/theme.ts`: brand/navy), `ExemploGrid` com mantine-datatable, README com ilha×SPA e o atrito de build/proxy
 - feat: `templates/FRONTEND.md` reestruturado em **dois níveis** (Nível 1 Jinja+Tailwind server-rendered · Nível 2 React+TS+Mantine SPA) com regra de decisão por-tela; Tailwind e Mantine não se misturam no mesmo app
