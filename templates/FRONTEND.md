@@ -123,7 +123,7 @@ Os mesmos tokens do Nível 1, mapeados no tema Mantine (ver `templates/frontend/
 - Estado local com hooks; nada de framework de estado global até doer (YAGNI).
 
 ## Padrões de grid (busca · exportar)
-- **Busca na grid:** uma caixa (`TextInput`) que filtra os `records` por um termo em **várias colunas**
+- **Busca na grid = FUNIL NA COLUNA (estilo Excel), não barra separada acima:** use as props `filter` (o `TextInput`/`DatePickerInput` que aparece no popover do funil, no cabeçalho da coluna) e `filtering` da `mantine-datatable`; a filtragem em si é `records.filter(...)`. Ver `ExemploGrid.tsx`. Ou seja, uma caixa (`TextInput`) **no funil da coluna** que filtra os `records` por um termo em **várias colunas**
   (ex.: Nº, apólice, caixa). Client-side (`records.filter(...)`) resolve bem dezenas/centenas de linhas
   — ver `ExemploGrid.tsx`. Para **milhares** de linhas, passe o termo ao endpoint e filtre **no servidor**
   (o front só manda `?busca=...`). Ordenação/paginação seguem o mesmo corte: client-side p/ pouco,
