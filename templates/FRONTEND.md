@@ -122,6 +122,18 @@ Os mesmos tokens do Nível 1, mapeados no tema Mantine (ver `templates/frontend/
 - Dados vêm do FastAPI como **JSON** (endpoints dedicados) — o React **não** lê HTML renderizado; a camada Python vira API/BFF sobre o banco.
 - Estado local com hooks; nada de framework de estado global até doer (YAGNI).
 
+## Padrões de grid (busca · exportar)
+- **Busca na grid:** uma caixa (`TextInput`) que filtra os `records` por um termo em **várias colunas**
+  (ex.: Nº, apólice, caixa). Client-side (`records.filter(...)`) resolve bem dezenas/centenas de linhas
+  — ver `ExemploGrid.tsx`. Para **milhares** de linhas, passe o termo ao endpoint e filtre **no servidor**
+  (o front só manda `?busca=...`). Ordenação/paginação seguem o mesmo corte: client-side p/ pouco,
+  server-side p/ muito.
+- **Exportar pra Excel: faça no SERVIDOR, não no front.** Um endpoint FastAPI gera o `.xlsx` com
+  **`openpyxl`** (cabeçalho, largura de coluna, formato — "Excel bonito" é fácil no Python) e devolve como
+  download; o botão da grid só chama `GET /<area>/export.xlsx?<mesmos filtros da tela>`. Motivos: evita
+  **mais uma lib de terceiro no front** (o risco de manutenção que a gente já discutiu), e a formatação
+  fica poderosa. As **colunas/formato específicos são do projeto**; o padrão (server-side + openpyxl) é do kit.
+
 ## Build e o atrito corporativo (leia antes de containerizar)
 - Dev local: `npm install` + `npm run dev` (Vite). Build: `npm run build` → bundle em `static/js/` (versionado, igual o `app.css`).
 - **Atrás do FortiGate**, `npm install` sofre o mesmo que pip/apt (ver `AMBIENTE.md` §2): resolva com registry npm interno/proxy **ou** rode o `npm ci` num estágio de build que tenha rede. No Docker, use **multi-stage** (estágio Node só pra buildar o bundle; a imagem final Python só copia o `static/js/` pronto — sem Node em runtime).

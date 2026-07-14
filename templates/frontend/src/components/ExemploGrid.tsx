@@ -10,7 +10,7 @@ type Registro = { id: number; numero: number; data: string; anexos: number };
 export function ExemploGrid() {
   const [dados, setDados] = useState<Registro[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [filtro, setFiltro] = useState("");
+  const [busca, setBusca] = useState("");
   // Mantine 8+ (inclui a 9): DatePickerInput trabalha com STRING de data (não Date).
   // Se você fixar uma versão diferente, confirme o tipo do value no primeiro typecheck.
   const [data, setData] = useState<string | null>(null);
@@ -23,7 +23,16 @@ export function ExemploGrid() {
       .finally(() => setCarregando(false));
   }, []);
 
-  const visiveis = dados.filter((d) => String(d.numero).includes(filtro.trim()));
+  // Busca NA GRID: filtra os records por um termo em VÁRIAS colunas (client-side, bom p/ dezenas/
+  // centenas de linhas). Estenda os campos conforme as colunas (ex.: apólice, caixa). Para milhares
+  // de linhas, faça a busca no servidor (parâmetro no endpoint) em vez de client-side.
+  const termo = busca.trim().toLowerCase();
+  const visiveis = dados.filter(
+    (d) =>
+      !termo ||
+      String(d.numero).includes(termo) ||
+      d.data.toLowerCase().includes(termo),
+  );
 
   return (
     <Stack gap="sm">
@@ -31,9 +40,9 @@ export function ExemploGrid() {
         <Title order={3} c="navy.9">Cotações</Title>
         <Group gap="xs">
           <TextInput
-            placeholder="Buscar Nº"
-            value={filtro}
-            onChange={(e) => setFiltro(e.currentTarget.value)}
+            placeholder="Buscar (Nº, data…)"
+            value={busca}
+            onChange={(e) => setBusca(e.currentTarget.value)}
           />
           {/* DatePickerInput (calendário em popover, pt-BR) — NUNCA <input type="date"> nativo. */}
           <DatePickerInput
