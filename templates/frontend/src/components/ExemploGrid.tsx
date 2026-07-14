@@ -3,6 +3,7 @@ import { Group, Stack, TextInput, Title } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import { DataTable } from "mantine-datatable";
 import { StatusBadge } from "./StatusBadge";
+import { StatusLegend } from "./StatusLegend";
 
 // EXEMPLO ilustrativo do padrão: grid consumindo um endpoint JSON do FastAPI.
 // Troque a URL, o tipo e as colunas pelo caso real (ex.: /apolice/mssc.json).
@@ -55,6 +56,13 @@ export function ExemploGrid() {
           />
         </Group>
       </Group>
+      {/* Legenda OBRIGATÓRIA quando a grid tem status: explica cada cor. Os itens são do PROJETO. */}
+      <StatusLegend
+        itens={[
+          { tone: "ok", label: "Com anexos" },
+          { tone: "aviso", label: "Sem anexos" },
+        ]}
+      />
       <DataTable
         withTableBorder
         borderRadius="md"
