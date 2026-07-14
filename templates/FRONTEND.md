@@ -128,12 +128,10 @@ Os mesmos tokens do Nível 1, mapeados no tema Mantine (ver `templates/frontend/
   — ver `ExemploGrid.tsx`. Para **milhares** de linhas, passe o termo ao endpoint e filtre **no servidor**
   (o front só manda `?busca=...`). Ordenação/paginação seguem o mesmo corte: client-side p/ pouco,
   server-side p/ muito.
-- **Status colorido + legenda (regra):** numa coluna de situação, use o componente **`StatusBadge`** (`Badge` do Mantine) no lugar de ícone/texto cru — `tone="ok"` verde, `aviso` amarelo, `erro` vermelho, `neutro` cinza:
-  - `<StatusBadge tone="ok">Processado</StatusBadge>` → pílula verde "Processado"
-  - `<StatusBadge tone="aviso">Sem registro</StatusBadge>` → pílula amarela "Sem registro"
-  - **SEMPRE monte uma legenda acima da grid** (componente **`StatusLegend`**) explicando o que cada cor/status significa — o usuário não adivinha cor.
-  - **Os status são POR-PROJETO — não generalizar.** Cada tela tem o seu conjunto (o ATM-TRP tem bem mais itens que o MSS-SSC). O plugin entrega os componentes (`StatusBadge`/`StatusLegend`) e a regra da legenda; **a lista de status é do projeto** (passada em `StatusLegend itens={[...]}`).
-  - Ambos já vêm no scaffold (`src/components/StatusBadge.tsx`, `StatusLegend.tsx`) e em uso no `ExemploGrid`.
+- **Status colorido + legenda — SÓ quando a tela tem estado real.** Componentes `StatusBadge`/`StatusLegend` no scaffold (`src/components/`). **NÃO ficam no `ExemploGrid` de propósito** — status não é peça de toda grid; é opcional e sob julgamento.
+  - **QUANDO usar:** a linha tem um **estado real e múltiplo**, que o usuário precisa distinguir por cor. Ex. (ATM-TRP): `Processado` (verde) · `Sem registro` (amarelo) · `Erro` (vermelho). Aí: `<StatusBadge tone="ok">Processado</StatusBadge>`, e **uma legenda acima da grid** (`<StatusLegend itens={[...]} />`) explicando cada cor — o usuário não adivinha cor.
+  - **QUANDO NÃO usar (importante):** **não invente status.** Se o "estado" é uma **contagem** ou um **sim/não que já aparece noutra coluna** (ex.: "Com anexos/Sem anexos" quando já existe a coluna "Anexos" com o número), **não crie coluna de status nem legenda** — é redundante e polui. A maioria das grids **não tem** status; deixe minimalista.
+  - **Os status são POR-PROJETO — não generalizar.** Cada tela define os seus (o ATM-TRP tem vários; o MSS-SSC de cotação **não tem nenhum** — uma cotação só existe). O plugin dá os componentes + a regra; **a lista é do projeto** (`StatusLegend itens={[...]}`).
 - **Exportar pra Excel: faça no SERVIDOR, não no front.** Um endpoint FastAPI gera o `.xlsx` com
   **`openpyxl`** (cabeçalho, largura de coluna, formato — "Excel bonito" é fácil no Python) e devolve como
   download; o botão da grid só chama `GET /<area>/export.xlsx?<mesmos filtros da tela>`. Motivos: evita

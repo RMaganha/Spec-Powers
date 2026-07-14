@@ -35,11 +35,13 @@ MSIG (MS10/MSS Digital, telas ASP.NET WebForms densas de campos/grids):
   modernizar a tela de apólice do MSS-SSC via `/mss-spec:nova-feature`), não editando de outro repo.
 - **Estratégia de modernização do legado**: strangler-fig (o MSS-SSC é o 1º galho novo) + FastAPI
   como BFF sobre o SQL Server. O front é os ~30% fáceis; desacoplar o monólito via APIs é o resto.
-- **Status na grid (padrão + regra):** etiqueta colorida via componente **`StatusBadge`**
-  (tons `ok`/`aviso`/`erro`/`neutro` = verde/amarelo/vermelho/cinza), no lugar de ícone/texto cru:
-  `<StatusBadge tone="ok">Processado</StatusBadge>` → pílula verde; `<StatusBadge tone="aviso">Sem
-  registro</StatusBadge>` → pílula amarela. **REGRA: sempre montar uma legenda ACIMA da grid**
-  (componente **`StatusLegend itens={[...]}`**) dizendo o que cada cor/status é — o usuário não
-  adivinha cor. **Os status são POR-PROJETO — NÃO generalizar** (o ATM-TRP tem muito mais itens que o
-  MSS-SSC): o plugin dá os componentes + a regra da legenda; a **lista de status é do projeto**.
-  No scaffold: `src/components/StatusBadge.tsx` e `StatusLegend.tsx`, em uso no `ExemploGrid`.
+- **Status na grid — componentes `StatusBadge`/`StatusLegend`, MAS com julgamento (regra dura):**
+  tons `ok`/`aviso`/`erro`/`neutro` = verde/amarelo/vermelho/cinza; ex.: `<StatusBadge tone="ok">
+  Processado</StatusBadge>`. **SÓ usar quando a tela tem estado REAL e múltiplo** (ex. ATM-TRP:
+  Processado/Sem registro/Erro) — aí **legenda obrigatória acima** (`StatusLegend itens={[...]}`).
+  **NÃO INVENTAR status:** se é contagem ou sim/não já visível noutra coluna, NÃO cria badge/legenda.
+  Erro real (2026-07-14): o exemplo do plugin trazia status falso "Com anexos/Sem anexos" e a sessão
+  do MSS-SSC copiou pra tela de cotação (que NÃO tem status) → ficou redundante/feio. Correção:
+  os componentes **NÃO ficam no `ExemploGrid`** (não é peça de toda grid); status é opcional/sob
+  julgamento. **Por-projeto, não generalizar** (cotação MSSC não tem status; ATM-TRP tem vários).
+  Lição-mãe: exemplo de scaffold não pode ser copiável-como-lixo → [[nao-inventar-fatos-concretos]].

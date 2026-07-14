@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Group, Stack, TextInput, Title } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import { DataTable } from "mantine-datatable";
-import { StatusBadge } from "./StatusBadge";
-import { StatusLegend } from "./StatusLegend";
 
-// EXEMPLO ilustrativo do padrão: grid consumindo um endpoint JSON do FastAPI.
+// EXEMPLO ilustrativo do padrão: grid enxuta consumindo um endpoint JSON do FastAPI.
 // Troque a URL, o tipo e as colunas pelo caso real (ex.: /apolice/mssc.json).
+// NÃO inventar coluna de "status": só use StatusBadge/StatusLegend se a tela tiver estados
+// REAIS e múltiplos (ex.: Processado / Sem registro / Erro). Ver docs/FRONTEND.md.
 type Registro = { id: number; numero: number; data: string; anexos: number };
 
 export function ExemploGrid() {
@@ -56,13 +56,6 @@ export function ExemploGrid() {
           />
         </Group>
       </Group>
-      {/* Legenda OBRIGATÓRIA quando a grid tem status: explica cada cor. Os itens são do PROJETO. */}
-      <StatusLegend
-        itens={[
-          { tone: "ok", label: "Com anexos" },
-          { tone: "aviso", label: "Sem anexos" },
-        ]}
-      />
       <DataTable
         withTableBorder
         borderRadius="md"
@@ -75,17 +68,6 @@ export function ExemploGrid() {
           { accessor: "numero", title: "Nº MSSC", sortable: true },
           { accessor: "data", title: "Data" },
           { accessor: "anexos", title: "Anexos", textAlign: "right" },
-          {
-            accessor: "status",
-            title: "Status",
-            // Exemplo de etiqueta colorida: mapeia um valor do registro -> cor. Troque pela sua regra real.
-            render: (d) =>
-              d.anexos > 0 ? (
-                <StatusBadge tone="ok">Com anexos</StatusBadge>
-              ) : (
-                <StatusBadge tone="aviso">Sem anexos</StatusBadge>
-              ),
-          },
         ]}
         noRecordsText="Nenhum registro."
       />
