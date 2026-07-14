@@ -35,6 +35,17 @@ MSIG (MS10/MSS Digital, telas ASP.NET WebForms densas de campos/grids):
   modernizar a tela de apólice do MSS-SSC via `/mss-spec:nova-feature`), não editando de outro repo.
 - **Estratégia de modernização do legado**: strangler-fig (o MSS-SSC é o 1º galho novo) + FastAPI
   como BFF sobre o SQL Server. O front é os ~30% fáceis; desacoplar o monólito via APIs é o resto.
+- **Busca na grid = FUNIL NA COLUNA** (props `filter`/`filtering` da `mantine-datatable`; um
+  `TextInput` no popover do cabeçalho — Data pode ter `DatePickerInput`), **NÃO** barra de busca solta
+  acima da grid (escolha do owner, 2026-07-14). Filtragem client-side (`records.filter`) p/ poucas
+  linhas; server-side `?busca=` p/ muitas.
+- **Trade-off aceito (nota honesta):** a `mantine-datatable` (estável) é **menos "parruda"** que a
+  `mantine-react-table` (MRT) — a busca no funil e o visual ficam mais modestos que a toolbar integrada
+  da MRT. O owner registrou que "não ficou tão bom" quanto com a MRT. Aceito **por causa do "só
+  estável"** [[so-dependencia-estavel]] (MRT sem release estável pro Mantine atual). **Reavaliar a MRT
+  quando houver 2.x estável** — o grid é 1 componente isolado, trocar depois é barato. A jornada do
+  front teve MUITO vaivém (MRT↔datatable, versões 7→9, busca, badges) — a maior parte por eu cravar
+  fato de versão de cabeça; a régua agora é: conferir npm/template oficial, não a memória do assistente.
 - **Status na grid — componentes `StatusBadge`/`StatusLegend`, MAS com julgamento (regra dura):**
   tons `ok`/`aviso`/`erro`/`neutro` = verde/amarelo/vermelho/cinza; ex.: `<StatusBadge tone="ok">
   Processado</StatusBadge>`. **SÓ usar quando a tela tem estado REAL e múltiplo** (ex. ATM-TRP:
