@@ -26,3 +26,8 @@ erro do Mantine 7/vite 6. Correção do owner: se é **estável (GA)**, usa. Bui
 **empírico e instantâneo** — o `tsc` só roda no `npm run typecheck` (o build vite/esbuild não usa tsc);
 se o typecheck do TS 7 reclamar, cai pra `typescript ^5.6` numa linha. Adotar > adiar por medo não
 verificado. (Beta continua fora, sempre.)
+
+**Confirmado na fonte (2026-07-13):** o template oficial `mantinedev/vite-template` (GitHub) ship
+**TypeScript 7.0.2**, Mantine 9.4.1, React 19.2, vite 8, plugin-react 6 — idêntico ao nosso scaffold.
+Ou seja, o "risco de tooling do TS 7" era infundado; o próprio Mantine usa. **Fonte da verdade de
+versão do front = `mantinedev/vite-template` `package.json`** (não a memória do assistente).
