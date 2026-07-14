@@ -128,6 +128,7 @@ Os mesmos tokens do Nível 1, mapeados no tema Mantine (ver `templates/frontend/
   — ver `ExemploGrid.tsx`. Para **milhares** de linhas, passe o termo ao endpoint e filtre **no servidor**
   (o front só manda `?busca=...`). Ordenação/paginação seguem o mesmo corte: client-side p/ pouco,
   server-side p/ muito.
+- **Status colorido:** use o componente **`StatusBadge`** (`Badge` do Mantine) no lugar de ícone/texto cru numa coluna de situação — `tone="ok"` verde, `aviso` amarelo, `erro` vermelho, `neutro` cinza. Ex.: `<StatusBadge tone="ok">Processado</StatusBadge>`, `<StatusBadge tone="aviso">Sem registro</StatusBadge>`. Já vem no scaffold (`src/components/StatusBadge.tsx`) e em uso no `ExemploGrid`.
 - **Exportar pra Excel: faça no SERVIDOR, não no front.** Um endpoint FastAPI gera o `.xlsx` com
   **`openpyxl`** (cabeçalho, largura de coluna, formato — "Excel bonito" é fácil no Python) e devolve como
   download; o botão da grid só chama `GET /<area>/export.xlsx?<mesmos filtros da tela>`. Motivos: evita
