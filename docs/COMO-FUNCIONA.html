@@ -487,7 +487,7 @@ li{margin-bottom:6px}
     <thead><tr><th>Item</th><th>Valor fixo</th></tr></thead>
     <tbody>
       <tr><td>Rede Docker</td><td><code>mitiai_network</code> (externa, compartilhada; <code>docker network create mitiai_network</code>)</td></tr>
-      <tr><td>Proxy corporativo</td><td><code>http://10.170.200.120:8080</code> (host: pip/setx/Docker Desktop, sem cert)</td></tr>
+      <tr><td>Proxy corporativo</td><td><code>http://10.170.200.1:8080</code> (host: pip/setx/Docker Desktop, sem cert)</td></tr>
       <tr><td>Postgres</td><td>container <code>postgres-db</code>, porta 5432, imagem <code>pgvector/pgvector:pg15</code>, banco <code>miti_ai_&lt;projeto&gt;</code></td></tr>
       <tr><td>SQL Server</td><td>host <code>MSSQLD0</code> = <code>10.170.210.36</code>, porta 1433, via <code>pyodbc</code></td></tr>
       <tr><td>Azure deploy</td><td>ACR <code>mssaicontainerregistry</code>; recursos <code>mss-miti-ai-&lt;projeto&gt;-&lt;amb&gt;[-br]</code>; <code>RG-MSSAI-DEV</code> (dev) / <code>RG-MSSAI-PRD</code> (main)</td></tr>

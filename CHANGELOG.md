@@ -3,6 +3,8 @@
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
 ## 0.7.0 — 2026-07-13 (front moderno: React + TS + Mantine) [branch plugin-v2]
+- fix: **proxy corporativo mudou `10.170.200.120` → `10.170.200.1:8080`** — atualizado em AMBIENTE §2 (2 pontos), ambiente.md (comentário do `.env`) e COMO-FUNCIONA.html. O plano histórico `plans/2026-07-02-*` mantém o IP antigo (registro datado)
+- fix: **`certs/corp-ca.pem` atualizado (68 → 69 certs)** — o FortiGate novo (`10.170.200.1`) faz SSL-inspection assinando com a CA do appliance (`CN=FG2H0GT924902724`), que não estava no bundle antigo → `apt-get update` HTTPS falhava com "certificate issuer is unknown". Bundle reexportado das raízes do Windows (via Transportes/V2, que buildava OK). AMBIENTE §2 ganha as pegadinhas: (a) **Docker Desktop `config.json` injeta proxy em TODO build** (corrige a nota anterior — não é "só o pull do `FROM`"); (b) "issuer unknown" = corp-ca.pem defasado quando troca o appliance FortiGate
 - feat: `/mss-spec:frontend` agora **re-sincroniza `docs/FRONTEND.md` do template a cada run** (projeto pega as melhorias do molde sem depender de foto antiga); o **scaffold** só é copiado na 1ª vez (não sobrescreve os componentes do projeto num re-run)
 - feat: **`/mss-spec:frontend`** — instala o front moderno (Nível 2) para telas densas
 - feat: `templates/frontend/` — scaffold Vite + React + TS + Mantine com tema MSIG (`src/theme.ts`: brand/navy), `ExemploGrid` com mantine-datatable, README com ilha×SPA e o atrito de build/proxy

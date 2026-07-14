@@ -44,6 +44,8 @@ Confundi-los é a maior fonte de "funciona no build mas não no runtime" (e vice
 | **TLS interceptado (FortiGate)** | CA corporativa **embutida na imagem** (`Dockerfile`: `COPY certs` → `certs/corp-ca.pem` → store do sistema) com **`SSL_VERIFY=true`** | confiar no CA do proxy SEM desligar a validação TLS (`false` = só fallback temporário de diagnóstico) |
 
 Notas que evitam pegadinha:
+- **Duas formas de dar proxy ao build — não confunda.** (a) **Docker Desktop** (Settings → Resources → Proxies, gravado em `~/.docker/config.json` → `proxies.default`): o Docker CLI **injeta esse proxy como `build.args` em TODO build** — cobre o pull do `FROM` **e** o `apt`/`pip`, com ou sem overlay. (b) **`docker-compose.office.yml`**: injeta `HTTP_PROXY`/`HTTPS_PROXY` do `.env` nos `build.args` — pra quando você NÃO quer proxy global no Docker Desktop. Se **nenhuma** das duas estiver ativa e você rodar o compose base, o `apt-get update` fica sem proxy → "Unable to locate package …". Se **alguma** estiver ativa mas faltar a CA (abaixo) → "certificate issuer is unknown".
+- **`certificate ... issuer is unknown` no `apt-get update` HTTPS = `corp-ca.pem` desatualizado.** O FortiGate intercepta o TLS e assina com a CA **daquele appliance** (`CN=FG…<serial>`). Trocou o proxy/appliance (ex.: IP novo) → é outro serial → a CA nova **não está** no bundle → o apt não confia. Fix: **atualize `certs/corp-ca.pem`** — reexporte as raízes do Windows (`certutil -generateSSTFromWU` / navegador atrás do proxy) **ou** copie o `corp-ca.pem` de um projeto que buildou agora no mesmo escritório (é superconjunto). O bundle é público (raízes), não é segredo. Sintoma-irmão no runtime: `SSLCertVerificationError` nas chamadas de saída do app.
 - O `httpx` lê `HTTP_PROXY/HTTPS_PROXY/NO_PROXY` sozinho (`trust_env=True`) — **não** passe `proxies=` no código nem use `trust_env=False`.
 - `SSL_VERIFY` é lido no `config.py` (pydantic) e vira `verify=` de **todo** `httpx.Client` de saída. Clients criados no import → mudar `SSL_VERIFY` **pede restart**.
 - **`psycopg`/Postgres é TCP puro: ignora o proxy** (por isso o banco não passa por ele).
@@ -57,7 +59,7 @@ Notas que evitam pegadinha:
 - **Escritório (proxy MSIG):** `docker compose -f docker-compose.yml -f docker-compose.office.yml up -d --build`
 
 **Gotcha — `load metadata for python:3.12-slim ... i/o timeout`:** o pull do `FROM` é do **daemon** e NÃO usa `build.args`/`.env`. Resolva com **um** dos dois:
-1. Proxy no **Docker Desktop** (Settings → Resources → Proxies → Manual → HTTP/HTTPS = `http://10.170.200.120:8080` → Apply & Restart; se persistir, **Quit** total pela bandeja + reabrir).
+1. Proxy no **Docker Desktop** (Settings → Resources → Proxies → Manual → HTTP/HTTPS = `http://10.170.200.1:8080` → Apply & Restart; se persistir, **Quit** total pela bandeja + reabrir).
 2. **Pré-baixar a base** numa rede que funcione: `docker pull python:3.12-slim`. O cache é **por máquina**, então o build reusa e não vai mais no Docker Hub. ← costuma ser o que resolve.
 
 Os arquivos `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile`, `.dockerignore` e
@@ -65,7 +67,7 @@ Os arquivos `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile`, `.d
 e os `COPY` do app.
 
 ### Dev na máquina host (fora de container)
-Para `pip install` direto no Windows, uma vez: `pip config set global.proxy http://10.170.200.120:8080`.
+Para `pip install` direto no Windows, uma vez: `pip config set global.proxy http://10.170.200.1:8080`.
 O app rodando com `uvicorn` local lê proxy/SSL do mesmo `.env` (pydantic + `trust_env` do httpx).
 
 ## 3. Postgres compartilhado

@@ -9,7 +9,7 @@ Você vai montar a **infra Docker** deste projeto no padrão MSIG. Referência c
 1. Pergunte: **este projeto será containerizado?** Se não, oriente só o `.env` (proxy/SSL) + `pip config` no host e pare.
 2. **`.env` / `.env.example`** — proxy e SSL vivem aqui (nunca no Docker Desktop; em arquivo versionado, só o override explícito do `docker-compose.office.yml`):
    ```
-   HTTP_PROXY=            # http://10.170.200.120:8080 no escritório; vazio em casa
+   HTTP_PROXY=            # http://10.170.200.1:8080 no escritório; vazio em casa
    HTTPS_PROXY=
    NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,MSSQLD0,10.170.210.36,postgres-db,.ms-seg.com.br,.msig.com.br,.local
    SSL_VERIFY=true        # padrão SEMPRE true — a CA embutida na imagem cobre o FortiGate; false só como fallback temporário de diagnóstico
