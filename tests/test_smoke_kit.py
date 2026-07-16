@@ -65,3 +65,13 @@ def test_compose_templates_sao_yaml_validos():
         # <servico> é placeholder — troca por um nome válido só pra parsear
         doc = yaml.safe_load(texto.replace("<servico>", "app"))
         assert "app" in doc["services"], nome
+
+
+def test_seguranca_wiring():
+    """A capacidade de segurança está montada e referenciada."""
+    assert (REPO / "templates" / "SEGURANCA.md").exists(), "falta templates/SEGURANCA.md"
+    assert (REPO / "commands" / "seguranca.md").exists(), "falta commands/seguranca.md"
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "templates/SEGURANCA.md" in kickoff, "kickoff não copia SEGURANCA.md"
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "docs/SEGURANCA.md" in claude, "CLAUDE.md não referencia docs/SEGURANCA.md"
