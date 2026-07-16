@@ -4,6 +4,8 @@ argument-hint: "[ideia em 1 linha, ou aponte para um repo existente]"
 disable-model-invocation: true
 ---
 
+**Responda sempre em português (pt-BR).**
+
 Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta etapa.
 
 **Nunca invente fatos concretos.** Caminhos, paths de deploy, hosts, portas, nomes de container/recurso, estrutura de pastas — use SÓ o que está no `projeto.md`, no repositório, ou o que o owner disser. Ao propor opções (A/B/C) ou um rascunho de contexto, não preencha um detalhe específico que você não verificou: deixe genérico ("um diretório de deploy", "o host do Postgres"), marque como `<a confirmar>`, ou pergunte. Um caminho chutado que não existe é pior que uma lacuna.

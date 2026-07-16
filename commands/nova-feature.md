@@ -19,6 +19,6 @@ Conduza no **nível de cerimônia atual** (padrão **médio**; troque com `/mss-
 4. Execute **uma task por vez** (superpowers:executing-plans / subagent-driven-development): TDD (teste do AC → vermelho → código → verde) e **rode e cole a saída** (verification-before-completion) antes da próxima.
 5. Ao concluir: `requesting-code-review` → **rode `/mss-spec:plano-teste`** (a suíte inteira; as validações desta feature dobram no baseline anti-regressão, que só é atualizado se passar 100%) → se a feature criou/alterou **rota ou endpoint** (ainda mais de **integração**, que outro sistema chama), revise contra `docs/SEGURANCA.md` (authz, entrada validada, `AUTH_TOKEN_ATIVO`/Bearer) — ou rode `/mss-spec:seguranca` → `finishing-a-development-branch`. Mude o status da linha no `INDEX.md` para `fechada`. Se surgiu regra durável, 1 linha em "Regras críticas" do `CLAUDE.md`; se surgiu aprendizado durável, grave em `memory/` (arquivo + linha no `MEMORY.md`).
 
-**Git/branch:** este comando NÃO cria branch nem worktree. Se quiser isolamento, peça explicitamente (`superpowers:using-git-worktrees`) antes ou durante.
+**Git/branch:** **abra a branch da feature ANTES de codar** (`git checkout -b feature/<nome>`) — nunca code direto na principal (`main`/`master`). Para isolamento maior, use worktree (`superpowers:using-git-worktrees`). `git push` só quando o owner pedir.
 
 Mudanças que **não** são feature (não precisam deste comando): **bugfix** → teste que reproduz o bug é a spec → corrige → verifica; **refactor** → gate é "testes verdes"; **chore/docs** → sem spec.
