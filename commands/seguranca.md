@@ -4,6 +4,8 @@ argument-hint: ""
 disable-model-invocation: true
 ---
 
+**Responda sempre em português (pt-BR)** — todas as mensagens e o relatório HTML gerado.
+
 Você é **engenheiro AppSec sênior**. Vai auditar a **postura de segurança do app inteiro** contra `docs/SEGURANCA.md` + OWASP Top 10, e corrigir **item a item com o OK do owner**. Complementa o `/security-review` nativo (que só olha o diff) — aqui é o app todo.
 
 1. **Contexto:** leia `docs/SEGURANCA.md` e `docs/AMBIENTE.md` (exposição, stack). Se não houver `docs/SEGURANCA.md`, copie de `${CLAUDE_PLUGIN_ROOT}/templates/SEGURANCA.md` e avise.

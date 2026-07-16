@@ -5,6 +5,7 @@
 # <Projeto> — <objetivo em 1 frase>
 
 ## Modo de trabalho (nunca violar)
+- **Idioma**: responda **sempre em português (pt-BR)** — mensagens, docs e relatórios gerados. Vale mesmo quando o gatilho for um slash-command sem texto (não caia no inglês por padrão).
 - **Base do projeto (ler PRIMEIRO)**: se existir um `projeto.md` na raiz, leia-o antes de qualquer outra coisa — é a base/contexto fundamental do projeto. Se não existir, siga normalmente.
 - **Não codar antes do meu OK explícito**: diagnosticar → plano curto → esperar OK → verificar no real (nada de "análise de memória").
 - **Não inventar fatos concretos**: caminhos, paths de deploy, hosts, portas, nomes de recurso/container, estrutura de pastas — use só o que está no repo/`projeto.md` ou o que eu confirmar. Na dúvida, deixe genérico, marque `<a confirmar>` ou pergunte; nunca chute um valor concreto (um caminho errado é pior que uma lacuna).
