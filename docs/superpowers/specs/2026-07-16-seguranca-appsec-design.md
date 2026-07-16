@@ -57,8 +57,11 @@ verboso/PII em log · headers+HTTPS(prod)+CORS fechado · **obscuridade não é 
      bundle do front, `requirements`, Dockerfile, compose, pipeline Azure; roda `pip-audit` (se o
      proxy permitir) e grep de padrões perigosos (f-string em SQL, `DEBUG=True`,
      `dangerouslySetInnerHTML`, CORS `*`, segredo hardcoded, source-map em prod, endpoint sem authz).
-  3. Grava relatório priorizado em `docs/superpowers/SEGURANCA-AUDITORIA.md`: severidade
-     (Crítico→Baixo) · ref OWASP · arquivo:linha · risco concreto · fix proposto.
+  3. Grava relatório priorizado em **HTML** (`docs/superpowers/SEGURANCA-AUDITORIA.html`), no **estilo
+     editorial MSIG** (copia `templates/doc/template.html`, o mesmo do `/mss-spec:documentacao`):
+     hero com resumo/contagem por severidade + carimbo data/commit; uma seção por severidade ordenada
+     **Crítico→Baixo**; cada achado num `callout` colorido pela gravidade (crit/danger/warn/info) com
+     ref OWASP · arquivo:linha · risco concreto · fix proposto · status. Leitura fácil, do crítico ao fácil.
   4. **Item a item, do mais crítico:** propõe → aplica **com seu OK** → re-verifica rodando o
      `plano-teste` base (não regredir). UI continua **determinística** (sem clicar ao vivo).
   5. Não declara "seguro" (segurança é contínua); carimba data/commit.
