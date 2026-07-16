@@ -3,7 +3,7 @@
 MODELO do plugin mss-spec — copie para `utils/get_connection.py` no projeto e adapte
 os nomes `<BASE>` ao domínio. Referência canônica (arquivo REAL, com os pares das
 bases SSC / MS10=tkgs_corp / TRP / OnBase já prontos):
-    C:\\Ronaldo\\_Mitsui\\Python\\Transportes\\V2\\get_connection.py
+    Transportes/V2/get_connection.py   (na sua raiz de projetos MSIG)
 
 Regras do padrão:
 - Credencial NUNCA em `.env` nem em texto plano: cada base tem um par Fernet

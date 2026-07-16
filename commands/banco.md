@@ -7,7 +7,7 @@ disable-model-invocation: true
 Você vai gerar o **módulo de conexão** deste projeto no padrão MSIG. Consulte `docs/AMBIENTE.md` para hosts e convenções. Mostre o código e **confirme antes de gravar**.
 
 1. Pergunte: **SQL Server ou Postgres?**
-2. **SQL Server — padrão canônico da casa: `get_connection.py` multi-ambiente** (referência real: `C:\Ronaldo\_Mitsui\Python\Transportes\V2\get_connection.py`):
+2. **SQL Server — padrão canônico da casa: `get_connection.py` multi-ambiente** (referência real: `Transportes/V2/get_connection.py`, na sua raiz de projetos MSIG):
    - Copie `${CLAUDE_PLUGIN_ROOT}/templates/get_connection.py` → `utils/get_connection.py` e troque os `<BASE>`/`<base>` pela(s) base(s) do projeto.
    - **Credencial NUNCA no `.env`** (regra do owner: "no `.env` no máximo o ambiente"). Cada base tem par Fernet KEY/CIPHERTEXT **por ambiente** (DEV/D0 · HML/HI · PROD) embutido no arquivo.
    - **Preencher os pares**: base que outro projeto MSIG já usa (SSC, MS10=`tkgs_corp`, TRP, OnBase) → os pares prontos estão no arquivo de referência do Transportes V2; **quem copia credencial entre projetos é o owner** — aponte o caminho e as constantes, não cole você mesmo. Base nova → gere o par **localmente por script** (snippet no docstring do template), sem ecoar segredo no chat.

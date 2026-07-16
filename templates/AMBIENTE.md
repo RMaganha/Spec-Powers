@@ -90,7 +90,7 @@ Peça ao owner do Postgres pra criar o banco `miti_ai_<projeto>` e as credenciai
 ## 4. SQL Server (`get_connection.py` multi-ambiente — padrão canônico da casa)
 
 **Referência REAL** (com os pares das bases SSC · MS10=`tkgs_corp` · TRP · OnBase já prontos):
-`C:\Ronaldo\_Mitsui\Python\Transportes\V2\get_connection.py`. O `/mss-spec:banco` copia o template
+`Transportes/V2/get_connection.py` (na sua raiz de projetos MSIG). O `/mss-spec:banco` copia o template
 do plugin (`templates/get_connection.py`) pro projeto.
 
 Regras do padrão:
