@@ -9,3 +9,4 @@
 - [Front moderno: 2 níveis + Mantine](project_front_moderno_mantine.md) — Jinja+Tailwind (simples) × React+TS+Mantine (denso), decisão por-tela; Next/Remix fora; /mss-spec:frontend no plugin (v0.7.0, branch plugin-v2)
 - [Só dependência estável (nada de beta)](feedback_so_dependencia_estavel.md) — regra do owner: só releases estáveis em todo componente; MRT fica fora enquanto Mantine 7 for beta → grid = mantine-datatable
 - [Validação de UI só determinística](feedback_validacao_ui_deterministica.md) — agente NUNCA clica no browser ao vivo (loop de 30min no MSS-SSC); tela = teste de rota/Playwright roteirizado; smoke visual = humano; plano-teste é disable-model-invocation (modelo roda pytest direto)
+- [Segurança AppSec no kit](project_seguranca_appsec_kit.md) — baseline SEGURANCA.md + /mss-spec:seguranca; princípios: obscuridade≠segurança, frontend público, auth 2 baldes (integração=Bearer TOKEN_API via AUTH_TOKEN_ATIVO), login de usuário = seam futuro

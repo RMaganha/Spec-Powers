@@ -135,6 +135,7 @@ li{margin-bottom:6px}
       <li><a href="#c-modo"><span class="nav-num">C7</span>modo</a></li>
       <li><a href="#c-documentacao"><span class="nav-num">C8</span>documentacao</a></li>
       <li><a href="#c-memory"><span class="nav-num">C9</span>memory</a></li>
+      <li><a href="#c-seguranca"><span class="nav-num">C11</span>seguranca</a></li>
       <div class="nav-group">Fundamentos</div>
       <li><a href="#memoria"><span class="nav-num">04</span>Memória &amp; índices</a></li>
       <li><a href="#ambiente-msig"><span class="nav-num">05</span>Ambiente MSIG</a></li>
@@ -449,6 +450,22 @@ li{margin-bottom:6px}
       <div class="label-row"><span class="pill ok">não-destrutivo</span><span class="pill warn">anti-perda</span></div>
       <p class="subhead">Uso</p>
       <p><code>/mss-spec:memory</code></p>
+    </div>
+  </div>
+
+  <div class="node" id="c-seguranca">
+    <div class="node-head"><span class="node-idx">C11</span><span class="node-name">/mss-spec:seguranca</span><span class="node-type">audita AppSec (OWASP)</span></div>
+    <div class="node-body">
+      <p><strong>O que faz:</strong> audita a segurança AppSec (OWASP + baseline <code>docs/SEGURANCA.md</code>) e corrige com seu OK; complementa o <code>/security-review</code> nativo (que só vê o diff).</p>
+      <div class="kv">
+        <dt>Base</dt><dd><code>docs/SEGURANCA.md</code> (se faltar, copia de <code>templates/SEGURANCA.md</code>) + <code>docs/AMBIENTE.md</code></dd>
+        <dt>Escreve</dt><dd>relatório priorizado em <code>docs/superpowers/SEGURANCA-AUDITORIA.md</code> (severidade · ref OWASP · arquivo:linha · fix)</dd>
+        <dt>Regra</dt><dd>nunca declara "seguro" (é contínuo); cada correção roda o <code>pytest</code> do baseline antes de seguir</dd>
+        <dt>Quando usar</dt><dd>antes de expor o app, ou periodicamente — complementar ao <code>/security-review</code> nativo (só olha o diff)</dd>
+      </div>
+      <div class="label-row"><span class="pill risk">OWASP Top 10</span><span class="pill warn">corrige com OK</span></div>
+      <p class="subhead">Uso</p>
+      <p><code>/mss-spec:seguranca</code></p>
     </div>
   </div>
 </section>
