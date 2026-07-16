@@ -75,3 +75,13 @@ def test_seguranca_wiring():
     assert "templates/SEGURANCA.md" in kickoff, "kickoff não copia SEGURANCA.md"
     claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
     assert "docs/SEGURANCA.md" in claude, "CLAUDE.md não referencia docs/SEGURANCA.md"
+
+
+def test_todolist_gitignorada():
+    """to-dolist.md (captura local do /mss-spec:to-dolist) ignorada e ANCORADA na raiz.
+
+    O padrão tem que ser `/to-dolist.md` (com barra): sem ela, casaria por nome e ignoraria
+    também `commands/to-dolist.md` — o próprio arquivo do comando não subiria pro git.
+    """
+    gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
+    assert "/to-dolist.md" in gi, "templates/gitignore precisa ignorar /to-dolist.md ancorado na raiz"

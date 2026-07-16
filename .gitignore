@@ -8,6 +8,11 @@
 # Config local do Claude Code (a compartilhada .claude/settings.json vai; a local não)
 .claude/settings.local.json
 
+# Caixa de captura pessoal do /mss-spec:to-dolist — local, não versionada. A barra inicial
+# ANCORA na raiz (sem ela, o padrão pegaria também commands/to-dolist.md, por casar por nome).
+# Por não ser rastreada, o git não a toca ao trocar de branch → aparece em qualquer branch.
+/to-dolist.md
+
 # Python
 __pycache__/
 *.py[cod]
