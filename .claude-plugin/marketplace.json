@@ -1,6 +1,6 @@
 {
   "name": "mss-local",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "plugins": [
     {
       "name": "mss-spec",
