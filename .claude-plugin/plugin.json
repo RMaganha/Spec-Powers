@@ -3,9 +3,6 @@
   "displayName": "MSS Spec-Driven",
   "version": "0.7.0",
   "description": "Fluxo Spec-Driven MSIG sobre superpowers: kickoff, nova-feature, ambiente, banco e catalogo de precedentes.",
-  "dependencies": [
-    { "name": "superpowers", "marketplace": "claude-plugins-official" }
-  ],
   "author": {
     "name": "Ronaldo Maganha",
     "email": "rmaganha@msig.com.br"
