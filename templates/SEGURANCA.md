@@ -120,8 +120,10 @@ registrado no `main.py` (não opcional/comentado).
 **Risco**: segredo commitado, `.env` versionado, TLS desligado "temporariamente" e esquecido,
 `DEBUG=True` vazando detalhe de execução em produção.
 
-**Regra MSIG**: `.env` fora do commit (`.gitignore`); credencial de banco via Fernet (padrão do
-`get_connection.py` — chave+cifra por ambiente, nunca senha em texto plano); `SSL_VERIFY=true`
+**Regra MSIG**: `.env` fora do commit (`.gitignore`); **segredo via variável de ambiente** — `.env` (gitignored) em dev,
+**Azure App Settings** em prod; o código lê do ambiente (`os.getenv`), nunca do repo. Credencial de
+banco segue a mesma regra (a alternativa **Fernet-no-código** do `get_connection.py` é só ofuscação —
+a chave vai junto no repo — reservada a **continuidade**; escolha no `/mss-spec:banco`); `SSL_VERIFY=true`
 sempre (o `false` é só fallback temporário de diagnóstico, nunca fica); sem `DEBUG=True` em
 produção. Em Azure: segredo vive em App Settings / Key Vault, nunca no repo.
 

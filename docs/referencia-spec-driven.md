@@ -161,6 +161,27 @@ ideias do CLI sem instalar o CLI**. O "kit" é um *starter* que você copia ao a
 
 ---
 
+## Atualização (2026-07-16): a spec virou "viva por assunto" (spec-anchored)
+
+Decisão tomada e implementada no kit (design em
+`docs/superpowers/specs/2026-07-16-spec-viva-por-assunto-design.md`).
+
+**Enquadramento (Birgitta Böckeler):** *spec-first* (spec antes, código depois, spec congela) ·
+*spec-anchored* (spec continua viva, atualizada na evolução) · *spec-as-source* (humano só edita a
+spec). O kit era spec-first puro — par spec+plano datado, congelado no nascimento.
+
+**O que mudou:** a **spec** passou a ser **spec-anchored** — 1 arquivo por assunto em
+`docs/specs/<assunto>.md`, editado no próprio lugar, com **Estado atual** (verdade de hoje) +
+**Histórico** (1 linha por mudança). O **plano/tasks continua spec-first** (datado/efêmero em
+`docs/superpowers/plans/`), porque plano é retrato de uma rodada, não tem estado a manter.
+
+**Por que valeu (não era só rótulo):** hoje o `INDEX.md` já fazia a *descoberta* da spec funcionar,
+mas (a) no nível médio — o default — nem existia doc de spec, e (b) no alto o doc era o retrato de
+nascimento, que envelhecia. A spec viva conserta o "estar atualizada": ao voltar num assunto o
+assistente lê o "Estado atual" direto, e `fix`/`refactor` que mudam comportamento **atualizam** a
+spec, pra ela nunca mentir e induzir o assistente a reintroduzir bug numa tarefa futura. Operacional
+no `docs/ROTEIRO-SPEC-DRIVEN.md`.
+
 ## 6. Quando reconsiderar adotar o CLI de fato
 
 - Trabalho em **time** querendo padrão turnkey que outros instalam com um `npx`.

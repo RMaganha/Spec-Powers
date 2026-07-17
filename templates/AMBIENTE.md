@@ -93,6 +93,8 @@ Peça ao owner do Postgres pra criar o banco `miti_ai_<projeto>` e as credenciai
 `Transportes/V2/get_connection.py` (na sua raiz de projetos MSIG). O `/mss-spec:banco` copia o template
 do plugin (`templates/get_connection.py`) pro projeto.
 
+**Segredo (atualizado 2026-07-16):** pra projeto novo (web app Azure), o **recomendado** é a credencial como **variável de ambiente** (`.env` gitignored em dev → Azure App Settings em prod), lida via `os.getenv` — não o Fernet, que com a chave no repo é só ofuscação. O Fernet fica como opção de continuidade; escolha no `/mss-spec:banco`.
+
 Regras do padrão:
 - **Credencial NUNCA em `.env` nem em texto plano** (regra do owner: "no `.env` no máximo o
   ambiente"). Cada base tem par Fernet `KEY`/`CIPHERTEXT` **por ambiente** (DEV/D0 · HML/HI · PROD)

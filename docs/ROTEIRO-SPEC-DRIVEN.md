@@ -25,13 +25,21 @@ Além disso, o `CLAUDE.md` gerado instrui o assistente a **assumir o papel de es
 
 ## Fluxo
 1. **Constituir** — `/mss-spec:kickoff` entrevista (1 pergunta por vez via brainstorming), gera o `CLAUDE.md` e faz o scaffolding (memória, índice de tarefas, AMBIENTE). Serve para projeto novo **e existente** (faz scan antes de perguntar).
-2. **Por feature** — `/mss-spec:nova-feature <nome>`: brainstorming → objetivo + **Critérios de Aceite** (suas validações) + fora de escopo → seu OK → `writing-plans` → tasks pequenas → executa **uma por vez** (TDD → roda → cola a saída → próxima).
-3. **Fechar** — review → fecha a branch → se surgiu regra durável, 1 linha nas "Regras críticas" do `CLAUDE.md`.
+2. **Por feature** — `/mss-spec:nova-feature <nome>`: procura a spec do assunto (cria ou atualiza) → brainstorming → objetivo + **Critérios de Aceite** (suas validações) + fora de escopo → seu OK → grava a **spec viva** `docs/specs/<assunto>.md` (Estado atual + Histórico) → `writing-plans` → tasks pequenas → executa **uma por vez** (TDD → roda → cola a saída → próxima).
+3. **Fechar** — review → confirma que a spec viva reflete o entregue → fecha a branch → se surgiu regra durável, 1 linha nas "Regras críticas" do `CLAUDE.md`.
+
+## Spec viva por assunto (spec-anchored)
+A **spec** é um arquivo por assunto em `docs/specs/<assunto>.md`, editado no próprio lugar, com duas seções fixas: **Estado atual** (como o comportamento está HOJE) + **Histórico** (1 linha por mudança material: data + o quê + porquê). O git guarda o diff completo; o Histórico dá a narrativa legível.
+
+- **Por quê:** ao voltar num assunto, o assistente lê o "Estado atual" e sabe como está — sem caçar arquivos datados nem reconstruir do git. Spec datada congelava no nascimento e envelhecia; a spec viva **acompanha a evolução** (é o que Böckeler chama de *spec-anchored*, em oposição a *spec-first*).
+- **Peso por nível:** médio → "Estado atual" enxuto (2-4 frases); alto → o design completo do brainstorming **é** o "Estado atual"; mínimo → sem spec.
+- **O plano continua datado/efêmero** (`docs/superpowers/plans/`): plano é retrato de uma rodada de trabalho, não tem "estado atual" a manter (segue *spec-first*). Cada artefato no formato que combina com ele.
+- **A spec não pode mentir:** todo `fix`/`refactor` que **alterar** um comportamento descrito numa spec existente atualiza o "Estado atual" + 1 linha no Histórico — senão o assistente lê valor velho e reintroduz o bug numa tarefa futura.
 
 ## Tipos de mudança (sem cerimônia desnecessária)
-- **feat** → fluxo completo acima.
-- **fix** → o **teste que reproduz o bug é a spec**; corrige; verifica. Sem pasta de spec.
-- **refactor** → sem ACs novos; o gate é "os testes continuam verdes".
+- **feat** → fluxo completo acima; cria/atualiza a spec viva do assunto.
+- **fix** → o **teste que reproduz o bug é a spec** do conserto; corrige; verifica. Não cria arquivo de spec — **mas** se o fix mudar um comportamento descrito numa spec existente, atualiza o "Estado atual" + Histórico dela.
+- **refactor** → sem ACs novos; o gate é "os testes continuam verdes". Por definição não muda comportamento → quase nunca toca spec (só se mudar sorrateiramente um default/limite descrito).
 - **chore/docs** → sem spec.
 - **spike** → branch descartável, time-boxed; depois joga fora ou promove a feature.
 
@@ -39,6 +47,7 @@ Além disso, o `CLAUDE.md` gerado instrui o assistente a **assumir o papel de es
 - [ ] Cada Critério de Aceite tem teste **e os testes passam** (saída colada).
 - [ ] **Plano de teste base 100% verde** (`/mss-spec:plano-teste`); baseline atualizado se cresceu.
 - [ ] Review feito; findings resolvidos.
+- [ ] **Spec viva do assunto reflete o entregue** (`docs/specs/<assunto>.md` — "Estado atual" atualizado + linha no Histórico).
 - [ ] Branch fechada; `CLAUDE.md` atualizado se nasceu regra/decisão durável.
 
 ## Memória e estado (não poluir o CLAUDE.md)
@@ -64,6 +73,6 @@ skill `precedentes-msig`, que dispara sozinha), embutida no plugin.
 
 ## Adiado (entra só quando um projeto pedir)
 `docs/ESTADO.md` + um SessionStart **advisory** (não-bloqueante; reusar o wrapper polyglot que o superpowers já
-traz, nunca shell cru) · `ROADMAP.md` · pasta de spec por feature · gate **AC→teste** no CI/merge (nunca no
+traz, nunca shell cru) · `ROADMAP.md` · **pasta** de spec por feature (estilo CLI: vários arquivos por feature — a spec viva por assunto, 1 arquivo, já cobre o essencial) · gate **AC→teste** no CI/merge (nunca no
 Stop/PreToolUse) · qualquer hook bloqueante. Motivo: hooks bloqueantes quebravam no Windows, travavam o
 bootstrap e duplicavam o que as skills do superpowers já forçam.
