@@ -25,6 +25,7 @@
 - log — padrão de logging MSIG (stdout + arquivo rotativo em dev, toggle no `.env`) — **fechada** (`/mss-spec:log` + `templates/logging.py`; kickoff monta infra; instrumentação opt-in por-arquivo) — spec: `docs/superpowers/specs/2026-07-16-log-design.md`
 - release — checklist de pré-publicação (versão · CHANGELOG · testes · segurança · docs) — **fechada** (`/mss-spec:release`; só reporta, gate antes do finishing) — spec: `docs/superpowers/specs/2026-07-16-release-design.md`
 - compliance — aderência do projeto às convenções do mss-spec — **fechada** (`/mss-spec:compliance`; checklist fixo, só reporta; audita × upgrade conserta) — spec: `docs/superpowers/specs/2026-07-16-compliance-design.md`
+- [regras de branch e escopo](../specs/2026-07-17-regras-branch-e-escopo-design.md) — branch sempre da principal + alerta "um assunto por janela" (só doc/comandos, sem hook) — **fechada**
 
 ## Fora de escopo (não fazer)
 Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · knowledge-graph · registry / capabilities / catálogo de arquiteturas / dependency-graph · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`

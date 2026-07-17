@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Caixa de captura de ideias/ajustes que surgem **fora do contexto** da tarefa atual (ex.: no meio de uma feature de banco você vê uma melhoria numa tela de outro assunto). Em vez de fazer fora de hora e poluir a branch, registre aqui e siga no que estava.
 
+É o destino do protocolo **um assunto por janela** (regra no `CLAUDE.md`): quando um 2º assunto não relacionado aparece no meio de uma tarefa, ele é anotado aqui — `adicionar <assunto>` — e tratado depois, numa **nova janela**, em vez de emendar na atual.
+
 A lista vive em **`to-dolist.md` na raiz do projeto** (não na pasta do plugin) e é **ignorada pelo git** de propósito: por não ser rastreada, o git não a toca ao trocar de branch — então ela aparece em **qualquer branch**. É pessoal, local e não versionada.
 
 Interprete `$ARGUMENTS`:

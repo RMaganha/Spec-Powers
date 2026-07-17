@@ -159,6 +159,23 @@ def test_release_wiring():
     assert "/mss-spec:release" in nova, "nova-feature.md não aponta o /mss-spec:release no fecho"
 
 
+def test_regras_branch_e_escopo_wiring():
+    """Duas regras montadas como convenção (doc/comandos, sem hook):
+    (1) branch nasce SEMPRE da principal, nunca de outra branch;
+    (2) um assunto por janela — ao surgir 2º assunto, ALERTA (não trava) e empurra pro to-dolist."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    todo = (REPO / "commands" / "to-dolist.md").read_text(encoding="utf-8")
+    # (1) branch da principal
+    assert "a partir da principal" in claude, "CLAUDE.md não manda abrir a branch a partir da principal"
+    assert "nunca a partir de outra branch" in claude, "CLAUDE.md não proíbe ramificar de outra branch"
+    assert "a partir da principal" in nova, "nova-feature.md não manda partir da principal ao abrir a branch"
+    # (2) um assunto por janela (aparece como título e inline → checagem case-insensitive)
+    assert "um assunto por janela" in claude.lower(), "CLAUDE.md não carrega a regra 'um assunto por janela'"
+    assert "um assunto por janela" in nova.lower(), "nova-feature.md não aponta o protocolo 'um assunto por janela'"
+    assert "um assunto por janela" in todo.lower(), "to-dolist.md não liga ao protocolo 'um assunto por janela'"
+
+
 def test_compliance_wiring():
     """Auditoria de convenções montada: comando existe, checa a estrutura/docs/memória do jeito
     da casa (só reporta), e delimita o papel — auditoria profunda é seguranca, sync é upgrade."""

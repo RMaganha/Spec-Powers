@@ -358,11 +358,11 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C6</span><span class="node-name">nova-feature</span><span class="node-type">abre uma funcionalidade</span></div>
     <div class="node-body">
       <p class="plain">O jeito organizado de criar algo novo — combina o que vai fazer antes de fazer.</p>
-      <p>Fluxo <a class="gl" href="#g-spec">Spec-Driven</a>: alinha o objetivo e os critérios de aceite → seu OK → plano → tarefas pequenas com <a class="gl" href="#g-tdd">TDD</a>. Guarda a "spec viva" do assunto e, ao fechar, roda o <a href="#c-release" class="gl">release</a> e registra decisões importantes. <strong>Abre uma <a class="gl" href="#g-branch">branch</a> própria antes de mexer no código.</strong></p>
+      <p>Fluxo <a class="gl" href="#g-spec">Spec-Driven</a>: alinha o objetivo e os critérios de aceite → seu OK → plano → tarefas pequenas com <a class="gl" href="#g-tdd">TDD</a>. Guarda a "spec viva" do assunto e, ao fechar, roda o <a href="#c-release" class="gl">release</a> e registra decisões importantes. <strong>Abre uma <a class="gl" href="#g-branch">branch</a> própria antes de mexer no código — sempre a partir da linha principal, nunca de outra branch.</strong></p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:nova-feature "disparo automático no whatsapp do cliente"
-  → critérios de aceite → seu OK → branch → testa → verifica → revisa</code></pre>
-      <div class="label-row"><span class="pill ok">spec viva por assunto</span><span class="pill warn">branch por tarefa</span><span class="pill risk">segurança em rota nova</span></div>
+  → critérios de aceite → seu OK → branch (da principal) → testa → verifica → revisa</code></pre>
+      <div class="label-row"><span class="pill ok">spec viva por assunto</span><span class="pill warn">branch da principal</span><span class="pill risk">segurança em rota nova</span></div>
     </div>
   </div>
 
@@ -420,11 +420,11 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C11</span><span class="node-name">to-dolist</span><span class="node-type">bloco de recados</span></div>
     <div class="node-body">
       <p class="plain">Um bloco de recados pessoal que aparece em qualquer parte do trabalho.</p>
-      <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Fica <strong>visível em qualquer <a class="gl" href="#g-branch">branch</a></strong> e é só seu (não vai pro compartilhamento).</p>
+      <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Fica <strong>visível em qualquer <a class="gl" href="#g-branch">branch</a></strong> e é só seu (não vai pro compartilhamento). É também o destino da regra <strong>um assunto por janela</strong>: quando um segundo tema aparece no meio de uma tarefa, o assistente <em>alerta</em> e sugere anotá-lo aqui para tratá-lo depois, numa nova conversa.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:to-dolist adicionar "enviar e-mail de boas-vindas ao cliente"
 /mss-spec:to-dolist adicionar "saber qual cliente leu a mensagem"</code></pre>
-      <div class="label-row"><span class="pill ok">em qualquer branch</span><span class="pill graph">pessoal</span></div>
+      <div class="label-row"><span class="pill ok">em qualquer branch</span><span class="pill graph">pessoal</span><span class="pill warn">um assunto por janela</span></div>
     </div>
   </div>
 
@@ -540,6 +540,11 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
     <div class="callout-label">Bugfix e ajuste pequeno não precisam disso</div>
     Corrigir um bug não exige a cerimônia toda: o teste que reproduz o problema já é a "especificação". O fluxo completo é para <em>funcionalidade nova</em>. (E o quanto de ritual você regula com o <a href="#c-modo" class="gl">modo</a>.)
   </div>
+
+  <div class="callout info">
+    <div class="callout-label">Um assunto por janela</div>
+    Cada conversa trata de <strong>um assunto só</strong>. Se, no meio de uma tarefa, surgir um tema diferente, o assistente <strong>alerta</strong> em vez de emendar — sugere fechar o que está aberto, anotar o novo tema no <a href="#c-todolist" class="gl">to-dolist</a> e abrir uma <strong>nova conversa</strong> para ele. É um aviso, não uma trava: se você mandar seguir mesmo assim, ele segue. Assim cada <a class="gl" href="#g-branch">branch</a> e cada spec ficam limpas, com um foco só.
+  </div>
 </section>
 
 <section class="section" id="memoria">
@@ -590,9 +595,10 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 <b>2. Base</b>        /mss-spec:ambiente  ·  /mss-spec:banco  ·  /mss-spec:log
 
 <b>3. Criar algo</b>  /mss-spec:nova-feature "disparo no whatsapp"
-                 → branch → combina a spec → seu OK → testa → verifica
+                 → branch (da principal) → combina a spec → seu OK → testa → verifica
 
-<b>Ideia solta</b>   /mss-spec:to-dolist adicionar "e-mail de boas-vindas"
+<b>Outro tema?</b>   /mss-spec:to-dolist adicionar "e-mail de boas-vindas"
+                 → anota, fecha o escopo atual e abre nova conversa (um assunto por janela)
 
 <b>4. Publicar</b>    /mss-spec:release   (testes + versão + convenção + segurança)
                  → verde → merge/PR
@@ -651,7 +657,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
     <div class="gloss" id="g-code-review"><dt>Code review</dt><dd>Revisão do código por outro olhar (aqui, um agente revisor) antes de considerar pronto.</dd></div>
     <div class="gloss" id="g-log"><dt>Log</dt><dd>O "diário de bordo" do app: mensagens que registram o que aconteceu (e o que deu errado), pra diagnosticar problemas. Nunca deve conter senha nem dado pessoal.</dd></div>
     <div class="gloss" id="g-git"><dt>Git</dt><dd>O sistema que guarda o histórico do código: quem mudou o quê e quando, com a possibilidade de voltar atrás. O "repositório" é o projeto guardado no git.</dd></div>
-    <div class="gloss" id="g-branch"><dt>Branch</dt><dd>Uma "linha paralela" de trabalho no git. Você mexe nela sem bagunçar a versão principal e depois junta. O kit abre uma branch por tarefa.</dd></div>
+    <div class="gloss" id="g-branch"><dt>Branch</dt><dd>Uma "linha paralela" de trabalho no git. Você mexe nela sem bagunçar a versão principal e depois junta. O kit abre uma branch por tarefa, sempre a partir da linha principal (nunca de outra branch), para o ponto de partida ser sempre previsível.</dd></div>
     <div class="gloss" id="g-docker"><dt>Docker / container</dt><dd>Uma forma de empacotar o app com tudo que ele precisa numa "caixa" isolada (o <em>container</em>) que roda igual em qualquer máquina.</dd></div>
     <div class="gloss" id="g-proxy"><dt>Proxy</dt><dd>O "porteiro" de rede da empresa: todo acesso à internet passa por ele. Precisa ser configurado para o app conseguir baixar coisas.</dd></div>
     <div class="gloss" id="g-ca"><dt>CA / certificado</dt><dd>O "carimbo" que prova que uma conexão segura (HTTPS) é confiável. A empresa tem o seu, que precisa entrar na caixa (container) para as conexões funcionarem.</dd></div>

@@ -12,3 +12,4 @@
 - [Segurança AppSec no kit](project_seguranca_appsec_kit.md) — baseline SEGURANCA.md + /mss-spec:seguranca; princípios: obscuridade≠segurança, frontend público, auth 2 baldes (integração=Bearer TOKEN_API via AUTH_TOKEN_ATIVO), login de usuário = seam futuro
 - [Não encerrar com pergunta não pedida](feedback_nao_encerrar_com_pergunta.md) — nada de "quer que eu faça X?" no final; entrega e para; owner conduz o ritmo
 - [Dependência cross-marketplace quebra o load via symlink](project_plugin_load_cross_marketplace.md) — não declarar dependencies cross-marketplace no plugin.json enquanto o mss-spec carrega via skills-dir/symlink (some tudo); superpowers fica no settings; dep só com o marketplace git (item 9)
+- [Feature sempre a partir da master](feedback_feature_a_partir_da_master.md) — master é a linha principal atualizada; toda tarefa nova nasce de branch criada da master; ao integrar, volta pra master
