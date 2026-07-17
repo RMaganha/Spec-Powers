@@ -22,6 +22,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# Logs de aplicação (/mss-spec:log) — arquivo rotativo é conveniência de DEV; em prod
+# vale o stdout. A barra inicial ANCORA na raiz (sem ela ignoraria qualquer pasta logs/).
+/logs/
+
 # Node / build do Tailwind (o static/css/app.css compilado FICA versionado)
 node_modules/
 

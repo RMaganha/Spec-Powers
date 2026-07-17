@@ -85,3 +85,90 @@ def test_todolist_gitignorada():
     """
     gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
     assert "/to-dolist.md" in gi, "templates/gitignore precisa ignorar /to-dolist.md ancorado na raiz"
+
+
+def test_doctor_wiring():
+    """Pré-vôo do doctor montado: comando existe e o CLAUDE.md manda rodar no início da 1ª tarefa."""
+    assert (REPO / "commands" / "doctor.md").exists(), "falta commands/doctor.md"
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Pré-vôo de ambiente" in claude, "CLAUDE.md não cita o pré-vôo de ambiente (doctor)"
+
+
+def test_robustez_plugin_root_wiring():
+    """Resolução robusta do plugin montada: doctor e kickoff citam o fallback pros locais padrão do Code."""
+    doctor = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "plugins/cache" in doctor, "doctor.md não cita o fallback de resolução do plugin (~/.claude/plugins/cache)"
+    assert "plugins/cache" in kickoff, "kickoff.md não cita o guard de resolução do plugin (~/.claude/plugins/cache)"
+
+
+def test_regra_senhas_wiring():
+    """A regra de senhas está montada: banco oferece a variável de ambiente e SEGURANCA a documenta."""
+    banco = (REPO / "commands" / "banco.md").read_text(encoding="utf-8")
+    seg = (REPO / "templates" / "SEGURANCA.md").read_text(encoding="utf-8")
+    assert "variável de ambiente" in banco, "banco.md não oferece a opção de variável de ambiente"
+    assert "App Settings" in seg, "SEGURANCA.md não cita segredo via App Settings (variável de ambiente)"
+
+
+def test_anotar_decisoes_wiring():
+    """Log de decisões montado: template existe, kickoff copia, CLAUDE.md mapeia, nova-feature acrescenta."""
+    assert (REPO / "templates" / "DECISOES.md").exists(), "falta templates/DECISOES.md"
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "DECISOES.md" in kickoff, "kickoff não copia templates/DECISOES.md"
+    assert "docs/decisoes.md" in claude, "CLAUDE.md não mapeia docs/decisoes.md"
+    assert "docs/decisoes.md" in nova, "nova-feature não acrescenta em docs/decisoes.md"
+
+
+def test_log_wiring():
+    """Padrão de log montado: template funcional existe, comando existe, kickoff monta a
+    infra, logs/ é ignorado (ancorado) e o CLAUDE.md carrega a regra (stdout prod / arquivo dev)."""
+    assert (REPO / "templates" / "logging.py").exists(), "falta templates/logging.py"
+    assert (REPO / "commands" / "log.md").exists(), "falta commands/log.md"
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "templates/logging.py" in kickoff, "kickoff não monta templates/logging.py"
+    assert "/logs/" in gi, "templates/gitignore precisa ignorar /logs/ ancorado na raiz"
+    assert "LOG_ATIVO" in claude, "CLAUDE.md não carrega a regra de log (LOG_ATIVO / stdout prod)"
+
+
+def test_protocolo_log_por_arquivo_wiring():
+    """A regra transversal (c): comandos que GERAM arquivo listam os alvos e perguntam quais
+    recebem logger. Canônica no log.md; apontada por banco/nova-feature; registrada em decisoes."""
+    log = (REPO / "commands" / "log.md").read_text(encoding="utf-8")
+    banco = (REPO / "commands" / "banco.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "getLogger(__name__)" in log, "log.md não descreve a instrumentação (getLogger(__name__))"
+    assert "/mss-spec:log" in banco, "banco.md não aponta o protocolo de instrumentação de log"
+    assert "/mss-spec:log" in nova, "nova-feature.md não aponta o protocolo de instrumentação de log"
+
+
+def test_release_wiring():
+    """Gate de pré-publicação montado: comando existe, orquestra os checks que já existem
+    (testes/segurança/CHANGELOG) e o nova-feature aponta o release no fecho, ANTES do finishing."""
+    assert (REPO / "commands" / "release.md").exists(), "falta commands/release.md"
+    rel = (REPO / "commands" / "release.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "pytest" in rel or "plano-teste" in rel, "release.md não roda o plano-teste (pytest)"
+    assert "/mss-spec:seguranca" in rel, "release.md não lembra o check de segurança"
+    assert "CHANGELOG" in rel, "release.md não confere o CHANGELOG"
+    assert "/mss-spec:compliance" in rel, "release.md não roda o check de convenções (compliance)"
+    assert "finishing-a-development-branch" in rel, "release.md não se posiciona como gate ANTES do finishing"
+    assert "/mss-spec:release" in nova, "nova-feature.md não aponta o /mss-spec:release no fecho"
+
+
+def test_compliance_wiring():
+    """Auditoria de convenções montada: comando existe, checa a estrutura/docs/memória do jeito
+    da casa (só reporta), e delimita o papel — auditoria profunda é seguranca, sync é upgrade."""
+    assert (REPO / "commands" / "compliance.md").exists(), "falta commands/compliance.md"
+    comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
+    # cobre os checks-chave do checklist (estrutura, decisões, memória, spec-driven)
+    assert "ESTRUTURA.md" in comp, "compliance.md não checa a estrutura em camadas"
+    assert "docs/decisoes.md" in comp, "compliance.md não checa docs/decisoes.md"
+    assert "MEMORY.md" in comp, "compliance.md não checa memory/MEMORY.md versionada"
+    assert "INDEX.md" in comp, "compliance.md não checa o spec-driven (INDEX)"
+    # papéis separados: defere a auditoria profunda ao seguranca e o conserto ao upgrade
+    assert "/mss-spec:seguranca" in comp, "compliance.md não defere a auditoria AppSec ao seguranca"
+    assert "/mss-spec:upgrade" in comp, "compliance.md não aponta o upgrade como quem sincroniza template"
