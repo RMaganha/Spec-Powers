@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>mss-spec · Como funciona · Plugin Claude Code</title>
+<title>mss-spec · Como funciona · guia para todos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -27,7 +27,6 @@ body{font-family:'Newsreader',Georgia,serif;font-weight:380;font-size:17px;line-
 .nav li{margin-bottom:1px}
 .nav a{display:block;padding:4px 9px;color:var(--ink-soft);text-decoration:none;font-size:12.5px;border-left:2px solid transparent;transition:all .2s}
 .nav a:hover{color:var(--rust);border-left-color:var(--rust);background:var(--accent-bg)}
-.nav a.active{color:var(--rust);border-left-color:var(--rust);font-weight:500;background:var(--accent-bg)}
 .nav-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);margin-right:6px}
 .nav-group{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--forest);margin:18px 0 6px 9px;font-weight:700}
 .main{padding:0;max-width:920px}
@@ -38,7 +37,7 @@ body{font-family:'Newsreader',Georgia,serif;font-weight:380;font-size:17px;line-
 .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--forest);margin-bottom:22px;display:inline-block;padding:4px 10px;background:var(--paper);border:1px solid var(--forest)}
 .hero h1{font-family:'Instrument Serif',serif;font-size:60px;line-height:.98;letter-spacing:-.03em;margin-bottom:24px;font-weight:400}
 .hero h1 em{font-style:italic;color:var(--rust)}
-.hero-sub{font-size:19px;line-height:1.5;color:var(--ink-soft);max-width:620px}
+.hero-sub{font-size:19px;line-height:1.5;color:var(--ink-soft);max-width:640px}
 .hero-meta{margin-top:42px;display:flex;gap:36px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.1em;flex-wrap:wrap}
 .hero-meta div span{display:block;color:var(--ink);font-size:14px;margin-top:4px;text-transform:none;letter-spacing:0;font-family:'Newsreader',serif}
 .section-num{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--rust);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px}
@@ -51,6 +50,9 @@ body{font-family:'Newsreader',Georgia,serif;font-weight:380;font-size:17px;line-
 code{font-family:'JetBrains Mono',monospace;font-size:.83em;background:var(--accent-bg);padding:2px 6px;border-radius:2px;color:var(--rust-dark);border:1px solid var(--line-soft)}
 pre{background:var(--ink);color:var(--hl);padding:18px 22px;margin:16px 0;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;overflow-x:auto;border-left:3px solid var(--rust);white-space:pre-wrap;word-break:break-word}
 pre code{background:none;border:none;color:inherit;padding:0;font-size:inherit}
+/* termo técnico com link para o glossário */
+a.gl{color:var(--rust-dark);text-decoration:none;border-bottom:1px dotted var(--rust);cursor:help;font-style:italic}
+a.gl:hover{background:var(--accent-bg)}
 .table-wrap{overflow-x:auto;margin:20px 0}
 table{width:100%;border-collapse:collapse;font-size:14.5px}
 th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
@@ -60,14 +62,14 @@ td code{font-size:12px}
 .callout-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--rust);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
 .callout.danger{border-left-color:var(--danger);background:var(--danger-bg)}
 .callout.danger .callout-label{color:var(--danger)}
-.callout.crit{border-left-color:var(--crit);background:var(--crit-bg)}
-.callout.crit .callout-label{color:var(--crit)}
 .callout.success{border-left-color:var(--forest);background:var(--success-bg)}
 .callout.success .callout-label{color:var(--forest)}
 .callout.warn{border-left-color:#856404;background:var(--warn-bg)}
 .callout.warn .callout-label{color:#856404}
 .callout.info{border-left-color:#0056b3;background:var(--info-bg)}
 .callout.info .callout-label{color:#0056b3}
+.analogy{background:var(--paper);border:1.5px dashed var(--forest-light);padding:16px 20px;margin:18px 0;font-size:15.5px;border-radius:3px}
+.analogy b{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--forest);font-size:17px}
 .node{border:1.5px solid var(--line);background:var(--paper);margin:26px 0;scroll-margin-top:20px}
 .node-head{display:flex;align-items:baseline;gap:14px;padding:16px 22px;background:var(--accent-bg);border-bottom:1.5px solid var(--line);flex-wrap:wrap}
 .node-idx{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--rust);letter-spacing:.05em}
@@ -75,15 +77,12 @@ td code{font-size:12px}
 .node-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted);margin-left:auto}
 .node-body{padding:18px 22px}
 .node-body p{margin-bottom:10px}
-.kv{display:grid;grid-template-columns:130px 1fr;gap:4px 14px;font-size:14px;margin:10px 0}
-.kv dt{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--forest);padding-top:3px}
-.kv dd{margin:0}
+.node-body .plain{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--forest-light);padding-left:12px;margin:2px 0 12px}
 .label-row{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 0}
 .pill{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line-soft);border-radius:2px;font-weight:700}
 .pill.ok{background:var(--success-bg);color:var(--forest);border-color:var(--forest-light)}
 .pill.warn{background:var(--warn-bg);color:#856404;border-color:#b8860b}
 .pill.risk{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
-.pill.crit{background:var(--crit-bg);color:var(--crit);border-color:var(--crit)}
 .pill.graph{background:var(--info-bg);color:#0056b3;border-color:#0056b3}
 .pill.db{background:#e9deff;color:var(--plum);border-color:var(--plum)}
 .subhead{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--rust);margin:16px 0 6px;font-weight:700}
@@ -91,59 +90,67 @@ ul,ol{margin:8px 0 14px 22px}
 li{margin-bottom:6px}
 .flow{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.9;background:var(--paper);border:1px solid var(--line-soft);padding:16px 20px;margin:16px 0;overflow-x:auto;white-space:pre}
 .flow b{color:var(--rust);font-weight:700}
-.glossary{border-top:1px solid var(--line)}
-.glossary-item{border-bottom:1px solid var(--line-soft)}
-.glossary-item summary{padding:14px 0;cursor:pointer;display:flex;align-items:baseline;gap:16px;list-style:none}
-.glossary-item summary::-webkit-details-marker{display:none}
-.glossary-item summary:hover{color:var(--rust)}
-.glossary-item summary::before{content:"+";font-family:'JetBrains Mono',monospace;color:var(--rust);font-size:18px;width:14px;flex-shrink:0}
-.glossary-item[open] summary::before{content:"\2212"}
-.glossary-term{font-family:'Instrument Serif',serif;font-size:21px;font-style:italic;flex-shrink:0;min-width:220px}
-.glossary-short{font-family:'Newsreader',serif;font-size:14px;color:var(--ink-muted)}
-.glossary-body{padding:0 0 20px 32px;color:var(--ink-soft);font-size:15px}
-.foot{padding:40px 60px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);letter-spacing:.05em;background:var(--paper);border-top:1.5px solid var(--line)}
-.foot em{font-style:normal;color:var(--rust)}
-.scorebar{display:flex;gap:0;margin:20px 0;border:1.5px solid var(--line)}
-.scorebar div{flex:1;padding:14px 10px;text-align:center;border-right:1px solid var(--line-soft)}
+.scorebar{display:flex;gap:0;margin:20px 0;border:1.5px solid var(--line);flex-wrap:wrap}
+.scorebar div{flex:1;min-width:90px;padding:14px 10px;text-align:center;border-right:1px solid var(--line-soft)}
 .scorebar div:last-child{border-right:none}
 .scorebar .n{font-family:'Instrument Serif',serif;font-size:34px;line-height:1;display:block}
 .scorebar .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-top:6px;display:block}
 .scorebar .ok .n{color:var(--forest)}
 .scorebar .rust .n{color:var(--rust)}
 .scorebar .plum .n{color:var(--plum)}
-@media(max-width:820px){.layout{grid-template-columns:1fr}.sidebar{display:none}.section,.hero,.foot{padding-left:24px;padding-right:24px}.hero h1{font-size:42px}.section h2{font-size:34px}.kv{grid-template-columns:1fr}}
+/* glossário: definições sempre visíveis e "linkáveis" */
+.glossary{border-top:1px solid var(--line)}
+.gloss{display:grid;grid-template-columns:210px 1fr;gap:8px 20px;padding:15px 8px;border-bottom:1px solid var(--line-soft);scroll-margin-top:16px;border-radius:3px}
+.gloss:target{background:var(--hl)}
+.gloss dt{font-family:'Instrument Serif',serif;font-size:20px;font-style:italic;color:var(--ink)}
+.gloss dd{margin:0;color:var(--ink-soft);font-size:15px}
+.foot{padding:40px 60px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);letter-spacing:.05em;background:var(--paper);border-top:1.5px solid var(--line)}
+.foot em{font-style:normal;color:var(--rust)}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.sidebar{display:none}.section,.hero,.foot{padding-left:24px;padding-right:24px}.hero h1{font-size:42px}.section h2{font-size:34px}.gloss{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="layout">
 <aside class="sidebar">
   <div class="sidebar-title">mss-spec</div>
-  <div class="sidebar-sub">Como funciona <span class="version-tag">v0.1</span></div>
+  <div class="sidebar-sub">Como funciona <span class="version-tag">v0.7</span></div>
   <nav>
     <ul class="nav">
-      <li><a href="#visao"><span class="nav-num">00</span>Visão geral</a></li>
-      <li><a href="#carga"><span class="nav-num">01</span>Como o Claude Code carrega</a></li>
+      <li><a href="#visao"><span class="nav-num">00</span>O que é (para todos)</a></li>
+      <li><a href="#exemplo"><span class="nav-num">01</span>O exemplo que vamos seguir</a></li>
       <li><a href="#instalacao"><span class="nav-num">02</span>Instalação</a></li>
-      <li><a href="#estrutura"><span class="nav-num">03</span>Estrutura do plugin</a></li>
-      <div class="nav-group">Comandos</div>
+      <li><a href="#estrutura"><span class="nav-num">03</span>O que tem dentro</a></li>
+      <div class="nav-group">Começar</div>
       <li><a href="#c-kickoff"><span class="nav-num">C1</span>kickoff</a></li>
-      <li><a href="#c-nova-feature"><span class="nav-num">C2</span>nova-feature</a></li>
+      <li><a href="#c-doctor"><span class="nav-num">C2</span>doctor</a></li>
+      <div class="nav-group">Montar a base</div>
       <li><a href="#c-ambiente"><span class="nav-num">C3</span>ambiente</a></li>
       <li><a href="#c-banco"><span class="nav-num">C4</span>banco</a></li>
-      <li><a href="#c-precedentes"><span class="nav-num">C5</span>precedentes</a></li>
-      <li><a href="#c-plano-teste"><span class="nav-num">C6</span>plano-teste</a></li>
-      <li><a href="#c-modo"><span class="nav-num">C7</span>modo</a></li>
-      <li><a href="#c-documentacao"><span class="nav-num">C8</span>documentacao</a></li>
-      <li><a href="#c-memory"><span class="nav-num">C9</span>memory</a></li>
-      <li><a href="#c-seguranca"><span class="nav-num">C11</span>seguranca</a></li>
-      <div class="nav-group">Fundamentos</div>
-      <li><a href="#memoria"><span class="nav-num">04</span>Memória &amp; índices</a></li>
-      <li><a href="#ambiente-msig"><span class="nav-num">05</span>Ambiente MSIG</a></li>
-      <li><a href="#fluxo"><span class="nav-num">06</span>Fluxo de trabalho</a></li>
-      <li><a href="#skill"><span class="nav-num">07</span>Skill de precedentes</a></li>
-      <div class="nav-group">Operação</div>
-      <li><a href="#verificacao"><span class="nav-num">08</span>Verificação</a></li>
-      <li><a href="#dividas"><span class="nav-num">09</span>Dívidas &amp; roadmap</a></li>
+      <li><a href="#c-log"><span class="nav-num">C5</span>log</a></li>
+      <div class="nav-group">Construir</div>
+      <li><a href="#c-nova-feature"><span class="nav-num">C6</span>nova-feature</a></li>
+      <li><a href="#c-frontend"><span class="nav-num">C7</span>frontend</a></li>
+      <li><a href="#c-precedentes"><span class="nav-num">C8</span>precedentes</a></li>
+      <div class="nav-group">Apoio no dia a dia</div>
+      <li><a href="#c-modo"><span class="nav-num">C9</span>modo</a></li>
+      <li><a href="#c-memory"><span class="nav-num">C10</span>memory</a></li>
+      <li><a href="#c-todolist"><span class="nav-num">C11</span>to-dolist</a></li>
+      <div class="nav-group">Verificar &amp; publicar</div>
+      <li><a href="#c-plano-teste"><span class="nav-num">C12</span>plano-teste</a></li>
+      <li><a href="#c-seguranca"><span class="nav-num">C13</span>seguranca</a></li>
+      <li><a href="#c-compliance"><span class="nav-num">C14</span>compliance</a></li>
+      <li><a href="#c-release"><span class="nav-num">C15</span>release</a></li>
+      <div class="nav-group">Manter &amp; compartilhar</div>
+      <li><a href="#c-upgrade"><span class="nav-num">C16</span>upgrade</a></li>
+      <li><a href="#c-documentacao"><span class="nav-num">C17</span>documentacao</a></li>
+      <div class="nav-group">Como o kit pensa</div>
+      <li><a href="#spec"><span class="nav-num">04</span>Spec-Driven na prática</a></li>
+      <li><a href="#memoria"><span class="nav-num">05</span>Memória &amp; decisões</a></li>
+      <li><a href="#ambiente-msig"><span class="nav-num">06</span>Padrão MSIG</a></li>
+      <li><a href="#fluxo"><span class="nav-num">07</span>O dia a dia</a></li>
+      <li><a href="#seguranca"><span class="nav-num">08</span>Segurança &amp; segredos</a></li>
+      <div class="nav-group">Fim</div>
+      <li><a href="#roadmap"><span class="nav-num">09</span>O que ainda vem</a></li>
       <li><a href="#glossario"><span class="nav-num">GL</span>Glossário</a></li>
     </ul>
   </nav>
@@ -151,477 +158,515 @@ li{margin-bottom:6px}
 <main class="main">
 
 <header class="hero" id="top">
-  <span class="eyebrow">Documentação técnica · Claude Code plugin · jul/2026</span>
-  <h1>Um <em>plugin</em>, cinco comandos,<br>zero cópia <em>manual</em>.</h1>
-  <p class="hero-sub">O <code>mss-spec</code> adiciona um fluxo Spec-Driven leve ao Claude Code, por cima do plugin <strong>superpowers</strong>. Instala uma vez, vale em todo projeto, e faz o <em>scaffolding</em> dos arquivos que antes você copiava à mão — já carregando o padrão de infraestrutura MSIG (rede Docker, proxy, Postgres/SQL Server, Azure).</p>
+  <span class="eyebrow">Guia para todos · técnicos e não-técnicos · jul/2026</span>
+  <h1>Um assistente que já sabe <em>o jeito da casa</em>.</h1>
+  <p class="hero-sub">O <code>mss-spec</code> é um plugin criado pelo <strong>Ronaldo Maganha</strong> (MSIG) que trabalha <strong>em conjunto com o <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a></strong> — o assistente de programação da Anthropic. Ele ensina o assistente a começar cada projeto já do jeito certo da empresa: com organização, checagens de segurança e o padrão de infraestrutura da MSIG prontos, sem ninguém precisar lembrar de tudo à mão.</p>
   <div class="hero-meta">
-    <div>Comandos<span>9 namespaced</span></div>
-    <div>Templates<span>5 embutidos</span></div>
-    <div>Memória<span>2 camadas / 2 índices</span></div>
-    <div>Dependência<span>superpowers</span></div>
+    <div>Comandos<span>17 atalhos</span></div>
+    <div>Autor<span>R. Maganha (MSIG)</span></div>
+    <div>Trabalha com<span>Claude Code</span></div>
+    <div>Instala<span>uma vez só</span></div>
   </div>
 </header>
 
 <section class="section" id="visao">
-  <div class="section-num">00 — Visão geral</div>
-  <h2>O que o <em>mss-spec</em> é (e o que não é)</h2>
-  <p class="lead">É um plugin do Claude Code que formaliza, como atalhos nomeados, o fluxo Spec-Driven que você já usava na mão. A <strong>disciplina</strong> (não codar sem OK, TDD, verificação, code review) não é dele — vem do plugin <code>superpowers</code>. O <code>mss-spec</code> adiciona só o que faltava: comandos memorizáveis, scaffolding automático e o padrão corporativo MSIG embutido.</p>
+  <div class="section-num">00 — O que é</div>
+  <h2>Em uma frase, <em>para todos</em></h2>
+  <p class="lead">Imagine um desenvolvedor novo muito rápido, mas que não conhece as manias da empresa. O <code>mss-spec</code> é o <strong>manual de boas práticas</strong> que você entrega a ele uma vez — e a partir daí ele já sabe onde cada coisa fica, como a MSIG monta seus sistemas, e não pula etapas importantes.</p>
+
+  <p>Tecnicamente: é um <a class="gl" href="#g-plugin">plugin</a> que adiciona <strong>atalhos</strong> ao <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a>. A <strong>disciplina</strong> de trabalho (não sair fazendo sem alinhar, <a class="gl" href="#g-tdd">testar</a>, <a class="gl" href="#g-verificacao">verificar</a>, <a class="gl" href="#g-code-review">revisar</a>) não é invenção dele — vem de outro plugin, o <a class="gl" href="#g-superpowers">superpowers</a>. O <code>mss-spec</code> junta a esse rigor o <strong>jeito da MSIG</strong>: comandos fáceis de lembrar, geração automática de arquivos e o padrão de infraestrutura da casa já embutido.</p>
 
   <div class="scorebar">
-    <div class="rust"><span class="n">5</span><span class="l">comandos</span></div>
-    <div class="plum"><span class="n">1</span><span class="l">skill</span></div>
-    <div class="ok"><span class="n">5</span><span class="l">templates</span></div>
-    <div class="ok"><span class="n">1×</span><span class="l">instala uma vez</span></div>
+    <div class="rust"><span class="n">17</span><span class="l">comandos</span></div>
+    <div class="plum"><span class="n">1</span><span class="l">rede de segurança</span></div>
+    <div class="ok"><span class="n">15+</span><span class="l">moldes prontos</span></div>
+    <div class="ok"><span class="n">1×</span><span class="l">instala e esquece</span></div>
   </div>
 
-  <p>Antes, adotar o padrão num projeto novo era copiar seis arquivos à mão, renomeando cada um para um destino diferente (um <code>rename.txt</code> existia só para lembrar a ordem). Agora você instala o plugin uma vez no escopo <code>user</code> e roda <code>/mss-spec:kickoff</code> — o próprio comando gera os arquivos no lugar certo.</p>
-
   <div class="callout info">
-    <div class="callout-label">A separação que define o desenho</div>
-    Existe <strong>maquinaria ativa</strong> (comandos + skill), que vira plugin e é compartilhada; e existe <strong>arquivo por-projeto</strong> (o <code>CLAUDE.md</code> daquele repo, a pasta <code>memory/</code> versionada com o código, o <code>docs/AMBIENTE.md</code>), que nenhum plugin "é" por você. A ponte entre os dois: o plugin <em>embute os templates</em> e o comando <em>faz o scaffolding</em>.
+    <div class="callout-label">O que ele NÃO é</div>
+    Não é a inteligência artificial em si (essa é o <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a>), nem substitui o desenvolvedor. Ele é o <em>combinado da equipe</em> transformado em atalhos — para o assistente e a pessoa trabalharem juntos sem reinventar a roda a cada projeto.
+  </div>
+
+  <div class="callout success">
+    <div class="callout-label">Mais que atalhos: um jeito de trabalhar</div>
+    No fundo, o <code>mss-spec</code> é um <strong>framework opinativo</strong>: ele <em>impõe</em> uma forma de desenvolver — mas uma forma baseada em boas práticas, pra ninguém decidir tudo do zero a cada vez. É a mesma filosofia de ferramentas conhecidas de quem é da área (Ruby on Rails, Angular CLI, Create React App, Yeoman), que embutem uma <em>opinião</em> sobre como fazer as coisas. A diferença: aqui a opinião é voltada ao <strong>desenvolvimento assistido por IA</strong> e ao <strong>contexto da MSIG</strong>.
   </div>
 </section>
 
-<section class="section" id="carga">
-  <div class="section-num">01 — Ciclo de vida</div>
-  <h2>Como o Claude Code <em>carrega</em> tudo isso</h2>
-  <p class="lead">Entender a ordem em que o Claude Code lê as coisas dissolve a maior parte das dúvidas — inclusive a de "por que não roda no chat comum".</p>
+<section class="section" id="exemplo">
+  <div class="section-num">01 — O exemplo</div>
+  <h2>Um projeto real, <em>do começo ao fim</em></h2>
+  <p class="lead">Pra não falar no abstrato, este guia acompanha <strong>um sistema de verdade</strong> — do primeiro comando à publicação. Toda vez que um comando aparecer, você vê o exemplo aplicado nele.</p>
 
-  <h4>No início de cada sessão</h4>
+  <div class="callout info">
+    <div class="callout-label">O sistema que vamos construir</div>
+    Um <a class="gl" href="#g-crud">CRUD</a> de <strong>cadastro de clientes</strong> — nome, endereço, telefone, e-mail e WhatsApp — que, numa etapa seguinte, faz um <strong>disparo automático de mensagem no WhatsApp</strong> do cliente. É um caso comum de TI: guardar dados e agir sobre eles.
+  </div>
+
+  <h4>Quem é quem</h4>
+  <p>Três peças trabalham juntas — e entender o papel de cada uma dissolve quase toda dúvida:</p>
+  <div class="analogy">
+    <b>Claude Code</b> — o desenvolvedor que efetivamente escreve o código do cadastro de clientes (lê e edita os arquivos, roda os testes).<br>
+    <b>superpowers</b> — a <em>disciplina</em> desse desenvolvedor: não sai codando sem alinhar, escreve teste antes, verifica rodando de verdade, pede revisão.<br>
+    <b>mss-spec</b> (feito pelo Maganha) — a <em>camada MSIG</em>: transforma "quero um cadastro de clientes" num projeto já no padrão da casa (pastas em camadas, conexão ao banco segura, infra Docker, checagens de segurança) sem ninguém copiar arquivo à mão.
+  </div>
+
+  <p>Por baixo, o encaixe é simples:</p>
   <ol>
-    <li>Lê e injeta o <code>CLAUDE.md</code> (do projeto + pais + global) — vira instrução permanente. O <code>CLAUDE.md</code> pode instruir a ler um <code>projeto.md</code> da raiz <strong>antes de tudo</strong>, se existir.</li>
-    <li>Lê o <code>settings.json</code> e habilita os <strong>plugins</strong> (superpowers, mss-spec).</li>
-    <li><strong>Enumera as skills</strong> disponíveis e apresenta ao modelo só <code>name</code> + <code>description</code> — o corpo carrega sob demanda.</li>
-    <li>Enumera os <strong>slash commands</strong> dos plugins.</li>
-    <li>Roda hooks de <code>SessionStart</code> (o mss-spec não usa hooks bloqueantes).</li>
+    <li>Ao abrir, o Claude Code lê as instruções permanentes do projeto e liga os plugins.</li>
+    <li>Ele lista os <a class="gl" href="#g-slash">atalhos</a> disponíveis (os "/comandos").</li>
+    <li>Você digita um atalho (ex.: <code>/mss-spec:kickoff</code>) e ele executa aquele roteiro — de forma previsível, porque <em>você</em> pediu.</li>
   </ol>
 
-  <h4>Quando você faz uma solicitação</h4>
-  <div class="flow">Você digita  <b>/mss-spec:kickoff "ideia"</b>
-   → o conteúdo do command.md vira o prompt (com $ARGUMENTS substituído)
-   → o comando invoca a skill <b>brainstorming</b> (do superpowers)
-   → entrevista → seu OK → scaffolding dos arquivos → fim</div>
-
   <div class="callout warn">
-    <div class="callout-label">Comando &gt; skill (por quê)</div>
-    Um <strong>slash command é gatilho explícito e determinístico</strong>: roda porque você digitou. Uma <strong>skill</strong> fica esperando disparar por relevância (a descrição casar com o pedido) — pode não disparar. Por isso o fluxo principal é feito de comandos, e a skill <code>precedentes-msig</code> é só uma rede de segurança complementar.
+    <div class="callout-label">Comando &gt; sugestão automática</div>
+    Um <a class="gl" href="#g-slash">comando</a> roda porque você digitou — é garantido. Uma <a class="gl" href="#g-skill">sugestão automática</a> (skill) só dispara se o assistente "achar" que faz sentido — pode não vir. Por isso o fluxo principal do kit é feito de comandos, que você controla.
   </div>
 
   <div class="callout danger">
-    <div class="callout-label">Não roda no chat comum</div>
-    O <code>mss-spec</code> só funciona no <strong>Claude Code</strong> (CLI, app desktop do Code ou IDE), que tem acesso ao sistema de arquivos. No <strong>Claude Desktop / claude.ai (chat)</strong> não há acesso ao seu <code>C:\</code> — é limite de plataforma, não de configuração.
+    <div class="callout-label">Onde funciona</div>
+    Só dentro do <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a> (o app/CLI que mexe nos seus arquivos). No chat comum do site/app (claude.ai) <strong>não</strong> funciona — lá a IA não tem acesso aos arquivos do seu computador. É limite da plataforma, não do kit.
   </div>
 </section>
 
 <section class="section" id="instalacao">
   <div class="section-num">02 — Instalação</div>
-  <h2>Instalar via <em>marketplace local</em></h2>
-  <p class="lead">O plugin mora numa pasta do disco e é servido por um marketplace local. Numa sessão do Claude Code:</p>
+  <h2>Instala <em>uma vez</em>, vale sempre</h2>
+  <p class="lead">O plugin mora numa pasta e é servido por uma "lojinha" local (um <a class="gl" href="#g-marketplace">marketplace</a>). Como ainda <strong>não publicamos num git interno</strong>, a distribuição pro time é por cópia de pasta — simples e sem depender de servidor.</p>
 
-  <pre><code>/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers
+  <h3>Para o time (por enquanto)</h3>
+  <ol>
+    <li><strong>Receber a pasta.</strong> O Ronaldo compacta a pasta do kit (o repositório inteiro) e disponibiliza — rede compartilhada, zip, o que for.</li>
+    <li><strong>Copiar pra sua máquina.</strong> Você extrai numa pasta local qualquer — por exemplo <code>C:\ferramentas\mss-spec</code>. O caminho é livre; só evite espaços/acentos.</li>
+    <li><strong>Registrar e instalar.</strong> Numa sessão do Claude Code, aponte o marketplace pra <em>sua</em> pasta e instale:</li>
+  </ol>
+
+  <pre><code>/plugin marketplace add C:/ferramentas/mss-spec
 /plugin install mss-spec@mss-local</code></pre>
 
-  <p>Escolha o escopo <code>user</code> — assim os comandos e a skill ficam disponíveis em <strong>todos</strong> os projetos da máquina, exatamente como o superpowers. Requer o <code>superpowers</code> habilitado e Claude Code <strong>v2.1.140+</strong>.</p>
+  <p>Escolha o escopo <code>user</code> — assim os comandos valem em <strong>todos</strong> os seus projetos. (<code>mss-local</code> é o nome fixo da lojinha; o caminho antes é o único que muda de máquina pra máquina.)</p>
 
-  <div class="callout danger">
-    <div class="callout-label">Precisa de restart COMPLETO</div>
-    Mudança de plugin/marketplace só carrega quando o Claude Code <strong>fecha por inteiro e reabre</strong> — nova aba ou nova conversa não recarrega. Faça Quit de verdade (inclusive o ícone da bandeja) e reabra. É o mesmo fenômeno do backend do Docker que ignora "Apply &amp; Restart" até um Quit completo.
+  <div class="callout warn">
+    <div class="callout-label">O superpowers é pré-requisito (passo à parte)</div>
+    O <code>mss-spec</code> depende do <a class="gl" href="#g-superpowers">superpowers</a> (a disciplina de trabalho). Ele <strong>não</strong> é instalado junto automaticamente — habilite-o à parte (é o plugin oficial da Anthropic, <code>superpowers@claude-plugins-official</code>). Ao rodar o <code>/mss-spec:kickoff</code> num projeto, o kit já deixa o superpowers ligado nas configurações daquele projeto.
   </div>
 
-  <h4>Registro manual — quando os /plugin não abrem</h4>
-  <p>Os comandos <code>/plugin</code> só abrem o painel numa sessão <strong>interativa</strong> do Claude Code. Fora disso, registre editando <code>~/.claude/settings.json</code> (escopo user, sem tela de trust) — mesmo formato do superpowers, trocando a fonte remota por pasta local (<code>directory</code>):</p>
-  <pre><code>{
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
-    "mss-spec@mss-local": true
-  },
-  "extraKnownMarketplaces": {
-    "mss-local": {
-      "source": { "source": "directory", "path": "C:/Ronaldo/_Mitsui/Python/Spec-Powers" }
-    }
-  }
-}</code></pre>
-  <p>Caminho com barras normais <code>/</code>. A chave em <code>enabledPlugins</code> é <code>&lt;plugin&gt;@&lt;marketplace&gt;</code> (<code>mss-spec@mss-local</code>). Depois, restart completo.</p>
-
-  <h4>Fallbacks garantidos</h4>
-  <ul>
-    <li><strong>Auto-load sem marketplace:</strong> pasta <code>~/.claude/skills/mss-spec/</code> com o <code>.claude-plugin/plugin.json</code> dentro → carrega sozinha como <code>mss-spec@skills-dir</code>, sem editar settings.</li>
-    <li><strong>Por sessão (CLI):</strong> <code>claude --plugin-dir "C:/Ronaldo/_Mitsui/Python/Spec-Powers"</code>.</li>
-  </ul>
-
-  <div class="table-wrap"><table>
-    <thead><tr><th>Escopo</th><th>Arquivo</th><th>Alcance</th></tr></thead>
-    <tbody>
-      <tr><td><code>user</code></td><td><code>~/.claude/settings.json</code></td><td>Todos os projetos da máquina (recomendado agora)</td></tr>
-      <tr><td><code>project</code></td><td><code>.claude/settings.json</code></td><td>O repositório inteiro (via git) — útil na promoção ao time</td></tr>
-      <tr><td><code>local</code></td><td><code>.claude/settings.local.json</code></td><td>Só sua cópia local, gitignored</td></tr>
-    </tbody>
-  </table></div>
+  <div class="callout danger">
+    <div class="callout-label">Precisa fechar e reabrir de verdade</div>
+    Instalar/atualizar plugin só vale quando o Claude Code é <strong>fechado por inteiro e reaberto</strong> — abrir uma aba nova não basta. (É o mesmo drama do Docker que ignora "Apply &amp; Restart" até um Quit completo.) Requer Claude Code <strong>v2.1.140+</strong>.
+  </div>
 
   <div class="callout info">
-    <div class="callout-label">Promoção pro time (depois de validar)</div>
-    Trocar a <code>source</code> em <code>.claude-plugin/marketplace.json</code> de caminho local para um repositório git. Sem retrabalho de estrutura — só muda a fonte.
+    <div class="callout-label">Levar pro time "de verdade" (depois)</div>
+    O passo final planejado é trocar a origem da lojinha de "pasta local" para um <strong>repositório <a class="gl" href="#g-git">git</a> interno</strong>: aí cada colega instala apontando pra uma URL, sem copiar pasta, e recebe atualizações puxando do git. Enquanto isso não acontece, a cópia de pasta acima é o caminho.
   </div>
 </section>
 
 <section class="section" id="estrutura">
-  <div class="section-num">03 — Anatomia</div>
-  <h2>Estrutura do <em>plugin</em></h2>
-  <p class="lead">A própria pasta <code>Spec-Powers</code> é o repo do plugin. Isto é o que existe em disco:</p>
+  <div class="section-num">03 — Por dentro</div>
+  <h2>O que tem <em>dentro da caixa</em></h2>
+  <p class="lead">Você não precisa mexer nisso, mas ajuda a saber que o kit tem três tipos de coisa:</p>
 
-  <div class="flow"><b>mss-spec/</b>  (repo do plugin)
-├── .claude-plugin/
-│   ├── <b>plugin.json</b>         manifesto (name: mss-spec)
-│   └── <b>marketplace.json</b>    marketplace local (mss-local)
-├── commands/
-│   ├── kickoff.md   nova-feature.md   ambiente.md
-│   ├── banco.md     precedentes.md    plano-teste.md
-│   └── modo.md
-├── skills/
-│   └── precedentes-msig/SKILL.md   catálogo de auto-disparo
-├── templates/                  embutidos; os comandos copiam pro projeto
-│   ├── CLAUDE.md   settings.json   gitignore   MEMORY.md   INDEX.md
-│   ├── AMBIENTE.md   ESTRUTURA.md   FRONTEND.md   (design system MSIG)
-│   ├── docker/     docker-compose.yml · docker-compose.office.yml · Dockerfile · dockerignore
-│   ├── doc/template.html   (estilo editorial p/ documentação)
-│   ├── certs/corp-ca.pem   (CA corporativa MSIG)
-│   └── assets/logo.png   (logo MSIG)
-└── docs/                       manuais (não vão pros projetos)
-    ├── LEIA-ME.md · ROTEIRO-SPEC-DRIVEN.md · referencia-spec-driven.md
-    ├── COMO-FUNCIONA.html   (este documento)
-    └── superpowers/specs · plans</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Peça</th><th>O que é</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Comandos</strong></td><td>Os 17 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
+      <tr><td><strong>Moldes</strong> (templates)</td><td>Arquivos-modelo prontos (padrão MSIG) que os comandos copiam pro seu projeto — em vez de você copiar à mão.</td></tr>
+      <tr><td><strong>Skill</strong></td><td>Uma rede de segurança que se ativa sozinha (catálogo de "isso já foi feito em outro projeto?").</td></tr>
+    </tbody>
+  </table></div>
 
   <div class="callout warn">
-    <div class="callout-label">Templates ≠ arquivos do plugin</div>
-    Os arquivos em <code>templates/</code> <strong>não</strong> são a configuração do plugin — são moldes que os comandos copiam para dentro de <em>cada projeto</em>. O comando referencia-os via a variável <code>${CLAUDE_PLUGIN_ROOT}/templates/…</code>.
+    <div class="callout-label">Moldes ≠ o seu projeto</div>
+    Os moldes são <em>fôrmas</em>. Quando você roda um comando, ele copia a fôrma pro seu projeto e você preenche. Mexer nos moldes não bagunça projetos já feitos — cada projeto tem a sua cópia.
   </div>
 </section>
 
 <section class="section" id="comandos">
-  <div class="section-num">Comandos</div>
-  <h2>Os nove <em>comandos</em>, um a um</h2>
-  <p class="lead">Todos são namespaced (<code>/mss-spec:&lt;nome&gt;</code>) e marcados com <code>disable-model-invocation: true</code> — só você os dispara, o modelo não os invoca sozinho.</p>
+  <div class="section-num">Os comandos</div>
+  <h2>Os dezessete <em>atalhos</em>, na ordem de uso</h2>
+  <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
+
+  <h3>Começar</h3>
 
   <div class="node" id="c-kickoff">
-    <div class="node-head"><span class="node-idx">C1</span><span class="node-name">/mss-spec:kickoff</span><span class="node-type">constitui o projeto</span></div>
+    <div class="node-head"><span class="node-idx">C1</span><span class="node-name">kickoff</span><span class="node-type">dá a largada</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> constitui um projeto (novo ou existente). Invoca <code>brainstorming</code>, faz scan se for brownfield, entrevista você uma coisa por vez e, ao final, faz o scaffolding.</p>
-      <div class="kv">
-        <dt>Escreve</dt><dd><code>CLAUDE.md</code>, <code>.claude/settings.json</code>, <code>.gitignore</code>, <code>memory/MEMORY.md</code>, <code>docs/superpowers/INDEX.md</code>, <code>docs/AMBIENTE.md</code>, <code>docs/ESTRUTURA.md</code> (pastas em camadas) e — se tiver UI — <code>docs/FRONTEND.md</code> + <code>static/img/logo.png</code></dd>
-        <dt>Garante</dt><dd>a dependência do superpowers (verifica e, se faltar, habilita no settings)</dd>
-        <dt>Base</dt><dd>o <code>CLAUDE.md</code> gerado instrui ler <code>projeto.md</code> da raiz <strong>antes de tudo</strong>, se existir (opcional por projeto)</dd>
-        <dt>Quando usar</dt><dd>uma vez, ao adotar o padrão num projeto</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">scaffolding</span><span class="pill graph">scan brownfield</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:kickoff "em 1 frase o que é o projeto e pra quem"</code></p>
+      <p class="plain">Prepara um projeto do zero, já no padrão da casa. É o primeiro comando que você roda.</p>
+      <p>Entrevista você (uma pergunta por vez) e depois faz o <a class="gl" href="#g-scaffolding">scaffolding</a>: cria as instruções do projeto, as pastas em camadas e os arquivos-base (segurança, decisões, memória). Também deixa o <a class="gl" href="#g-superpowers">superpowers</a> ligado.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:kickoff "sistema de cadastro de clientes com nome,
+   endereço, telefone, e-mail e whatsapp"</code></pre>
+      <div class="label-row"><span class="pill ok">gera os arquivos</span><span class="pill graph">entende projeto que já existe</span></div>
     </div>
   </div>
 
-  <div class="node" id="c-nova-feature">
-    <div class="node-head"><span class="node-idx">C2</span><span class="node-name">/mss-spec:nova-feature</span><span class="node-type">abre feature spec→tasks</span></div>
+  <div class="node" id="c-doctor">
+    <div class="node-head"><span class="node-idx">C2</span><span class="node-name">doctor</span><span class="node-type">check-up do ambiente</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> abre uma feature no fluxo Spec-Driven: <code>brainstorming</code> → Critérios de Aceite → seu OK → <code>writing-plans</code> → tasks pequenas → executa uma por vez (TDD + verificação).</p>
-      <div class="kv">
-        <dt>Mantém</dt><dd>acrescenta 1 linha em <code>docs/superpowers/INDEX.md</code> ao abrir; muda status para <code>fechada</code> ao concluir</dd>
-        <dt>Git</dt><dd>NÃO cria branch nem worktree — isolamento é pedido explicitamente</dd>
-        <dt>Quando usar</dt><dd>por feature (feat). Bugfix/refactor/chore não precisam</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">mantém o índice</span><span class="pill warn">branch explícita</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:nova-feature exportar-relatorio</code></p>
+      <p class="plain">Um "check-up" rápido do ambiente antes de começar — pega o erro cedo, não na hora de publicar.</p>
+      <p>Confere os pré-requisitos da MSIG (o <a class="gl" href="#g-proxy">proxy</a> responde? o certificado está lá? o driver do banco existe? o <a class="gl" href="#g-superpowers">superpowers</a> está ligado? o próprio kit acha seus moldes?) e dá um veredito ✓/✗. <strong>Só avisa</strong>, não conserta. Roda quando você chama <em>e</em> sozinho, no começo da 1ª tarefa. Rodar de novo nunca muda nada.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:doctor
+  → ✓ proxy · ✓ CA · ✗ ODBC Driver 17 (instalar antes de conectar no banco)</code></pre>
+      <div class="label-row"><span class="pill ok">manual + automático</span><span class="pill graph">só reporta</span></div>
     </div>
   </div>
+
+  <h3>Montar a base</h3>
 
   <div class="node" id="c-ambiente">
-    <div class="node-head"><span class="node-idx">C3</span><span class="node-name">/mss-spec:ambiente</span><span class="node-type">infra no padrão MSIG</span></div>
+    <div class="node-head"><span class="node-idx">C3</span><span class="node-name">ambiente</span><span class="node-type">a infra da casa</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> copia a infra Docker <strong>padronizada</strong> (compose base + office, Dockerfile, CA corporativa, .dockerignore) e explica como subir. Proxy/TLS em <strong>4 camadas independentes</strong>. Mostra e confirma antes de gravar.</p>
-      <div class="kv">
-        <dt>Copia</dt><dd><code>docker-compose.yml</code> + <code>docker-compose.office.yml</code> + <code>Dockerfile</code> + <code>.dockerignore</code> + <code>certs/corp-ca.pem</code> (padrões do plugin)</dd>
-        <dt>4 camadas</dt><dd>pull da base = <strong>daemon</strong>/Docker Desktop · build = <code>build.args HTTP_PROXY</code> (office.yml, do <code>.env</code>) · runtime = <code>.env</code> · TLS = CA embutida na imagem (<code>COPY certs</code>) com <code>SSL_VERIFY=true</code> (<code>false</code> = só fallback de diagnóstico)</dd>
-        <dt>Subir</dt><dd>casa (VPN): <code>docker compose up -d --build</code> · escritório: <code>… -f docker-compose.office.yml …</code></dd>
-      </div>
-      <div class="label-row"><span class="pill ok">compose base+office</span><span class="pill db">4 camadas proxy/TLS</span><span class="pill warn">CA + SSL_VERIFY</span></div>
-      <p class="subhead">Gotcha</p>
-      <p><code>load metadata … i/o timeout</code> = pull da base (é do <strong>daemon</strong>, não usa build.args/.env). Resolva com proxy no Docker Desktop <strong>ou</strong> <code>docker pull python:3.12-slim</code> (cache por máquina — costuma resolver). <code>psycopg</code>/TCP ignora proxy.</p>
+      <p class="plain">Monta a "caixa" onde o app roda, já configurada pra rede da MSIG.</p>
+      <p>Copia a infra <a class="gl" href="#g-docker">Docker</a> padronizada (a CA da empresa já embutida) e explica como subir. Trata o <a class="gl" href="#g-proxy">proxy</a> e o certificado (<a class="gl" href="#g-ca">CA</a>) da empresa em camadas.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:ambiente
+  → gera o docker-compose do sistema de clientes na rede mitiai_network</code></pre>
+      <div class="label-row"><span class="pill ok">Docker padrão</span><span class="pill db">proxy/TLS</span></div>
     </div>
   </div>
 
   <div class="node" id="c-banco">
-    <div class="node-head"><span class="node-idx">C4</span><span class="node-name">/mss-spec:banco</span><span class="node-type">conexão a banco</span></div>
+    <div class="node-head"><span class="node-idx">C4</span><span class="node-name">banco</span><span class="node-type">conexão ao banco</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> gera o boilerplate de conexão no padrão MSIG. Pergunta SQL Server ou Postgres; para SQL Server, modo simples ou Fernet. Mostra o código e confirma antes de gravar.</p>
-      <div class="kv">
-        <dt>Escreve</dt><dd>o módulo de conexão (<code>get_connection.py</code>) + entradas no <code>.env.example</code></dd>
-        <dt>Nunca</dt><dd>gera <code>.env</code> real nem valores de credencial — só placeholders</dd>
-      </div>
-      <div class="label-row"><span class="pill db">SQL Server / Postgres</span><span class="pill ok">.env.example</span></div>
-      <p class="subhead">Variantes</p>
-      <p>Postgres via <code>psycopg</code> v3 (<code>PG_CONN_STR</code>; <code>psycopg2</code> só em projeto que já o usa). SQL Server via <code>pyodbc</code> — simples (env por banco) ou com credencial cifrada (Fernet: <code>ENCRYPTION_KEY</code>/<code>ENCRYPTED_CONN</code>; só é segurança real se a chave vier de outro store, ex. Key Vault).</p>
+      <p class="plain">Cria o código que conecta o app ao banco de dados, sem deixar senha exposta.</p>
+      <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a> (continuidade com o que já existe).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:banco
+  → conexão pra tabela de clientes (senha só na variável de ambiente, nunca no código)</code></pre>
+      <div class="label-row"><span class="pill db">SQL Server / Postgres</span><span class="pill ok">segredo protegido</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-log">
+    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">log</span><span class="node-type">registro de eventos · NOVO</span></div>
+    <div class="node-body">
+      <p class="plain">Liga o "diário de bordo" do app — as mensagens que contam o que está acontecendo (e o que deu errado).</p>
+      <p>Instala o padrão de <a class="gl" href="#g-log">log</a> da casa: as mensagens vão pra <strong>saída padrão</strong> (que a nuvem <a class="gl" href="#g-azure">Azure</a> captura em produção) e também pra um arquivo local <strong>só em desenvolvimento</strong> (com ícones por nível, pra ler rápido no terminal). Você escolhe <strong>quais arquivos</strong> ganham log — nem tudo precisa. Regra dura: <strong>nunca</strong> grava senha nem dado pessoal (telefone, e-mail do cliente).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:log services/whatsapp.py
+  → liga o log no serviço de disparo (registra "enviado/falhou", nunca o número)</code></pre>
+      <div class="label-row"><span class="pill ok">stdout + arquivo em dev</span><span class="pill risk">nunca PII/segredo</span><span class="pill warn">opt-in por arquivo</span></div>
+    </div>
+  </div>
+
+  <h3>Construir</h3>
+
+  <div class="node" id="c-nova-feature">
+    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">nova-feature</span><span class="node-type">abre uma funcionalidade</span></div>
+    <div class="node-body">
+      <p class="plain">O jeito organizado de criar algo novo — combina o que vai fazer antes de fazer.</p>
+      <p>Fluxo <a class="gl" href="#g-spec">Spec-Driven</a>: alinha o objetivo e os critérios de aceite → seu OK → plano → tarefas pequenas com <a class="gl" href="#g-tdd">TDD</a>. Guarda a "spec viva" do assunto e, ao fechar, roda o <a href="#c-release" class="gl">release</a> e registra decisões importantes. <strong>Abre uma <a class="gl" href="#g-branch">branch</a> própria antes de mexer no código.</strong></p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:nova-feature "disparo automático no whatsapp do cliente"
+  → critérios de aceite → seu OK → branch → testa → verifica → revisa</code></pre>
+      <div class="label-row"><span class="pill ok">spec viva por assunto</span><span class="pill warn">branch por tarefa</span><span class="pill risk">segurança em rota nova</span></div>
     </div>
   </div>
 
   <div class="node" id="c-frontend">
-    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">/mss-spec:frontend</span><span class="node-type">front moderno (Mantine)</span></div>
+    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">frontend</span><span class="node-type">telas ricas</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> instala o <strong>Nível 2</strong> do front (React + TypeScript + Mantine, tema MSIG) para telas densas — grids, muitos campos, date pickers. Telas simples ficam no Nível 1 (Jinja + Tailwind). Copia o scaffold Vite e confirma antes de gravar.</p>
-      <div class="kv">
-        <dt>Copia</dt><dd><code>templates/frontend/</code> → <code>frontend/</code> (Vite + React + TS + Mantine; tema MSIG em <code>src/theme.ts</code>)</dd>
-        <dt>Ilha × SPA</dt><dd>um pedaço de página → ilha (<code>#mantine-root</code> + bundle); tela inteira → rota SPA servida pelo FastAPI</dd>
-        <dt>Dados</dt><dd>React consome <strong>JSON</strong> do FastAPI (API/BFF) — nunca lê HTML renderizado</dd>
-        <dt>Regra</dt><dd>onde a Mantine entra, o Tailwind sai (não misturar no mesmo app)</dd>
-      </div>
-      <div class="label-row"><span class="pill db">React + TS + Mantine</span><span class="pill warn">build/proxy: ver AMBIENTE §2</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:frontend "grid de apólice"</code>. A tela em si vem depois com <code>/mss-spec:nova-feature</code>.</p>
+      <p class="plain">Instala as ferramentas para telas mais elaboradas (grades, muitos campos).</p>
+      <p>Traz o front moderno (<a class="gl" href="#g-frontend">React + Mantine</a>) com o tema MSIG. Telas simples ficam no jeito leve (servidor + Tailwind); telas densas ganham esse reforço.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:frontend
+  → a tela de listagem de clientes (grade com busca por coluna, filtros)</code></pre>
+      <div class="label-row"><span class="pill db">React + Mantine</span></div>
     </div>
   </div>
 
   <div class="node" id="c-precedentes">
-    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">/mss-spec:precedentes</span><span class="node-type">consulta catálogo</span></div>
+    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">precedentes</span><span class="node-type">"já fizemos isso?"</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> consulta explícita ao catálogo de precedentes entre projetos MSIG — "isso já foi resolvido em outro projeto?". A skill homônima também dispara sozinha quando relevante.</p>
-      <div class="kv">
-        <dt>Escreve</dt><dd>nada — só lê o catálogo e aponta projeto, caminho e abordagem</dd>
-        <dt>Regra</dt><dd>o catálogo é índice; sempre abra o código real de lá antes de replicar</dd>
-      </div>
-      <div class="label-row"><span class="pill graph">consulta</span><span class="pill ok">+ skill auto</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:precedentes RAG</code> · <code>/mss-spec:precedentes "extração de PDF"</code></p>
+      <p class="plain">Consulta um caderninho de "isso já foi resolvido em outro projeto da MSIG".</p>
+      <p>Aponta qual projeto já fez algo parecido (busca por documentos, extração de PDF, conexão a banco, integrações) para você reaproveitar em vez de refazer.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:precedentes "integração whatsapp"
+  → "algum projeto já disparou WhatsApp? qual arquitetura usou?"</code></pre>
+      <div class="label-row"><span class="pill graph">catálogo</span></div>
     </div>
   </div>
 
-  <div class="node" id="c-plano-teste">
-    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">/mss-spec:plano-teste</span><span class="node-type">baseline anti-regressão</span></div>
-    <div class="node-body">
-      <p><strong>O que faz:</strong> roda o plano de teste base (pytest) — a rede anti-regressão ("se isso passa 100%, nada quebrou"). Se a suíte passa inteira, grava/atualiza o baseline; se não, reporta as falhas e mantém o baseline anterior.</p>
-      <div class="kv">
-        <dt>Baseline</dt><dd><code>docs/superpowers/PLANO-TESTE.md</code> — o comando de rodar, o que cobre, e o carimbo do último 100% (data + commit)</dd>
-        <dt>Regra</dt><dd>só vira baseline com a suíte <strong>100% verde</strong>; o anterior é substituído (o git guarda o histórico)</dd>
-        <dt>Disciplina</dt><dd>o <code>CLAUDE.md</code> manda rodar antes de declarar qualquer coisa pronta — feature nova ou alteração</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">pytest</span><span class="pill warn">100% ou nada</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:plano-teste</code></p>
-    </div>
-  </div>
+  <h3>Apoio no dia a dia</h3>
 
   <div class="node" id="c-modo">
-    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">/mss-spec:modo</span><span class="node-type">nível de cerimônia</span></div>
+    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">modo</span><span class="node-type">quanto ritual</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> alterna o quanto do ritual Spec-Driven é aplicado — o antídoto pra lentidão do fluxo completo. Vale da chamada em diante, até trocar. Padrão: <strong>médio</strong>.</p>
-      <div class="kv">
-        <dt>mínimo</dt><dd>sem spec/plano; 1-2 perguntas; executa direto com TDD leve (ajuste pequeno/claro)</dd>
-        <dt>médio</dt><dd>design curto + plano curto + execução inline, sem subagentes nem dupla revisão</dd>
-        <dt>alto</dt><dd>ritual completo: spec + <code>writing-plans</code> + <code>subagent-driven-development</code> (feature grande/crítica)</dd>
-        <dt>Inegociável</dt><dd>em todo nível: OK antes de codar, TDD e verificação (rodar + colar saída) — só o peso do planejamento varia</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">3 níveis</span><span class="pill warn">padrão médio</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:modo mínimo</code> · <code>/mss-spec:modo alto</code>. Ortogonal ao <code>effortLevel</code> do <code>settings.json</code> (padrão <code>medium</code>) — juntos controlam velocidade × profundidade.</p>
-    </div>
-  </div>
-
-  <div class="node" id="c-documentacao">
-    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">/mss-spec:documentacao</span><span class="node-type">doc HTML editorial</span></div>
-    <div class="node-body">
-      <p><strong>O que faz:</strong> gera documentação HTML no <strong>estilo editorial MSIG</strong> — este mesmo layout que você está lendo. Copia o template padrão e substitui só o conteúdo, mantendo a `&lt;style&gt;` intacta.</p>
-      <div class="kv">
-        <dt>Base</dt><dd><code>templates/doc/template.html</code> (mesmo CSS/fontes/classes); exemplo completo = este documento</dd>
-        <dt>Blocos</dt><dd>hero · section · callout · node/card · table · flow · scorebar · glossary · foot</dd>
-        <dt>Saída</dt><dd><strong>arquivo único self-contained</strong> em <code>docs/&lt;nome&gt;.html</code> — a exceção à regra de separar CSS/JS (doc portável)</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">estilo fixo</span><span class="pill graph">self-contained</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:documentacao "arquitetura do painel"</code></p>
+      <p class="plain">Regula a "quantidade de burocracia" — rápido para ajuste pequeno, completo para coisa grande.</p>
+      <p>Três níveis: <strong>mínimo</strong> (vai direto), <strong>médio</strong> (padrão) e <strong>alto</strong> (ritual completo). Testar e verificar são inegociáveis em todos.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:modo alto
+  → mais ritual pro disparo em massa (crítico); "mínimo" pra um ajuste de rótulo</code></pre>
+      <div class="label-row"><span class="pill ok">3 níveis</span><span class="pill warn">padrão: médio</span></div>
     </div>
   </div>
 
   <div class="node" id="c-memory">
-    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">/mss-spec:memory</span><span class="node-type">resgate de memória</span></div>
+    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">memory</span><span class="node-type">salva a memória</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> traz pro repositório a memória que ficou na pasta <strong>nativa</strong> do Claude (`~/.claude/projects/&lt;proj&gt;/memory/`) — volátil e fora do git. Copia (não-destrutivo; a nativa fica intacta) e depois <strong>commita</strong> o <code>memory/</code> — <code>git add</code> nominal, local, sem push. É o commit que torna a memória durável de fato.</p>
-      <div class="kv">
-        <dt>Por quê</dt><dd>a pasta nativa some se o `.claude` for limpo/reinstalado e não viaja com o código — risco de perder tudo</dd>
-        <dt>Quando</dt><dd>em projeto sem <code>/mss-spec:kickoff</code> (onde a memória cai no default nativo), pra migrar pro repo</dd>
-        <dt>Prevenção</dt><dd>a regra no <code>~/.claude/CLAUDE.md</code> global manda memória nova já nascer no repo, em todo projeto</dd>
-      </div>
-      <div class="label-row"><span class="pill ok">não-destrutivo</span><span class="pill warn">anti-perda</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:memory</code></p>
+      <p class="plain">Garante que os aprendizados do assistente fiquem guardados junto com o projeto (e não se percam).</p>
+      <p>Traz para dentro do repositório a memória que porventura ficou numa pasta "volátil" do Claude, e a torna durável (versionada com o código).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:memory
+  → guarda no repo o que aprendemos ("como foi o kickoff", "a API de WhatsApp usada")</code></pre>
+      <div class="label-row"><span class="pill ok">anti-perda</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-todolist">
+    <div class="node-head"><span class="node-idx">C11</span><span class="node-name">to-dolist</span><span class="node-type">bloco de recados</span></div>
+    <div class="node-body">
+      <p class="plain">Um bloco de recados pessoal que aparece em qualquer parte do trabalho.</p>
+      <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Fica <strong>visível em qualquer <a class="gl" href="#g-branch">branch</a></strong> e é só seu (não vai pro compartilhamento).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:to-dolist adicionar "enviar e-mail de boas-vindas ao cliente"
+/mss-spec:to-dolist adicionar "saber qual cliente leu a mensagem"</code></pre>
+      <div class="label-row"><span class="pill ok">em qualquer branch</span><span class="pill graph">pessoal</span></div>
+    </div>
+  </div>
+
+  <h3>Verificar &amp; publicar</h3>
+
+  <div class="node" id="c-plano-teste">
+    <div class="node-head"><span class="node-idx">C12</span><span class="node-name">plano-teste</span><span class="node-type">rede anti-quebra</span></div>
+    <div class="node-body">
+      <p class="plain">Roda a bateria de testes — "se tudo passa, nada quebrou".</p>
+      <p>Executa os <a class="gl" href="#g-tdd">testes</a> do projeto. Só vira "referência boa" quando passa 100%. É a rede contra estragar sem querer o que já funcionava.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:plano-teste
+  → roda os testes do CRUD de clientes; 100% verde → vira o novo baseline</code></pre>
+      <div class="label-row"><span class="pill ok">testes</span><span class="pill warn">100% ou nada</span></div>
     </div>
   </div>
 
   <div class="node" id="c-seguranca">
-    <div class="node-head"><span class="node-idx">C11</span><span class="node-name">/mss-spec:seguranca</span><span class="node-type">audita AppSec (OWASP)</span></div>
+    <div class="node-head"><span class="node-idx">C13</span><span class="node-name">seguranca</span><span class="node-type">auditoria de segurança</span></div>
     <div class="node-body">
-      <p><strong>O que faz:</strong> audita a segurança AppSec (OWASP + baseline <code>docs/SEGURANCA.md</code>) e corrige com seu OK; complementa o <code>/security-review</code> nativo (que só vê o diff).</p>
-      <div class="kv">
-        <dt>Base</dt><dd><code>docs/SEGURANCA.md</code> (se faltar, copia de <code>templates/SEGURANCA.md</code>) + <code>docs/AMBIENTE.md</code></dd>
-        <dt>Escreve</dt><dd>relatório priorizado em <code>docs/superpowers/SEGURANCA-AUDITORIA.md</code> (severidade · ref OWASP · arquivo:linha · fix)</dd>
-        <dt>Regra</dt><dd>nunca declara "seguro" (é contínuo); cada correção roda o <code>pytest</code> do baseline antes de seguir</dd>
-        <dt>Quando usar</dt><dd>antes de expor o app, ou periodicamente — complementar ao <code>/security-review</code> nativo (só olha o diff)</dd>
-      </div>
-      <div class="label-row"><span class="pill risk">OWASP Top 10</span><span class="pill warn">corrige com OK</span></div>
-      <p class="subhead">Uso</p>
-      <p><code>/mss-spec:seguranca</code></p>
+      <p class="plain">Passa um pente-fino de segurança no app e aponta o que corrigir.</p>
+      <p>Audita contra os riscos mais comuns (<a class="gl" href="#g-owasp">OWASP</a>) e o baseline da casa; corrige com o seu OK. Nunca declara "está seguro" (segurança é contínua).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:seguranca
+  → confere os endpoints que expõem dados do cliente (PII/LGPD, autorização)</code></pre>
+      <div class="label-row"><span class="pill risk">OWASP</span><span class="pill warn">corrige com OK</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-compliance">
+    <div class="node-head"><span class="node-idx">C14</span><span class="node-name">compliance</span><span class="node-type">auditoria de convenção · NOVO</span></div>
+    <div class="node-body">
+      <p class="plain">Confere se o projeto ainda está "no jeito da casa" — a estrutura e os padrões, não o funcionamento.</p>
+      <p>Com o tempo, um projeto deriva do padrão. O compliance checa a <strong>aderência às convenções</strong> do mss-spec: pastas em camadas (não tudo jogado numa pasta só), documentação e memória no lugar, segredo protegido no <code>.gitignore</code>. <strong>Só reporta</strong> ✓/✗ — quem <em>conserta</em> arquivos desatualizados é o <a href="#c-upgrade" class="gl">upgrade</a>. É o terceiro de um trio de auditorias: <strong>doctor</strong> (ambiente) · <strong>seguranca</strong> (segurança) · <strong>compliance</strong> (convenção).</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:compliance
+  → "o projeto de clientes segue as camadas e tem docs/memória no lugar?"</code></pre>
+      <div class="label-row"><span class="pill ok">convenção</span><span class="pill graph">só reporta</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-release">
+    <div class="node-head"><span class="node-idx">C15</span><span class="node-name">release</span><span class="node-type">inspeção final · NOVO</span></div>
+    <div class="node-body">
+      <p class="plain">A "inspeção final" antes de publicar: passa por tudo que importa e marca os pontos num veredito só.</p>
+      <p>É um <strong>portão de pré-publicação</strong>. Num passo, ele: <strong>roda os testes</strong> (têm que estar 100% verdes), confere <strong>versão</strong> e <strong>CHANGELOG</strong>, aplica o checklist do <a href="#c-compliance" class="gl">compliance</a> (convenção), lembra da <a href="#c-seguranca" class="gl">segurança</a> se você mexeu numa porta de entrada, e vê se as <a class="gl" href="#g-spec">specs</a> batem com o entregue. <strong>Só reporta</strong> o que falta — não publica nem conserta. Verde → você segue pro merge/PR.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:release
+  → ✓ testes · ✓ CHANGELOG · ✓ convenção · ✗ rodar seguranca (mexeu em rota)</code></pre>
+      <div class="label-row"><span class="pill ok">junta os checks</span><span class="pill graph">só reporta</span><span class="pill warn">gate antes do merge</span></div>
+    </div>
+  </div>
+
+  <h3>Manter &amp; compartilhar</h3>
+
+  <div class="node" id="c-upgrade">
+    <div class="node-head"><span class="node-idx">C16</span><span class="node-name">upgrade</span><span class="node-type">atualiza o projeto</span></div>
+    <div class="node-body">
+      <p class="plain">Quando o kit melhora, atualiza um projeto antigo sem apagar o que você personalizou.</p>
+      <p>Compara os arquivos do projeto com a versão nova dos moldes: os de referência atualiza sozinho; as instruções personalizadas (<code>CLAUDE.md</code>) ele <strong>mescla</strong> (acrescenta o novo, mantém o seu) e só pergunta em caso de conflito real; código ele nunca mexe sozinho.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:upgrade
+  → traz os moldes novos (ex.: o padrão de log) pro projeto de clientes já existente</code></pre>
+      <div class="label-row"><span class="pill ok">mescla, não sobrescreve</span><span class="pill warn">conflito pergunta</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-documentacao">
+    <div class="node-head"><span class="node-idx">C17</span><span class="node-name">documentacao</span><span class="node-type">doc bonita</span></div>
+    <div class="node-body">
+      <p class="plain">Gera uma documentação HTML no estilo editorial — este mesmo visual que você está lendo.</p>
+      <p>Copia o modelo de documento e troca só o conteúdo, mantendo o visual. Saída num arquivo único, fácil de abrir e apresentar.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:documentacao "manual do sistema de clientes"
+  → um HTML self-contained pra apresentar o sistema pra área de negócio</code></pre>
+      <div class="label-row"><span class="pill ok">estilo fixo</span></div>
     </div>
   </div>
 </section>
 
+<section class="section" id="spec">
+  <div class="section-num">04 — Spec-Driven</div>
+  <h2>Combinar <em>antes</em> de codar</h2>
+  <p class="lead">O coração do kit é o <a class="gl" href="#g-spec">Spec-Driven</a>: antes de escrever código, escreve-se em poucas linhas <strong>o que</strong> a funcionalidade precisa fazer. Isso vira um contrato curto — e o código nasce guiado por ele, com menos retrabalho.</p>
+
+  <p>No nosso exemplo, quando você roda <code>/mss-spec:nova-feature "disparo no whatsapp"</code>, o assistente <strong>não</strong> sai codando. Primeiro ele alinha com você uma <strong>spec</strong> assim:</p>
+
+  <pre><code># disparo-whatsapp — spec viva
+
+## Objetivo
+Ao cadastrar um cliente com WhatsApp válido, enviar uma mensagem
+de boas-vindas automática.
+
+## Critérios de aceite
+- DADO um cliente novo com WhatsApp válido,
+  QUANDO salvo o cadastro,
+  ENTÃO uma mensagem é disparada e o status fica "enviado".
+- DADO uma falha no envio,
+  ENTÃO o erro é registrado no log (sem gravar o número) e
+  o status fica "falhou".
+
+## Fora de escopo
+Disparo em massa/agendado (fica pra outra feature).</code></pre>
+
+  <p>Só depois do <strong>seu OK</strong> nessa spec é que vêm o plano e o código (com <a class="gl" href="#g-tdd">teste primeiro</a>). E o mais importante: essa spec fica <strong>viva</strong>.</p>
+
+  <div class="callout success">
+    <div class="callout-label">Spec viva = nunca mente</div>
+    A spec fica guardada em <code>docs/specs/&lt;assunto&gt;.md</code> com duas partes: <strong>Estado atual</strong> (como a coisa se comporta <em>hoje</em>) e <strong>Histórico</strong> (uma linha por mudança). Se amanhã alguém mexer no disparo, atualiza a spec junto — assim ela nunca vira uma mentira que induz o assistente a reintroduzir um bug. É a diferença entre "documentação que envelhece" e "contrato que acompanha o código".
+  </div>
+
+  <div class="callout info">
+    <div class="callout-label">Bugfix e ajuste pequeno não precisam disso</div>
+    Corrigir um bug não exige a cerimônia toda: o teste que reproduz o problema já é a "especificação". O fluxo completo é para <em>funcionalidade nova</em>. (E o quanto de ritual você regula com o <a href="#c-modo" class="gl">modo</a>.)
+  </div>
+</section>
+
 <section class="section" id="memoria">
-  <div class="section-num">04 — Conhecimento persistido</div>
-  <h2>Memória em <em>duas camadas</em>, dois índices</h2>
-  <p class="lead">O objetivo é não lotar o contexto: cada coisa no seu arquivo, um índice barato lido no início, e o resto aberto só sob demanda.</p>
+  <div class="section-num">05 — O que o kit lembra</div>
+  <h2>Memória, tarefas e <em>decisões</em></h2>
+  <p class="lead">Para não repetir erro nem re-explicar tudo, o kit guarda três coisas — cada uma no seu lugar, e sempre <strong>junto com o código</strong> (versionado), nunca só na máquina.</p>
 
   <div class="table-wrap"><table>
-    <thead><tr><th>Camada</th><th>Onde</th><th>Granularidade</th><th>Índice</th></tr></thead>
+    <thead><tr><th>O quê</th><th>Onde</th><th>Serve para</th></tr></thead>
     <tbody>
-      <tr><td>Aprendizados</td><td><code>memory/</code></td><td>por-tópico (vale pro projeto inteiro)</td><td><code>memory/MEMORY.md</code></td></tr>
-      <tr><td>Tarefas</td><td><code>docs/superpowers/specs</code> + <code>plans</code></td><td>por-tarefa</td><td><code>docs/superpowers/INDEX.md</code></td></tr>
+      <tr><td>Aprendizados</td><td><code>memory/</code></td><td>o que aprendemos do jeito de trabalhar (com o "porquê")</td></tr>
+      <tr><td>Tarefas &amp; specs vivas</td><td><code>docs/superpowers/</code> + <code>docs/specs/</code></td><td>o que está sendo feito e como cada assunto se comporta hoje</td></tr>
+      <tr><td>Decisões transversais</td><td><code>docs/decisoes.md</code></td><td>"escolhemos X em vez de Y, porque Z" — vira ouro no futuro</td></tr>
     </tbody>
   </table></div>
 
-  <p class="subhead">Comportamento</p>
-  <p>No início da sessão, o <code>CLAUDE.md</code> instrui ler <strong>só os dois índices</strong> (1 linha por item). Os arquivos pesados abrem sob demanda, quando o índice aponta relevância. <code>Grep</code>/<code>Glob</code> sobre <code>docs/</code> é o fallback.</p>
-
   <div class="callout success">
-    <div class="callout-label">Por que dentro do repo (e não em ~/.claude)</div>
-    A memória mora em <code>memory/</code> <strong>dentro do repositório</strong>, versionada com o código. A memória nativa do Claude Code (<code>~/.claude/projects/&lt;proj&gt;/memory/</code>) fica presa à máquina, não viaja com o código e fragmenta entre git worktrees (é indexada por caminho absoluto). No repo, ela acompanha o projeto.
+    <div class="callout-label">Por que junto com o código</div>
+    Se a memória ficasse só na máquina, sumiria numa reinstalação e não viajaria com o projeto. Guardada no repositório (<a class="gl" href="#g-git">git</a>), ela acompanha o projeto para sempre. É o que o comando <a href="#c-memory" class="gl">memory</a> garante.
   </div>
-
-  <p class="subhead">Manutenção</p>
-  <p>Quando o índice inchar, rode a skill <code>anthropic-skills:consolidate-memory</code> para mesclar duplicatas e podar entradas mortas — evita que a memória vire um segundo sistema para manter.</p>
 </section>
 
 <section class="section" id="ambiente-msig">
-  <div class="section-num">05 — Padrão corporativo</div>
-  <h2>O ambiente <em>MSIG</em> embutido</h2>
-  <p class="lead">Estes fatos foram levantados varrendo 7 projetos reais e vivem em <code>templates/AMBIENTE.md</code> (copiado pro projeto pelo <code>kickoff</code>). São idênticos entre projetos — por isso são fixos, não placeholders.</p>
+  <div class="section-num">06 — O jeito da casa</div>
+  <h2>O padrão <em>MSIG</em> embutido</h2>
+  <p class="lead">Estes fatos foram levantados varrendo projetos reais e vêm prontos no kit — são iguais entre projetos, por isso ficam fixos:</p>
 
   <div class="table-wrap"><table>
-    <thead><tr><th>Item</th><th>Valor fixo</th></tr></thead>
+    <thead><tr><th>Item</th><th>Em uma linha</th></tr></thead>
     <tbody>
-      <tr><td>Rede Docker</td><td><code>mitiai_network</code> (externa, compartilhada; <code>docker network create mitiai_network</code>)</td></tr>
-      <tr><td>Proxy corporativo</td><td><code>http://10.170.200.1:8080</code> (host: pip/setx/Docker Desktop, sem cert)</td></tr>
-      <tr><td>Postgres</td><td>container <code>postgres-db</code>, porta 5432, imagem <code>pgvector/pgvector:pg15</code>, banco <code>miti_ai_&lt;projeto&gt;</code></td></tr>
-      <tr><td>SQL Server</td><td>host <code>MSSQLD0</code> = <code>10.170.210.36</code>, porta 1433, via <code>pyodbc</code></td></tr>
-      <tr><td>Azure deploy</td><td>ACR <code>mssaicontainerregistry</code>; recursos <code>mss-miti-ai-&lt;projeto&gt;-&lt;amb&gt;[-br]</code>; <code>RG-MSSAI-DEV</code> (dev) / <code>RG-MSSAI-PRD</code> (main)</td></tr>
-      <tr><td>Timezone</td><td><code>America/Sao_Paulo</code></td></tr>
+      <tr><td>Rede <a class="gl" href="#g-docker">Docker</a></td><td>a "rede interna" onde as caixas dos apps se enxergam</td></tr>
+      <tr><td><a class="gl" href="#g-proxy">Proxy</a> corporativo</td><td>o porteiro de internet da empresa (<code>10.170.200.1:8080</code>)</td></tr>
+      <tr><td><a class="gl" href="#g-postgres">Banco de dados</a></td><td>Postgres (com busca vetorial) e SQL Server, conforme o caso</td></tr>
+      <tr><td><a class="gl" href="#g-azure">Azure</a></td><td>a nuvem onde os apps são publicados (dev e produção)</td></tr>
     </tbody>
   </table></div>
-
-  <div class="callout warn">
-    <div class="callout-label">Host vs container (proxy)</div>
-    No <strong>host</strong> (dev local, <code>pip install</code>) vale a config de proxy simples — sem certificado, porque o Windows já confia na CA corporativa. Dentro de <strong>container</strong> atrás do proxy do escritório, a CA precisaria ser injetada — e isso está fora do escopo do plugin por decisão de projeto.
-  </div>
 </section>
 
 <section class="section" id="fluxo">
-  <div class="section-num">06 — Na prática</div>
-  <h2>O fluxo de trabalho, <em>ponta a ponta</em></h2>
+  <div class="section-num">07 — Na prática</div>
+  <h2>Um dia de trabalho, <em>ponta a ponta</em></h2>
+  <p class="lead">Juntando tudo, é assim que o sistema de clientes nasce e chega até a publicação:</p>
 
-  <div class="flow"><b>1. Constituir</b>   /mss-spec:kickoff "ideia"
-                 → entrevista → scaffolding (CLAUDE.md, memory, INDEX, AMBIENTE)
+  <div class="flow"><b>1. Começar</b>     /mss-spec:kickoff "cadastro de clientes + whatsapp"
+                 → entrevista → gera os arquivos-base
+<b>Ao abrir</b>      o doctor faz o check-up do ambiente (avisa se falta algo)
 
-<b>2. Por feature</b>  /mss-spec:nova-feature &lt;nome&gt;
-                 → Critérios de Aceite → seu OK → plano → tasks
-                 → TDD (teste → código → roda → cola saída) → repete
-                 → review → fecha → status "fechada" no INDEX
+<b>2. Base</b>        /mss-spec:ambiente  ·  /mss-spec:banco  ·  /mss-spec:log
 
-<b>3. Infra/banco</b>  /mss-spec:ambiente   (docker-compose + proxy)
-                 /mss-spec:banco      (get_connection.py)
+<b>3. Criar algo</b>  /mss-spec:nova-feature "disparo no whatsapp"
+                 → branch → combina a spec → seu OK → testa → verifica
 
-<b>Atalhos</b>       /mss-spec:precedentes &lt;assunto&gt;  (já existe em outro projeto?)</div>
+<b>Ideia solta</b>   /mss-spec:to-dolist adicionar "e-mail de boas-vindas"
+
+<b>4. Publicar</b>    /mss-spec:release   (testes + versão + convenção + segurança)
+                 → verde → merge/PR
+
+<b>Manutenção</b>    /mss-spec:seguranca  ·  /mss-spec:compliance  ·  /mss-spec:upgrade</div>
 
   <div class="callout info">
-    <div class="callout-label">Mudança pequena não precisa de cerimônia</div>
-    <strong>bugfix</strong> → o teste que reproduz o bug é a spec; corrige; verifica. <strong>refactor</strong> → o gate é "testes continuam verdes". <strong>chore/docs</strong> → sem spec. Só <code>feat</code> passa pelo <code>nova-feature</code> completo.
-  </div>
-
-  <p class="subhead">Sessão ≈ feature</p>
-  <p>O plan file (em <code>docs/superpowers/plans/</code>) é o estado durável que desacopla trabalho de sessão. Regra prática: uma feature por sessão; sub-tarefas da mesma feature ficam juntas; feature diferente e não-relacionada → sessão nova (higiene de contexto); bug que quebra a tarefa atual → mesma sessão.</p>
-</section>
-
-<section class="section" id="skill">
-  <div class="section-num">07 — Rede de segurança</div>
-  <h2>A skill <em>precedentes-msig</em></h2>
-  <p class="lead">Diferente dos comandos, a skill dispara <strong>sozinha</strong> quando você vai implementar algo que pode já existir em outro projeto — antes de desenhar do zero.</p>
-
-  <div class="table-wrap"><table>
-    <thead><tr><th>Tópico</th><th>Projeto de referência</th><th>Observação</th></tr></thead>
-    <tbody>
-      <tr><td>RAG / busca vetorial</td><td><code>IA Bot Agent\…\_opcao4</code></td><td>usa <code>pgvector</code> no Postgres compartilhado. Não replicar o Chromadb antigo (obsoleto)</td></tr>
-      <tr><td>Extração de PDF + multi-LLM</td><td><code>IA Jeday Cosseguro\Azure</code></td><td>PyMuPDF + prompts Gemini/GPT; config por cliente com fallback</td></tr>
-      <tr><td>Ambiente/infra corporativa</td><td>plugin <code>mss-spec</code></td><td>ver <code>templates/AMBIENTE.md</code></td></tr>
-    </tbody>
-  </table></div>
-
-  <div class="callout warn">
-    <div class="callout-label">É índice, não implementação</div>
-    O catálogo aponta "olhe aqui" — antes de replicar, abra o código real do projeto referenciado, porque ele pode ter evoluído desde a última atualização da tabela. Cresce por linha, sem cerimônia.
+    <div class="callout-label">Quatro lentes de checagem, cada uma no seu momento</div>
+    <strong>doctor</strong> pergunta "o ambiente está pronto pra trabalhar?"; os <strong>testes</strong> perguntam "o sistema funciona?"; <strong>seguranca</strong>, "está seguro?"; <strong>compliance</strong>, "está no padrão da casa?". Na hora de publicar, o <strong>release</strong> junta o que importa num veredito só.
   </div>
 </section>
 
-<section class="section" id="verificacao">
-  <div class="section-num">08 — Operação</div>
-  <h2>Como <em>verificar</em> que funciona</h2>
-  <p class="lead">Os comandos <code>/plugin</code> são interativos — rodam numa sessão real do Claude Code, não headless. Roteiro de aceite:</p>
-  <ol>
-    <li>Registrar: <code>/plugin marketplace add C:/Ronaldo/_Mitsui/Python/Spec-Powers</code></li>
-    <li>Instalar (escopo <code>user</code>): <code>/plugin install mss-spec@mss-local</code></li>
-    <li>Em sessão nova, digitar <code>/mss-spec:</code> lista os 9 comandos; a skill <code>precedentes-msig</code> aparece.</li>
-    <li>Numa pasta vazia: <code>/mss-spec:kickoff "teste"</code> gera os 5 arquivos.</li>
-    <li>Testar os demais: <code>nova-feature</code>, <code>banco</code>, <code>ambiente</code>, <code>precedentes</code>.</li>
-    <li>Confirmado, remover a skill pessoal duplicada: <code>rm -rf ~/.claude/skills/precedentes-msig</code></li>
-  </ol>
-  <div class="callout danger">
-    <div class="callout-label">Ponto "só sabendo tentando"</div>
-    Se no passo 4 os templates não forem copiados, é a variável <code>${CLAUDE_PLUGIN_ROOT}</code> não resolvendo na sua versão. O fallback é embutir o conteúdo dos templates dentro dos comandos — correção rápida.
-  </div>
-</section>
-
-<section class="section" id="dividas">
-  <div class="section-num">09 — Roadmap</div>
-  <h2>Dívidas &amp; <em>evolução</em></h2>
+<section class="section" id="seguranca">
+  <div class="section-num">08 — Segurança</div>
+  <h2>Segurança &amp; <em>segredos</em>, sem susto</h2>
+  <p class="lead">Como os apps ficam expostos na internet, o kit trata segurança como parte do trabalho, não como enfeite — o princípio é <strong>&ldquo;seguro por padrão&rdquo; (<em>Security by Default</em>)</strong>: tudo nasce fechado e só se abre o necessário. Três pontos que qualquer pessoa entende:</p>
   <ul>
-    <li><strong>Caminhos absolutos na skill.</strong> O catálogo <code>precedentes-msig</code> usa caminhos <code>C:\Ronaldo\…</code>. Funciona solo; na promoção ao time via git, migrar para caminhos relativos ou uma convenção portável.</li>
-    <li><strong>Marketplace local → git.</strong> Quando validado, trocar a <code>source</code> do <code>marketplace.json</code> para um repositório git e compartilhar com o time.</li>
-    <li><strong>Fallback do <code>${CLAUDE_PLUGIN_ROOT}</code>.</strong> Se a variável não resolver, embutir os templates nos comandos.</li>
+    <li><strong>Esconder não é proteger.</strong> Renomear ou "embaralhar" um endereço não protege nada — quem quer, acha. A defesa de verdade é o servidor conferir a permissão a cada pedido.</li>
+    <li><strong>Segredo fica fora do código.</strong> Senhas moram numa <a class="gl" href="#g-env">variável de ambiente</a> — no arquivo local <code>.env</code> (que nunca é compartilhado) em desenvolvimento, e nas configurações da nuvem (<a class="gl" href="#g-azure">Azure</a> App Settings) em produção. Nunca dentro do código que vai pro repositório.</li>
+    <li><strong>Dado pessoal não vai pro log.</strong> No nosso exemplo, o serviço de WhatsApp registra "enviado" ou "falhou" — <em>nunca</em> o número, o e-mail ou o nome do cliente (regra de LGPD embutida no <a href="#c-log" class="gl">log</a>).</li>
   </ul>
-  <p class="subhead">Fora de escopo (por decisão)</p>
-  <p>Hooks bloqueantes; <code>docs/ESTADO.md</code>/<code>ROADMAP.md</code>; gate AC→teste em CI; injeção de certificado corporativo; qualquer coisa que o superpowers já force via skills.</p>
+  <p>Sistemas que conversam entre si usam uma "senha de crachá" (<a class="gl" href="#g-bearer">Bearer token</a>), guardada só no servidor. O login de usuário final fica para uma etapa futura.</p>
+</section>
+
+<section class="section" id="roadmap">
+  <div class="section-num">09 — Adiante</div>
+  <h2>O que ainda <em>vem</em></h2>
+  <ul>
+    <li><strong>Levar pro time via git.</strong> Trocar a "lojinha" de pasta local por um <a class="gl" href="#g-git">repositório git interno</a>, pra cada colega instalar por URL e puxar atualizações — em vez de copiar pasta. É o último passo planejado.</li>
+    <li><strong>Documentar a distribuição.</strong> Manter o histórico de mudanças (CHANGELOG) e esta página em dia a cada novidade.</li>
+  </ul>
+  <h4>Não faz parte do escopo</h4>
+  <p>Pra não criar expectativa: o kit <strong>não</strong> gerencia deploy, esteiras de CI, a nuvem <a class="gl" href="#g-azure">Azure</a> nem Kubernetes. Ele prepara o projeto e o jeito de trabalhar; <em>publicar e operar</em> continua com as ferramentas próprias de cada área.</p>
+  <div class="callout success">
+    <div class="callout-label">Novidades recentes</div>
+    Entraram o <a href="#c-log" class="gl">log</a> (padrão de registro de eventos), o <a href="#c-compliance" class="gl">compliance</a> (auditoria de convenção) e o <a href="#c-release" class="gl">release</a> (inspeção final de pré-publicação) — além do <code>doctor</code>, <code>upgrade</code> e <code>to-dolist</code> das rodadas anteriores, e da regra de senhas por variável de ambiente.
+  </div>
 </section>
 
 <section class="section" id="glossario">
   <div class="section-num">GL — Glossário</div>
-  <h2>Termos, sem <em>mistério</em></h2>
+  <h2>As palavras técnicas, <em>em português claro</em></h2>
+  <p class="lead">Toda palavra técnica no texto acima é um link que traz você até aqui. Definições curtas, sem jargão:</p>
   <div class="glossary">
-    <details class="glossary-item"><summary><span class="glossary-term">Plugin</span><span class="glossary-short">pacote de comandos/skills instalado uma vez</span></summary>
-      <div class="glossary-body">Diretório com <code>.claude-plugin/plugin.json</code> que empacota commands, skills, agents e hooks. Habilitado no <code>settings.json</code>, fica disponível em todo projeto. O superpowers e o mss-spec são plugins.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">Slash command</span><span class="glossary-short">atalho que você digita</span></summary>
-      <div class="glossary-body">Arquivo <code>.md</code> em <code>commands/</code> cujo conteúdo vira o prompt. Namespaced pelo plugin (<code>/mss-spec:kickoff</code>). Gatilho determinístico — roda porque você digitou.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">Skill</span><span class="glossary-short">instrução que auto-ativa por descrição</span></summary>
-      <div class="glossary-body">Arquivo <code>SKILL.md</code> com frontmatter (<code>name</code>, <code>description</code>). O Claude Code enumera as descrições no boot e carrega o corpo quando o pedido casa. Pode não disparar — por isso o fluxo principal usa comandos.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">Marketplace local</span><span class="glossary-short">fonte de plugins numa pasta</span></summary>
-      <div class="glossary-body"><code>marketplace.json</code> que aponta para o(s) plugin(s). Registrado com <code>/plugin marketplace add</code>. Aqui aponta para caminho local; na promoção ao time, para um repositório git.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">Scaffolding</span><span class="glossary-short">gerar arquivos a partir de templates</span></summary>
-      <div class="glossary-body">Ação do <code>kickoff</code> de criar <code>CLAUDE.md</code>, <code>memory/</code>, <code>INDEX.md</code> e <code>AMBIENTE.md</code> no projeto, copiando de <code>templates/</code>. Substitui a antiga cópia manual de arquivos.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">superpowers</span><span class="glossary-short">plugin de disciplina (dependência)</span></summary>
-      <div class="glossary-body">Plugin oficial que fornece as skills de processo (brainstorming, TDD, verificação, debugging, code review). O mss-spec depende dele — o <code>kickoff</code> garante que esteja habilitado.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">papel de especialista</span><span class="glossary-short">persona sênior por domínio</span></summary>
-      <div class="glossary-body">Regra no <code>CLAUDE.md</code> gerado: para cada tarefa, o assistente assume o papel de especialista sênior daquele domínio (UI/UX, desenvolvimento, DBA, segurança, infra…), anuncia o papel, trabalha sob essa ótica até o OK e volta ao papel padrão (arquiteto/engenheiro sênior de desenvolvimento). Nasceu de entregas de layout genéricas ruins que melhoraram ao pedir "especialista sênior em UI".</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">projeto.md</span><span class="glossary-short">base do projeto, lida antes de tudo</span></summary>
-      <div class="glossary-body">Arquivo opcional na raiz do projeto com o contexto/base fundamental. O <code>CLAUDE.md</code> gerado pelo <code>kickoff</code> instrui lê-lo primeiro, no início de toda sessão, se existir. Como o <code>CLAUDE.md</code> é sempre carregado, é o mecanismo de "ler antes de tudo" — e o "se existir" evita erro nos projetos que não têm.</div></details>
-    <details class="glossary-item"><summary><span class="glossary-term">${CLAUDE_PLUGIN_ROOT}</span><span class="glossary-short">caminho do plugin em runtime</span></summary>
-      <div class="glossary-body">Variável que os comandos usam para referenciar arquivos embutidos no próprio plugin (ex.: <code>${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE.md</code>). Se não resolver, o fallback é embutir o conteúdo no comando.</div></details>
+    <div class="gloss" id="g-claude-code"><dt>Claude Code</dt><dd>O programa de inteligência artificial da Anthropic que roda no seu computador e consegue ler/escrever arquivos e rodar comandos. O <code>mss-spec</code> trabalha <em>dentro</em> dele. (No chat comum do site não há esse acesso a arquivos.)</dd></div>
+    <div class="gloss" id="g-plugin"><dt>Plugin</dt><dd>Um "acessório" que você instala uma vez e que adiciona recursos novos (aqui, comandos e moldes) ao Claude Code.</dd></div>
+    <div class="gloss" id="g-superpowers"><dt>superpowers</dt><dd>Outro plugin (oficial da Anthropic) que traz a <em>disciplina</em> de trabalho: não sair codando sem alinhar, testar, verificar, revisar. O <code>mss-spec</code> depende dele (habilitado à parte).</dd></div>
+    <div class="gloss" id="g-crud"><dt>CRUD</dt><dd>As quatro operações básicas de um cadastro: <em>Create, Read, Update, Delete</em> (criar, ler, atualizar, apagar). O "cadastro de clientes" do exemplo é um CRUD.</dd></div>
+    <div class="gloss" id="g-spec"><dt>Spec-Driven / spec viva</dt><dd>"Guiado por especificação". Antes de programar, escreve-se em poucas linhas o que a funcionalidade precisa fazer; o código vem depois, guiado por isso. A spec fica "viva" — atualizada junto com o código, pra nunca mentir. Menos retrabalho.</dd></div>
+    <div class="gloss" id="g-slash"><dt>Comando (slash command)</dt><dd>Um atalho que você digita começando com barra, como <code>/mss-spec:kickoff</code>, para disparar uma ação. Roda porque <em>você</em> pediu.</dd></div>
+    <div class="gloss" id="g-skill"><dt>Skill (sugestão automática)</dt><dd>Uma instrução que o Claude Code ativa <em>sozinho</em> quando o assunto casa — ao contrário do comando, que você digita. Útil como rede de segurança, mas pode não disparar.</dd></div>
+    <div class="gloss" id="g-marketplace"><dt>Marketplace</dt><dd>A "loja" de onde o Claude Code instala plugins. Pode ser uma pasta local (o caso de hoje, <code>mss-local</code>) ou um repositório na internet.</dd></div>
+    <div class="gloss" id="g-scaffolding"><dt>Scaffolding</dt><dd>"Andaime". Gerar automaticamente os arquivos iniciais de um projeto a partir de moldes, em vez de copiar tudo à mão.</dd></div>
+    <div class="gloss" id="g-tdd"><dt>TDD / teste</dt><dd>"Desenvolvimento guiado por testes". Escreve-se primeiro um teste que descreve o resultado esperado (e falha), depois o código que faz o teste passar. Assim, se algo quebrar depois, o teste avisa.</dd></div>
+    <div class="gloss" id="g-verificacao"><dt>Verificação</dt><dd>Provar que funciona rodando de verdade e mostrando o resultado — em vez de só "confiar que deu certo".</dd></div>
+    <div class="gloss" id="g-code-review"><dt>Code review</dt><dd>Revisão do código por outro olhar (aqui, um agente revisor) antes de considerar pronto.</dd></div>
+    <div class="gloss" id="g-log"><dt>Log</dt><dd>O "diário de bordo" do app: mensagens que registram o que aconteceu (e o que deu errado), pra diagnosticar problemas. Nunca deve conter senha nem dado pessoal.</dd></div>
+    <div class="gloss" id="g-git"><dt>Git</dt><dd>O sistema que guarda o histórico do código: quem mudou o quê e quando, com a possibilidade de voltar atrás. O "repositório" é o projeto guardado no git.</dd></div>
+    <div class="gloss" id="g-branch"><dt>Branch</dt><dd>Uma "linha paralela" de trabalho no git. Você mexe nela sem bagunçar a versão principal e depois junta. O kit abre uma branch por tarefa.</dd></div>
+    <div class="gloss" id="g-docker"><dt>Docker / container</dt><dd>Uma forma de empacotar o app com tudo que ele precisa numa "caixa" isolada (o <em>container</em>) que roda igual em qualquer máquina.</dd></div>
+    <div class="gloss" id="g-proxy"><dt>Proxy</dt><dd>O "porteiro" de rede da empresa: todo acesso à internet passa por ele. Precisa ser configurado para o app conseguir baixar coisas.</dd></div>
+    <div class="gloss" id="g-ca"><dt>CA / certificado</dt><dd>O "carimbo" que prova que uma conexão segura (HTTPS) é confiável. A empresa tem o seu, que precisa entrar na caixa (container) para as conexões funcionarem.</dd></div>
+    <div class="gloss" id="g-postgres"><dt>Postgres / SQL Server</dt><dd>Dois tipos de banco de dados — onde o app guarda a informação. A MSIG usa os dois, conforme o projeto.</dd></div>
+    <div class="gloss" id="g-azure"><dt>Azure (App Settings)</dt><dd>A nuvem da Microsoft onde os apps da MSIG são publicados. "App Settings" é onde se guardam configurações e segredos com segurança, lá na nuvem. É de lá que os logs de produção são capturados.</dd></div>
+    <div class="gloss" id="g-env"><dt>.env / variável de ambiente</dt><dd>Um lugar <em>fora</em> do código para guardar configurações e senhas. O arquivo <code>.env</code> é local e nunca é compartilhado; na nuvem, o mesmo papel é feito pelas configurações do Azure.</dd></div>
+    <div class="gloss" id="g-fernet"><dt>Fernet</dt><dd>Um jeito de embaralhar (criptografar) um texto. Só é segurança de verdade se a "chave" ficar guardada em outro lugar; se ela viaja junto do código, é apenas um disfarce.</dd></div>
+    <div class="gloss" id="g-owasp"><dt>OWASP</dt><dd>Uma lista famosa dos riscos de segurança mais comuns em aplicações web — usada como checklist para não esquecer o básico.</dd></div>
+    <div class="gloss" id="g-bearer"><dt>Bearer token</dt><dd>Uma "senha de crachá" que um sistema apresenta a outro para provar que tem permissão de chamar. Fica guardada só no servidor.</dd></div>
+    <div class="gloss" id="g-frontend"><dt>Front-end / React / Mantine</dt><dd>A parte visual do app (as telas). React e Mantine são ferramentas para construir telas mais ricas e interativas.</dd></div>
   </div>
 </section>
 
 <footer class="foot">
-  <p><em>mss-spec</em> · documentação gerada em jul/2026 · plugin Spec-Driven MSIG sobre superpowers · v0.1.0</p>
-  <p>Fontes internas: docs/superpowers/specs/2026-07-02-mss-spec-plugin-design.md · docs/superpowers/plans/2026-07-02-mss-spec-plugin.md</p>
+  <p><em>mss-spec</em> · criado por Ronaldo Maganha (MSIG) · trabalha em conjunto com o Claude Code · guia jul/2026 · v0.7</p>
 </footer>
 
 </main>
