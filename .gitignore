@@ -22,6 +22,12 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# Saídas de run do CI (item 12) — artefatos efêmeros do pipeline, NUNCA commitar.
+report.xml
+coverage.xml
+htmlcov/
+.coverage
+
 # Node / build do Tailwind (o static/css/app.css compilado FICA versionado)
 node_modules/
 

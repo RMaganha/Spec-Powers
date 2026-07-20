@@ -23,6 +23,14 @@
 - `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
 - `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
 - `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
+- `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e `<URL-do-git-interno>` como placeholder
+
+`tests/test_ci.py` — CI com artefatos de teste (item 12), no estilo do wiring do item 9:
+- `test_ci_declara_reports_junit_e_cobertura` — o job do `.gitlab-ci.yml` declara `artifacts.reports.junit` e `coverage_report` (formato `cobertura`)
+- `test_ci_job_gera_junit_e_cobertura_no_comando` — o comando do job emite `--junitxml`, `--cov` e `--cov-report=xml`
+- `test_flags_de_ci_nao_vazam_pro_pytest_local` — nenhum `addopts` de pytest carrega os flags de CI (mantém `pytest -q` local limpo)
+- `test_run_output_gitignorado` — `report.xml`, `coverage.xml`, `htmlcov/`, `.coverage` ignorados (run output nunca entra no repo)
+- `test_ci_sem_host_inventado_placeholder` — preparado, NÃO ativado: sem host git inventado; ativação é passo do owner (como o item 9)
 
 `tests/test_logging_template.py` — comportamento do `templates/logging.py`:
 - `test_stdout_no_nivel_default_info` — no nível default (INFO) manda pro stdout
@@ -36,4 +44,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-20 · commit `0ed95c3` (branch feature/upgrade-dry-run) · 26 passed
+**Último 100% verde:** 2026-07-20 · commit `e1b56b5` (branch feature/ci-artefatos-teste) · 32 passed
