@@ -6,24 +6,44 @@ adiciona comandos nomeados que fazem o *scaffolding* e carregam o padrão corpor
 Docker, proxy, Postgres/SQL Server, Azure). Instala uma vez, vale em todo projeto — não se copia mais
 arquivo à mão.
 
-## Instalação (marketplace local)
+## Instalação
 
-Como ainda **não publicamos num git interno**, a distribuição pro time é por cópia de pasta: o autor
-compacta o repositório, o colega extrai numa pasta **local qualquer** (ex.: `C:/ferramentas/mss-spec`,
-sem espaços/acentos) e aponta o marketplace pra ela. Numa sessão do Claude Code:
+O mesmo `.claude-plugin/marketplace.json` (source `relative-path`) serve às **duas vias** abaixo: o
+Claude Code resolve o plugin na raiz do marketplace, seja ele adicionado por URL git (que ele clona) ou
+por pasta local. `mss-local` é o nome fixo da lojinha; escolha escopo `user` (vale em todos os projetos
+da máquina). Requer Claude Code **v2.1.140+**.
+
+### Via git (para o time — recomendada)
+
+Com o repositório publicado num git interno, cada colega instala por URL e puxa atualizações sem copiar
+pasta. Numa sessão do Claude Code:
+```
+/plugin marketplace add <URL-do-git-interno>
+/plugin install mss-spec@mss-local
+```
+- `<URL-do-git-interno>` é o endereço do repositório (placeholder — troque pela URL real quando o host
+  existir). Pode fixar tag/branch com `#ref`, ex.: `<URL-do-git-interno>#v0.8.3`.
+- **Atualizar** depois que o autor publica uma versão nova: `/plugin marketplace update mss-local` (dá
+  `git pull` no clone e re-resolve o plugin).
+
+### Via pasta local (para dev/teste)
+
+Sem git, ou para testar o kit em desenvolvimento: extraia/clone o repositório numa pasta **local
+qualquer** (ex.: `C:/ferramentas/mss-spec`, sem espaços/acentos) e aponte o marketplace pra ela:
 ```
 /plugin marketplace add C:/ferramentas/mss-spec
 /plugin install mss-spec@mss-local
 ```
-Escolha escopo `user` (vale em todos os projetos da máquina). `mss-local` é o nome fixo da lojinha; só
-o caminho antes muda de máquina pra máquina. Requer Claude Code **v2.1.140+**.
+Só o caminho antes de `mss-local` muda de máquina pra máquina.
 
-O **superpowers** é pré-requisito e **não** é instalado por dependência (a declaração cross-marketplace
-quebrava o load via symlink — foi revertida): habilite-o à parte (`superpowers@claude-plugins-official`).
-O `/mss-spec:kickoff` já o deixa ligado no `.claude/settings.json` do projeto.
+### Pré-requisito: superpowers
 
-Promoção pro time depois: trocar a `source` em `.claude-plugin/marketplace.json` de caminho local para
-um repositório git — aí cada colega instala por URL e puxa atualizações, sem copiar pasta.
+O **superpowers** é pré-requisito e **não** é instalado por dependência declarada (a declaração
+cross-marketplace quebrava o load via symlink — ver `memory/`): habilite-o à parte
+(`superpowers@claude-plugins-official`). O `/mss-spec:kickoff` já o deixa ligado no
+`.claude/settings.json` do projeto. O `marketplace.json` já traz
+`allowCrossMarketplaceDependenciesOn: ["claude-plugins-official"]`, então a dependência auto-install
+fica a uma linha de distância quando o dev sair do carregamento por symlink.
 
 ## Comandos
 
@@ -81,7 +101,7 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 Três redes prontas para quando algo dá errado — nenhuma é comando novo:
 - **Auto-teste** — `python -m pytest tests/ -q` (acima): pega referência morta antes de commitar.
 - **Rollback = git** — não há comando de "desfazer". Como `kickoff` e `upgrade` só mexem em arquivos versionados sob árvore de trabalho limpa, `git restore`/descartar a branch já reverte. Sem comando dedicado de propósito (YAGNI).
-- **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual, enquanto a distribuição for por cópia de pasta).
+- **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual). Na via git o `marketplace update` já traz a versão nova; na via pasta local, o CHANGELOG é o que diz se uma cópia está atrasada.
 
 ## Documentos deste repo (não vão pros projetos)
 - `docs/ROTEIRO-SPEC-DRIVEN.md` — playbook do owner (princípio, fluxo, tipos de mudança, DoD, memória, ambiente).

@@ -228,3 +228,34 @@ def test_compliance_wiring():
     # papéis separados: defere a auditoria profunda ao seguranca e o conserto ao upgrade
     assert "/mss-spec:seguranca" in comp, "compliance.md não defere a auditoria AppSec ao seguranca"
     assert "/mss-spec:upgrade" in comp, "compliance.md não aponta o upgrade como quem sincroniza template"
+
+
+def test_distribuicao_por_git_wiring():
+    """Mecanismo de distribuição por git montado (item 9): o mesmo marketplace.json
+    serve add por pasta local E por URL git (source relative-path resolvido no clone),
+    a allowlist cross-marketplace deixa a dependência do superpowers a 1 linha, e o
+    LEIA-ME documenta as duas vias com a URL do git como placeholder (não host inventado).
+    """
+    market = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+
+    # AC1: plugin mss-spec com source relative-path (mesma raiz do marketplace) -> serve local + git
+    plugin_entry = next(p for p in market["plugins"] if p["name"] == "mss-spec")
+    src = plugin_entry["source"]
+    src_kind = src if isinstance(src, str) else src.get("source")
+    assert src_kind == "relative-path", "marketplace.json: plugin mss-spec não usa source relative-path"
+
+    # AC2: allowlist cross-marketplace inclui o marketplace oficial (dep superpowers a 1 linha)
+    allow = market.get("allowCrossMarketplaceDependenciesOn", [])
+    assert "claude-plugins-official" in allow, (
+        "marketplace.json não declara allowCrossMarketplaceDependenciesOn: claude-plugins-official"
+    )
+
+    # AC3: LEIA-ME documenta a via git (add por URL + install + update) E a via local por pasta
+    assert "marketplace add" in leiame, "LEIA-ME não mostra o comando de adicionar marketplace"
+    assert "marketplace update" in leiame, "LEIA-ME não mostra como atualizar (marketplace update / git pull)"
+    assert "install mss-spec@mss-local" in leiame, "LEIA-ME não mostra o install a partir da lojinha mss-local"
+    assert "pasta local" in leiame.lower(), "LEIA-ME não preserva a via de instalação por pasta local (dev/teste)"
+
+    # AC4: URL do git interno é placeholder marcado, não host inventado
+    assert "<URL-do-git-interno>" in leiame, "LEIA-ME deve usar <URL-do-git-interno> como placeholder, não um host real"
