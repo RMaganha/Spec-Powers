@@ -28,6 +28,11 @@ coverage.xml
 htmlcov/
 .coverage
 
+# Mapa mental (/mss-spec:mapa-neural) — saída derivada/regenerável, gerada em docs/. ANCORADO em
+# /docs/ (com a barra): sem ela, o padrão casaria por nome e ignoraria o próprio commands/mapa-neural.md.
+/docs/mapa-neural.html
+/docs/mapa-neural.md
+
 # Node / build do Tailwind (o static/css/app.css compilado FICA versionado)
 node_modules/
 

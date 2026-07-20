@@ -1,0 +1,87 @@
+# mapa de contexto (anti-amnésia de partida) — design (F1 fundação + F2 mapa neural)
+
+Data: 2026-07-20 · feature do próprio kit mss-spec.
+
+## Estado atual
+Cada projeto com o kit tem um **mapa de contexto** curto e versionado em `docs/superpowers/MAPA.md` (junto de INDEX/PLANO-TESTE), com 3 seções de 1 tela:
+- **Onde estamos** — branch + tipo + assunto em 1 linha (derivável de `git` + INDEX em andamento).
+- **Próximo passo** — a próxima ação concreta pra retomar (1-3 linhas; a parte narrativa, o coração anti-amnésia).
+- **Conexões** — as integrações inter-projeto **deste** projeto, uma por linha (`→ <projeto>: o que envia/consome (ponto)` / `← <projeto>: o que expõe/recebe (ponto)`), **preenchidas a partir do código real** (routers de integração, clients HTTP, fila, banco compartilhado) + confirmação do owner; genérico/`<a confirmar>` quando não sabido — **nunca inventadas**.
+
+O mapa **não mente** porque é mantido pelos próprios comandos e reconciliável com as fontes vivas: *onde estamos* é regenerado de git/INDEX; *próximo passo* é escrito pelos comandos e confirmado pelo owner; *conexões* são reconciliadas relendo o código de integração (o comando **propõe** adições/remoções, o owner confirma — nunca apaga à revelia).
+
+Está integrado em 4 pontos do fluxo: (1) **`templates/CLAUDE.md`** manda ler o `MAPA.md` **primeiro** na partida (antes de MEMORY/INDEX) e atualizar Conexões ao mexer em integração; (2) **`kickoff`** copia `templates/MAPA.md` → `docs/superpowers/MAPA.md` e, no brownfield, **propõe** conexões detectadas no código (não inventa); (3) **`nova-feature`** atualiza o mapa ao abrir a branch (*Onde estamos*) e no fecho (*Próximo passo*), e registra a Conexão quando a feature mexe em rota/endpoint de integração (engancha no gate de segurança que o passo 6 já tem); (4) **`/mss-spec:mapa`** (comando novo) lê, regenera *Onde estamos*, relê o código pra reconciliar *Conexões*, confirma/edita *Próximo passo* com o owner e grava.
+
+O próprio kit tem seu `docs/superpowers/MAPA.md` (dogfood, preenchido honestamente). O smoke (`tests/test_smoke_kit.py`) trava o wiring com `test_mapa_contexto_wiring`.
+
+Este assunto tem duas fases, **ambas nesta branch**. A **F1 (fundação)** gera e mantém a declaração local (acima). A **F2 (mapa mental) — implementada** — é o `templates/mapa_neural.py` (script Python testável) + `/mss-spec:mapa-neural`, que monta o **mapa mental do projeto atual**: uma árvore com o projeto no centro e **4 dimensões**, cada uma extraída do repo (nunca inventada) — **Arquitetura interna** (camadas/módulos), **APIs & integrações** (rotas FastAPI + integrações detectadas por *import*: banco/HTTP/fila), **Memórias & conhecimento** (specs, índice `MEMORY.md`, cada decisão do `decisoes.md`, e o `to-dolist` pessoal se existir — cada item com resumo e caminho no pop-up) e **Conexões entre projetos** (a seção Conexões do `MAPA.md`). Produz **duas saídas do mesmo modelo**: (a) `mapa-neural.md`, o índice em texto que o **assistente** consulta (o ganho de entendimento), e (b) `mapa-neural.html`, um mapa **full-screen** renderizado com a biblioteca **vis-network embutida inline** (usada pelo visual + interação — zoom/pan/arraste/hover), mas com **layout radial determinístico** e **`physics:false`** (posições calculadas; **sem animação de física** — nada fica "se mexendo"): abre já posicionado, e expandir só **acrescenta** os filhos sem mover o resto (o arraste de um nó fica gravado). **Expansível** (clique faz drill-down) e com **pop-up de detalhes** no hover (nome · local/caminho · resumo). 100% self-contained: a lib vive versionada em `templates/vendor/vis-network.min.js` e é **injetada inline** no HTML gerado; fontes de sistema; zero CDN (o proxy MSIG não é tocado). A extração é **estática/heurística** (rotas por decorator, integrações por `import`, camadas por pasta) — ignora `tests/` (fixtures não são a API) e conta integrações só por linha de `import` (menção em string/comentário não conta). O índice `mapa-neural.md` traz um **resumo de 1 linha por peça** (docstring do módulo `.py` / `description` do comando `.md`), pra o assistente **consultar sem reabrir a fonte** a cada pergunta. Saída derivada/regenerável **em `docs/`** (gitignorada). Ver a seção **Fases** abaixo.
+
+## Critérios de aceite
+**F1 (fundação):**
+- **CA1** — DADO o kit, QUANDO leio `commands/kickoff.md`, ENTÃO ele cita copiar `templates/MAPA.md` → `docs/superpowers/MAPA.md`, e o template existe.
+- **CA2** — DADO um projeto com o kit, QUANDO leio `templates/CLAUDE.md`, ENTÃO ele manda ler o `MAPA.md` na partida (antes de MEMORY/INDEX).
+- **CA3** — DADO uma feature, QUANDO leio `commands/nova-feature.md`, ENTÃO ele instrui atualizar o mapa ao abrir a branch **e** no fecho, e registrar/atualizar a Conexão quando mexer em integração.
+- **CA4** — DADO o comando novo, QUANDO leio `commands/mapa.md`, ENTÃO ele existe com frontmatter válido e descreve ler + reconciliar (git/INDEX + código de integração) + confirmar o próximo passo + gravar.
+- **CA5** — DADO `templates/MAPA.md`, QUANDO o leio, ENTÃO ele tem as 3 seções (Onde estamos, Próximo passo, Conexões) e a de Conexões instrui declarar a partir do código real / não inventar.
+- **CA6** — DADO a suíte, QUANDO rodo `python -m pytest tests/ -q`, ENTÃO `test_mapa_contexto_wiring` cobre CA1–CA5 e a suíte passa 100%.
+
+**F2 (mapa mental do projeto):**
+- **CA7** — DADO um projeto-fixture, QUANDO rodo `extrair_conexoes`, ENTÃO o nó `conn` traz os projetos vizinhos declarados na seção Conexões do `MAPA.md` (nome completo), ignorando `nenhuma`/`<a confirmar>`.
+- **CA8** — DADO um projeto-fixture, QUANDO rodo `extrair_arquitetura`, ENTÃO o nó `arq` lista as camadas presentes (`main.py`, `routers/`, `services/`).
+- **CA9** — DADO `routers/*.py` com decorators de rota e `import pyodbc`, QUANDO rodo `extrair_apis`, ENTÃO o nó `api` traz os endpoints (`GET/POST …`) e a integração `banco (SQL)`; rota/import em `tests/` **não** conta (evita fixtures como falso-positivo).
+- **CA10** — DADO `memory/MEMORY.md` + specs, QUANDO rodo `extrair_memorias`, ENTÃO o nó `mem` traz specs e itens do índice de memória.
+- **CA11** — DADO a árvore, QUANDO rodo `construir_arvore`, ENTÃO a raiz é o projeto com exatamente as 4 dimensões (`arq`,`api`,`mem`,`conn`).
+- **CA12** — DADO a árvore, QUANDO rodo `render_html`, ENTÃO o HTML é self-contained (sem `<script src=>`), **full-screen** (`100vh`), embute a árvore como dado e contém o nome do projeto.
+- **CA13** — DADO a suíte, QUANDO rodo `pytest`, ENTÃO `tests/test_mapa_neural.py` (extratores + render) + `test_mapa_neural_wiring` (script/comando/gitignore/LEIA-ME) passam, suíte 100%.
+
+## Design
+1. **`templates/MAPA.md`** — skeleton com as 3 seções + instruções embutidas de preenchimento (estilo dos outros templates: comentário-guia no topo, `<...>` a preencher, "não invente" na seção Conexões).
+2. **`commands/mapa.md`** — comando `/mss-spec:mapa`: lê o mapa, regenera *Onde estamos* de git+INDEX, relê o código de integração pra propor reconciliação de *Conexões*, confirma/edita *Próximo passo*, grava. Invocável por humano e pelo assistente (duplo uso).
+3. **`commands/kickoff.md`** — acrescenta `templates/MAPA.md` → `docs/superpowers/MAPA.md` na lista de scaffolding + passo de propor conexões no brownfield (sem inventar).
+4. **`commands/nova-feature.md`** — acrescenta atualização do mapa ao abrir a branch e no fecho, e registro da Conexão no gate do passo 6 (quando toca rota/endpoint de integração).
+5. **`templates/CLAUDE.md`** — regra de partida (ler `MAPA.md` primeiro) + ponteiro no Mapa de arquivos.
+6. **`docs/superpowers/MAPA.md`** (dogfood) — o mapa do próprio kit, honesto.
+7. **`tests/test_smoke_kit.py`** — `test_mapa_contexto_wiring` trava CA1–CA5. Linha no `PLANO-TESTE.md`.
+8. **Índices** — linha `aberta` no `INDEX.md` (link pra esta spec) e linha do comando na tabela do `LEIA-ME.md`.
+
+## Fases (mesmo assunto, mesma branch `feature/mapa-de-contexto`)
+Este assunto tem duas fases na **mesma branch/escopo** — a F2 é adiada na implementação, não fragmentada em outro assunto:
+- **F1 (fundação) — feita:** `docs/superpowers/MAPA.md` local (Onde estamos · Próximo passo · Conexões) + integração no fluxo (CLAUDE/kickoff/nova-feature) + comando `/mss-spec:mapa`.
+- **F2 (mapa mental do projeto) — feita:** `templates/mapa_neural.py` (gerador testável) + `/mss-spec:mapa-neural`. Monta o mapa mental do **projeto atual** com **4 dimensões** extraídas do repo (arquitetura · APIs & integrações · memórias & conhecimento · conexões entre projetos) e gera **(a)** `mapa-neural.md` (índice de texto pro assistente) + **(b)** `mapa-neural.html` (mapa radial **full-screen**, expansível/arrastável, self-contained). Extração **estática/heurística** (rota por decorator, integração por `import`, camada por pasta; ignora `tests/`). *Pendente (quando a adoção difundir):* reescrever a narrativa "pluga projetos MSIG" na doc de marketing.
+
+## Fora de escopo (do assunto inteiro)
+`release`/`finishing` mexerem no mapa · qualquer hook automático (mantém prosa, sem trava).
+
+## Arquivos tocados
+**F1 (fundação):**
+- `templates/MAPA.md` (novo; formato da seção Conexões travado pro parser da F2)
+- `commands/mapa.md` (novo)
+- `commands/kickoff.md` (scaffolding do mapa + propor conexões no brownfield)
+- `commands/nova-feature.md` (manter o mapa: abertura, fecho, gate de integração)
+- `templates/CLAUDE.md` (regra de partida + mapa de arquivos)
+- `commands/upgrade.md` (MESCLA o `docs/superpowers/MAPA.md` — cria se falta, senão acrescenta a estrutura nova mantendo o conteúdo do owner — leva a F1 a projetos existentes)
+- `docs/superpowers/MAPA.md` (novo — dogfood)
+- `tests/test_smoke_kit.py` (`test_mapa_contexto_wiring`)
+
+**F2 (mapa mental do projeto):**
+- `templates/mapa_neural.py` (novo — 4 extratores + `construir_arvore` + render texto/HTML com vis-network)
+- `templates/vendor/vis-network.min.js` (novo — lib de grafo ~689 KB, versionada, injetada inline no HTML)
+- `commands/mapa-neural.md` (novo — `/mss-spec:mapa-neural`)
+- `tests/test_mapa_neural.py` (novo — extratores + render, CA7–CA13)
+- `tests/test_smoke_kit.py` (+ `test_mapa_neural_wiring`)
+- `templates/gitignore` + `.gitignore` (ignoram a saída derivada `mapa-neural.md`/`.html`)
+
+**Comum:** `docs/superpowers/PLANO-TESTE.md` (linhas dos testes) · `docs/superpowers/INDEX.md` (status) · `docs/LEIA-ME.md` (comandos) · `docs/decisoes.md` (federação).
+
+## Histórico
+- 2026-07-20 — criado: design da F1 do mapa de contexto, aprovado no chat. Escolhas do owner: mapa enxuto (Onde estamos + Próximo passo) **+ dimensão inter-projeto** (seção Conexões), pra matar a amnésia entre projetos que trabalham juntos (ex.: mss-ssc ↔ jedai cosseguro); fonte de verdade **federada** (cada repo declara, nunca central); integração nos 4 pontos (CLAUDE/kickoff/nova-feature/comando); visualização neural (HTML agregando os repos) adiada pra F2.
+- 2026-07-20 — F1 implementada e verde (suíte 33 passed). Correção de framing (owner): a **F2 (mapa neural) é o MESMO assunto/branch/escopo** — só adiada na implementação, não fragmentada em outra janela. Assunto segue **aberto** no INDEX até a F2; seção "Fases" acrescentada.
+- 2026-07-20 — F2 (mapa neural inter-projeto) implementada e verde (suíte 40 passed). Gerador `templates/mapa_neural.py` + `/mss-spec:mapa-neural`; duas saídas (índice `.md` pro assistente + grafo `.html` self-contained pro humano). Escolhas do owner: **conexões de integração** (NÃO knowledge-graph — decisão do INDEX mantida); **duas saídas**; visual **SVG + JS vanilla inline** (self-contained, sem CDN — proxy MSIG).
+- 2026-07-20 — **distribuição a projetos existentes:** o `upgrade` passou a criar o `docs/superpowers/MAPA.md` (só se faltar) — sem isso, um projeto que nasceu antes da F1 ganharia a regra de partida no `CLAUDE.md` apontando pra um arquivo inexistente. Achado ao responder "preciso rodar o upgrade?"; o `mapa-neural` em si não depende do upgrade (o script escaneia o projeto de fora, via `--proj`).
+- 2026-07-20 — **ajustes de UX no HTML** (owner testou o mapa gerado): (1) **pan/zoom + auto-fit** — ao expandir, caixas que iam pra fora da tela ficavam "presas"; (2) **pop-up de detalhes** no hover (nome · **local/caminho** · resumo) no lugar do `<title>` nativo "irrisório" — pra isso o modelo ganhou o campo `local` (caminho relativo) por peça.
+- 2026-07-20 — **bug do gitignore pego no commit**: o padrão `mapa-neural.md` (solto, por nome) estava **ignorando o próprio `commands/mapa-neural.md`** (o arquivo do comando sumia do repo) — mesma armadilha do `/to-dolist.md`. Corrigido ancorando em `/docs/mapa-neural.{html,md}` (a saída é gerada em `docs/`) nos dois gitignore, e travado por asserção no `test_mapa_neural_wiring`.
+- 2026-07-20 — **física removida** (owner: a animação "se mexendo" ao abrir/clicar atrapalhava — "você vai clicar e ele está se mexendo"). Congelar a física *depois* de estabilizar não bastou (a estabilização inicial já anima). Solução: **`physics:false` + layout radial determinístico** (as posições são calculadas, como no protótipo SVG) renderizado pelo vis-network — mantém zoom/pan/arraste/pop-up da lib, mas o mapa abre parado e expandir só acrescenta os filhos. O arraste de nó é gravado (`dragEnd` → offset).
+- 2026-07-20 — **polimento pós-vis-network** (owner: "absurdamente melhor" + 4 ajustes): (1) **física congela** após o layout inicial (`physics:false` ao estabilizar; nós novos nascem perto do pai) — parou o tremor ao expandir; (2) **decisões viram filhos** (cada uma com resumo/caminho), antes era só um contador vazio; (3) **memórias, decisões e specs com resumo + caminho** no pop-up (parse do `MEMORY.md`: título/arquivo/gancho; `_lead_md` pras specs) — o pop-up serve pra todo o projeto; (4) **`to-dolist`** pessoal entra na dimensão memórias se existir; (5) **saída em `docs/`** (não na raiz) — isolada, e não impacta os extratores (que varrem `docs/**/specs`, não `docs/*.md`).
+- 2026-07-20 — **render migrado de SVG+vanilla pra vis-network** (owner: "o svg não foi o .js que eu havia escolhido" — ele preferira a lib na Q2 do design e eu tinha implementado SVG+vanilla, contra a escolha dele). Confirmei que o ambiente baixa a lib; embuti `templates/vendor/vis-network.min.js` (~689 KB, versionado) **injetado inline** no HTML (self-contained, zero CDN). Ganho: layout força-dirigido (sem sobreposição), física/molas, zoom/pan nativos. O SVG+vanilla (pan/zoom/fit à mão) foi descartado.
+- 2026-07-20 — **índice vira fonte de consulta + upgrade MESCLA o MAPA.md**, após o owner notar (com print) que respondi uma pergunta sobre o `upgrade` **relendo o arquivo inteiro** — a amnésia que o mapa combate. Duas correções: (1) o `mapa-neural.md` passou a trazer **resumo de 1 linha por peça** (docstring `.py` / `description` `.md`; `commands/` entrou nas camadas; limite 25/pasta) pra o assistente consultar sem reabrir a fonte; (2) o `upgrade` passou a **MESCLAR** o `MAPA.md` (garante a estrutura nova, mantém o conteúdo) em vez de "não tocar quando existe". Aprendizado comportamental gravado: `memory/feedback_consultar_destilado_antes_da_fonte.md` (consultar o destilado antes da fonte; ao ler a fonte, destilar de volta).
+- 2026-07-20 — **F2 redesenhada (mapa MENTAL do projeto)** e verde (suíte **42 passed**), após o owner ver o protótipo: o mapa neural virou o **mapa mental do projeto atual**, com **4 dimensões extraídas do repo** (arquitetura · APIs & integrações · memórias · conexões), radial **full-screen**, **expansível** (drill-down ao clicar, filhos colados no pai) e **arrastável**. Isso **reabre conscientemente** `knowledge-graph` (dimensão de memórias) e `dependency-graph` (arquitetura interna), antes "não fazer" no INDEX — decisão do owner. Extração é **estática/heurística** (rotas por decorator, integrações por `import` real ignorando `tests/`, camadas por pasta); mockup validado no navegador antes de codar (evitou 3º retrabalho). O nome do projeto vizinho vem do que o `MAPA.md` declara (nome completo, não abreviação).
