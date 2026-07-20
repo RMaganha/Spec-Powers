@@ -234,19 +234,22 @@ li{margin-bottom:6px}
 <section class="section" id="instalacao">
   <div class="section-num">02 — Instalação</div>
   <h2>Instala <em>uma vez</em>, vale sempre</h2>
-  <p class="lead">O plugin mora numa pasta e é servido por uma "lojinha" local (um <a class="gl" href="#g-marketplace">marketplace</a>). Como ainda <strong>não publicamos num git interno</strong>, a distribuição pro time é por cópia de pasta — simples e sem depender de servidor.</p>
+  <p class="lead">O plugin mora numa pasta e é servido por uma "lojinha" (um <a class="gl" href="#g-marketplace">marketplace</a>). O mesmo <code>marketplace.json</code> serve às <strong>duas vias</strong> abaixo — o Claude Code resolve o plugin na raiz do marketplace, seja ele adicionado por <strong>URL git</strong> (que ele clona) ou por <strong>pasta local</strong>. Escolha o escopo <code>user</code>: os comandos valem em <strong>todos</strong> os seus projetos. Requer Claude Code <strong>v2.1.140+</strong>.</p>
 
-  <h3>Para o time (por enquanto)</h3>
-  <ol>
-    <li><strong>Receber a pasta.</strong> O Ronaldo compacta a pasta do kit (o repositório inteiro) e disponibiliza — rede compartilhada, zip, o que for.</li>
-    <li><strong>Copiar pra sua máquina.</strong> Você extrai numa pasta local qualquer — por exemplo <code>C:\ferramentas\mss-spec</code>. O caminho é livre; só evite espaços/acentos.</li>
-    <li><strong>Registrar e instalar.</strong> Numa sessão do Claude Code, aponte o marketplace pra <em>sua</em> pasta e instale:</li>
-  </ol>
+  <h3>Via git (para o time)</h3>
+  <p>Instala e atualiza sem copiar pasta. Numa sessão do Claude Code:</p>
+  <pre><code>/plugin marketplace add &lt;URL-do-git-interno&gt;
+/plugin install mss-spec@mss-local</code></pre>
+  <ul>
+    <li><code>&lt;URL-do-git-interno&gt;</code> é o endereço do repositório — <strong>placeholder</strong>: troque pela URL real quando o host existir. Dá pra fixar tag/branch com <code>#ref</code> (ex.: <code>&lt;URL-do-git-interno&gt;#v0.8.5</code>).</li>
+    <li><strong>Atualizar</strong> quando o autor publica versão nova: <code>/plugin marketplace update mss-local</code> — dá <code>git pull</code> no clone e re-resolve o plugin.</li>
+  </ul>
 
+  <h3>Via pasta local (para dev/teste)</h3>
+  <p>Sem git, ou pra testar o kit em desenvolvimento: extraia/clone o repositório numa pasta local qualquer (ex.: <code>C:/ferramentas/mss-spec</code>, sem espaços/acentos) e aponte o marketplace pra ela:</p>
   <pre><code>/plugin marketplace add C:/ferramentas/mss-spec
 /plugin install mss-spec@mss-local</code></pre>
-
-  <p>Escolha o escopo <code>user</code> — assim os comandos valem em <strong>todos</strong> os seus projetos. (<code>mss-local</code> é o nome fixo da lojinha; o caminho antes é o único que muda de máquina pra máquina.)</p>
+  <p>Só o caminho antes de <code>mss-local</code> muda de máquina pra máquina. (<code>mss-local</code> é o nome fixo da lojinha.)</p>
 
   <div class="callout warn">
     <div class="callout-label">O superpowers é pré-requisito (passo à parte)</div>
@@ -259,8 +262,8 @@ li{margin-bottom:6px}
   </div>
 
   <div class="callout info">
-    <div class="callout-label">Levar pro time "de verdade" (depois)</div>
-    O passo final planejado é trocar a origem da lojinha de "pasta local" para um <strong>repositório <a class="gl" href="#g-git">git</a> interno</strong>: aí cada colega instala apontando pra uma URL, sem copiar pasta, e recebe atualizações puxando do git. Enquanto isso não acontece, a cópia de pasta acima é o caminho.
+    <div class="callout-label">Falta só publicar num host</div>
+    O <strong>mecanismo</strong> das duas vias já está pronto (item 9). O que falta é o passo manual de <strong>publicar o repositório num <a class="gl" href="#g-git">git</a> interno</strong> e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real — aí o time instala por URL e puxa atualizações pelo <code>marketplace update</code>. Enquanto o host não existe, a via de pasta local acima funciona igual.
   </div>
 </section>
 
@@ -631,7 +634,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
   <ul>
     <li><strong>O próprio kit se testa.</strong> O <code>mss-spec</code> tem uma bateria de <a class="gl" href="#g-tdd">testes</a> de <em>smoke</em> — rode <code>pytest tests/</code> — que confere que todo caminho citado nos comandos e moldes existe de verdade, que os manifestos são válidos e coerentes. É a garantia de que uma edição num comando não deixou uma referência morta para trás. (Um framework que prega TDD para os projetos testa também a si mesmo.)</li>
     <li><strong>O git é o rollback.</strong> Não há comando de "desfazer" dedicado — e é de propósito. Como o <a href="#c-kickoff" class="gl">kickoff</a> e o <a href="#c-upgrade" class="gl">upgrade</a> só mexem em arquivos versionados, com a árvore de trabalho limpa, um <code>git restore</code> (ou descartar a branch) já reverte tudo. O <a class="gl" href="#g-git">git</a> que você já usa é a rede de reversão; criar um comando só para isso seria peso sem ganho.</li>
-    <li><strong>O CHANGELOG é a rede contra <em>drift</em>.</strong> Toda mudança relevante entra no <code>CHANGELOG.md</code> versionado, com o número da versão. É o que evita o <em>drift</em> entre cópias — o risco de dois colegas rodarem "o mesmo v0.8" que na verdade divergem. Enquanto a distribuição for por cópia de pasta, é ele que diz qual versão é qual.</li>
+    <li><strong>O CHANGELOG é a rede contra <em>drift</em>.</strong> Toda mudança relevante entra no <code>CHANGELOG.md</code> versionado, com o número da versão. É o que evita o <em>drift</em> entre cópias — o risco de dois colegas rodarem "o mesmo v0.8" que na verdade divergem. Na via git, o <code>marketplace update</code> já traz a versão nova; na via pasta local, é o CHANGELOG que diz se uma cópia está atrasada.</li>
   </ul>
   <div class="callout info">
     <div class="callout-label">Desfazer um kickoff ou um upgrade</div>
@@ -643,7 +646,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
   <div class="section-num">10 — Adiante</div>
   <h2>O que ainda <em>vem</em></h2>
   <ul>
-    <li><strong>Levar pro time via git.</strong> Trocar a "lojinha" de pasta local por um <a class="gl" href="#g-git">repositório git interno</a>, pra cada colega instalar por URL e puxar atualizações — em vez de copiar pasta. É o último passo planejado.</li>
+    <li><strong>Publicar num git interno.</strong> O mecanismo de instalar/atualizar por <a class="gl" href="#g-git">git</a> já está pronto (as duas vias na seção de instalação); falta só o passo manual de publicar o repositório num host e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real.</li>
     <li><strong>Documentar a distribuição.</strong> Manter o histórico de mudanças (CHANGELOG) e esta página em dia a cada novidade.</li>
   </ul>
   <h4>Não faz parte do escopo</h4>
@@ -666,7 +669,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
     <div class="gloss" id="g-spec"><dt>Spec-Driven / spec viva</dt><dd>"Guiado por especificação". Antes de programar, escreve-se em poucas linhas o que a funcionalidade precisa fazer; o código vem depois, guiado por isso. A spec fica "viva" — atualizada junto com o código, pra nunca mentir. Menos retrabalho.</dd></div>
     <div class="gloss" id="g-slash"><dt>Comando (slash command)</dt><dd>Um atalho que você digita começando com barra, como <code>/mss-spec:kickoff</code>, para disparar uma ação. Roda porque <em>você</em> pediu.</dd></div>
     <div class="gloss" id="g-skill"><dt>Skill (sugestão automática)</dt><dd>Uma instrução que o Claude Code ativa <em>sozinho</em> quando o assunto casa — ao contrário do comando, que você digita. Útil como rede de segurança, mas pode não disparar.</dd></div>
-    <div class="gloss" id="g-marketplace"><dt>Marketplace</dt><dd>A "loja" de onde o Claude Code instala plugins. Pode ser uma pasta local (o caso de hoje, <code>mss-local</code>) ou um repositório na internet.</dd></div>
+    <div class="gloss" id="g-marketplace"><dt>Marketplace</dt><dd>A "loja" de onde o Claude Code instala plugins. Pode ser um repositório git (adicionado por URL, que o Claude Code clona) ou uma pasta local — as duas vias do <code>mss-spec</code> (a lojinha se chama <code>mss-local</code>).</dd></div>
     <div class="gloss" id="g-scaffolding"><dt>Scaffolding</dt><dd>"Andaime". Gerar automaticamente os arquivos iniciais de um projeto a partir de moldes, em vez de copiar tudo à mão.</dd></div>
     <div class="gloss" id="g-tdd"><dt>TDD / teste</dt><dd>"Desenvolvimento guiado por testes". Escreve-se primeiro um teste que descreve o resultado esperado (e falha), depois o código que faz o teste passar. Assim, se algo quebrar depois, o teste avisa.</dd></div>
     <div class="gloss" id="g-verificacao"><dt>Verificação</dt><dd>Provar que funciona rodando de verdade e mostrando o resultado — em vez de só "confiar que deu certo".</dd></div>

@@ -22,7 +22,7 @@
 12. [CI com artefatos de teste](../specs/2026-07-20-ci-artefatos-teste-design.md) — JUnit XML + cobertura + tendência de duração num CI (não commitar saída de run no repo — anti-padrão); **depende do item 9** (distribuição por git interno) — **fechada** (0.8.5)
 
 ## À parte
-- documentação — CHANGELOG + seção de instalação do HTML
+- documentação — CHANGELOG + seção de instalação do HTML — **fechada** (0.8.6: HTML de instalação em dia com a via git; CHANGELOG mantido a cada release)
 
 ## Novos — specs geradas (da análise GPT v2; implementar em OUTRO chat)
 - log — padrão de logging MSIG (stdout + arquivo rotativo em dev, toggle no `.env`) — **fechada** (`/mss-spec:log` + `templates/logging.py`; kickoff monta infra; instrumentação opt-in por-arquivo) — spec: `docs/superpowers/specs/2026-07-16-log-design.md`
