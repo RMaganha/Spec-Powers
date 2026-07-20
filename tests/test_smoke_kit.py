@@ -198,6 +198,23 @@ def test_redes_de_seguranca_documentadas():
     assert "rollback" in leiame.lower(), "LEIA-ME não menciona o git como rollback"
 
 
+def test_upgrade_dry_run_wiring():
+    """Modo --dry-run montado no upgrade (item 10): preview opt-in que mostra o diff
+    unificado da categoria 1 (referência — o passo hoje silencioso) SEM escrever arquivo,
+    e diz como aplicar de verdade (rodar sem a flag). A flag é aditiva."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    fm = up.split("---")[1]  # frontmatter
+    # AC3: a flag é aditiva — ofertada no argument-hint, mas opt-in
+    assert "--dry-run" in fm, "upgrade.md: argument-hint do frontmatter não oferece --dry-run"
+    assert "--dry-run" in up, "upgrade.md não documenta o modo --dry-run"
+    # AC1: no dry-run nenhum arquivo é escrito (working tree intacto)
+    assert "não escreve" in up.lower(), "upgrade.md não garante que o --dry-run não escreve arquivo"
+    # AC1: mostra o diff unificado da categoria 1 (o passo hoje silencioso, alvo da prevenção)
+    assert "diff unificado" in up.lower(), "upgrade.md não cita o diff unificado da categoria 1 no --dry-run"
+    # AC2: o relatório diz como aplicar de verdade (rodar sem a flag)
+    assert "sem a flag" in up.lower(), "upgrade.md não diz como aplicar de verdade (rodar upgrade sem a flag)"
+
+
 def test_compliance_wiring():
     """Auditoria de convenções montada: comando existe, checa a estrutura/docs/memória do jeito
     da casa (só reporta), e delimita o papel — auditoria profunda é seguranca, sync é upgrade."""
