@@ -336,7 +336,7 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C4</span><span class="node-name">banco</span><span class="node-type">conexão ao banco</span></div>
     <div class="node-body">
       <p class="plain">Cria o código que conecta o app ao banco de dados, sem deixar senha exposta.</p>
-      <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a> (continuidade com o que já existe).</p>
+      <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a>. O <strong>Fernet fica só por continuidade</strong> com projetos que já o usam — é escolha consciente do desenvolvedor, documentada aqui para ciência, não um caminho recomendado (a variável de ambiente é sempre a preferida).</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:banco
   → conexão pra tabela de clientes (senha só na variável de ambiente, nunca no código)</code></pre>
@@ -489,10 +489,13 @@ li{margin-bottom:6px}
     <div class="node-body">
       <p class="plain">Quando o kit melhora, atualiza um projeto antigo sem apagar o que você personalizou.</p>
       <p>Compara os arquivos do projeto com a versão nova dos moldes: os de referência atualiza sozinho; as instruções personalizadas (<code>CLAUDE.md</code>) ele <strong>mescla</strong> (acrescenta o novo, mantém o seu) e só pergunta em caso de conflito real; código ele nunca mexe sozinho.</p>
+      <p>Antes de aplicar, dá pra espiar: <code>/mss-spec:upgrade --dry-run</code> mostra o <strong>diff</strong> do que <em>seria</em> mudado — inclusive nos arquivos de referência, o passo que o upgrade faria sozinho — <strong>sem escrever nada</strong>. Gostou do que viu? Roda de novo <strong>sem a flag</strong> pra aplicar. É a prévia que tira o "sobrescreveu e eu nem vi".</p>
       <div class="subhead">Exemplo</div>
-      <pre><code>/mss-spec:upgrade
+      <pre><code>/mss-spec:upgrade --dry-run
+  → mostra o diff dos moldes que mudariam (nada é escrito)
+/mss-spec:upgrade
   → traz os moldes novos (ex.: o padrão de log) pro projeto de clientes já existente</code></pre>
-      <div class="label-row"><span class="pill ok">mescla, não sobrescreve</span><span class="pill warn">conflito pergunta</span></div>
+      <div class="label-row"><span class="pill ok">mescla, não sobrescreve</span><span class="pill ok">prévia com --dry-run</span><span class="pill warn">conflito pergunta</span></div>
     </div>
   </div>
 
