@@ -120,6 +120,7 @@ li{margin-bottom:6px}
       <li><a href="#exemplo"><span class="nav-num">01</span>O exemplo que vamos seguir</a></li>
       <li><a href="#instalacao"><span class="nav-num">02</span>Instalação</a></li>
       <li><a href="#estrutura"><span class="nav-num">03</span>O que tem dentro</a></li>
+      <li><a href="#comandos"><span class="nav-num">04</span>Os comandos</a></li>
       <div class="nav-group">Começar</div>
       <li><a href="#c-kickoff"><span class="nav-num">C1</span>kickoff</a></li>
       <li><a href="#c-doctor"><span class="nav-num">C2</span>doctor</a></li>
@@ -144,14 +145,14 @@ li{margin-bottom:6px}
       <li><a href="#c-upgrade"><span class="nav-num">C16</span>upgrade</a></li>
       <li><a href="#c-documentacao"><span class="nav-num">C17</span>documentacao</a></li>
       <div class="nav-group">Como o kit pensa</div>
-      <li><a href="#spec"><span class="nav-num">04</span>Spec-Driven na prática</a></li>
-      <li><a href="#memoria"><span class="nav-num">05</span>Memória &amp; decisões</a></li>
-      <li><a href="#ambiente-msig"><span class="nav-num">06</span>Padrão MSIG</a></li>
-      <li><a href="#fluxo"><span class="nav-num">07</span>O dia a dia</a></li>
-      <li><a href="#seguranca"><span class="nav-num">08</span>Segurança &amp; segredos</a></li>
-      <li><a href="#redes"><span class="nav-num">09</span>Redes de segurança</a></li>
+      <li><a href="#spec"><span class="nav-num">05</span>Spec-Driven na prática</a></li>
+      <li><a href="#memoria"><span class="nav-num">06</span>Memória &amp; decisões</a></li>
+      <li><a href="#ambiente-msig"><span class="nav-num">07</span>Padrão MSIG</a></li>
+      <li><a href="#fluxo"><span class="nav-num">08</span>O dia a dia</a></li>
+      <li><a href="#seguranca"><span class="nav-num">09</span>Segurança &amp; segredos</a></li>
+      <li><a href="#redes"><span class="nav-num">10</span>Redes de segurança</a></li>
       <div class="nav-group">Fim</div>
-      <li><a href="#roadmap"><span class="nav-num">10</span>O que ainda vem</a></li>
+      <li><a href="#roadmap"><span class="nav-num">11</span>O que ainda vem</a></li>
       <li><a href="#glossario"><span class="nav-num">GL</span>Glossário</a></li>
     </ul>
   </nav>
@@ -288,7 +289,7 @@ li{margin-bottom:6px}
 </section>
 
 <section class="section" id="comandos">
-  <div class="section-num">Os comandos</div>
+  <div class="section-num">04 — Os comandos</div>
   <h2>Os dezessete <em>atalhos</em>, na ordem de uso</h2>
   <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
 
@@ -387,10 +388,12 @@ li{margin-bottom:6px}
     <div class="node-body">
       <p class="plain">Consulta um caderninho de "isso já foi resolvido em outro projeto da MSIG".</p>
       <p>Aponta qual projeto já fez algo parecido (busca por documentos, extração de PDF, conexão a banco, integrações) para você reaproveitar em vez de refazer.</p>
+      <p><strong>A fonte de verdade é o código, não o caderninho.</strong> O catálogo é só um <em>índice</em> — uma lista de "olhe aqui" —, mantido à mão: cresce uma linha por vez quando alguém acha um padrão digno de nota (a regra de como crescer está no próprio arquivo do catálogo). Por isso ele nunca se dá por atualizado — cada entrada manda você <strong>abrir o código real do projeto indicado</strong>, que pode ter evoluído desde a última anotação. É escolha de design, não descuido: como no <a class="gl" href="#g-git">git</a> é o rollback, um apontador leve vale mais que uma cópia que envelhece e passa a mentir.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:precedentes "integração whatsapp"
-  → "algum projeto já disparou WhatsApp? qual arquitetura usou?"</code></pre>
-      <div class="label-row"><span class="pill graph">catálogo</span></div>
+  → "algum projeto já disparou WhatsApp? qual arquitetura usou?"
+  → aponta o projeto + caminho; você abre o código de lá (a verdade)</code></pre>
+      <div class="label-row"><span class="pill graph">índice, não a verdade</span><span class="pill ok">curado à mão, por design</span></div>
     </div>
   </div>
 
@@ -518,7 +521,7 @@ li{margin-bottom:6px}
 </section>
 
 <section class="section" id="spec">
-  <div class="section-num">04 — Spec-Driven</div>
+  <div class="section-num">05 — Spec-Driven</div>
   <h2>Combinar <em>antes</em> de codar</h2>
   <p class="lead">O coração do kit é o <a class="gl" href="#g-spec">Spec-Driven</a>: antes de escrever código, escreve-se em poucas linhas <strong>o que</strong> a funcionalidade precisa fazer. Isso vira um contrato curto — e o código nasce guiado por ele, com menos retrabalho.</p>
 
@@ -560,7 +563,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="memoria">
-  <div class="section-num">05 — O que o kit lembra</div>
+  <div class="section-num">06 — O que o kit lembra</div>
   <h2>Memória, tarefas e <em>decisões</em></h2>
   <p class="lead">Para não repetir erro nem re-explicar tudo, o kit guarda três coisas — cada uma no seu lugar, e sempre <strong>junto com o código</strong> (versionado), nunca só na máquina.</p>
 
@@ -580,7 +583,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="ambiente-msig">
-  <div class="section-num">06 — O jeito da casa</div>
+  <div class="section-num">07 — O jeito da casa</div>
   <h2>O padrão <em>MSIG</em> embutido</h2>
   <p class="lead">Estes fatos foram levantados varrendo projetos reais e vêm prontos no kit — são iguais entre projetos, por isso ficam fixos:</p>
 
@@ -596,7 +599,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="fluxo">
-  <div class="section-num">07 — Na prática</div>
+  <div class="section-num">08 — Na prática</div>
   <h2>Um dia de trabalho, <em>ponta a ponta</em></h2>
   <p class="lead">Juntando tudo, é assim que o sistema de clientes nasce e chega até a publicação:</p>
 
@@ -624,7 +627,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="seguranca">
-  <div class="section-num">08 — Segurança</div>
+  <div class="section-num">09 — Segurança</div>
   <h2>Segurança &amp; <em>segredos</em>, sem susto</h2>
   <p class="lead">Como os apps ficam expostos na internet, o kit trata segurança como parte do trabalho, não como enfeite — o princípio é <strong>&ldquo;seguro por padrão&rdquo; (<em>Security by Default</em>)</strong>: tudo nasce fechado e só se abre o necessário. Três pontos que qualquer pessoa entende:</p>
   <ul>
@@ -636,7 +639,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="redes">
-  <div class="section-num">09 — Redes de segurança</div>
+  <div class="section-num">10 — Redes de segurança</div>
   <h2>O que te protege <em>quando algo dá errado</em></h2>
   <p class="lead">Além de ajudar a construir, o kit tem três redes prontas para o momento em que algo sai do esperado. Não são comandos novos — já estão no lugar; esta seção só as deixa visíveis.</p>
   <ul>
@@ -651,7 +654,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="roadmap">
-  <div class="section-num">10 — Adiante</div>
+  <div class="section-num">11 — Adiante</div>
   <h2>O que ainda <em>vem</em></h2>
   <ul>
     <li><strong>Publicar num git interno.</strong> O mecanismo de instalar/atualizar por <a class="gl" href="#g-git">git</a> já está pronto (as duas vias na seção de instalação); falta só o passo manual de publicar o repositório num host e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real.</li>
