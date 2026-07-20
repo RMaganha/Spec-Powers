@@ -101,7 +101,7 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 Três redes prontas para quando algo dá errado — nenhuma é comando novo:
 - **Auto-teste** — `python -m pytest tests/ -q` (acima): pega referência morta antes de commitar.
 - **Rollback = git** — não há comando de "desfazer". Como `kickoff` e `upgrade` só mexem em arquivos versionados sob árvore de trabalho limpa, `git restore`/descartar a branch já reverte. Sem comando dedicado de propósito (YAGNI).
-- **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual, enquanto a distribuição for por cópia de pasta).
+- **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual). Na via git o `marketplace update` já traz a versão nova; na via pasta local, o CHANGELOG é o que diz se uma cópia está atrasada.
 
 ## Documentos deste repo (não vão pros projetos)
 - `docs/ROTEIRO-SPEC-DRIVEN.md` — playbook do owner (princípio, fluxo, tipos de mudança, DoD, memória, ambiente).
