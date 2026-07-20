@@ -6,6 +6,9 @@ adiciona comandos nomeados que fazem o *scaffolding* e carregam o padrão corpor
 Docker, proxy, Postgres/SQL Server, Azure). Instala uma vez, vale em todo projeto — não se copia mais
 arquivo à mão.
 
+> **Novo por aqui?** Comece pelo [Seu primeiro dia com o mss-spec](PRIMEIRO-DIA.md) — o caminho curto
+> de instalar até a primeira feature. Este LEIA-ME é a referência; aquele é o passo a passo de quem chega.
+
 ## Instalação
 
 O mesmo `.claude-plugin/marketplace.json` (source `relative-path`) serve às **duas vias** abaixo: o

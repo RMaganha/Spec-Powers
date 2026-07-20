@@ -120,6 +120,7 @@ li{margin-bottom:6px}
       <li><a href="#exemplo"><span class="nav-num">01</span>O exemplo que vamos seguir</a></li>
       <li><a href="#instalacao"><span class="nav-num">02</span>Instalação</a></li>
       <li><a href="#estrutura"><span class="nav-num">03</span>O que tem dentro</a></li>
+      <li><a href="#comandos"><span class="nav-num">04</span>Os comandos</a></li>
       <div class="nav-group">Começar</div>
       <li><a href="#c-kickoff"><span class="nav-num">C1</span>kickoff</a></li>
       <li><a href="#c-doctor"><span class="nav-num">C2</span>doctor</a></li>
@@ -144,14 +145,14 @@ li{margin-bottom:6px}
       <li><a href="#c-upgrade"><span class="nav-num">C16</span>upgrade</a></li>
       <li><a href="#c-documentacao"><span class="nav-num">C17</span>documentacao</a></li>
       <div class="nav-group">Como o kit pensa</div>
-      <li><a href="#spec"><span class="nav-num">04</span>Spec-Driven na prática</a></li>
-      <li><a href="#memoria"><span class="nav-num">05</span>Memória &amp; decisões</a></li>
-      <li><a href="#ambiente-msig"><span class="nav-num">06</span>Padrão MSIG</a></li>
-      <li><a href="#fluxo"><span class="nav-num">07</span>O dia a dia</a></li>
-      <li><a href="#seguranca"><span class="nav-num">08</span>Segurança &amp; segredos</a></li>
-      <li><a href="#redes"><span class="nav-num">09</span>Redes de segurança</a></li>
+      <li><a href="#spec"><span class="nav-num">05</span>Spec-Driven na prática</a></li>
+      <li><a href="#memoria"><span class="nav-num">06</span>Memória &amp; decisões</a></li>
+      <li><a href="#ambiente-msig"><span class="nav-num">07</span>Padrão MSIG</a></li>
+      <li><a href="#fluxo"><span class="nav-num">08</span>O dia a dia</a></li>
+      <li><a href="#seguranca"><span class="nav-num">09</span>Segurança &amp; segredos</a></li>
+      <li><a href="#redes"><span class="nav-num">10</span>Redes de segurança</a></li>
       <div class="nav-group">Fim</div>
-      <li><a href="#roadmap"><span class="nav-num">10</span>O que ainda vem</a></li>
+      <li><a href="#roadmap"><span class="nav-num">11</span>O que ainda vem</a></li>
       <li><a href="#glossario"><span class="nav-num">GL</span>Glossário</a></li>
     </ul>
   </nav>
@@ -234,19 +235,22 @@ li{margin-bottom:6px}
 <section class="section" id="instalacao">
   <div class="section-num">02 — Instalação</div>
   <h2>Instala <em>uma vez</em>, vale sempre</h2>
-  <p class="lead">O plugin mora numa pasta e é servido por uma "lojinha" local (um <a class="gl" href="#g-marketplace">marketplace</a>). Como ainda <strong>não publicamos num git interno</strong>, a distribuição pro time é por cópia de pasta — simples e sem depender de servidor.</p>
+  <p class="lead">O plugin mora numa pasta e é servido por uma "lojinha" (um <a class="gl" href="#g-marketplace">marketplace</a>). O mesmo <code>marketplace.json</code> serve às <strong>duas vias</strong> abaixo — o Claude Code resolve o plugin na raiz do marketplace, seja ele adicionado por <strong>URL git</strong> (que ele clona) ou por <strong>pasta local</strong>. Escolha o escopo <code>user</code>: os comandos valem em <strong>todos</strong> os seus projetos. Requer Claude Code <strong>v2.1.140+</strong>.</p>
 
-  <h3>Para o time (por enquanto)</h3>
-  <ol>
-    <li><strong>Receber a pasta.</strong> O Ronaldo compacta a pasta do kit (o repositório inteiro) e disponibiliza — rede compartilhada, zip, o que for.</li>
-    <li><strong>Copiar pra sua máquina.</strong> Você extrai numa pasta local qualquer — por exemplo <code>C:\ferramentas\mss-spec</code>. O caminho é livre; só evite espaços/acentos.</li>
-    <li><strong>Registrar e instalar.</strong> Numa sessão do Claude Code, aponte o marketplace pra <em>sua</em> pasta e instale:</li>
-  </ol>
+  <h3>Via git (para o time)</h3>
+  <p>Instala e atualiza sem copiar pasta. Numa sessão do Claude Code:</p>
+  <pre><code>/plugin marketplace add &lt;URL-do-git-interno&gt;
+/plugin install mss-spec@mss-local</code></pre>
+  <ul>
+    <li><code>&lt;URL-do-git-interno&gt;</code> é o endereço do repositório — <strong>placeholder</strong>: troque pela URL real quando o host existir. Dá pra fixar tag/branch com <code>#ref</code> (ex.: <code>&lt;URL-do-git-interno&gt;#v0.8.5</code>).</li>
+    <li><strong>Atualizar</strong> quando o autor publica versão nova: <code>/plugin marketplace update mss-local</code> — dá <code>git pull</code> no clone e re-resolve o plugin.</li>
+  </ul>
 
+  <h3>Via pasta local (para dev/teste)</h3>
+  <p>Sem git, ou pra testar o kit em desenvolvimento: extraia/clone o repositório numa pasta local qualquer (ex.: <code>C:/ferramentas/mss-spec</code>, sem espaços/acentos) e aponte o marketplace pra ela:</p>
   <pre><code>/plugin marketplace add C:/ferramentas/mss-spec
 /plugin install mss-spec@mss-local</code></pre>
-
-  <p>Escolha o escopo <code>user</code> — assim os comandos valem em <strong>todos</strong> os seus projetos. (<code>mss-local</code> é o nome fixo da lojinha; o caminho antes é o único que muda de máquina pra máquina.)</p>
+  <p>Só o caminho antes de <code>mss-local</code> muda de máquina pra máquina. (<code>mss-local</code> é o nome fixo da lojinha.)</p>
 
   <div class="callout warn">
     <div class="callout-label">O superpowers é pré-requisito (passo à parte)</div>
@@ -259,8 +263,8 @@ li{margin-bottom:6px}
   </div>
 
   <div class="callout info">
-    <div class="callout-label">Levar pro time "de verdade" (depois)</div>
-    O passo final planejado é trocar a origem da lojinha de "pasta local" para um <strong>repositório <a class="gl" href="#g-git">git</a> interno</strong>: aí cada colega instala apontando pra uma URL, sem copiar pasta, e recebe atualizações puxando do git. Enquanto isso não acontece, a cópia de pasta acima é o caminho.
+    <div class="callout-label">Falta só publicar num host</div>
+    O <strong>mecanismo</strong> das duas vias já está pronto (item 9). O que falta é o passo manual de <strong>publicar o repositório num <a class="gl" href="#g-git">git</a> interno</strong> e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real — aí o time instala por URL e puxa atualizações pelo <code>marketplace update</code>. Enquanto o host não existe, a via de pasta local acima funciona igual.
   </div>
 </section>
 
@@ -285,7 +289,7 @@ li{margin-bottom:6px}
 </section>
 
 <section class="section" id="comandos">
-  <div class="section-num">Os comandos</div>
+  <div class="section-num">04 — Os comandos</div>
   <h2>Os dezessete <em>atalhos</em>, na ordem de uso</h2>
   <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
 
@@ -333,7 +337,7 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C4</span><span class="node-name">banco</span><span class="node-type">conexão ao banco</span></div>
     <div class="node-body">
       <p class="plain">Cria o código que conecta o app ao banco de dados, sem deixar senha exposta.</p>
-      <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a> (continuidade com o que já existe).</p>
+      <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a>. O <strong>Fernet fica só por continuidade</strong> com projetos que já o usam — é escolha consciente do desenvolvedor, documentada aqui para ciência, não um caminho recomendado (a variável de ambiente é sempre a preferida).</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:banco
   → conexão pra tabela de clientes (senha só na variável de ambiente, nunca no código)</code></pre>
@@ -384,10 +388,12 @@ li{margin-bottom:6px}
     <div class="node-body">
       <p class="plain">Consulta um caderninho de "isso já foi resolvido em outro projeto da MSIG".</p>
       <p>Aponta qual projeto já fez algo parecido (busca por documentos, extração de PDF, conexão a banco, integrações) para você reaproveitar em vez de refazer.</p>
+      <p><strong>A fonte de verdade é o código, não o caderninho.</strong> O catálogo é só um <em>índice</em> — uma lista de "olhe aqui" —, mantido à mão: cresce uma linha por vez quando alguém acha um padrão digno de nota (a regra de como crescer está no próprio arquivo do catálogo). Por isso ele nunca se dá por atualizado — cada entrada manda você <strong>abrir o código real do projeto indicado</strong>, que pode ter evoluído desde a última anotação. É escolha de design, não descuido: como no <a class="gl" href="#g-git">git</a> é o rollback, um apontador leve vale mais que uma cópia que envelhece e passa a mentir.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:precedentes "integração whatsapp"
-  → "algum projeto já disparou WhatsApp? qual arquitetura usou?"</code></pre>
-      <div class="label-row"><span class="pill graph">catálogo</span></div>
+  → "algum projeto já disparou WhatsApp? qual arquitetura usou?"
+  → aponta o projeto + caminho; você abre o código de lá (a verdade)</code></pre>
+      <div class="label-row"><span class="pill graph">índice, não a verdade</span><span class="pill ok">curado à mão, por design</span></div>
     </div>
   </div>
 
@@ -434,12 +440,17 @@ li{margin-bottom:6px}
   <div class="node" id="c-plano-teste">
     <div class="node-head"><span class="node-idx">C12</span><span class="node-name">plano-teste</span><span class="node-type">rede anti-quebra</span></div>
     <div class="node-body">
-      <p class="plain">Roda a bateria de testes — "se tudo passa, nada quebrou".</p>
-      <p>Executa os <a class="gl" href="#g-tdd">testes</a> do projeto. Só vira "referência boa" quando passa 100%. É a rede contra estragar sem querer o que já funcionava.</p>
+      <p class="plain">Roda a bateria de testes e guarda um "retrato do que passava" — a rede que avisa se algo quebrar depois.</p>
+      <p><strong>Como faz:</strong> executa os <a class="gl" href="#g-tdd">testes</a> do projeto (se ainda não há suíte, cria um mínimo — o app sobe, as rotas respondem 200, o banco conecta).<br>
+      <strong>Como guarda:</strong> quando passa <strong>100%</strong>, grava um <em>baseline</em> em <code>docs/superpowers/PLANO-TESTE.md</code> — o comando pra rodar, a lista do que os testes cobrem (1 linha cada) e um carimbo com data + <a class="gl" href="#g-git">commit</a> do último verde.<br>
+      <strong>Como evolui:</strong> a cada novo 100% o baseline é reescrito por cima (o <a class="gl" href="#g-git">git</a> guarda as versões antigas); os testes de cada funcionalidade nova entram nele e passam a ser vigiados também.<br>
+      <strong>Como compara:</strong> antes de dizer "pronto", roda-se a suíte e confere-se contra o baseline — se algo que <em>passava</em> agora falha, você quebrou sem querer; e o baseline <strong>só</strong> é reescrito quando tudo volta ao verde. Nunca se promove a "referência boa" algo que não passou inteiro.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:plano-teste
-  → roda os testes do CRUD de clientes; 100% verde → vira o novo baseline</code></pre>
-      <div class="label-row"><span class="pill ok">testes</span><span class="pill warn">100% ou nada</span></div>
+  → roda os testes do CRUD de clientes
+  → 100% verde?  grava o baseline em PLANO-TESTE.md (data + commit)
+  → algum vermelho?  reporta o que falhou e NÃO atualiza o baseline</code></pre>
+      <div class="label-row"><span class="pill ok">baseline versionado</span><span class="pill ok">carimbo data + commit</span><span class="pill warn">100% ou nada</span></div>
     </div>
   </div>
 
@@ -486,10 +497,13 @@ li{margin-bottom:6px}
     <div class="node-body">
       <p class="plain">Quando o kit melhora, atualiza um projeto antigo sem apagar o que você personalizou.</p>
       <p>Compara os arquivos do projeto com a versão nova dos moldes: os de referência atualiza sozinho; as instruções personalizadas (<code>CLAUDE.md</code>) ele <strong>mescla</strong> (acrescenta o novo, mantém o seu) e só pergunta em caso de conflito real; código ele nunca mexe sozinho.</p>
+      <p>Antes de aplicar, dá pra espiar: <code>/mss-spec:upgrade --dry-run</code> mostra o <strong>diff</strong> do que <em>seria</em> mudado — inclusive nos arquivos de referência, o passo que o upgrade faria sozinho — <strong>sem escrever nada</strong>. Gostou do que viu? Roda de novo <strong>sem a flag</strong> pra aplicar. É a prévia que tira o "sobrescreveu e eu nem vi".</p>
       <div class="subhead">Exemplo</div>
-      <pre><code>/mss-spec:upgrade
+      <pre><code>/mss-spec:upgrade --dry-run
+  → mostra o diff dos moldes que mudariam (nada é escrito)
+/mss-spec:upgrade
   → traz os moldes novos (ex.: o padrão de log) pro projeto de clientes já existente</code></pre>
-      <div class="label-row"><span class="pill ok">mescla, não sobrescreve</span><span class="pill warn">conflito pergunta</span></div>
+      <div class="label-row"><span class="pill ok">mescla, não sobrescreve</span><span class="pill ok">prévia com --dry-run</span><span class="pill warn">conflito pergunta</span></div>
     </div>
   </div>
 
@@ -507,7 +521,7 @@ li{margin-bottom:6px}
 </section>
 
 <section class="section" id="spec">
-  <div class="section-num">04 — Spec-Driven</div>
+  <div class="section-num">05 — Spec-Driven</div>
   <h2>Combinar <em>antes</em> de codar</h2>
   <p class="lead">O coração do kit é o <a class="gl" href="#g-spec">Spec-Driven</a>: antes de escrever código, escreve-se em poucas linhas <strong>o que</strong> a funcionalidade precisa fazer. Isso vira um contrato curto — e o código nasce guiado por ele, com menos retrabalho.</p>
 
@@ -549,7 +563,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="memoria">
-  <div class="section-num">05 — O que o kit lembra</div>
+  <div class="section-num">06 — O que o kit lembra</div>
   <h2>Memória, tarefas e <em>decisões</em></h2>
   <p class="lead">Para não repetir erro nem re-explicar tudo, o kit guarda três coisas — cada uma no seu lugar, e sempre <strong>junto com o código</strong> (versionado), nunca só na máquina.</p>
 
@@ -569,7 +583,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="ambiente-msig">
-  <div class="section-num">06 — O jeito da casa</div>
+  <div class="section-num">07 — O jeito da casa</div>
   <h2>O padrão <em>MSIG</em> embutido</h2>
   <p class="lead">Estes fatos foram levantados varrendo projetos reais e vêm prontos no kit — são iguais entre projetos, por isso ficam fixos:</p>
 
@@ -585,7 +599,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="fluxo">
-  <div class="section-num">07 — Na prática</div>
+  <div class="section-num">08 — Na prática</div>
   <h2>Um dia de trabalho, <em>ponta a ponta</em></h2>
   <p class="lead">Juntando tudo, é assim que o sistema de clientes nasce e chega até a publicação:</p>
 
@@ -613,7 +627,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="seguranca">
-  <div class="section-num">08 — Segurança</div>
+  <div class="section-num">09 — Segurança</div>
   <h2>Segurança &amp; <em>segredos</em>, sem susto</h2>
   <p class="lead">Como os apps ficam expostos na internet, o kit trata segurança como parte do trabalho, não como enfeite — o princípio é <strong>&ldquo;seguro por padrão&rdquo; (<em>Security by Default</em>)</strong>: tudo nasce fechado e só se abre o necessário. Três pontos que qualquer pessoa entende:</p>
   <ul>
@@ -625,13 +639,13 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="redes">
-  <div class="section-num">09 — Redes de segurança</div>
+  <div class="section-num">10 — Redes de segurança</div>
   <h2>O que te protege <em>quando algo dá errado</em></h2>
   <p class="lead">Além de ajudar a construir, o kit tem três redes prontas para o momento em que algo sai do esperado. Não são comandos novos — já estão no lugar; esta seção só as deixa visíveis.</p>
   <ul>
     <li><strong>O próprio kit se testa.</strong> O <code>mss-spec</code> tem uma bateria de <a class="gl" href="#g-tdd">testes</a> de <em>smoke</em> — rode <code>pytest tests/</code> — que confere que todo caminho citado nos comandos e moldes existe de verdade, que os manifestos são válidos e coerentes. É a garantia de que uma edição num comando não deixou uma referência morta para trás. (Um framework que prega TDD para os projetos testa também a si mesmo.)</li>
     <li><strong>O git é o rollback.</strong> Não há comando de "desfazer" dedicado — e é de propósito. Como o <a href="#c-kickoff" class="gl">kickoff</a> e o <a href="#c-upgrade" class="gl">upgrade</a> só mexem em arquivos versionados, com a árvore de trabalho limpa, um <code>git restore</code> (ou descartar a branch) já reverte tudo. O <a class="gl" href="#g-git">git</a> que você já usa é a rede de reversão; criar um comando só para isso seria peso sem ganho.</li>
-    <li><strong>O CHANGELOG é a rede contra <em>drift</em>.</strong> Toda mudança relevante entra no <code>CHANGELOG.md</code> versionado, com o número da versão. É o que evita o <em>drift</em> entre cópias — o risco de dois colegas rodarem "o mesmo v0.8" que na verdade divergem. Enquanto a distribuição for por cópia de pasta, é ele que diz qual versão é qual.</li>
+    <li><strong>O CHANGELOG é a rede contra <em>drift</em>.</strong> Toda mudança relevante entra no <code>CHANGELOG.md</code> versionado, com o número da versão. É o que evita o <em>drift</em> entre cópias — o risco de dois colegas rodarem "o mesmo v0.8" que na verdade divergem. Na via git, o <code>marketplace update</code> já traz a versão nova; na via pasta local, é o CHANGELOG que diz se uma cópia está atrasada.</li>
   </ul>
   <div class="callout info">
     <div class="callout-label">Desfazer um kickoff ou um upgrade</div>
@@ -640,10 +654,10 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
 </section>
 
 <section class="section" id="roadmap">
-  <div class="section-num">10 — Adiante</div>
+  <div class="section-num">11 — Adiante</div>
   <h2>O que ainda <em>vem</em></h2>
   <ul>
-    <li><strong>Levar pro time via git.</strong> Trocar a "lojinha" de pasta local por um <a class="gl" href="#g-git">repositório git interno</a>, pra cada colega instalar por URL e puxar atualizações — em vez de copiar pasta. É o último passo planejado.</li>
+    <li><strong>Publicar num git interno.</strong> O mecanismo de instalar/atualizar por <a class="gl" href="#g-git">git</a> já está pronto (as duas vias na seção de instalação); falta só o passo manual de publicar o repositório num host e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real.</li>
     <li><strong>Documentar a distribuição.</strong> Manter o histórico de mudanças (CHANGELOG) e esta página em dia a cada novidade.</li>
   </ul>
   <h4>Não faz parte do escopo</h4>
@@ -666,7 +680,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
     <div class="gloss" id="g-spec"><dt>Spec-Driven / spec viva</dt><dd>"Guiado por especificação". Antes de programar, escreve-se em poucas linhas o que a funcionalidade precisa fazer; o código vem depois, guiado por isso. A spec fica "viva" — atualizada junto com o código, pra nunca mentir. Menos retrabalho.</dd></div>
     <div class="gloss" id="g-slash"><dt>Comando (slash command)</dt><dd>Um atalho que você digita começando com barra, como <code>/mss-spec:kickoff</code>, para disparar uma ação. Roda porque <em>você</em> pediu.</dd></div>
     <div class="gloss" id="g-skill"><dt>Skill (sugestão automática)</dt><dd>Uma instrução que o Claude Code ativa <em>sozinho</em> quando o assunto casa — ao contrário do comando, que você digita. Útil como rede de segurança, mas pode não disparar.</dd></div>
-    <div class="gloss" id="g-marketplace"><dt>Marketplace</dt><dd>A "loja" de onde o Claude Code instala plugins. Pode ser uma pasta local (o caso de hoje, <code>mss-local</code>) ou um repositório na internet.</dd></div>
+    <div class="gloss" id="g-marketplace"><dt>Marketplace</dt><dd>A "loja" de onde o Claude Code instala plugins. Pode ser um repositório git (adicionado por URL, que o Claude Code clona) ou uma pasta local — as duas vias do <code>mss-spec</code> (a lojinha se chama <code>mss-local</code>).</dd></div>
     <div class="gloss" id="g-scaffolding"><dt>Scaffolding</dt><dd>"Andaime". Gerar automaticamente os arquivos iniciais de um projeto a partir de moldes, em vez de copiar tudo à mão.</dd></div>
     <div class="gloss" id="g-tdd"><dt>TDD / teste</dt><dd>"Desenvolvimento guiado por testes". Escreve-se primeiro um teste que descreve o resultado esperado (e falha), depois o código que faz o teste passar. Assim, se algo quebrar depois, o teste avisa.</dd></div>
     <div class="gloss" id="g-verificacao"><dt>Verificação</dt><dd>Provar que funciona rodando de verdade e mostrando o resultado — em vez de só "confiar que deu certo".</dd></div>
