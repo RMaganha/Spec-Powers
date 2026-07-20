@@ -23,11 +23,19 @@ Comando `commands/upgrade.md` (`disable-model-invocation`). Três categorias:
 Não commita — deixa no working tree pro owner revisar via `git diff`.
 **Limite:** sem a versão antiga do template, a mescla é por seção/regra (não 3-way); na dúvida, mantém o do owner.
 
+## Modo `--dry-run` (preview)
+`/mss-spec:upgrade --dry-run` mostra o que o upgrade **faria**, sem escrever nenhum arquivo (working tree intacto):
+- **Categoria 1 (referência):** diff unificado (git-style) do que seria sobrescrito — é o passo hoje silencioso, o alvo da prevenção.
+- **Categorias 2 e 3 (CLAUDE/AMBIENTE e código):** o mesmo relatório descritivo do upgrade normal (o que mesclaria · conflitos · código a revisar), sem diff linha-a-linha.
+
+Ao fim, o relatório deixa explícito que foi só preview e diz como aplicar de verdade (`/mss-spec:upgrade` sem a flag). A flag é **aditiva**: sem ela, o upgrade aplica como sempre.
+
 ## Fora de escopo
-Merge automático de código · rollback (o git já faz) · guardar histórico de versões de template.
+Merge automático de código · rollback (o git já faz) · guardar histórico de versões de template · dry-run como padrão (segue opt-in via flag) · diff linha-a-linha da mescla do `CLAUDE.md`.
 
 ## Arquivos tocados
-- novo `commands/upgrade.md`
+- `commands/upgrade.md` (comando + modo `--dry-run`)
 
 ## Histórico
 - 2026-07-16 — criado: design do upgrade (aprovado no chat).
+- 2026-07-20 — acrescentado o modo `--dry-run` (item 10): preview com diff da categoria 1 + relatório, sem escrever arquivo (motivo: prevenir o merge silencioso dos arquivos de referência que o upgrade sobrescreve sozinho).
