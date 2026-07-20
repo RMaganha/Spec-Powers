@@ -21,6 +21,7 @@
 - `test_release_wiring` — release orquestra testes/segurança/CHANGELOG/compliance e é gate antes do finishing
 - `test_regras_branch_e_escopo_wiring` — branch sempre da principal + regra "um assunto por janela" (CLAUDE/nova-feature/to-dolist)
 - `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
+- `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
 - `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
 
 `tests/test_logging_template.py` — comportamento do `templates/logging.py`:
@@ -35,4 +36,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-20 · commit `2dc06f5` (branch feature/documentar-redes-de-seguranca) · 25 passed
+**Último 100% verde:** 2026-07-20 · commit `0ed95c3` (branch feature/upgrade-dry-run) · 26 passed
