@@ -19,7 +19,7 @@
 9. [distribuição por git](../specs/2026-07-20-distribuicao-por-git-design.md) — instalar/atualizar o kit por URL git (mantendo a via de pasta local); prepara o mecanismo, desbloqueia o 12 — **fechada** (0.8.4)
 10. [`upgrade --dry-run`](specs/2026-07-16-upgrade-design.md) — modo que mostra o diff que *seria* aplicado antes de tocar em arquivo (prevenção do merge silencioso dos arquivos de referência que o upgrade atualiza sozinho) — **fechada**
 11. documentar "o git é o rollback" — 1-2 linhas no `upgrade`/`kickoff` + HTML: como ambos só mexem em arquivos versionados sob working tree limpo, `git restore`/descartar a branch já desfaz; sem comando de rollback dedicado (YAGNI) — **fechada** (2dc06f5, na master; dobrado na feature [redes de segurança](specs/2026-07-20-documentar-redes-de-seguranca-design.md))
-12. [CI com artefatos de teste](../specs/2026-07-20-ci-artefatos-teste-design.md) — JUnit XML + cobertura + tendência de duração num CI (não commitar saída de run no repo — anti-padrão); **depende do item 9** (distribuição por git interno) — aberta
+12. [CI com artefatos de teste](../specs/2026-07-20-ci-artefatos-teste-design.md) — JUnit XML + cobertura + tendência de duração num CI (não commitar saída de run no repo — anti-padrão); **depende do item 9** (distribuição por git interno) — **fechada** (0.8.5)
 
 ## À parte
 - documentação — CHANGELOG + seção de instalação do HTML
