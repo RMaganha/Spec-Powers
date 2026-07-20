@@ -14,3 +14,4 @@
 - [Não encerrar com pergunta não pedida](feedback_nao_encerrar_com_pergunta.md) — nada de "quer que eu faça X?" no final; entrega e para; owner conduz o ritmo
 - [Dependência cross-marketplace quebra o load via symlink](project_plugin_load_cross_marketplace.md) — não declarar dependencies cross-marketplace no plugin.json enquanto o mss-spec carrega via skills-dir/symlink (some tudo); superpowers fica no settings; dep só com o marketplace git (item 9)
 - [Feature sempre a partir da master](feedback_feature_a_partir_da_master.md) — master é a linha principal atualizada; toda tarefa nova nasce de branch criada da master; ao integrar, volta pra master
+- [Comando-prosa não se testa como código](feedback_comandos_prosa_nao_unit_test.md) — doctor/upgrade/etc. são markdown que o assistente executa; testam-se por wiring no smoke, nunca por unit test de idempotência/merge (é teste teatral)
