@@ -176,6 +176,28 @@ def test_regras_branch_e_escopo_wiring():
     assert "um assunto por janela" in todo.lower(), "to-dolist.md não liga ao protocolo 'um assunto por janela'"
 
 
+def test_redes_de_seguranca_documentadas():
+    """As três redes de segurança que JÁ existem no kit estão explícitas na doc de
+    distribuição — fecha os falsos-negativos da análise (docs/analise/Claude.txt) e o
+    item 11 do backlog ('o git é o rollback'). Só doc: nada de comando de rollback novo."""
+    html = (REPO / "docs" / "COMO-FUNCIONA.html").read_text(encoding="utf-8")
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    upgrade = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    # seção dedicada no HTML (onde o analista procurou e não achou)
+    assert 'id="redes"' in html, "COMO-FUNCIONA.html não tem a seção 'Redes de segurança'"
+    # (1) auto-teste do próprio kit
+    assert "pytest tests/" in html, "HTML não cita o auto-teste do kit (pytest tests/)"
+    # (2) o git é o rollback (item 11) — HTML + upgrade + kickoff
+    assert "o git é o rollback" in html.lower(), "HTML não documenta 'o git é o rollback'"
+    assert "git restore" in upgrade, "upgrade.md não cita o git como rollback (git restore)"
+    assert "git restore" in kickoff, "kickoff.md não cita o git como rollback (git restore)"
+    # (3) CHANGELOG como rede contra drift entre cópias
+    assert "drift" in html.lower(), "HTML não enquadra o CHANGELOG como rede (drift entre cópias)"
+    # LEIA-ME reforça a rede que faltava (rollback via git)
+    assert "rollback" in leiame.lower(), "LEIA-ME não menciona o git como rollback"
+
+
 def test_compliance_wiring():
     """Auditoria de convenções montada: comando existe, checa a estrutura/docs/memória do jeito
     da casa (só reporta), e delimita o papel — auditoria profunda é seguranca, sync é upgrade."""

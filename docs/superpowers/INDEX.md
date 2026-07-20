@@ -18,7 +18,7 @@
 8. anotar decisões (grandes e médias) — `docs/decisoes.md` (só transversais); mantido no fecho do `nova-feature`; kickoff cria skeleton — feito (sem commit)
 9. loja interna (marketplace no git) — publicar pro time — **por último**
 10. `upgrade --dry-run` — modo que mostra o diff que *seria* aplicado antes de tocar em arquivo (prevenção do merge silencioso dos arquivos de referência que o upgrade atualiza sozinho) — aberta
-11. documentar "o git é o rollback" — 1-2 linhas no `upgrade`/`kickoff` + HTML: como ambos só mexem em arquivos versionados sob working tree limpo, `git restore`/descartar a branch já desfaz; sem comando de rollback dedicado (YAGNI) — aberta
+11. documentar "o git é o rollback" — 1-2 linhas no `upgrade`/`kickoff` + HTML: como ambos só mexem em arquivos versionados sob working tree limpo, `git restore`/descartar a branch já desfaz; sem comando de rollback dedicado (YAGNI) — **fechada** (dobrado na feature [redes de segurança](specs/2026-07-20-documentar-redes-de-seguranca-design.md))
 12. CI com artefatos de teste — JUnit XML + cobertura + tendência de duração num CI (não commitar saída de run no repo — anti-padrão); **depende do item 9** (distribuição por git interno) — aberta
 
 ## À parte
@@ -29,6 +29,7 @@
 - release — checklist de pré-publicação (versão · CHANGELOG · testes · segurança · docs) — **fechada** (`/mss-spec:release`; só reporta, gate antes do finishing) — spec: `docs/superpowers/specs/2026-07-16-release-design.md`
 - compliance — aderência do projeto às convenções do mss-spec — **fechada** (`/mss-spec:compliance`; checklist fixo, só reporta; audita × upgrade conserta) — spec: `docs/superpowers/specs/2026-07-16-compliance-design.md`
 - [regras de branch e escopo](../specs/2026-07-17-regras-branch-e-escopo-design.md) — branch sempre da principal + alerta "um assunto por janela" (só doc/comandos, sem hook) — **fechada**
+- [redes de segurança](specs/2026-07-20-documentar-redes-de-seguranca-design.md) — documenta as redes já existentes (auto-teste, git-rollback [item 11], changelog); fecha os falsos-negativos da análise — **fechada**
 
 ## Fora de escopo (não fazer)
 Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · knowledge-graph · registry / capabilities / catálogo de arquiteturas / dependency-graph · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`

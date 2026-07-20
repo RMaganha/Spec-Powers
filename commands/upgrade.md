@@ -28,3 +28,5 @@ Três categorias:
 3. **Código do projeto (ex.: `utils/get_connection.py`) — só avisa.** Mexer em código sozinho é arriscado. Se `templates/get_connection.py` evoluiu, **mostre o diff** e diga "o molde do kit mudou — revise à mão"; **não** aplique.
 
 **No fim, um relatório curto:** (a) o que atualizou sozinho · (b) o que mesclou no `CLAUDE.md`/`AMBIENTE.md` · (c) os conflitos que dependem do owner · (d) o código a revisar à mão. Lembre o owner de conferir tudo pelo `git diff` antes de commitar.
+
+**Rollback: o git é o rollback.** Não há comando de "desfazer" — não precisa. Como o upgrade só mexe em arquivos versionados (e você começou com a árvore de trabalho limpa), `git restore .` reverte tudo que ele mudou antes de commitar; se já commitou, `git revert`/descartar a branch desfaz. Sem comando dedicado de propósito (YAGNI).

@@ -1,0 +1,31 @@
+Pensando apenas como arquiteto de software e tentando manter a filosofia do seu framework (sem adicionar complexidade desnecessária), eu acrescentaria apenas estes itens:
+
+Item	O que faria
+health	Verifica a saúde geral do projeto (estrutura, documentação, testes, cobertura, pendências e inconsistências).
+review	Faz uma revisão arquitetural completa antes de finalizar uma feature (SOLID, Clean Code, duplicação, performance, segurança e manutenção).
+refactor	Analisa uma área do projeto e propõe uma refatoração incremental sem alterar comportamento.
+observabilidade	Configura logs estruturados, tratamento de erros, métricas e rastreabilidade como padrão.
+performance	Executa uma análise de gargalos e sugere otimizações de banco, código e processamento.
+dependencias	Audita bibliotecas utilizadas, identifica dependências obsoletas, vulneráveis ou não utilizadas.
+arquitetura	Gera automaticamente um documento descrevendo a arquitetura atual do projeto (componentes, fluxo, tecnologias e responsabilidades).
+api	Cria ou atualiza documentação da API (OpenAPI/Swagger), exemplos de uso e contratos.
+qualidade	Gera um relatório consolidado do projeto (testes, documentação, segurança, arquitetura e qualidade do código).
+release	Faz um checklist antes da publicação (versionamento, changelog, testes, documentação e validações).
+migracao	Auxilia mudanças de tecnologia (ex.: SQL Server → PostgreSQL, Bootstrap → Mantine, etc.).
+limpeza	Identifica arquivos órfãos, código morto, branches antigas, imports não utilizados e documentação obsoleta.
+inventario	Gera um inventário completo do projeto (pastas, tecnologias, dependências, bancos, APIs e integrações).
+risco	Avalia os impactos de uma alteração antes de implementá-la, indicando componentes potencialmente afetados.
+changelog	Gera automaticamente o histórico de alterações a partir das tarefas concluídas e decisões registradas.
+compliance	Verifica aderência aos padrões definidos pelo próprio mss-spec (estrutura, nomenclatura, documentação e convenções).
+onboarding	Gera um guia específico para um novo desenvolvedor conseguir subir e entender aquele projeto rapidamente.
+snapshot	Cria uma fotografia do estado atual do projeto para comparação futura (estrutura, versões, dependências e documentação).
+
+Se eu tivesse que escolher apenas cinco para uma futura versão 1.0, seriam:
+
+review — revisão arquitetural automatizada.
+qualidade — score consolidado do projeto.
+risco — análise de impacto antes de alterar código.
+inventario — documentação automática do projeto existente.
+release — checklist inteligente antes da entrega.
+
+Esses cinco complementam muito bem os comandos atuais sem mudar a filosofia do mss-spec e agregam valor em praticamente qualquer projeto.

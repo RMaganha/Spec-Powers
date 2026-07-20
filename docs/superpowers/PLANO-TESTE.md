@@ -21,6 +21,7 @@
 - `test_release_wiring` — release orquestra testes/segurança/CHANGELOG/compliance e é gate antes do finishing
 - `test_regras_branch_e_escopo_wiring` — branch sempre da principal + regra "um assunto por janela" (CLAUDE/nova-feature/to-dolist)
 - `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
+- `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
 
 `tests/test_logging_template.py` — comportamento do `templates/logging.py`:
 - `test_stdout_no_nivel_default_info` — no nível default (INFO) manda pro stdout

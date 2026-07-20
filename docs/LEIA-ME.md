@@ -77,6 +77,12 @@ cerimônia.
 os compose templates parseiam. Rode antes de commitar mudança em comando/template. Baseline em
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
+## Redes de segurança
+Três redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Auto-teste** — `python -m pytest tests/ -q` (acima): pega referência morta antes de commitar.
+- **Rollback = git** — não há comando de "desfazer". Como `kickoff` e `upgrade` só mexem em arquivos versionados sob árvore de trabalho limpa, `git restore`/descartar a branch já reverte. Sem comando dedicado de propósito (YAGNI).
+- **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual, enquanto a distribuição for por cópia de pasta).
+
 ## Documentos deste repo (não vão pros projetos)
 - `docs/ROTEIRO-SPEC-DRIVEN.md` — playbook do owner (princípio, fluxo, tipos de mudança, DoD, memória, ambiente).
 - `docs/referencia-spec-driven.md` — o porquê do kit (comparação com o CLI `@igoruehara/spec-driven`, lições do ATM).

@@ -149,8 +149,9 @@ li{margin-bottom:6px}
       <li><a href="#ambiente-msig"><span class="nav-num">06</span>Padrão MSIG</a></li>
       <li><a href="#fluxo"><span class="nav-num">07</span>O dia a dia</a></li>
       <li><a href="#seguranca"><span class="nav-num">08</span>Segurança &amp; segredos</a></li>
+      <li><a href="#redes"><span class="nav-num">09</span>Redes de segurança</a></li>
       <div class="nav-group">Fim</div>
-      <li><a href="#roadmap"><span class="nav-num">09</span>O que ainda vem</a></li>
+      <li><a href="#roadmap"><span class="nav-num">10</span>O que ainda vem</a></li>
       <li><a href="#glossario"><span class="nav-num">GL</span>Glossário</a></li>
     </ul>
   </nav>
@@ -623,8 +624,23 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
   <p>Sistemas que conversam entre si usam uma "senha de crachá" (<a class="gl" href="#g-bearer">Bearer token</a>), guardada só no servidor. O login de usuário final fica para uma etapa futura.</p>
 </section>
 
+<section class="section" id="redes">
+  <div class="section-num">09 — Redes de segurança</div>
+  <h2>O que te protege <em>quando algo dá errado</em></h2>
+  <p class="lead">Além de ajudar a construir, o kit tem três redes prontas para o momento em que algo sai do esperado. Não são comandos novos — já estão no lugar; esta seção só as deixa visíveis.</p>
+  <ul>
+    <li><strong>O próprio kit se testa.</strong> O <code>mss-spec</code> tem uma bateria de <a class="gl" href="#g-tdd">testes</a> de <em>smoke</em> — rode <code>pytest tests/</code> — que confere que todo caminho citado nos comandos e moldes existe de verdade, que os manifestos são válidos e coerentes. É a garantia de que uma edição num comando não deixou uma referência morta para trás. (Um framework que prega TDD para os projetos testa também a si mesmo.)</li>
+    <li><strong>O git é o rollback.</strong> Não há comando de "desfazer" dedicado — e é de propósito. Como o <a href="#c-kickoff" class="gl">kickoff</a> e o <a href="#c-upgrade" class="gl">upgrade</a> só mexem em arquivos versionados, com a árvore de trabalho limpa, um <code>git restore</code> (ou descartar a branch) já reverte tudo. O <a class="gl" href="#g-git">git</a> que você já usa é a rede de reversão; criar um comando só para isso seria peso sem ganho.</li>
+    <li><strong>O CHANGELOG é a rede contra <em>drift</em>.</strong> Toda mudança relevante entra no <code>CHANGELOG.md</code> versionado, com o número da versão. É o que evita o <em>drift</em> entre cópias — o risco de dois colegas rodarem "o mesmo v0.8" que na verdade divergem. Enquanto a distribuição for por cópia de pasta, é ele que diz qual versão é qual.</li>
+  </ul>
+  <div class="callout info">
+    <div class="callout-label">Desfazer um kickoff ou um upgrade</div>
+    Árvore de trabalho limpa antes de rodar? Então <code>git restore .</code> desfaz as mudanças de arquivo, ou você simplesmente descarta a branch. Nenhum dos dois toca em código seu fora do que está versionado.
+  </div>
+</section>
+
 <section class="section" id="roadmap">
-  <div class="section-num">09 — Adiante</div>
+  <div class="section-num">10 — Adiante</div>
   <h2>O que ainda <em>vem</em></h2>
   <ul>
     <li><strong>Levar pro time via git.</strong> Trocar a "lojinha" de pasta local por um <a class="gl" href="#g-git">repositório git interno</a>, pra cada colega instalar por URL e puxar atualizações — em vez de copiar pasta. É o último passo planejado.</li>

@@ -28,4 +28,6 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - **Se o projeto tem UI web:** `templates/FRONTEND.md` → `docs/FRONTEND.md` (design system MSIG — Nível 1 Jinja+Tailwind e Nível 2 React+Mantine) e `templates/assets/logo.png` → `static/img/logo.png` (logo MSIG). Se não tem UI, pule os dois. Para telas **densas** (grids/muitos campos), o front moderno (Nível 2) entra depois via `/mss-spec:frontend`.
 6. **Registre o backlog (não as specs).** NÃO crie specs/planos agora — features vêm depois com `/mss-spec:nova-feature`. **Mas** as necessidades/ideias levantadas na conversa não podem se perder: grave cada uma como 1 linha **`aberta`** no `docs/superpowers/INDEX.md` (só a linha — `- <assunto> — <objetivo em 1 frase> — aberta`, sem spec/link ainda). Assim o backlog do projeto fica versionado; o `nova-feature` depois pega uma e cria a spec. (Isso é backlog do projeto — não confundir com o `to-dolist`, que é recado pessoal fora do git.)
 
+**Rollback: o git é o rollback.** Não há comando de "desinstalar o kickoff" — não precisa. Como o kickoff só cria/copia arquivos versionáveis, para desfazer basta descartar o que ele gerou: `git restore`/`git clean` nos arquivos novos, ou, se você constituiu o projeto numa branch dedicada, descartar a branch. Sem comando dedicado de propósito (YAGNI).
+
 Ideia/insumo do owner: $ARGUMENTS

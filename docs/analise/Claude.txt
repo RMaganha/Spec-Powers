@@ -1,0 +1,109 @@
+Análise crítica do mss-spec v0.8
+Visão geral
+
+O que você construiu não é "só uma documentação bonita" — é um framework opinativo de spec-driven development adaptado ao contexto MSIG, com 17 comandos cobrindo todo o ciclo (kickoff → base → build → verificação → publicação → manutenção). A concepção é madura: separa claramente responsabilidades (Claude Code = execução, superpowers = disciplina, mss-spec = camada MSIG), o que é uma decisão arquitetural correta e evita reinventar o que já existe.
+
+Abaixo avalio ponto a ponto, deixando rede/proxy de fora conforme pedido (só menciono onde afeta o design geral).
+
+Tabela de avaliação
+#	Ponto avaliado	Status	Observação
+1	Conceito geral (framework opinativo)	🟢 Ótimo	Analogia Rails/CLI é precisa. Impor convenção reduz decisão-por-projeto. Muito bem posicionado.
+2	Separação de papéis (Claude/superpowers/mss-spec)	🟢 Ótimo	Decomposição limpa. Não duplica o superpowers, depende dele. Correto.
+3	Spec-Driven + "spec viva"	🟢 Ótimo	Estado atual + Histórico em docs/specs/ é o diferencial real do kit. Combate doc que envelhece.
+4	Comando vs Skill (controle explícito)	🟢 Ótimo	Priorizar comando (determinístico) sobre skill (probabilístico) é a escolha certa para fluxo crítico.
+5	Trio de auditorias (doctor/seguranca/compliance) + release	🟢 Ótimo	Quatro lentes ortogonais bem definidas. release como gate agregador é elegante.
+6	Separação reportar vs consertar	🟢 Ótimo	compliance/doctor só reportam; upgrade conserta. Princípio de responsabilidade única aplicado bem.
+7	Segredos fora do código (.env / Azure)	🟢 Ótimo	Security-by-default correto. Regra de PII fora do log (LGPD) embutida é excelente.
+8	Memória versionada com o código	🟢 Ótimo	Tirar memória de pasta volátil e versionar no repo resolve perda real.
+9	upgrade com merge não-destrutivo	🟢 Bom	Mesclar CLAUDE.md e nunca mexer em código é seguro. Ver risco de merge silencioso no item 17.
+10	Branch sempre a partir da principal	🟢 Bom	Ponto de partida previsível é acerto. Não trata rebase/branch desatualizada de longa duração.
+11	"Um assunto por janela"	🟢 Bom	Higiene de contexto excelente para LLM. Ser aviso e não trava é a dose certa.
+12	to-dolist pessoal, cross-branch	🟢 Bom	Bom para captura sem perder foco. Ser "só seu" pode virar limitação se o time quiser visibilidade.
+13	modo (mínimo/médio/alto)	🟢 Bom	Ritual ajustável é pragmático. "Testar/verificar inegociável em todos" é o guard-rail certo.
+14	Fernet como opção de senha (SQL Server)	🟡 Melhorar	Manter por continuidade é razoável, mas Fernet com chave mal-guardada é falso conforto. O próprio glossário admite isso. Sugiro marcar como deprecated com data-alvo de saída, não só "continuidade".
+15	Distribuição por cópia de pasta	🟡 Melhorar	É o maior gargalo operacional atual. Sem git, não há versão canônica: cada colega pode rodar um mss-spec diferente sem saber. O roadmap já reconhece — priorizaria isso acima de tudo.
+16	Sem CHANGELOG versionado / drift entre cópias	🟡 Melhorar	release confere CHANGELOG do projeto, mas o próprio kit v0.8 depende de disciplina manual. Enquanto distribuir por zip, não há como garantir que "v0.8" de um é igual ao do outro.
+17	upgrade — merge silencioso de referência	🟡 Melhorar	"Arquivos de referência atualiza sozinho" pode sobrescrever ajuste local que o usuário achou que era personalização. Sugiro log de diffs aplicados / modo dry-run.
+18	precedentes (catálogo cross-projeto)	🟡 Melhorar	Ideia ótima, mas depende de uma fonte de verdade que a doc não descreve. Como o catálogo é populado e mantido? Se for manual, tende a desatualizar — irônico para um kit anti-doc-morta.
+19	Dependência de versão exata (Claude Code v2.1.140+ / restart)	🟡 Melhorar	Documentado, bom. Mas é frágil: cada bump do Claude Code pode quebrar. doctor deveria checar a versão mínima explicitamente e falhar cedo.
+20	Onboarding / superpowers como pré-requisito manual	🟡 Melhorar	Passo separado e fácil de esquecer. doctor cobre, mas idealmente kickoff deveria detectar ausência e guiar a instalação antes de prosseguir.
+21	Testabilidade do próprio kit	🔴 Ruim (lacuna)	Não há menção a como o kit em si é testado. Um framework que prega TDD para os projetos deveria ter testes dos próprios comandos/moldes. Hoje parece confiar em uso manual.
+22	Rollback / desinstalação	🔴 Ruim (lacuna)	Não há caminho documentado para desfazer um kickoff ou reverter um upgrade problemático. Para adoção em time, "como saio disso" importa tanto quanto "como entro".
+Resumo quantitativo
+Faixa	Qtd	Itens
+🟢 Ótimo	8	Conceito, papéis, spec-viva, comando-vs-skill, auditorias, reportar-vs-consertar, segredos, memória
+🟢 Bom	5	upgrade, branch, um-assunto-por-janela, to-dolist, modo
+🟡 Melhorar	7	Fernet, distribuição, versionamento do kit, upgrade-silencioso, precedentes, versão-exata, onboarding
+🔴 Lacuna	2	Testes do próprio kit, rollback/desinstalação
+As 3 prioridades que eu atacaria primeiro
+Distribuição por git interno (item 15/16). É a raiz de vários problemas: versão canônica, drift entre cópias e atualização puxada. Já está no roadmap — subiria para topo absoluto. Resolve 3 fraquezas de uma vez.
+Testes do próprio kit (item 21). Um framework que exige TDD sem testar a si mesmo tem um ponto cego perigoso. Mesmo testes de smoke nos comandos e validação de que os moldes geram estrutura válida já elevariam muito a confiança.
+Ciclo de vida completo: rollback + dry-run no upgrade (itens 17/22). Adoção em time precisa de saída segura. upgrade --dry-run mostrando diffs e um caminho de reversão de kickoff reduzem o medo de adotar.
+Observação final
+
+O projeto está claramente no lado forte — a maioria dos pontos é 🟢, e as fraquezas são quase todas de maturidade operacional (distribuição, versionamento, testes do kit), não de concepção. A arquitetura de ideias é sólida; o que falta é o encanamento de produção. Para um v0.8 feito por uma pessoa, é um trabalho bem acima da média.
+
+Abaixo segue um changelog que ele definiu, isso eu acho que ele supos assim como toda a parte de testes pois não está explicita no documento de como é feito o teste e o changelog!!
+# Changelog
+
+Todas as mudanças relevantes do `mss-spec` são registradas neste arquivo.
+
+O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
+e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+
+> **Como manter este arquivo**
+> - Toda mudança que afeta o time entra aqui **antes** do merge (é conferido pelo `/mss-spec:release`).
+> - Enquanto a versão for `0.x`, a API é considerada instável: mudanças que quebram compatibilidade podem entrar em versões `MINOR`.
+> - Novidades ficam em `[Não lançado]` até virarem release; ao publicar, mova o bloco para uma versão datada.
+
+## [Não lançado]
+
+### A adicionar (roadmap)
+- Distribuição por repositório git interno (instalação por URL, em vez de cópia de pasta).
+- `upgrade --dry-run`: mostrar os diffs que seriam aplicados antes de aplicar.
+- Caminho documentado de rollback (reverter `kickoff` / `upgrade`).
+- Checagem de versão mínima do Claude Code dentro do `doctor`.
+- Suíte de testes de smoke do próprio kit (ver `tests/`).
+
+---
+
+## [0.8.0] — 2026-07-XX
+
+### Adicionado
+- Comando `log`: padrão de registro de eventos (stdout + arquivo local só em dev, opt-in por arquivo, nunca grava PII/segredo).
+- Comando `compliance`: auditoria de convenção (aderência às camadas, docs/memória no lugar, segredo no `.gitignore`). Apenas reporta.
+- Comando `release`: portão de pré-publicação que agrega testes, versão, CHANGELOG, convenção, segurança e specs num veredito único. Apenas reporta.
+- Regra de senhas por variável de ambiente como opção recomendada no `banco`.
+
+### Alterado
+- `banco`: para SQL Server, oferece variável de ambiente (recomendado) ou Fernet (continuidade).
+
+### Notas
+- Requer Claude Code **v2.1.140+**.
+- `superpowers` continua sendo pré-requisito instalado à parte.
+
+---
+
+## [0.7.0] — 2026-XX-XX
+
+### Adicionado
+- Comando `doctor`: check-up de ambiente (proxy, CA, driver de banco, superpowers, moldes). Roda manual e no início da 1ª tarefa. Apenas reporta.
+- Comando `upgrade`: atualiza projeto antigo mesclando `CLAUDE.md` sem sobrescrever personalizações; nunca mexe em código.
+- Comando `to-dolist`: bloco de recados pessoal, visível em qualquer branch; destino da regra "um assunto por janela".
+
+---
+
+## Formato de entrada (referência)
+
+Cada versão deve conter apenas as seções que tiverem conteúdo, nesta ordem:
+
+- `Adicionado` — funcionalidades novas.
+- `Alterado` — mudanças em funcionalidades existentes.
+- `Descontinuado` — funcionalidades que serão removidas em breve (ex.: Fernet como opção de senha).
+- `Removido` — funcionalidades retiradas.
+- `Corrigido` — correções de bug.
+- `Segurança` — correções de vulnerabilidade.
+
+[Não lançado]: #não-lançado
+[0.8.0]: #080--2026-07-xx
+[0.7.0]: #070--2026-xx-xx
