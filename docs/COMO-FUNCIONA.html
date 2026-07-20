@@ -437,12 +437,17 @@ li{margin-bottom:6px}
   <div class="node" id="c-plano-teste">
     <div class="node-head"><span class="node-idx">C12</span><span class="node-name">plano-teste</span><span class="node-type">rede anti-quebra</span></div>
     <div class="node-body">
-      <p class="plain">Roda a bateria de testes — "se tudo passa, nada quebrou".</p>
-      <p>Executa os <a class="gl" href="#g-tdd">testes</a> do projeto. Só vira "referência boa" quando passa 100%. É a rede contra estragar sem querer o que já funcionava.</p>
+      <p class="plain">Roda a bateria de testes e guarda um "retrato do que passava" — a rede que avisa se algo quebrar depois.</p>
+      <p><strong>Como faz:</strong> executa os <a class="gl" href="#g-tdd">testes</a> do projeto (se ainda não há suíte, cria um mínimo — o app sobe, as rotas respondem 200, o banco conecta).<br>
+      <strong>Como guarda:</strong> quando passa <strong>100%</strong>, grava um <em>baseline</em> em <code>docs/superpowers/PLANO-TESTE.md</code> — o comando pra rodar, a lista do que os testes cobrem (1 linha cada) e um carimbo com data + <a class="gl" href="#g-git">commit</a> do último verde.<br>
+      <strong>Como evolui:</strong> a cada novo 100% o baseline é reescrito por cima (o <a class="gl" href="#g-git">git</a> guarda as versões antigas); os testes de cada funcionalidade nova entram nele e passam a ser vigiados também.<br>
+      <strong>Como compara:</strong> antes de dizer "pronto", roda-se a suíte e confere-se contra o baseline — se algo que <em>passava</em> agora falha, você quebrou sem querer; e o baseline <strong>só</strong> é reescrito quando tudo volta ao verde. Nunca se promove a "referência boa" algo que não passou inteiro.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:plano-teste
-  → roda os testes do CRUD de clientes; 100% verde → vira o novo baseline</code></pre>
-      <div class="label-row"><span class="pill ok">testes</span><span class="pill warn">100% ou nada</span></div>
+  → roda os testes do CRUD de clientes
+  → 100% verde?  grava o baseline em PLANO-TESTE.md (data + commit)
+  → algum vermelho?  reporta o que falhou e NÃO atualiza o baseline</code></pre>
+      <div class="label-row"><span class="pill ok">baseline versionado</span><span class="pill ok">carimbo data + commit</span><span class="pill warn">100% ou nada</span></div>
     </div>
   </div>
 
