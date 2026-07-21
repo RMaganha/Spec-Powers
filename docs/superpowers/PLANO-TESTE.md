@@ -65,4 +65,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-20 · commit `80a5bc7` (branch feature/mapa-de-contexto) · 43 passed
+**Último 100% verde:** 2026-07-21 · commit `b2de5fb` (branch feature/captura-de-memoria) · 51 passed

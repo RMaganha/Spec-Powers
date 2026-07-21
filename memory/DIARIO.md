@@ -3,4 +3,5 @@
 
 # Diário de sessão — mss-spec
 
-<!-- A 1ª entrada real é a captura desta feature (captura-de-memória), gravada no fecho via /mss-spec:memory capturar. -->
+## 2026-07-21
+- [captura-de-memoria] avaliação do claude-mem → não integrar (bate nos pilares); nasceu o modo `capturar` + diário de sessão em 3 camadas, foco nos pivôs → sessions/2026-07-21-captura-de-memoria.md
