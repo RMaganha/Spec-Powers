@@ -2,7 +2,7 @@
 
 Um roteiro curto pra quem acabou de instalar o kit e quer sair usando. Aqui é o **como começar**;
 o **o quê** cada comando faz está no [LEIA-ME](LEIA-ME.md) (referência) e o **por quê** no
-[COMO-FUNCIONA.html](COMO-FUNCIONA.html). Não precisa decorar os 17 comandos — o dia a dia usa poucos.
+[COMO-FUNCIONA.html](COMO-FUNCIONA.html). Não precisa decorar os 19 comandos — o dia a dia usa poucos.
 
 ## Antes de tudo (uma vez)
 Instale o `mss-spec` e habilite o **superpowers** — os dois passos estão no [LEIA-ME](LEIA-ME.md#instalação).
@@ -42,11 +42,15 @@ Antes de dar algo por pronto, a suíte de testes roda e tem que estar **100% ver
 - **Um assunto por janela.** Uma conversa = uma tarefa. Surgiu outro assunto no meio? Anote com
   `/mss-spec:to-dolist adicionar <assunto>` e abra uma janela nova pra ele — em vez de emendar.
 - **Memória mora no repo.** O que o assistente aprende sobre o projeto vai pra `memory/` (versionado),
-  não some numa reinstalação e viaja com o código.
+  não some numa reinstalação e viaja com o código. Ao **fechar** um assunto, a `nova-feature` roda o
+  **`/mss-spec:memory capturar`** (ou chame você a qualquer hora): ele guarda as **decisões** — inclusive
+  o que se decidiu **não** fazer — e um **diário da sessão** datado, com foco nos *pivôs* (o que se
+  cogitou, por que mudou, pra onde foi). É o que evita, semanas depois, repropor algo que já foi
+  descartado — e é barato de reler (índice datado em `memory/DIARIO.md` → abre só a entrada que importa).
 
 ## Travou?
 - Ambiente estranho → `/mss-spec:doctor`.
 - "Será que já fizeram isso em outro projeto?" → `/mss-spec:precedentes <assunto>`.
 - Achou o fluxo lento (ou rápido demais) → `/mss-spec:modo <mínimo|médio|alto>` (padrão é médio).
 
-Bem-vindo. Da segunda tarefa em diante, o ciclo é sempre o mesmo: `nova-feature` → seu OK → TDD → verde.
+Bem-vindo. Da segunda tarefa em diante, o ciclo é sempre o mesmo: `nova-feature` → seu OK → TDD → verde → **captura** (decisões + diário).
