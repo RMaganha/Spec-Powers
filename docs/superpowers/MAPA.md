@@ -1,10 +1,10 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/mapa-de-contexto`, a partir da master — **assunto completo e verde** (F1 + F2, suíte 42 passed): F1 = o `MAPA.md` por projeto (onde estamos · próximo passo · conexões) integrado no fluxo + `/mss-spec:mapa`; F2 = `/mss-spec:mapa-neural` (gerador `templates/mapa_neural.py`) que monta o **mapa mental do projeto** (projeto no centro + 4 dimensões extraídas do repo) em HTML radial full-screen expansível/arrastável + índice de texto. Trabalho na working tree, **ainda não commitado**. Spec: `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
+`feature/captura-de-memoria`, a partir da master — **assunto completo e verde** (7 tasks, suíte **51 passed**; commitado na branch, não integrado). Consolidado no `/mss-spec:memory` o modo **`capturar`** (2º modo, ao lado do `resgatar`): destila a sessão em **decisões** (incl. as negativas) + **diário de sessão** datado/indexado (`memory/sessions/<data>-<assunto>.md` + `memory/DIARIO.md`, foco nos **pivôs**), roteando pras 3 camadas de memória, com `<private>`, OK do owner e delegação do MAPA ao `/mss-spec:mapa`. Fecho do `nova-feature` passou a **delegar** ao `capturar`; hook `Stop`/`PreCompact` **opt-in** (off por padrão) só como rede. Integração do claude-mem **rejeitada** (serviço/firehose/vetorial bate nos pilares). Spec: `docs/superpowers/specs/2026-07-21-captura-de-memoria-design.md`.
 
 ## Próximo passo
-Integrar (passo do owner): `/mss-spec:plano-teste` (regrava o baseline) → `/mss-spec:release` (gate) → `finishing` (merge/commit). Nada mais pendente no assunto.
+Integrar (passo do owner): rodar a **1ª captura real** (dogfood desta sessão via `/mss-spec:memory capturar`) → `/mss-spec:release` (gate: versão/CHANGELOG/segurança) → `finishing` (merge → master). Baseline já regravado (51 verde). Nada mais pendente no assunto.
 
 ## Conexões
 <!-- Integrações de RUNTIME com outros projetos. O mss-spec é um plugin de scaffolding (comandos-prosa),

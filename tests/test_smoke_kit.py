@@ -330,3 +330,99 @@ def test_distribuicao_por_git_wiring():
 
     # AC4: URL do git interno é placeholder marcado, não host inventado
     assert "<URL-do-git-interno>" in leiame, "LEIA-ME deve usar <URL-do-git-interno> como placeholder, não um host real"
+
+
+def test_captura_memory_dois_modos():
+    """/mss-spec:memory vira o comando de memória com 2 modos: resgatar (intacto) + capturar (novo).
+    capturar destila a SESSÃO do contexto e roteia pras 3 camadas, aplica <private>, pede OK, não duplica."""
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    fm = mem.split("---")[1]  # frontmatter
+    # os 2 modos ofertados no argument-hint
+    assert "resgatar" in fm, "memory.md: argument-hint não oferece o modo resgatar"
+    assert "capturar" in fm, "memory.md: argument-hint não oferece o modo capturar"
+    # regressão: o modo resgatar (memória nativa → repo) segue descrito
+    assert "nativa" in mem.lower(), "memory.md: modo resgatar (memória nativa → repo) sumiu"
+    # capturar roteia pras 3 camadas
+    assert "docs/decisoes.md" in mem, "capturar não roteia decisão transversal pro decisoes.md"
+    assert "Fora de escopo" in mem, "capturar não roteia decisão 'não fazer' pro INDEX (Fora de escopo)"
+    assert "memory/sessions/" in mem, "capturar não grava o resumo em memory/sessions/"
+    assert "DIARIO.md" in mem, "capturar não indexa no memory/DIARIO.md"
+    assert "MEMORY.md" in mem, "capturar não indexa fato durável no MEMORY.md"
+    # convenções e salvaguardas
+    assert "<private>" in mem, "capturar não aplica a convenção <private>"
+    assert "/mss-spec:mapa" in mem, "capturar não delega o MAPA ao /mss-spec:mapa (não reimplementa)"
+    assert "antes de gravar" in mem.lower(), "capturar não pede OK do owner antes de gravar (CA1)"
+    assert "não duplic" in mem.lower(), "capturar não garante não-duplicação (CA2)"
+    # foco em pivôs (a evolução das decisões, não só o estado final)
+    assert "pivô" in mem.lower() or "repensad" in mem.lower(), "capturar não prioriza os pivôs no resumo de sessão"
+
+
+def test_captura_diario_template():
+    """Template do índice do diário: formato por dia, aponta os arquivos de sessão, foca nos pivôs."""
+    dia = REPO / "templates" / "DIARIO.md"
+    assert dia.exists(), "falta templates/DIARIO.md"
+    txt = dia.read_text(encoding="utf-8")
+    assert "## <data>" in txt, "DIARIO.md não mostra o formato de índice por dia (## <data>)"
+    assert "sessions/" in txt, "DIARIO.md não aponta os arquivos em memory/sessions/"
+    assert "pivô" in txt.lower() or "repensad" in txt.lower(), \
+        "DIARIO.md não orienta capturar os pivôs (a evolução das decisões)"
+    # dogfood: o próprio kit tem seu índice de diário
+    assert (REPO / "memory" / "DIARIO.md").exists(), "falta o dogfood memory/DIARIO.md"
+
+
+def test_captura_kickoff_scaffold():
+    """kickoff monta o diário no projeto: copia o template e cria a pasta de sessões."""
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "templates/DIARIO.md" in kickoff, "kickoff não copia templates/DIARIO.md"
+    assert "memory/DIARIO.md" in kickoff, "kickoff não cria memory/DIARIO.md"
+    assert "memory/sessions/" in kickoff, "kickoff não cria a pasta memory/sessions/"
+
+
+def test_captura_private_e_indice():
+    """CLAUDE.md do projeto carrega: convenção <private>, ponteiro pro diário, e o índice-primeiro."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "<private>" in claude, "CLAUDE.md não documenta a convenção <private> (nunca vira memória)"
+    assert "DIARIO.md" in claude, "CLAUDE.md não aponta o diário de sessão (memory/DIARIO.md)"
+    assert "pasta inteira" in claude.lower(), \
+        "CLAUDE.md não reforça o índice-primeiro (consultar índice; nunca ler a pasta inteira)"
+
+
+def test_captura_delegacao_fecho():
+    """O fecho do nova-feature DELEGA a captura ao /mss-spec:memory capturar (não re-descreve inline),
+    e a captura entra no caminho do merge → principal (consolidar decisões do assunto)."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "/mss-spec:memory capturar" in nova, \
+        "nova-feature (fecho) não delega a captura ao /mss-spec:memory capturar"
+    # a captura acontece antes de integrar (merge/finishing), consolidando as decisões do assunto
+    assert "finishing" in nova.lower(), "nova-feature não posiciona a captura junto ao finishing/integração"
+
+
+def test_captura_hook_throttle():
+    """A decisão de cutucar respeita o intervalo (throttle) — aproxima 'a cada X' por evento."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "capturar_nudge", REPO / "hooks" / "capturar_nudge.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    # dentro do intervalo → não cutuca; passou do intervalo → cutuca; sem histórico → cutuca (1ª vez)
+    assert mod.deve_cutucar(ultimo_ts=1000.0, agora=1060.0, intervalo_s=1800) is False
+    assert mod.deve_cutucar(ultimo_ts=1000.0, agora=4600.0, intervalo_s=1800) is True
+    assert mod.deve_cutucar(ultimo_ts=None, agora=1000.0, intervalo_s=1800) is True
+
+
+def test_captura_hook_optin_doc():
+    """Hook é OPT-IN, off por padrão, não-bloqueante, e só CUTUCA (não grava sozinho)."""
+    assert (REPO / "hooks" / "capturar_nudge.py").exists(), "falta hooks/capturar_nudge.py"
+    doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
+    low = doc.lower()
+    assert "opt-in" in low or "desligado por padrão" in low, "hook não é documentado como opt-in/off por padrão"
+    assert "Stop" in doc and "PreCompact" in doc, "hook não documenta os eventos Stop/PreCompact"
+    assert "/mss-spec:memory capturar" in doc, "hook não cutuca pra rodar /mss-spec:memory capturar"
+    assert "não grava" in low or "nunca grava" in low, "hook não deixa claro que só cutuca (não grava)"
+    assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
+
+
+def test_captura_docs_leiame():
+    """LEIA-ME documenta o modo capturar do /mss-spec:memory (o dev descobre a capacidade)."""
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "capturar" in leiame.lower(), "LEIA-ME não documenta o modo capturar do /mss-spec:memory"
