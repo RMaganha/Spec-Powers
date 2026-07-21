@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/mapa-neural-datas-e-associacoes` (aberta da `main`) — **mapa neural: datas nos balões + camada associativa leve**. Feature nova (F2.2 do mapa de contexto): (1) cada folha ancorada em arquivo ganha `data` (mtime `YYYY-MM-DD`) no pop-up; (2) `extrair_associacoes` desenha arestas heurísticas determinísticas — memória↔memória (`[[links]]` resolvíveis) e spec↔código (seção `## Arquivos tocados`), pontilhadas/fracas, acendendo no hover. Sem SOM/ML (fronteira do INDEX mantida). Spec: `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
+
+<!-- histórico do release anterior (v0.10.1) -->
 `main` — **v0.10.1 integrada e publicada no GitHub** (merge `--no-ff` da `feature/mapa-neural-abrir-md`; suíte **54 verde**; push `ce6f892..ea02805`). Entregue (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (conteúdo dos `.md` embutido inline na geração via `coletar_docs` + renderizador markdown vanilla `mdToHtml`/`openDoc`; self-contained, `file://`, zero CDN). Spec (F2.1): `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
 
 <!-- histórico do release anterior (v0.10.0) -->
