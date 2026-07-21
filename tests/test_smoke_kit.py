@@ -376,3 +376,12 @@ def test_captura_kickoff_scaffold():
     assert "templates/DIARIO.md" in kickoff, "kickoff não copia templates/DIARIO.md"
     assert "memory/DIARIO.md" in kickoff, "kickoff não cria memory/DIARIO.md"
     assert "memory/sessions/" in kickoff, "kickoff não cria a pasta memory/sessions/"
+
+
+def test_captura_private_e_indice():
+    """CLAUDE.md do projeto carrega: convenção <private>, ponteiro pro diário, e o índice-primeiro."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "<private>" in claude, "CLAUDE.md não documenta a convenção <private> (nunca vira memória)"
+    assert "DIARIO.md" in claude, "CLAUDE.md não aponta o diário de sessão (memory/DIARIO.md)"
+    assert "pasta inteira" in claude.lower(), \
+        "CLAUDE.md não reforça o índice-primeiro (consultar índice; nunca ler a pasta inteira)"
