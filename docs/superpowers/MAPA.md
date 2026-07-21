@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/mapa-de-contexto`, a partir da master — **assunto completo e verde** (F1 + F2, suíte 42 passed): F1 = o `MAPA.md` por projeto (onde estamos · próximo passo · conexões) integrado no fluxo + `/mss-spec:mapa`; F2 = `/mss-spec:mapa-neural` (gerador `templates/mapa_neural.py`) que monta o **mapa mental do projeto** (projeto no centro + 4 dimensões extraídas do repo) em HTML radial full-screen expansível/arrastável + índice de texto. Trabalho na working tree, **ainda não commitado**. Spec: `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
+`feature/captura-de-memoria`, a partir da master — **em brainstorming/spec** (inspiração: avaliação do [claude-mem](https://github.com/thedotmack/claude-mem), integração completa rejeitada por bater nos pilares do kit; captura das ideias que cabem). Assunto: comando-prosa determinístico `/mss-spec:capturar` que, no fecho da feature/sessão, rascunha candidatos a memória + atualiza o "onde estamos/próximo passo" do MAPA (com OK do owner), para parar de depender de o assistente *lembrar*; + convenção `<private>` na memória; + hook `Stop`/`SessionEnd` **opcional/experimental** (só atalho — se não disparar, o comando cobre o fecho). Spec: `docs/superpowers/specs/2026-07-21-captura-de-memoria-design.md`.
 
 ## Próximo passo
 Integrar (passo do owner): `/mss-spec:plano-teste` (regrava o baseline) → `/mss-spec:release` (gate) → `finishing` (merge/commit). Nada mais pendente no assunto.
