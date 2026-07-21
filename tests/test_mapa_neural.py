@@ -35,7 +35,10 @@ def proj(tmp_path):
         encoding="utf-8",
     )
     (tmp_path / "docs" / "superpowers" / "specs" / "2026-01-01-emissao-design.md").write_text(
-        "# emissão cosseguro — design\n", encoding="utf-8"
+        "# emissão cosseguro — design\n\n"
+        "Primeira linha de corpo (vira o lead/resumo).\n"
+        "Segunda linha com MARCADOR_SO_NO_CORPO que não é lead.\n",
+        encoding="utf-8",
     )
     (tmp_path / "docs" / "decisoes.md").write_text("# Decisões\n- 2026 — banco = canal\n", encoding="utf-8")
     (tmp_path / "main.py").write_text('"""Ponto de entrada da API do meu-proj."""\nprint("ok")\n', encoding="utf-8")
@@ -140,6 +143,31 @@ def test_render_html_full_screen_e_self_contained(mn, proj):
     assert "vis-network" in html, "a lib vis-network não está embutida inline (self-contained)"
     assert 'id="pop"' in html, "sem o pop-up de detalhes"
     assert "routers/processar.py" in html, "o local (caminho) da peça não foi embutido pro pop-up"
+
+
+def test_coletar_docs_embute_conteudo_dos_md(mn, proj):
+    """Coleta o conteúdo dos .md referenciados por algum nó (via `local`), pra embutir no HTML.
+    Chave = caminho relativo; valor = conteúdo do arquivo (inclui o corpo, não só o título)."""
+    arv = mn.construir_arvore(proj)
+    docs = mn.coletar_docs(proj, arv)
+    chave_spec = next((k for k in docs if k.endswith("2026-01-01-emissao-design.md")), None)
+    assert chave_spec is not None, "não coletou o .md da spec referenciada por um nó"
+    assert "MARCADOR_SO_NO_CORPO" in docs[chave_spec], "coletou só o título, não o conteúdo do arquivo"
+    # arquivo inexistente citado no índice de memória (m1.md/m2.md não existem) não pode virar chave
+    assert not any(k.endswith("m1.md") for k in docs), "não deve coletar caminho de .md inexistente"
+
+
+def test_render_html_clique_abre_md_em_nova_aba(mn, proj):
+    """CA14 — o HTML embute o conteúdo dos .md (__DOCS__) e traz o handler que abre
+    nova aba (window.open) + o renderizador markdown vanilla inline."""
+    arv = mn.construir_arvore(proj)
+    docs = mn.coletar_docs(proj, arv)
+    html = mn.render_html(arv, docs=docs)
+    assert "MARCADOR_SO_NO_CORPO" in html, "o conteúdo do .md não foi embutido inline no HTML"
+    assert "window.open" in html, "não há handler que abre o .md em nova aba"
+    assert "mdToHtml" in html, "não há o renderizador markdown vanilla inline"
+    # continua self-contained (sem CDN/script externo)
+    assert "<script src=" not in html.lower(), "deixou de ser self-contained"
 
 
 def test_render_texto_lista_as_dimensoes(mn, proj):
