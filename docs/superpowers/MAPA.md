@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/doctor-check-versao` — **implementada, aguardando release+merge**: novo check "versão do kit" (check 8) no `/mss-spec:doctor` compara a versão instalada com a publicada no remoto (`git fetch` no clone, mesmo canal do `marketplace update`; compara semver; só reporta ✓/⚠/ℹ; degrada gracioso offline/dev — nunca ✗). Suíte **63 verde** (+1: `test_doctor_check_versao_wiring`). Spec: `docs/superpowers/specs/2026-07-21-doctor-check-versao-remoto-design.md`.
+`feature/doctor-check-versao` — **pronta, aguardando só o merge**: novo check "versão do kit" (check 8) no `/mss-spec:doctor` compara a versão instalada com a publicada no remoto (`git fetch` no clone, mesmo canal do `marketplace update`; compara semver; só reporta ✓/⚠/ℹ; degrada gracioso offline/dev — nunca ✗). Suíte **63 verde** (+1: `test_doctor_check_versao_wiring`). **Release `0.12.0`** aplicado (bump nos 2 manifestos + CHANGELOG; gate `/mss-spec:release` verde) e **memória da sessão capturada** (diário + decisão transversal). Spec: `docs/superpowers/specs/2026-07-21-doctor-check-versao-remoto-design.md`.
 
 <!-- histórico do estado anterior -->
 
@@ -11,7 +11,7 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
-Fechar a feature `feature/doctor-check-versao`: rodar `/mss-spec:release` (gate — vai pedir bump de versão 0.11.0 → 0.12.0 nos dois manifestos + linha no CHANGELOG) → `/mss-spec:memory capturar` → merge `--no-ff` na `main` (`finishing-a-development-branch`). Depois, aguardando próxima feature (`/mss-spec:nova-feature` — backlog aberto no `INDEX.md`).
+**Integrar:** merge `--no-ff` de `feature/doctor-check-versao` na `main` (`finishing-a-development-branch`); `git push` a pedido. No merge, o status no `INDEX.md` vira `fechada` (0.12.0). Depois, aguardando próxima feature (`/mss-spec:nova-feature` — backlog aberto no `INDEX.md`).
 
 ## Conexões
 <!-- Integrações de RUNTIME com outros projetos. O mss-spec é um plugin de scaffolding (comandos-prosa),
