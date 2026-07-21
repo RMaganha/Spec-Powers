@@ -385,3 +385,13 @@ def test_captura_private_e_indice():
     assert "DIARIO.md" in claude, "CLAUDE.md não aponta o diário de sessão (memory/DIARIO.md)"
     assert "pasta inteira" in claude.lower(), \
         "CLAUDE.md não reforça o índice-primeiro (consultar índice; nunca ler a pasta inteira)"
+
+
+def test_captura_delegacao_fecho():
+    """O fecho do nova-feature DELEGA a captura ao /mss-spec:memory capturar (não re-descreve inline),
+    e a captura entra no caminho do merge → principal (consolidar decisões do assunto)."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "/mss-spec:memory capturar" in nova, \
+        "nova-feature (fecho) não delega a captura ao /mss-spec:memory capturar"
+    # a captura acontece antes de integrar (merge/finishing), consolidando as decisões do assunto
+    assert "finishing" in nova.lower(), "nova-feature não posiciona a captura junto ao finishing/integração"
