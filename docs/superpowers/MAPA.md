@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/doctor-check-versao` — **em andamento**: novo check "versão do kit" no `/mss-spec:doctor` (compara instalada vs publicada no remoto via `git fetch` no clone, semver; só reporta ✓/⚠/ℹ; degrada gracioso offline/dev). Spec: `docs/superpowers/specs/2026-07-21-doctor-check-versao-remoto-design.md`.
+`feature/doctor-check-versao` — **implementada, aguardando release+merge**: novo check "versão do kit" (check 8) no `/mss-spec:doctor` compara a versão instalada com a publicada no remoto (`git fetch` no clone, mesmo canal do `marketplace update`; compara semver; só reporta ✓/⚠/ℹ; degrada gracioso offline/dev — nunca ✗). Suíte **63 verde** (+1: `test_doctor_check_versao_wiring`). Spec: `docs/superpowers/specs/2026-07-21-doctor-check-versao-remoto-design.md`.
 
 <!-- histórico do estado anterior -->
 
@@ -11,7 +11,7 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
-Aguardando próxima feature (`/mss-spec:nova-feature` — backlog aberto no `INDEX.md`). A v0.11.0 está **integrada e publicada** (origin `https://github.com/RMaganha/Spec-Powers.git`, `main`) e a **memória da sessão foi capturada** (diário + 2 memórias + "fora de escopo" do SOM). Nada pendente — só o commit da própria captura, ainda **local** (push a pedido).
+Fechar a feature `feature/doctor-check-versao`: rodar `/mss-spec:release` (gate — vai pedir bump de versão 0.11.0 → 0.12.0 nos dois manifestos + linha no CHANGELOG) → `/mss-spec:memory capturar` → merge `--no-ff` na `main` (`finishing-a-development-branch`). Depois, aguardando próxima feature (`/mss-spec:nova-feature` — backlog aberto no `INDEX.md`).
 
 ## Conexões
 <!-- Integrações de RUNTIME com outros projetos. O mss-spec é um plugin de scaffolding (comandos-prosa),
