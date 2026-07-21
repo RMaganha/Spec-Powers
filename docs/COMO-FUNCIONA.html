@@ -164,7 +164,7 @@ li{margin-bottom:6px}
   <h1>Um assistente que já sabe <em>o jeito da casa</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> é um plugin criado pelo <strong>Ronaldo Maganha</strong> (MSIG) que trabalha <strong>em conjunto com o <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a></strong> — o assistente de programação da Anthropic. Ele ensina o assistente a começar cada projeto já do jeito certo da empresa: com organização, checagens de segurança e o padrão de infraestrutura da MSIG prontos, sem ninguém precisar lembrar de tudo à mão.</p>
   <div class="hero-meta">
-    <div>Comandos<span>17 atalhos</span></div>
+    <div>Comandos<span>19 atalhos</span></div>
     <div>Autor<span>R. Maganha (MSIG)</span></div>
     <div>Trabalha com<span>Claude Code</span></div>
     <div>Instala<span>uma vez só</span></div>
@@ -179,7 +179,7 @@ li{margin-bottom:6px}
   <p>Tecnicamente: é um <a class="gl" href="#g-plugin">plugin</a> que adiciona <strong>atalhos</strong> ao <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a>. A <strong>disciplina</strong> de trabalho (não sair fazendo sem alinhar, <a class="gl" href="#g-tdd">testar</a>, <a class="gl" href="#g-verificacao">verificar</a>, <a class="gl" href="#g-code-review">revisar</a>) não é invenção dele — vem de outro plugin, o <a class="gl" href="#g-superpowers">superpowers</a>. O <code>mss-spec</code> junta a esse rigor o <strong>jeito da MSIG</strong>: comandos fáceis de lembrar, geração automática de arquivos e o padrão de infraestrutura da casa já embutido.</p>
 
   <div class="scorebar">
-    <div class="rust"><span class="n">17</span><span class="l">comandos</span></div>
+    <div class="rust"><span class="n">19</span><span class="l">comandos</span></div>
     <div class="plum"><span class="n">1</span><span class="l">rede de segurança</span></div>
     <div class="ok"><span class="n">15+</span><span class="l">moldes prontos</span></div>
     <div class="ok"><span class="n">1×</span><span class="l">instala e esquece</span></div>
@@ -276,7 +276,7 @@ li{margin-bottom:6px}
   <div class="table-wrap"><table>
     <thead><tr><th>Peça</th><th>O que é</th></tr></thead>
     <tbody>
-      <tr><td><strong>Comandos</strong></td><td>Os 17 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
+      <tr><td><strong>Comandos</strong></td><td>Os 19 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
       <tr><td><strong>Moldes</strong> (templates)</td><td>Arquivos-modelo prontos (padrão MSIG) que os comandos copiam pro seu projeto — em vez de você copiar à mão.</td></tr>
       <tr><td><strong>Skill</strong></td><td>Uma rede de segurança que se ativa sozinha (catálogo de "isso já foi feito em outro projeto?").</td></tr>
     </tbody>
@@ -412,14 +412,17 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-memory">
-    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">memory</span><span class="node-type">salva a memória</span></div>
+    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">memory</span><span class="node-type">memória do projeto · NOVO: captura</span></div>
     <div class="node-body">
-      <p class="plain">Garante que os aprendizados do assistente fiquem guardados junto com o projeto (e não se percam).</p>
-      <p>Traz para dentro do repositório a memória que porventura ficou numa pasta "volátil" do Claude, e a torna durável (versionada com o código).</p>
+      <p class="plain">Guarda os aprendizados e as <strong>decisões</strong> do projeto junto com o código — inclusive as decisões de <em>não</em> fazer algo, pra ninguém repropor semanas depois o que já foi descartado.</p>
+      <p>Tem dois modos. <strong><code>resgatar</code></strong> traz pra dentro do repositório a memória que ficou numa pasta "volátil" do Claude e a torna durável (versionada com o código). <strong><code>capturar</code></strong> (novo) <strong>destila a conversa</strong> ao fechar um assunto e distribui pros lugares certos: as decisões transversais, o que se decidiu <em>não</em> fazer, e um <strong>diário de sessão</strong> datado — um resumo curto do que se conversou e, sobretudo, dos <strong>pivôs</strong> (o que se cogitou, por que mudou de ideia, pra onde foi). Sempre com o seu <strong>OK antes de gravar</strong>; trechos marcados <code>&lt;private&gt;</code> nunca viram memória.</p>
+      <p>O diário mora em <code>memory/sessions/</code> com um índice datado (<code>memory/DIARIO.md</code>) — barato de reler: abre-se só a entrada do dia/assunto, nunca a pasta toda. O fecho da <code>nova-feature</code> já chama o <code>capturar</code> sozinho; um gatilho automático opcional (desligado por padrão) pode lembrar de rodá-lo em conversas longas.</p>
       <div class="subhead">Exemplo</div>
-      <pre><code>/mss-spec:memory
-  → guarda no repo o que aprendemos ("como foi o kickoff", "a API de WhatsApp usada")</code></pre>
-      <div class="label-row"><span class="pill ok">anti-perda</span></div>
+      <pre><code>/mss-spec:memory resgatar
+  → guarda no repo a memória volátil do Claude (não-destrutivo)
+/mss-spec:memory capturar
+  → decisões (incl. "não fazer") + diário da sessão, com seu OK</code></pre>
+      <div class="label-row"><span class="pill ok">anti-perda</span><span class="pill warn">decisões + diário · NOVO</span><span class="pill graph">anti-re-litígio</span></div>
     </div>
   </div>
 
