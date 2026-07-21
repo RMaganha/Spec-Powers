@@ -53,6 +53,11 @@ def proj(tmp_path):
         "- [Motor Gemini migrado](m1.md) — migrou o motor\n- [Banco como canal](m2.md) — decisão\n",
         encoding="utf-8",
     )
+    (tmp_path / "memory" / "DIARIO.md").write_text(
+        "# Diário de sessão — meu-proj\n\n## 2026-01-02\n"
+        "- [emissao-retry] discutimos o retry no envio → backoff exponencial → sessions/2026-01-02-emissao-retry.md\n",
+        encoding="utf-8",
+    )
     return tmp_path
 
 
@@ -104,6 +109,13 @@ def test_extrair_memorias(mn, proj):
     ids = " | ".join(_ids(no))
     assert "emissão cosseguro" in ids, "não trouxe a spec"
     assert "Gemini" in ids, "não trouxe a memória do índice"
+
+
+def test_extrair_diario(mn, proj):
+    """A dimensão de memórias traz também o diário de sessão (memory/DIARIO.md → memory/sessions/)."""
+    no = mn.extrair_memorias(proj)
+    ids = " | ".join(_ids(no))
+    assert "emissao-retry" in ids, "o mapa mental não trouxe a entrada do diário (memory/DIARIO.md)"
 
 
 def test_construir_arvore_projeto_no_centro_com_4_dimensoes(mn, proj):

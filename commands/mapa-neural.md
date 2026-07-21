@@ -8,7 +8,7 @@ argument-hint: "(sem argumento — usa o diretório atual)"
 Você vai gerar o **mapa mental do projeto atual** — a árvore com o projeto no centro e **4 dimensões**, cada uma **extraída do repo** (o gerador só lê o que existe; **nunca inventa**):
 - **Arquitetura interna** — camadas/módulos presentes (`main.py`, `routers/`, `services/`, ...);
 - **APIs & integrações** — endpoints expostos (rotas FastAPI) + integrações detectadas por *import* (banco, HTTP, fila);
-- **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`;
+- **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`, `to-dolist` e o **diário de sessão** (índice `memory/DIARIO.md` → cada entrada aponta o `memory/sessions/<data>-<assunto>.md`);
 - **Conexões entre projetos** — a seção **Conexões** do `docs/superpowers/MAPA.md` (o nome do vizinho é o que estiver declarado lá — declare o **nome completo** do projeto).
 
 Duas saídas do mesmo modelo:
