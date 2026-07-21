@@ -16,8 +16,9 @@ sem source separado**.
 não trocar o `source` — só reescrever a doc de instalação. Confirmado nos docs oficiais do Code
 (plugin-marketplaces): relative-path resolve contra a cópia local do marketplace.
 
-**How to apply:** para publicar o kit num git interno, basta `git remote add` + `push` e trocar o
-`<URL-do-git-interno>` do `LEIA-ME.md` pela URL real — nenhum ajuste no `source`. **Pegadinha:** só
+**How to apply:** o kit já está publicado no GitHub (`github.com/RMaganha/Spec-Powers`, público, desde
+2026-07-21): bastou `git remote add` + `push` e trocar o placeholder do `LEIA-ME.md` pela URL real —
+nenhum ajuste no `source`. **Pegadinha:** só
 quebra se alguém apontar o marketplace direto pro **arquivo** `marketplace.json` cru (aí só o arquivo é
 baixado, e o relative-path não resolve) — tem que apontar pro **repo**. Relacionado:
 [[plugin-load-cross-marketplace]] (por que a dependência superpowers ainda não é declarada).

@@ -3,10 +3,10 @@
 # dos runs) e Cobertura XML (cobertura no MR/diff). Os artefatos são EFÊMEROS do CI;
 # a saída de run (report.xml, coverage.xml) nunca é commitada — está no .gitignore.
 #
-# PREPARADO, NÃO ATIVADO (placeholder, como o item 9): o `git remote` está vazio, então
-# não há host onde este pipeline rode ainda. Ativar é passo manual do owner quando o
-# host git interno existir — adicionar o remote (a URL entra como <URL-do-git-interno>,
-# ver docs/LEIA-ME.md) e dar push. Nada aqui aponta pra um host inventado.
+# PREPARADO, NÃO ATIVADO: o repositório já foi publicado no GitHub
+# (github.com/RMaganha/Spec-Powers, 2026-07-21), mas este pipeline é do GitLab CI e
+# NÃO roda no GitHub — pra CI no GitHub seria preciso um equivalente em
+# .github/workflows/ (GitHub Actions). Mantido como referência do pipeline de teste.
 #
 # Os flags de artefato vivem no comando do job (não no addopts do pytest), de propósito:
 # assim o `pytest -q` local segue limpo e sem exigir pytest-cov.

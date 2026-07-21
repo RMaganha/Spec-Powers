@@ -23,7 +23,7 @@
 - `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
 - `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
 - `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
-- `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e `<URL-do-git-interno>` como placeholder
+- `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e a URL real do GitHub (publicado 2026-07-21)
 - `test_mapa_contexto_wiring` — mapa de contexto F1: `templates/MAPA.md` (3 seções + Conexões do código real/não inventar), comando `/mss-spec:mapa` (lê+reconcilia git/INDEX/Conexões), e os 4 pontos de integração (kickoff cria · CLAUDE lê na partida · nova-feature mantém)
 - `test_mapa_neural_wiring` — mapa mental F2: gerador `templates/mapa_neural.py` + comando `/mss-spec:mapa-neural` existem, o comando aponta o script e descreve as 4 dimensões, saída derivada gitignorada, LEIA-ME lista o comando
 - `test_captura_memory_dois_modos` — `/mss-spec:memory` com 2 modos: `resgatar` (intacto) + `capturar` (roteia decisões/`decisoes.md`, "não fazer"/INDEX, `memory/sessions/`+`DIARIO.md`, `<private>`, chama `/mss-spec:mapa`, pede OK, não duplica, foca pivôs)

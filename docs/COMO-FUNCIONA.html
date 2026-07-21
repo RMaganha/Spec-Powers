@@ -239,10 +239,10 @@ li{margin-bottom:6px}
 
   <h3>Via git (para o time)</h3>
   <p>Instala e atualiza sem copiar pasta. Numa sessão do Claude Code:</p>
-  <pre><code>/plugin marketplace add &lt;URL-do-git-interno&gt;
+  <pre><code>/plugin marketplace add https://github.com/RMaganha/Spec-Powers.git
 /plugin install mss-spec@mss-local</code></pre>
   <ul>
-    <li><code>&lt;URL-do-git-interno&gt;</code> é o endereço do repositório — <strong>placeholder</strong>: troque pela URL real quando o host existir. Dá pra fixar tag/branch com <code>#ref</code> (ex.: <code>&lt;URL-do-git-interno&gt;#v0.8.5</code>).</li>
+    <li><code>https://github.com/RMaganha/Spec-Powers.git</code> é o endereço do repositório (público no GitHub). Dá pra fixar tag/branch com <code>#ref</code> (ex.: <code>https://github.com/RMaganha/Spec-Powers.git#v0.10.0</code>).</li>
     <li><strong>Atualizar</strong> quando o autor publica versão nova: <code>/plugin marketplace update mss-local</code> — dá <code>git pull</code> no clone e re-resolve o plugin.</li>
   </ul>
 
@@ -263,8 +263,8 @@ li{margin-bottom:6px}
   </div>
 
   <div class="callout info">
-    <div class="callout-label">Falta só publicar num host</div>
-    O <strong>mecanismo</strong> das duas vias já está pronto (item 9). O que falta é o passo manual de <strong>publicar o repositório num <a class="gl" href="#g-git">git</a> interno</strong> e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real — aí o time instala por URL e puxa atualizações pelo <code>marketplace update</code>. Enquanto o host não existe, a via de pasta local acima funciona igual.
+    <div class="callout-label">Publicado no GitHub</div>
+    O kit está <strong>publicado no GitHub</strong> (<code>github.com/RMaganha/Spec-Powers</code>, repositório público): o time instala por URL e puxa atualizações pelo <code>marketplace update</code>. A via de pasta local acima continua servindo pra dev/teste.
   </div>
 </section>
 
@@ -687,7 +687,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
   <div class="section-num">11 — Adiante</div>
   <h2>O que ainda <em>vem</em></h2>
   <ul>
-    <li><strong>Publicar num git interno.</strong> O mecanismo de instalar/atualizar por <a class="gl" href="#g-git">git</a> já está pronto (as duas vias na seção de instalação); falta só o passo manual de publicar o repositório num host e trocar o <code>&lt;URL-do-git-interno&gt;</code> pela URL real.</li>
+    <li><strong>CI no GitHub.</strong> O repositório já está <strong>publicado no GitHub</strong> e a distribuição por URL funciona; o <code>.gitlab-ci.yml</code> existente é do GitLab e <strong>não roda no GitHub</strong> — um equivalente em GitHub Actions (<code>.github/workflows/</code>) fica como próximo passo.</li>
     <li><strong>Documentar a distribuição.</strong> Manter o histórico de mudanças (CHANGELOG) e esta página em dia a cada novidade.</li>
   </ul>
   <h4>Não faz parte do escopo</h4>

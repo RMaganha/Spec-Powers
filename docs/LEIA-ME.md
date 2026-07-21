@@ -18,14 +18,14 @@ da máquina). Requer Claude Code **v2.1.140+**.
 
 ### Via git (para o time — recomendada)
 
-Com o repositório publicado num git interno, cada colega instala por URL e puxa atualizações sem copiar
+Com o repositório publicado no GitHub, cada colega instala por URL e puxa atualizações sem copiar
 pasta. Numa sessão do Claude Code:
 ```
-/plugin marketplace add <URL-do-git-interno>
+/plugin marketplace add https://github.com/RMaganha/Spec-Powers.git
 /plugin install mss-spec@mss-local
 ```
-- `<URL-do-git-interno>` é o endereço do repositório (placeholder — troque pela URL real quando o host
-  existir). Pode fixar tag/branch com `#ref`, ex.: `<URL-do-git-interno>#v0.8.3`.
+- `https://github.com/RMaganha/Spec-Powers.git` é o endereço do repositório (público no GitHub).
+  Pode fixar tag/branch com `#ref`, ex.: `https://github.com/RMaganha/Spec-Powers.git#v0.10.0`.
 - **Atualizar** depois que o autor publica uma versão nova: `/plugin marketplace update mss-local` (dá
   `git pull` no clone e re-resolve o plugin).
 

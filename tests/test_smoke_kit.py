@@ -328,8 +328,9 @@ def test_distribuicao_por_git_wiring():
     assert "install mss-spec@mss-local" in leiame, "LEIA-ME não mostra o install a partir da lojinha mss-local"
     assert "pasta local" in leiame.lower(), "LEIA-ME não preserva a via de instalação por pasta local (dev/teste)"
 
-    # AC4: URL do git interno é placeholder marcado, não host inventado
-    assert "<URL-do-git-interno>" in leiame, "LEIA-ME deve usar <URL-do-git-interno> como placeholder, não um host real"
+    # AC4: LEIA-ME aponta pra URL real do GitHub (publicado 2026-07-21), não mais o placeholder
+    assert "github.com/RMaganha/Spec-Powers" in leiame, "LEIA-ME deve apontar pra URL real do GitHub"
+    assert "<URL-do-git-interno>" not in leiame, "LEIA-ME não deve mais conter o placeholder <URL-do-git-interno>"
 
 
 def test_captura_memory_dois_modos():
