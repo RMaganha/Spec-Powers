@@ -330,3 +330,28 @@ def test_distribuicao_por_git_wiring():
 
     # AC4: URL do git interno é placeholder marcado, não host inventado
     assert "<URL-do-git-interno>" in leiame, "LEIA-ME deve usar <URL-do-git-interno> como placeholder, não um host real"
+
+
+def test_captura_memory_dois_modos():
+    """/mss-spec:memory vira o comando de memória com 2 modos: resgatar (intacto) + capturar (novo).
+    capturar destila a SESSÃO do contexto e roteia pras 3 camadas, aplica <private>, pede OK, não duplica."""
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    fm = mem.split("---")[1]  # frontmatter
+    # os 2 modos ofertados no argument-hint
+    assert "resgatar" in fm, "memory.md: argument-hint não oferece o modo resgatar"
+    assert "capturar" in fm, "memory.md: argument-hint não oferece o modo capturar"
+    # regressão: o modo resgatar (memória nativa → repo) segue descrito
+    assert "nativa" in mem.lower(), "memory.md: modo resgatar (memória nativa → repo) sumiu"
+    # capturar roteia pras 3 camadas
+    assert "docs/decisoes.md" in mem, "capturar não roteia decisão transversal pro decisoes.md"
+    assert "Fora de escopo" in mem, "capturar não roteia decisão 'não fazer' pro INDEX (Fora de escopo)"
+    assert "memory/sessions/" in mem, "capturar não grava o resumo em memory/sessions/"
+    assert "DIARIO.md" in mem, "capturar não indexa no memory/DIARIO.md"
+    assert "MEMORY.md" in mem, "capturar não indexa fato durável no MEMORY.md"
+    # convenções e salvaguardas
+    assert "<private>" in mem, "capturar não aplica a convenção <private>"
+    assert "/mss-spec:mapa" in mem, "capturar não delega o MAPA ao /mss-spec:mapa (não reimplementa)"
+    assert "antes de gravar" in mem.lower(), "capturar não pede OK do owner antes de gravar (CA1)"
+    assert "não duplic" in mem.lower(), "capturar não garante não-duplicação (CA2)"
+    # foco em pivôs (a evolução das decisões, não só o estado final)
+    assert "pivô" in mem.lower() or "repensad" in mem.lower(), "capturar não prioriza os pivôs no resumo de sessão"
