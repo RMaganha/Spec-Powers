@@ -300,6 +300,28 @@ def construir_arvore(proj: Path) -> dict:
     ])
 
 
+def coletar_docs(proj: Path, arvore: dict) -> dict:
+    """Lê o conteúdo dos `.md` referenciados por algum nó (campo `local`) pra embutir inline no HTML.
+
+    Chave = caminho relativo (como está no `local`); valor = conteúdo do arquivo. Deduplica e
+    ignora quem não existe em disco (ex.: item do índice de memória apontando pra arquivo ausente).
+    """
+    proj = Path(proj)
+    docs: dict = {}
+
+    def caminha(n):
+        loc = n.get("local")
+        if loc and loc.lower().endswith(".md") and loc not in docs:
+            alvo = proj / loc
+            if alvo.is_file():
+                docs[loc] = alvo.read_text(encoding="utf-8", errors="ignore")
+        for f in n.get("filhos", []):
+            caminha(f)
+
+    caminha(arvore)
+    return docs
+
+
 def render_texto(arvore: dict) -> str:
     L = ["# Mapa mental — %s" % arvore["id"], "",
          "> Índice **derivado** do projeto (arquitetura · APIs · memórias · conexões).",
@@ -348,7 +370,7 @@ _HTML = """<!doctype html>
 <header>
   <h1>Mapa <em>mental</em> do projeto — __TITLE__</h1>
   <div class="bar">
-    <span>clique no <b>＋</b> pra expandir · arraste a caixa · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes__GEN__</span>
+    <span>clique no <b>＋</b> pra expandir · clique num item <b>.md</b> pra abrir o arquivo em nova aba · arraste a caixa · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes__GEN__</span>
     <span class="leg"><i class="dot" style="background:var(--arq)"></i>arquitetura</span>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
@@ -362,7 +384,48 @@ _HTML = """<!doctype html>
 (function(){
   var COL={arq:'#2d6a4f',api:'#b5451f',mem:'#6a4c93',conn:'#1d4e89',projeto:'#1f2a44'};
   var TREE=__TREE__;
+  var DOCS=__DOCS__;  // {caminho.md: conteúdo} — embutido na geração; abre em nova aba ao clicar
   var uid=0, byUid={};
+
+  // renderizador markdown vanilla inline (sem lib/CDN): títulos, listas, código, blockquote, links, ---
+  function mdEsc(s){ return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function mdInline(s){ s=mdEsc(s);
+    s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+    s=s.replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>');
+    s=s.replace(/\\*([^*]+)\\*/g,'<em>$1</em>');
+    s=s.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2">$1</a>');
+    return s; }
+  function mdToHtml(src){
+    var lines=(''+src).split(/\\r?\\n/), out=[], inCode=false, code=[], list=null;
+    function closeList(){ if(list){ out.push('</'+list+'>'); list=null; } }
+    for(var i=0;i<lines.length;i++){ var ln=lines[i];
+      if(/^```/.test(ln)){ if(inCode){ out.push('<pre><code>'+mdEsc(code.join('\\n'))+'</code></pre>'); code=[]; inCode=false; } else { closeList(); inCode=true; } continue; }
+      if(inCode){ code.push(ln); continue; }
+      if(/^\\s*---+\\s*$/.test(ln)){ closeList(); out.push('<hr>'); continue; }
+      var h=ln.match(/^(#{1,6})\\s+(.*)$/); if(h){ closeList(); var lv=h[1].length; out.push('<h'+lv+'>'+mdInline(h[2])+'</h'+lv+'>'); continue; }
+      var q=ln.match(/^\\s*>\\s?(.*)$/); if(q){ closeList(); out.push('<blockquote>'+mdInline(q[1])+'</blockquote>'); continue; }
+      var ul=ln.match(/^\\s*[-*]\\s+(.*)$/); if(ul){ if(list!=='ul'){ closeList(); out.push('<ul>'); list='ul'; } out.push('<li>'+mdInline(ul[1])+'</li>'); continue; }
+      var ol=ln.match(/^\\s*\\d+\\.\\s+(.*)$/); if(ol){ if(list!=='ol'){ closeList(); out.push('<ol>'); list='ol'; } out.push('<li>'+mdInline(ol[1])+'</li>'); continue; }
+      if(/^\\s*$/.test(ln)){ closeList(); continue; }
+      closeList(); out.push('<p>'+mdInline(ln)+'</p>'); }
+    if(inCode) out.push('<pre><code>'+mdEsc(code.join('\\n'))+'</code></pre>');
+    closeList(); return out.join('\\n'); }
+
+  function openDoc(n){ if(!n||!n.local) return false;
+    var src=DOCS[n.local]; if(src===undefined) return false;
+    var w=window.open('','_blank'); if(!w) return false;
+    var css="body{max-width:820px;margin:0 auto;padding:32px 24px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#1f2a44;line-height:1.6;}"
+      +"h1,h2,h3,h4{font-family:Georgia,serif;line-height:1.25;}h1{font-size:26px;}"
+      +"code{font-family:ui-monospace,monospace;background:#f2efe7;padding:1px 5px;border-radius:4px;font-size:.9em;}"
+      +"pre{background:#f7f5ef;padding:14px;border-radius:8px;overflow:auto;}pre code{background:none;padding:0;}"
+      +"blockquote{border-left:3px solid #d9d3c4;margin:0;padding:2px 14px;color:#5a5647;}"
+      +"a{color:#1d4e89;}hr{border:none;border-top:1px solid #e2dccb;margin:22px 0;}"
+      +".loc{font-family:ui-monospace,monospace;font-size:12px;color:#8a8477;margin-bottom:18px;word-break:break-all;}";
+    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
+      +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+      +'<title>'+mdEsc(n.local)+'</title><style>'+css+'</style></head><body>'
+      +'<div class="loc">'+mdEsc(n.local)+'</div>'+mdToHtml(src)+'</body></html>');
+    w.document.close(); return true; }
   (function init(n,p,dim){ n._uid=++uid; n._p=p; n.dim=n.dim||dim; if(n.exp===undefined)n.exp=(p===null);
     byUid[n._uid]=n; if(n.filhos)n.filhos.forEach(function(c){init(c,n,n.dim);}); })(TREE,null,'projeto');
 
@@ -408,7 +471,9 @@ _HTML = """<!doctype html>
     nodes:{ shapeProperties:{ borderRadius:8 } }
   });
 
-  net.on('click', function(p){ if(p.nodes.length){ var n=byUid[p.nodes[0]]; if(n&&n.filhos&&n.filhos.length){ n.exp=!n.exp; rebuild(); } } });
+  net.on('click', function(p){ if(!p.nodes.length) return; var n=byUid[p.nodes[0]]; if(!n) return;
+    if(n.filhos&&n.filhos.length){ n.exp=!n.exp; rebuild(); return; }   // nó com filhos: expande/recolhe
+    if(n.local&&/\\.md$/i.test(n.local)) openDoc(n); });                 // folha .md: abre em nova aba
   net.on('hoverNode', function(p){ showPop(byUid[p.node]); });
   net.on('blurNode', hidePop); net.on('dragStart', hidePop); net.on('zoom', hidePop);
   net.on('dragEnd', function(p){ if(p.nodes.length){ var id=p.nodes[0], n=byUid[id], pos=net.getPositions([id])[id];
@@ -435,13 +500,17 @@ _HTML = """<!doctype html>
 """
 
 
-def render_html(arvore: dict, gerado_em: str = "") -> str:
+def render_html(arvore: dict, gerado_em: str = "", docs: dict | None = None) -> str:
     gen = " · gerado em %s" % gerado_em if gerado_em else ""
     vis = (Path(__file__).resolve().parent / "vendor" / "vis-network.min.js").read_text(encoding="utf-8")
-    return (_HTML.replace("__TITLE__", str(arvore["id"]))
+    html = (_HTML.replace("__TITLE__", str(arvore["id"]))
                  .replace("__GEN__", gen)
-                 .replace("__VISLIB__", vis)
-                 .replace("__TREE__", json.dumps(arvore, ensure_ascii=False)))
+                 .replace("__VISLIB__", vis))
+    # __TREE__ e __DOCS__ carregam JSON que pode conter o texto do OUTRO placeholder
+    # (ex.: uma spec que menciona `__DOCS__`) — substituí num passo só pra não contaminar.
+    subs = {"__TREE__": json.dumps(arvore, ensure_ascii=False),
+            "__DOCS__": json.dumps(docs or {}, ensure_ascii=False)}
+    return re.sub(r"__TREE__|__DOCS__", lambda m: subs[m.group(0)], html)
 
 
 def gerar(proj_dir=None, out_dir=None):
@@ -454,8 +523,9 @@ def gerar(proj_dir=None, out_dir=None):
     out.mkdir(parents=True, exist_ok=True)
     md = out / "mapa-neural.md"
     html = out / "mapa-neural.html"
+    docs = coletar_docs(proj, arv)
     md.write_text(render_texto(arv), encoding="utf-8")
-    html.write_text(render_html(arv, datetime.now().strftime("%Y-%m-%d %H:%M")), encoding="utf-8")
+    html.write_text(render_html(arv, datetime.now().strftime("%Y-%m-%d %H:%M"), docs=docs), encoding="utf-8")
     return md, html
 
 

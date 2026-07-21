@@ -61,8 +61,10 @@
 - `test_construir_arvore_projeto_no_centro_com_4_dimensoes` — raiz = projeto com exatamente as 4 dimensões
 - `test_render_html_full_screen_e_self_contained` — HTML sem `<script src=>`, full-screen (`100vh`), com a árvore embutida e o nome do projeto
 - `test_render_texto_lista_as_dimensoes` — o índice `.md` lista as 4 dimensões
+- `test_coletar_docs_embute_conteudo_dos_md` — F2.1: `coletar_docs` lê o conteúdo (não só o título) dos `.md` referenciados por nós, dedup e ignora arquivo inexistente
+- `test_render_html_clique_abre_md_em_nova_aba` — F2.1 (CA14): o HTML embute o `.md` (`__DOCS__`), traz o handler `window.open` (nova aba) + o renderizador `mdToHtml`, e segue self-contained
 - `test_gerar_cria_md_e_html` — `gerar()` escreve o `.md` e o `.html`
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-21 · commit `b2de5fb` (branch feature/captura-de-memoria) · 51 passed
+**Último 100% verde:** 2026-07-21 · branch feature/mapa-neural-abrir-md (F2.1 clique-para-abrir) · 54 passed

@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/mapa-neural-abrir-md` — **F2.1 do mapa neural feita e verde (suíte 54)**: clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (conteúdo dos `.md` embutido inline na geração via `coletar_docs` + renderizador markdown vanilla inline; self-contained, sem CDN). Falta: capturar memória → release → integrar na `main`. Base: v0.10.0 integrada/publicada.
+
+<!-- histórico do último release (v0.10.0) -->
 `main` — **v0.10.0 integrada e publicada no GitHub** (branch `feature/captura-de-memoria` apagada; suíte **51 passed**). Entregue: modo **`capturar`** no `/mss-spec:memory` (2º modo, ao lado do `resgatar`) que destila a sessão em **decisões** (incl. as negativas) + **diário de sessão** datado/indexado (`memory/sessions/<data>-<assunto>.md` + `memory/DIARIO.md`, foco nos **pivôs**), roteando pras 3 camadas de memória, com `<private>`, OK do owner e delegação do MAPA ao `/mss-spec:mapa`; fecho do `nova-feature` passou a **delegar** ao `capturar`; hook `Stop`/`PreCompact` **opt-in** (off por padrão) só como rede. Integração do claude-mem **rejeitada** (serviço/firehose/vetorial bate nos pilares). Spec: `docs/superpowers/specs/2026-07-21-captura-de-memoria-design.md`.
 
 ## Próximo passo
