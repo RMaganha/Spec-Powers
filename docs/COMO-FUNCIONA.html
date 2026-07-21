@@ -252,6 +252,34 @@ li{margin-bottom:6px}
 /plugin install mss-spec@mss-local</code></pre>
   <p>Só o caminho antes de <code>mss-local</code> muda de máquina pra máquina. (<code>mss-local</code> é o nome fixo da lojinha.)</p>
 
+  <h3>Atualizar depois: <em>dois passos</em> que não se misturam</h3>
+  <p>Quando o autor publica uma versão nova no GitHub, ela <strong>não chega sozinha</strong> na máquina de quem usa — cada máquina tem a <em>sua</em> cópia do plugin. Por isso atualizar é sempre <strong>dois passos separados</strong>, e <strong>só o primeiro fala com o GitHub</strong>. É a confusão mais comum: publicar (dar <a class="gl" href="#g-git">git</a> push) <em>não</em> faz o projeto de ninguém se atualizar sozinho.</p>
+
+  <div class="flow"><b>AUTOR (mantenedor)</b>
+  edita o kit → sobe a versão → git push → <b>GitHub</b>   (fica publicado, mas parado lá)
+
+<b>QUEM USA (cada dev, cada máquina)</b>
+  passo 1   /plugin marketplace update mss-local    → <b>git pull</b> do GitHub   (baixa o plugin novo)
+  passo 2   /mss-spec:upgrade                        → mescla os moldes em CADA projeto   (só local)</div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Passo</th><th>Comando</th><th>O que faz</th><th>Fala com o GitHub?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 — puxar</strong></td><td><code>/plugin marketplace update mss-local</code></td><td>Dá <code>git pull</code> no clone e re-resolve o plugin: atualiza o plugin <em>inteiro</em> na sua máquina — comandos, o gerador do <a href="#c-mapa-neural" class="gl">mapa-neural</a>, a skill e os moldes.</td><td><strong>Sim</strong> — é o único passo que baixa.</td></tr>
+      <tr><td><strong>2 — aplicar</strong></td><td><code>/mss-spec:upgrade</code></td><td>Pega os moldes <em>já baixados</em> no passo 1 e mescla nos arquivos de <strong>um</strong> projeto. Repita em cada projeto que quiser atualizar.</td><td><strong>Não</strong> — só lê a cópia local.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout warn">
+    <div class="callout-label">Por que às vezes "o upgrade não trouxe a novidade"</div>
+    Se você pular o passo 1, o <code>/mss-spec:upgrade</code> reconcilia contra a versão <strong>antiga</strong> que ainda está na sua máquina — e parece que "nada mudou". O upgrade <strong>nunca</strong> puxa do GitHub sozinho; quem puxa é o <code>marketplace update</code>. E as melhorias que rodam <em>direto do plugin</em> (ex.: o próprio gerador do <a href="#c-mapa-neural" class="gl">mapa-neural</a>) chegam <strong>inteiras já no passo 1</strong> — o upgrade nem entra nisso; ele só serve pra levar mudança de <strong>molde</strong> pra dentro de um projeto.
+  </div>
+
+  <div class="callout info">
+    <div class="callout-label">O autor precisa subir a versão</div>
+    Pro passo 1 <em>perceber</em> que há novidade, o autor tem que <strong>subir o número da versão</strong> em <code>plugin.json</code> e <code>marketplace.json</code> (o <a href="#c-release" class="gl">release</a> barra se os dois divergirem) antes do <code>git push</code>. Sem esse bump, a máquina de quem usa acha que já está em dia e o <code>marketplace update</code> não traz nada.
+  </div>
+
   <div class="callout warn">
     <div class="callout-label">O superpowers é pré-requisito (passo à parte)</div>
     O <code>mss-spec</code> depende do <a class="gl" href="#g-superpowers">superpowers</a> (a disciplina de trabalho). Ele <strong>não</strong> é instalado junto automaticamente — habilite-o à parte (é o plugin oficial da Anthropic, <code>superpowers@claude-plugins-official</code>). Ao rodar o <code>/mss-spec:kickoff</code> num projeto, o kit já deixa o superpowers ligado nas configurações daquele projeto.
