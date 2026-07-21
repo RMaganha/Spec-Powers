@@ -368,3 +368,11 @@ def test_captura_diario_template():
         "DIARIO.md não orienta capturar os pivôs (a evolução das decisões)"
     # dogfood: o próprio kit tem seu índice de diário
     assert (REPO / "memory" / "DIARIO.md").exists(), "falta o dogfood memory/DIARIO.md"
+
+
+def test_captura_kickoff_scaffold():
+    """kickoff monta o diário no projeto: copia o template e cria a pasta de sessões."""
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "templates/DIARIO.md" in kickoff, "kickoff não copia templates/DIARIO.md"
+    assert "memory/DIARIO.md" in kickoff, "kickoff não cria memory/DIARIO.md"
+    assert "memory/sessions/" in kickoff, "kickoff não cria a pasta memory/sessions/"
