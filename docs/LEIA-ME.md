@@ -81,9 +81,10 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 3. Mudança pequena (bugfix/refactor/chore) não precisa de `/mss-spec:nova-feature` — só pedir.
 
 ## Memória e estado (não poluir o CLAUDE.md)
-- **Aprendizados** → `memory/` (por-tópico, índice em `memory/MEMORY.md`), dentro do repo, versionado.
+- **Aprendizados (fatos)** → `memory/` (por-tópico, índice em `memory/MEMORY.md`), dentro do repo, versionado.
+- **Decisões e diário de sessão** → gravados pelo `/mss-spec:memory capturar` ao fechar um assunto: decisões transversais em `docs/decisoes.md`, o "não fazer" na seção **Fora de escopo** do `INDEX.md`, e um **diário datado** em `memory/sessions/<data>-<assunto>.md` (índice `memory/DIARIO.md`), com foco nos *pivôs* — anti-re-litígio e barato de reler. Trechos `<private>` nunca viram memória.
 - **Tarefas** → spec **viva por assunto** em `docs/specs/<assunto>.md` (Estado atual + Histórico); planos datados/efêmeros em `docs/superpowers/plans/`; índice em `docs/superpowers/INDEX.md`.
-- Ambos: índice barato lido no início; arquivos abertos **sob demanda**; `Grep`/`Glob` de fallback.
+- Todos: índice barato lido no início; arquivos abertos **sob demanda**; `Grep`/`Glob` de fallback.
 - `CLAUDE.md` = só regras/fatos sempre-verdadeiros; nunca journal/registro.
 
 ## Branch / git
