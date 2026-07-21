@@ -14,9 +14,10 @@ e spec↔código (`## Arquivos tocados`), nunca inventadas.
 
 Duas saídas do mesmo modelo:
   (a) `mapa-neural.md`   — índice em texto (o assistente consulta) + seção Relações;
-  (b) `mapa-neural.html` — mapa radial **full-screen**, expansível (clique no ＋) e arrastável, com
-      as arestas associativas pontilhadas que acendem no hover; 100% self-contained (vis-network
-      embutido inline, fontes de sistema — zero CDN).
+  (b) `mapa-neural.html` — mapa em **árvore horizontal (tidy-tree, esquerda→direita)** full-screen,
+      expansível (clique no balão; irmãos se reacomodam sem sobrepor), conexões curvas (cubicBezier)
+      coloridas por ramo, balões modernos, e as arestas associativas pontilhadas que acendem no hover;
+      pan/zoom no fundo; 100% self-contained (vis-network embutido inline, fontes de sistema — zero CDN).
 
 Uso:
     python mapa_neural.py                 # projeto = diretório atual; saída no mesmo lugar
@@ -481,7 +482,7 @@ _HTML = """<!doctype html>
 <header>
   <h1>Mapa <em>mental</em> do projeto — __TITLE__</h1>
   <div class="bar">
-    <span>clique no <b>＋</b> pra expandir · clique num item <b>.md</b> pra abrir o arquivo em nova aba · arraste a caixa · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes (e <b>acender</b> as ligações pontilhadas)__GEN__</span>
+    <span>clique num balão pra <b>expandir/recolher</b> · clique num item <b>.md</b> pra abrir o arquivo em nova aba · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes (e <b>acender</b> as ligações pontilhadas)__GEN__</span>
     <span class="leg"><i class="dot" style="background:var(--arq)"></i>arquitetura</span>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
@@ -550,59 +551,66 @@ _HTML = """<!doctype html>
   var pop=document.getElementById('pop'), cont=document.getElementById('net');
   function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-  // layout RADIAL determinístico — SEM física (nada de animação "se mexendo").
-  // As posições são calculadas; expandir só ACRESCENTA os filhos, os demais nós não saem do lugar.
-  function Ldist(l){ return l<=1 ? 240 : 175; }
-  function layout(n,dir,level){
-    if(!n._p){ n._bx=0; n._by=0; }
-    else { n._bx=n._p._x+Ldist(level)*Math.cos(dir); n._by=n._p._y+Ldist(level)*Math.sin(dir); }
-    n._x=n._bx+(n._dx||0); n._y=n._by+(n._dy||0);
-    if(n.exp&&n.filhos){ var k=n.filhos.length;
-      for(var i=0;i<k;i++){ var cd;
-        if(level===0){ cd=2*Math.PI*i/k-Math.PI/2; }
-        else { var sp=Math.min(2.6,0.7+k*0.32); cd=(k===1)?dir:(dir-sp/2+sp*i/(k-1)); }
-        layout(n.filhos[i],cd,level+1); } }
+  // layout TIDY-TREE horizontal (esquerda→direita), determinístico e SEM física.
+  // Knuth: cada folha visível ocupa um slot vertical sequencial; o pai centra entre 1º e último filho —
+  // GARANTE zero-sobreposição. Ao expandir, os irmãos se reacomodam na hora (sem tremor/animação de física).
+  var XGAP=280, YGAP=46;
+  function layout(){ var slot=0;
+    (function place(n,depth){ n._x=depth*XGAP;
+      var kids=(n.exp&&n.filhos&&n.filhos.length)?n.filhos:null;
+      if(!kids){ n._y=slot*YGAP; slot++; return; }
+      var f,l; kids.forEach(function(c,i){ place(c,depth+1); if(i===0)f=c._y; l=c._y; });
+      n._y=(f+l)/2; })(TREE,0);
   }
   function visiveis(n,a){ a.push(n); if(n.exp&&n.filhos)n.filhos.forEach(function(c){visiveis(c,a);}); return a; }
 
   var nodes=new vis.DataSet(), edges=new vis.DataSet();
+  // estilo do balão por papel: centro (projeto) = cheio escuro; dimensão (filho do centro) = cor do
+  // ramo; folha = branco com texto suave. A cor do ramo viaja na borda/aresta.
+  function estilo(n){ var center=(n.dim==='projeto'), c=COL[n.dim]||'#1f2a44';
+    var isDim=(n._p&&n._p.dim==='projeto');
+    return { bg: center?c:'#ffffff', border: center?c:(isDim?c:'#d9d3c4'),
+             fcolor: center?'#faf8f3':(isDim?c:'#33405c'), fsize: center?17:(isDim?14:13),
+             bold: center||isDim }; }
   function rebuild(){
-    layout(TREE,-Math.PI/2,0);
+    layout();
     var vivos=visiveis(TREE,[]), ok={}; vivos.forEach(function(n){ ok[n._uid]=1; });
     nodes.getIds().forEach(function(id){ if(!ok[id]) nodes.remove(id); });
     // limpa só as arestas de ÁRVORE ('e'+uid) que sumiram; as associativas ('a…') são refeitas abaixo
     edges.getIds().forEach(function(id){ id=String(id);
       if(id.charAt(0)==='e' && !ok[+id.slice(1)]) edges.remove(id);
       else if(id.charAt(0)==='a') edges.remove(id); });
-    vivos.forEach(function(n){
-      var center=(n.dim==='projeto'), kids=n.filhos&&n.filhos.length;
-      var mark=kids?(n.exp?'  −':'  +'):'';
-      nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, shape:'box', margin:9, borderWidth:2, shadow:false,
-        color:{ background:center?'#1f2a44':'#ffffff', border:COL[n.dim]||'#1f2a44',
-                highlight:{ background:center?'#26324f':'#f3efe6', border:COL[n.dim]||'#1f2a44' } },
-        font:{ color:center?'#faf8f3':'#1f2a44', size:center?16:13, face:'system-ui', bold:!!center } });
-      if(n._p) edges.update({ id:'e'+n._uid, from:n._p._uid, to:n._uid, width:2,
-        color:{ color:COL[n.dim]||'#999', opacity:0.55, highlight:COL[n.dim]||'#999' }, smooth:{type:'continuous'} });
+    vivos.forEach(function(n){ var s=estilo(n), kids=n.filhos&&n.filhos.length;
+      var mark=kids?(n.exp?'   –':'   +'):'';
+      nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:{x:true,y:true},
+        shape:'box', borderWidth:2, widthConstraint:{maximum:230}, margin:{top:9,bottom:9,left:15,right:15},
+        shapeProperties:{borderRadius:14}, shadow:{enabled:true,size:12,x:0,y:5,color:'rgba(31,42,68,0.12)'},
+        color:{ background:s.bg, border:s.border,
+                highlight:{ background:s.bg==='#ffffff'?'#faf7f0':s.bg, border:s.border } },
+        font:{ color:s.fcolor, size:s.fsize, face:'system-ui', bold:s.bold } });
+      if(n._p) edges.update({ id:'e'+n._uid, from:n._p._uid, to:n._uid, width:2.2,
+        color:{ color:COL[n.dim]||'#999', opacity:0.6, highlight:COL[n.dim]||'#999' },
+        smooth:{ enabled:true, type:'cubicBezier', forceDirection:'horizontal', roundness:0.55 } });
     });
     // arestas ASSOCIATIVAS: só entre nós VISÍVEIS (a "teia" cresce conforme se expande),
     // pontilhadas e fracas — acendem no hover (acenderAssoc). Nunca inventadas: vêm do dado ASSOC.
     ASSOC.forEach(function(e,i){ var A=byLocal[e.a]||[], B=byLocal[e.b]||[];
       A.forEach(function(ua){ B.forEach(function(ub){
         if(ua!==ub && ok[ua] && ok[ub]){
-          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:ua, to:ub, dashes:true, width:1, _assoc:1, _base:ACOL[e.t]||'#999',
-            color:{ color:ACOL[e.t]||'#999', opacity:0.16 }, smooth:{ type:'curvedCW', roundness:0.2 } });
+          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:ua, to:ub, dashes:[3,5], width:1.4, _assoc:1, _base:ACOL[e.t]||'#999',
+            color:{ color:ACOL[e.t]||'#999', opacity:0.2 }, smooth:{ enabled:true, type:'curvedCW', roundness:0.3 } });
         } })); });
   }
   function acenderAssoc(uid){ edges.forEach(function(e){ if(!e._assoc) return;
     var on=(e.from===uid||e.to===uid);
-    edges.update({ id:e.id, width:on?2.5:1, shadow:!!on, color:{ color:e._base, opacity:on?0.95:0.16 } }); }); }
+    edges.update({ id:e.id, width:on?2.6:1.4, shadow:!!on, color:{ color:e._base, opacity:on?0.95:0.2 } }); }); }
   function apagarAssoc(){ edges.forEach(function(e){ if(e._assoc)
-    edges.update({ id:e.id, width:1, shadow:false, color:{ color:e._base, opacity:0.16 } }); }); }
+    edges.update({ id:e.id, width:1.4, shadow:false, color:{ color:e._base, opacity:0.2 } }); }); }
 
   var net=new vis.Network(cont, {nodes:nodes,edges:edges}, {
     physics:false, layout:{ improvedLayout:false },
-    interaction:{ hover:true, dragNodes:true, dragView:true, zoomView:true },
-    nodes:{ shapeProperties:{ borderRadius:8 } }
+    interaction:{ hover:true, dragNodes:false, dragView:true, zoomView:true },
+    nodes:{ shapeProperties:{ borderRadius:14 } }
   });
 
   net.on('click', function(p){ if(!p.nodes.length) return; var n=byUid[p.nodes[0]]; if(!n) return;
@@ -611,8 +619,6 @@ _HTML = """<!doctype html>
   net.on('hoverNode', function(p){ showPop(byUid[p.node]); acenderAssoc(p.node); });
   net.on('blurNode', function(){ hidePop(); apagarAssoc(); });
   net.on('dragStart', hidePop); net.on('zoom', hidePop);
-  net.on('dragEnd', function(p){ if(p.nodes.length){ var id=p.nodes[0], n=byUid[id], pos=net.getPositions([id])[id];
-    if(n&&pos){ n._dx=pos.x-n._bx; n._dy=pos.y-n._by; } } });  // guarda o arraste (fica onde soltou)
 
   function showPop(n){ if(!n) return;
     var pos=net.getPositions([n._uid])[n._uid]; if(!pos) return;

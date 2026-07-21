@@ -260,6 +260,16 @@ def test_render_html_embute_associacoes_e_destaque(mn, proj):
     assert "<script src=" not in html.lower(), "deixou de ser self-contained"
 
 
+def test_render_html_layout_tidy_tree_horizontal(mn, proj):
+    """F2.3 — layout horizontal tidy-tree (conexões curvas cubicBezier + balões arredondados),
+    no lugar do radial antigo."""
+    html = mn.render_html(mn.construir_arvore(proj))
+    assert "cubicBezier" in html, "as conexões não são curvas horizontais (cubicBezier)"
+    assert "YGAP" in html, "não há o layout tidy-tree (slots verticais por folha)"
+    assert "borderRadius:14" in html, "os balões não têm o arredondamento moderno"
+    assert "dragNodes:false" in html, "os nós deveriam ser fixos (auto-layout), não arrastáveis"
+
+
 def test_render_texto_tem_secao_relacoes(mn, proj):
     """CA19 (texto) — o índice .md ganha a seção Relações (associativa)."""
     assoc = mn.extrair_associacoes(proj)
