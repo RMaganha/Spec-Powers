@@ -1,5 +1,5 @@
 ---
-description: Pré-vôo do ambiente MSIG — checa resolução do plugin, proxy, CA, ODBC, rede docker, .env e superpowers e dá um veredito ✓/✗ (só reporta, não conserta)
+description: Pré-vôo do ambiente MSIG — checa resolução do plugin, proxy, CA, ODBC, rede docker, .env, superpowers e a versão do kit (instalada × publicada no remoto) e dá um veredito ✓/✗ (só reporta, não conserta)
 argument-hint: ""
 disable-model-invocation: true
 ---
@@ -18,5 +18,13 @@ Checks:
 5. **`certs/corp-ca.pem` presente** (se tem Docker) — o arquivo existe no projeto?
 6. **Rede `mitiai_network` existe** (se tem `docker-compose.yml`) — `docker network ls` mostra a rede do `AMBIENTE.md`? (se o Docker não estiver rodando, marque "a verificar", não ✗.)
 7. **ODBC Driver 17** (se o projeto usa SQL Server / `pyodbc`) — `python -c "import pyodbc; print(pyodbc.drivers())"` lista `ODBC Driver 17 for SQL Server`?
+8. **Versão do kit — instalada × publicada no remoto** (sempre, por último — diagnóstico do plugin, não conserta). Diz se o `mss-spec` instalado (global, no `~/.claude`) está atrás do publicado, pra o owner/time saber de qualquer projeto. **Só reporta** — não roda `marketplace update`, não bloqueia.
+   - **Instalada:** leia o campo `version` do `plugin.json` do kit — `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (ou, se a variável não resolveu, o mesmo clone que o check 1 localizou nos locais padrão).
+   - **Publicada:** **no mesmo clone**, faça um `git fetch` silencioso e leia a `version` do remoto — `git -C <clone> fetch -q` e `git -C <clone> show origin/<ref>:.claude-plugin/plugin.json` (`<ref>` = branch de rastreio do clone, ex. `main`). É o **mesmo canal git que o `marketplace update` usa** — nada de HTTP raw/proxy à parte.
+   - **Compare por número de versão (semver), não por commit** — legível e alinhado ao `release`/CHANGELOG; commit acusaria falso-desatualizado nos muitos commits que não mexem no plugin (docs, `memory/`, MAPA):
+     - iguais → **✓** "versão do kit: atualizada (X)".
+     - instalada **<** publicada → **⚠** "versão do kit: há atualização — X → Y; rode `claude plugin marketplace update <nome-do-marketplace>`" (**mostre** o comando; **não** rode).
+     - instalada **>** publicada → **ℹ** "versão do kit: à frente (dev) — X local · Y publicada" (é o caso de quem desenvolve o kit; **não** é ✗).
+   - **Degrade gracioso — nunca ✗** (igual ao check da rede docker): se o `git fetch` falhar (offline / fora da VPN / proxy), marque **"a verificar"** e mostre só a versão instalada; se o clone **não tem remote git** (kit instalado por pasta local / dev via symlink), o check é **pulado** (mostre só a instalada). Falta de remoto é ausência de sinal, não pendência.
 
 Saída: uma linha por check aplicável com **✓** ou **✗** (com o porquê no ✗) e um **veredito** final de uma linha (ex.: "tudo pronto" / "2 pendências: …"). Não conserte; num ✗, aponte o caminho provável (ex.: fora da VPN, CA desatualizada — ver `docs/AMBIENTE.md`).
