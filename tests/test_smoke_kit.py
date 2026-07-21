@@ -230,6 +230,77 @@ def test_compliance_wiring():
     assert "/mss-spec:upgrade" in comp, "compliance.md não aponta o upgrade como quem sincroniza template"
 
 
+def test_mapa_contexto_wiring():
+    """Mapa de contexto (F1 — fundação) montado: cada projeto ganha um docs/superpowers/MAPA.md
+    curto (Onde estamos · Próximo passo · Conexões inter-projeto), lido na partida e mantido pelo
+    fluxo. Fonte de verdade FEDERADA (cada repo declara; nunca inventar). O mapa neural HTML que
+    agrega os repos é F2 (fora daqui). Trava os 4 pontos de integração + o template."""
+    mapa_tpl = REPO / "templates" / "MAPA.md"
+    mapa_cmd = REPO / "commands" / "mapa.md"
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+
+    # CA5: template com as 3 seções + a de Conexões manda declarar do código real / não inventar
+    assert mapa_tpl.exists(), "falta templates/MAPA.md"
+    tpl = mapa_tpl.read_text(encoding="utf-8")
+    assert "Onde estamos" in tpl, "MAPA.md: falta a seção 'Onde estamos'"
+    assert "Próximo passo" in tpl, "MAPA.md: falta a seção 'Próximo passo'"
+    assert "Conexões" in tpl, "MAPA.md: falta a seção 'Conexões' (dimensão inter-projeto)"
+    assert "código real" in tpl.lower(), "MAPA.md: Conexões não manda declarar a partir do código real"
+    assert "invent" in tpl.lower(), "MAPA.md: Conexões não avisa pra nunca inventar conexão"
+
+    # CA4: comando /mss-spec:mapa existe e descreve ler + reconciliar (git/INDEX + código) + gravar
+    assert mapa_cmd.exists(), "falta commands/mapa.md"
+    cmd = mapa_cmd.read_text(encoding="utf-8")
+    assert "reconcil" in cmd.lower(), "mapa.md não descreve reconciliar o mapa com as fontes vivas"
+    assert "git" in cmd.lower(), "mapa.md não relê o git pra regenerar 'Onde estamos'"
+    assert "INDEX" in cmd, "mapa.md não considera o INDEX (tarefa em andamento)"
+    assert "Conexões" in cmd, "mapa.md não reconcilia a seção de Conexões (código de integração)"
+
+    # CA1: kickoff copia o template pro caminho do projeto
+    assert "templates/MAPA.md" in kickoff, "kickoff não copia templates/MAPA.md"
+    assert "docs/superpowers/MAPA.md" in kickoff, "kickoff não cria docs/superpowers/MAPA.md"
+
+    # CA2: CLAUDE.md manda LER o MAPA.md na partida
+    assert "MAPA.md" in claude, "CLAUDE.md não referencia o MAPA.md"
+    assert "na partida" in claude.lower(), "CLAUDE.md não manda ler o mapa na partida"
+
+    # CA3: nova-feature mantém o mapa (abrir a branch + fecho)
+    assert "MAPA.md" in nova, "nova-feature não atualiza o MAPA.md"
+
+    # projeto EXISTENTE (não só o kickoff em greenfield) ganha o MAPA.md via upgrade
+    upgrade = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    assert "MAPA.md" in upgrade, "upgrade não garante o docs/superpowers/MAPA.md num projeto que nasceu antes da F1"
+
+
+def test_mapa_neural_wiring():
+    """Mapa mental do projeto (F2 — mesma branch/assunto) montado: o gerador (script Python
+    testável) e o comando existem, o comando acha o script via plugin-root e descreve as 4
+    dimensões, a saída derivada é gitignorada e o LEIA-ME lista o comando. O comportamento
+    (extratores + render) vive no test_mapa_neural."""
+    script = REPO / "templates" / "mapa_neural.py"
+    cmd = REPO / "commands" / "mapa-neural.md"
+    assert script.exists(), "falta templates/mapa_neural.py (o gerador do mapa mental)"
+    assert cmd.exists(), "falta commands/mapa-neural.md"
+    txt = cmd.read_text(encoding="utf-8")
+    assert "templates/mapa_neural.py" in txt, "mapa-neural.md não aponta o gerador templates/mapa_neural.py"
+    assert "mapa mental" in txt.lower(), "mapa-neural.md não descreve o mapa mental do projeto"
+    for dim in ("Arquitetura", "APIs", "Memórias", "Conexões"):
+        assert dim in txt, "mapa-neural.md não cita a dimensão " + dim
+
+    gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
+    linhas_gi = [l.strip() for l in gi.splitlines()]
+    # a saída é ANCORADA em /docs/ — o padrão solto `mapa-neural.md` casaria por nome e
+    # ignoraria o PRÓPRIO commands/mapa-neural.md (mesma armadilha do /to-dolist.md).
+    assert "/docs/mapa-neural.html" in linhas_gi, "templates/gitignore não ancora a saída mapa-neural.html em /docs/"
+    assert "/docs/mapa-neural.md" in linhas_gi, "templates/gitignore não ancora a saída mapa-neural.md em /docs/"
+    assert "mapa-neural.md" not in linhas_gi, "padrão 'mapa-neural.md' SOLTO ignoraria commands/mapa-neural.md — ancore em /docs/"
+
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:mapa-neural" in leiame, "LEIA-ME não lista o comando /mss-spec:mapa-neural"
+
+
 def test_distribuicao_por_git_wiring():
     """Mecanismo de distribuição por git montado (item 9): o mesmo marketplace.json
     serve add por pasta local E por URL git (source relative-path resolvido no clone),

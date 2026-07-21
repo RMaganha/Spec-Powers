@@ -30,6 +30,9 @@
 - compliance — aderência do projeto às convenções do mss-spec — **fechada** (`/mss-spec:compliance`; checklist fixo, só reporta; audita × upgrade conserta) — spec: `docs/superpowers/specs/2026-07-16-compliance-design.md`
 - [regras de branch e escopo](../specs/2026-07-17-regras-branch-e-escopo-design.md) — branch sempre da principal + alerta "um assunto por janela" (só doc/comandos, sem hook) — **fechada**
 - [redes de segurança](specs/2026-07-20-documentar-redes-de-seguranca-design.md) — documenta as redes já existentes (auto-teste, git-rollback [item 11], changelog); fecha os falsos-negativos da análise — **fechada**
+- [mapa de contexto](specs/2026-07-20-mapa-de-contexto-design.md) — F1: `docs/superpowers/MAPA.md` por projeto (onde estamos · próximo passo · conexões) lido na partida + `/mss-spec:mapa`; F2: `/mss-spec:mapa-neural` gera o **mapa mental do projeto** (projeto no centro + 4 dimensões extraídas do repo: arquitetura · APIs · memórias · conexões) em HTML radial full-screen expansível + índice de texto — **fechada** (F1+F2; suíte 43 verde)
 
 ## Fora de escopo (não fazer)
-Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · knowledge-graph · registry / capabilities / catálogo de arquiteturas / dependency-graph · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`
+Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · registry / capabilities / catálogo de arquiteturas · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`
+
+> **Reaberto pelo mapa mental (F2):** `knowledge-graph` e `dependency-graph` saíram desta lista — o `/mss-spec:mapa-neural` cobre a fatia **leve/heurística** (memórias e arquitetura como dimensões do mapa mental do projeto). Grafo semântico profundo (análise de tipos/chamadas) segue fora de escopo.

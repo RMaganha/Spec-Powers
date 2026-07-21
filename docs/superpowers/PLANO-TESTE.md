@@ -24,6 +24,8 @@
 - `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
 - `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
 - `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e `<URL-do-git-interno>` como placeholder
+- `test_mapa_contexto_wiring` — mapa de contexto F1: `templates/MAPA.md` (3 seções + Conexões do código real/não inventar), comando `/mss-spec:mapa` (lê+reconcilia git/INDEX/Conexões), e os 4 pontos de integração (kickoff cria · CLAUDE lê na partida · nova-feature mantém)
+- `test_mapa_neural_wiring` — mapa mental F2: gerador `templates/mapa_neural.py` + comando `/mss-spec:mapa-neural` existem, o comando aponta o script e descreve as 4 dimensões, saída derivada gitignorada, LEIA-ME lista o comando
 
 `tests/test_ci.py` — CI com artefatos de teste (item 12), no estilo do wiring do item 9:
 - `test_ci_declara_reports_junit_e_cobertura` — o job do `.gitlab-ci.yml` declara `artifacts.reports.junit` e `coverage_report` (formato `cobertura`)
@@ -42,6 +44,17 @@
 - `test_azure_sem_icone` — em Azure, texto limpo sem ícone
 - `test_idempotente_nao_duplica_handlers` — chamar `setup_logging()` de novo não duplica handlers
 
+`tests/test_mapa_neural.py` — comportamento do gerador do mapa mental do projeto (F2):
+- `test_extrair_conexoes` — nó `conn` traz os projetos vizinhos declarados no `MAPA.md` (ignora `nenhuma`/`<a confirmar>`)
+- `test_extrair_arquitetura` — nó `arq` lista as camadas presentes (`main.py`, `routers/`, `services/`)
+- `test_arquitetura_traz_resumo_da_peca` — o índice traz o resumo de 1 linha (docstring/`description`) por peça — fonte de consulta, não só nomes
+- `test_extrair_apis_endpoints_e_integracoes` — nó `api` traz rotas FastAPI + integração de banco; rota/import em `tests/` não conta
+- `test_extrair_memorias` — nó `mem` traz specs + itens do índice `MEMORY.md`
+- `test_construir_arvore_projeto_no_centro_com_4_dimensoes` — raiz = projeto com exatamente as 4 dimensões
+- `test_render_html_full_screen_e_self_contained` — HTML sem `<script src=>`, full-screen (`100vh`), com a árvore embutida e o nome do projeto
+- `test_render_texto_lista_as_dimensoes` — o índice `.md` lista as 4 dimensões
+- `test_gerar_cria_md_e_html` — `gerar()` escreve o `.md` e o `.html`
+
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-20 · commit `e1b56b5` (branch feature/ci-artefatos-teste) · 32 passed
+**Último 100% verde:** 2026-07-20 · commit `80a5bc7` (branch feature/mapa-de-contexto) · 43 passed

@@ -18,6 +18,7 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - `templates/CLAUDE.md`   → `CLAUDE.md` (raiz)
    - `templates/MEMORY.md`   → `memory/MEMORY.md`
    - `templates/INDEX.md`    → `docs/superpowers/INDEX.md`
+   - `templates/MAPA.md`     → `docs/superpowers/MAPA.md` (mapa de contexto anti-amnésia; preencha **Onde estamos** = "recém-constituído" e **Próximo passo** = "primeira feature via /mss-spec:nova-feature". **Conexões:** no brownfield, **proponha** as integrações que achar no código — routers/endpoints que outro sistema chama, clients HTTP p/ outros serviços, filas, banco compartilhado — e confirme comigo; **nunca invente**. Sem integração conhecida, deixe "nenhuma conhecida ainda".)
    - `templates/AMBIENTE.md` → `docs/AMBIENTE.md` (ajuste os `<...>` do projeto; apague seções que não se aplicam, ex.: sem SQL Server)
    - `templates/SEGURANCA.md` → `docs/SEGURANCA.md` (baseline AppSec MSIG — vale pra todo projeto exposto; apague o checklist Azure se não for Azure)
    - `templates/ESTRUTURA.md` → `docs/ESTRUTURA.md` (estrutura de pastas em camadas — vale pra TODO projeto; adapte pelo tipo: sem UI, CLI/cron). **Todo arquivo novo nasce na pasta da sua camada — nunca achatado numa pasta única.**
