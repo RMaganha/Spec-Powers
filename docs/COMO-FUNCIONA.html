@@ -339,11 +339,12 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C2</span><span class="node-name">doctor</span><span class="node-type">check-up do ambiente</span></div>
     <div class="node-body">
       <p class="plain">Um "check-up" rápido do ambiente antes de começar — pega o erro cedo, não na hora de publicar.</p>
-      <p>Confere os pré-requisitos da MSIG (o <a class="gl" href="#g-proxy">proxy</a> responde? o certificado está lá? o driver do banco existe? o <a class="gl" href="#g-superpowers">superpowers</a> está ligado? o próprio kit acha seus moldes?) e dá um veredito ✓/✗. <strong>Só avisa</strong>, não conserta. Roda quando você chama <em>e</em> sozinho, no começo da 1ª tarefa. Rodar de novo nunca muda nada.</p>
+      <p>Confere os pré-requisitos da MSIG (o <a class="gl" href="#g-proxy">proxy</a> responde? o certificado está lá? o driver do banco existe? o <a class="gl" href="#g-superpowers">superpowers</a> está ligado? o próprio kit acha seus moldes?) e ainda avisa se a <strong>versão do kit</strong> que você tem instalada está atrás da publicada no repositório (compara o número da versão e, se houver uma nova, mostra o comando pra atualizar — sem atualizar sozinho). Dá um veredito ✓/✗. <strong>Só avisa</strong>, não conserta. Roda quando você chama <em>e</em> sozinho, no começo da 1ª tarefa. Rodar de novo nunca muda nada.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:doctor
-  → ✓ proxy · ✓ CA · ✗ ODBC Driver 17 (instalar antes de conectar no banco)</code></pre>
-      <div class="label-row"><span class="pill ok">manual + automático</span><span class="pill graph">só reporta</span></div>
+  → ✓ proxy · ✓ CA · ✗ ODBC Driver 17 (instalar antes de conectar no banco)
+  → ⚠ versão do kit: 0.11.0 → 0.12.0 (rode: claude plugin marketplace update)</code></pre>
+      <div class="label-row"><span class="pill ok">manual + automático</span><span class="pill graph">só reporta</span><span class="pill warn">versão do kit</span></div>
     </div>
   </div>
 
