@@ -427,3 +427,22 @@ def test_captura_docs_leiame():
     """LEIA-ME documenta o modo capturar do /mss-spec:memory (o dev descobre a capacidade)."""
     leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
     assert "capturar" in leiame.lower(), "LEIA-ME não documenta o modo capturar do /mss-spec:memory"
+
+
+def test_doctor_check_versao_wiring():
+    """Check 'versão do kit' montado no doctor: compara instalada vs publicada no remoto
+    (git fetch no clone, semver), reporta o comando de update, degrada gracioso e só reporta."""
+    doctor = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    low = doctor.lower()
+    # lê a versão dos dois lados a partir do plugin.json (instalada) e do remoto (publicada)
+    assert "plugin.json" in doctor, "doctor.md não lê a versão do plugin.json"
+    # canal: git fetch no clone (mesmo do marketplace update), não HTTP raw
+    assert "git fetch" in low, "doctor.md não usa git fetch pra pegar a versão publicada"
+    # reporta o comando de update (mas não roda)
+    assert "marketplace update" in low, "doctor.md não indica o comando marketplace update no ⚠"
+    # degrada gracioso: offline / sem remote não vira ✗ (a verificar / pulado)
+    assert "a verificar" in low or "pulado" in low, \
+        "doctor.md não degrada gracioso o check de versão (a verificar/pulado) quando o remoto não resolve"
+    # semver, não commit
+    assert "semver" in low or "número de versão" in low, \
+        "doctor.md não deixa claro que compara por versão (semver), não commit"
