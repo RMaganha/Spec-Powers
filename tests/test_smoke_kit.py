@@ -420,3 +420,9 @@ def test_captura_hook_optin_doc():
     assert "/mss-spec:memory capturar" in doc, "hook não cutuca pra rodar /mss-spec:memory capturar"
     assert "não grava" in low or "nunca grava" in low, "hook não deixa claro que só cutuca (não grava)"
     assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
+
+
+def test_captura_docs_leiame():
+    """LEIA-ME documenta o modo capturar do /mss-spec:memory (o dev descobre a capacidade)."""
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "capturar" in leiame.lower(), "LEIA-ME não documenta o modo capturar do /mss-spec:memory"

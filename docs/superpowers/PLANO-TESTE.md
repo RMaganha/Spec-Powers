@@ -26,6 +26,14 @@
 - `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e `<URL-do-git-interno>` como placeholder
 - `test_mapa_contexto_wiring` — mapa de contexto F1: `templates/MAPA.md` (3 seções + Conexões do código real/não inventar), comando `/mss-spec:mapa` (lê+reconcilia git/INDEX/Conexões), e os 4 pontos de integração (kickoff cria · CLAUDE lê na partida · nova-feature mantém)
 - `test_mapa_neural_wiring` — mapa mental F2: gerador `templates/mapa_neural.py` + comando `/mss-spec:mapa-neural` existem, o comando aponta o script e descreve as 4 dimensões, saída derivada gitignorada, LEIA-ME lista o comando
+- `test_captura_memory_dois_modos` — `/mss-spec:memory` com 2 modos: `resgatar` (intacto) + `capturar` (roteia decisões/`decisoes.md`, "não fazer"/INDEX, `memory/sessions/`+`DIARIO.md`, `<private>`, chama `/mss-spec:mapa`, pede OK, não duplica, foca pivôs)
+- `test_captura_diario_template` — `templates/DIARIO.md` existe (índice `## <data>` → `sessions/`, foco nos pivôs) + dogfood `memory/DIARIO.md`
+- `test_captura_kickoff_scaffold` — kickoff copia `templates/DIARIO.md` → `memory/DIARIO.md` e cria `memory/sessions/`
+- `test_captura_private_e_indice` — `templates/CLAUDE.md` documenta `<private>`, aponta o diário e reforça o índice-primeiro (nunca a pasta inteira)
+- `test_captura_delegacao_fecho` — o fecho do `nova-feature` delega a captura ao `/mss-spec:memory capturar` (não re-descreve inline) + junto ao finishing
+- `test_captura_hook_throttle` — `hooks/capturar_nudge.py::deve_cutucar` respeita o intervalo (sem histórico/passou → cutuca; dentro → não)
+- `test_captura_hook_optin_doc` — hook opt-in existe e é documentado como off por padrão, não-bloqueante, só cutuca (Stop/PreCompact) pra rodar `/mss-spec:memory capturar`
+- `test_captura_docs_leiame` — LEIA-ME documenta o modo `capturar`
 
 `tests/test_ci.py` — CI com artefatos de teste (item 12), no estilo do wiring do item 9:
 - `test_ci_declara_reports_junit_e_cobertura` — o job do `.gitlab-ci.yml` declara `artifacts.reports.junit` e `coverage_report` (formato `cobertura`)
