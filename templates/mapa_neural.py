@@ -602,8 +602,13 @@ _HTML = """<!doctype html>
     ASSOC.forEach(function(e,i){ var A=byLocal[e.a]||[], B=byLocal[e.b]||[];
       A.forEach(function(ua){ B.forEach(function(ub){
         if(ua!==ub && ok[ua] && ok[ub]){
-          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:ua, to:ub, dashes:[3,5], width:1.4, _assoc:1, _base:ACOL[e.t]||'#999',
-            color:{ color:ACOL[e.t]||'#999', opacity:0.2 }, smooth:{ enabled:true, type:'curvedCW', roundness:0.3 } });
+          // ordena os extremos por altura (o de cima vira `from`): com curva horária, o arco boja
+          // sempre pra DIREITA — sai pelo lado direito dos balões, sem cruzar por dentro com a árvore.
+          var top=(byUid[ua]._y<=byUid[ub]._y)?ua:ub, bot=(top===ua)?ub:ua;
+          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:top, to:bot, dashes:[3,5], width:1.4, _assoc:1, _base:ACOL[e.t]||'#999',
+            color:{ color:ACOL[e.t]||'#999', opacity:0.22 },
+            smooth:{ enabled:true, type:'curvedCW', roundness:0.5 },
+            arrows:{ from:{enabled:true,type:'arrow',scaleFactor:0.5}, to:{enabled:true,type:'arrow',scaleFactor:0.5} } });
         } }); }); });
   }
   // hover num nó: acende as linhas associativas que o tocam E REALÇA a caixa do outro lado
