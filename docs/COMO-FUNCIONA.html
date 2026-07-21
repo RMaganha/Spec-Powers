@@ -290,7 +290,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">04 — Os comandos</div>
-  <h2>Os dezessete <em>atalhos</em>, na ordem de uso</h2>
+  <h2>Os dezenove <em>atalhos</em>, na ordem de uso</h2>
   <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
 
   <h3>Começar</h3>
@@ -518,6 +518,32 @@ li{margin-bottom:6px}
       <div class="label-row"><span class="pill ok">estilo fixo</span></div>
     </div>
   </div>
+
+  <h3>Contexto &amp; memória (anti-amnésia)</h3>
+
+  <div class="node" id="c-mapa">
+    <div class="node-head"><span class="node-idx">C18</span><span class="node-name">mapa</span><span class="node-type">onde eu parei?</span></div>
+    <div class="node-body">
+      <p class="plain">Mantém um "mapa de contexto" curto do projeto — pra quem chega (ou volta) não perder tempo redescobrindo onde as coisas estão.</p>
+      <p>Guarda em <code>docs/superpowers/MAPA.md</code> três coisas: <strong>onde estamos</strong> (branch e assunto), o <strong>próximo passo</strong>, e as <strong>conexões</strong> com outros projetos MSIG. O assistente lê isso <strong>na partida</strong>, antes de qualquer outra coisa; o comando reconcilia com o git, o índice de tarefas e o código — e nunca inventa uma conexão.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:mapa
+  → atualiza "onde estamos / próximo passo" e confirma as conexões do projeto</code></pre>
+      <div class="label-row"><span class="pill ok">lido na partida</span><span class="pill graph">conexões entre projetos</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-mapa-neural">
+    <div class="node-head"><span class="node-idx">C19</span><span class="node-name">mapa-neural</span><span class="node-type">mapa mental do projeto</span></div>
+    <div class="node-body">
+      <p class="plain">Desenha o projeto como um mapa mental: o projeto no centro e tudo que gira em volta, pra bater o olho e entender o todo.</p>
+      <p>Lê o próprio repositório e monta quatro ramos — <strong>arquitetura</strong> (camadas e arquivos), <strong>APIs &amp; integrações</strong>, <strong>memórias &amp; conhecimento</strong> (specs, decisões, aprendizados) e <strong>conexões entre projetos</strong>. Gera dois arquivos em <code>docs/</code>: um <strong>índice em texto</strong> (que o assistente consulta sem reabrir o projeto inteiro) e uma <strong>página interativa</strong> — clique pra expandir, arraste, passe o mouse pra ver nome/local/resumo de cada peça. Arquivo único, sem depender de internet.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:mapa-neural
+  → docs/mapa-neural.html (mapa interativo) + docs/mapa-neural.md (índice de texto)</code></pre>
+      <div class="label-row"><span class="pill ok">interativo</span><span class="pill ok">self-contained</span><span class="pill graph">4 dimensões do repo</span></div>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="spec">
@@ -606,6 +632,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
   <div class="flow"><b>1. Começar</b>     /mss-spec:kickoff "cadastro de clientes + whatsapp"
                  → entrevista → gera os arquivos-base
 <b>Ao abrir</b>      o doctor faz o check-up do ambiente (avisa se falta algo)
+<b>Ao voltar</b>     o assistente lê o MAPA.md (onde parei · próximo passo · conexões) — mapa de contexto
 
 <b>2. Base</b>        /mss-spec:ambiente  ·  /mss-spec:banco  ·  /mss-spec:log
 
