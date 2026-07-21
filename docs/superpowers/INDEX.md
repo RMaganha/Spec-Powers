@@ -37,3 +37,5 @@
 Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · registry / capabilities / catálogo de arquiteturas · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`
 
 > **Reaberto pelo mapa mental (F2):** `knowledge-graph` e `dependency-graph` saíram desta lista — o `/mss-spec:mapa-neural` cobre a fatia **leve/heurística** (memórias e arquitetura como dimensões do mapa mental do projeto). Grafo semântico profundo (análise de tipos/chamadas) segue fora de escopo.
+
+> **SOM/ML de verdade descartado (v0.11.0):** o `mapa-neural` **não** vira um self-organizing map (vetor de features + treino) — deps pesadas, resultado não-determinístico, ganho duvidoso com ~50 itens. A camada "neural" fica na **fatia leve/heurística**: datas (mtime) + associações **determinísticas** (memória↔memória por `[[links]]`; spec↔código por `Arquivos tocados`), nunca inventadas.
