@@ -488,7 +488,7 @@ _HTML = """<!doctype html>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
     <span class="leg"><i class="dot" style="background:var(--conn)"></i>conexões entre projetos</span>
-    <span class="leg"><i class="dash"></i>itens relacionados (passe o mouse p/ realçar)</span>
+    <span class="leg"><i class="dash"></i>itens relacionados (aparecem ao passar o mouse)</span>
   </div>
 </header>
 <div id="wrap"><div id="net"></div></div>
@@ -605,8 +605,9 @@ _HTML = """<!doctype html>
           // ordena os extremos por altura (o de cima vira `from`): com curva horária, o arco boja
           // sempre pra DIREITA — sai pelo lado direito dos balões, sem cruzar por dentro com a árvore.
           var top=(byUid[ua]._y<=byUid[ub]._y)?ua:ub, bot=(top===ua)?ub:ua;
-          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:top, to:bot, dashes:[3,5], width:1.4, _assoc:1, _base:ACOL[e.t]||'#999',
-            color:{ color:ACOL[e.t]||'#999', opacity:0.22 },
+          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:top, to:bot, dashes:[3,5], width:1.6, _assoc:1, _base:ACOL[e.t]||'#999',
+            hidden:true,  // escondida por padrão — só aparece no hover do nó que ela liga
+            color:{ color:ACOL[e.t]||'#999', opacity:0.9 },
             smooth:{ enabled:true, type:'curvedCW', roundness:0.5 },
             arrows:{ from:{enabled:true,type:'arrow',scaleFactor:0.5}, to:{enabled:true,type:'arrow',scaleFactor:0.5} } });
         } }); }); });
@@ -616,7 +617,7 @@ _HTML = """<!doctype html>
   var _hi=[];
   function acenderAssoc(uid){ var viz={};
     edges.forEach(function(e){ if(!e._assoc) return; var on=(e.from===uid||e.to===uid);
-      edges.update({ id:e.id, width:on?2.6:1.4, shadow:!!on, color:{ color:e._base, opacity:on?0.95:0.2 } });
+      edges.update({ id:e.id, hidden:!on, shadow:on });   // MOSTRA só as que tocam o nó; resto fica escondido
       if(on) viz[(e.from===uid)?e.to:e.from]=e._base; });
     _hi=Object.keys(viz).map(Number);
     _hi.forEach(function(u){ var n=byUid[u]; if(!n) return; var cor=viz[u], s=estilo(n);
@@ -625,7 +626,7 @@ _HTML = """<!doctype html>
         shadow:{ enabled:true, size:22, x:0, y:0, color:cor+'99' } }); });  // brilho na cor da relação
   }
   function apagarAssoc(){ edges.forEach(function(e){ if(e._assoc)
-      edges.update({ id:e.id, width:1.4, shadow:false, color:{ color:e._base, opacity:0.2 } }); });
+      edges.update({ id:e.id, hidden:true, shadow:false }); });   // esconde tudo de novo
     _hi.forEach(function(u){ var n=byUid[u]; if(n) pintarNo(n); }); _hi=[];  // reverte o realce das caixas
   }
 
