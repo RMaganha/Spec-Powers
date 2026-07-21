@@ -4,7 +4,8 @@ Monta, para o **projeto atual**, uma árvore com o projeto no centro e 4 dimens�
 preenchida por um extrator que lê o repo (nunca inventa):
   - **Arquitetura interna** — camadas/módulos presentes (main.py, routers/, services/, ...).
   - **APIs & integrações** — endpoints expostos (rotas FastAPI) + integrações (banco, HTTP, fila).
-  - **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`.
+  - **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`, `to-dolist`
+    e o **diário de sessão** (índice `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md`).
   - **Conexões entre projetos** — a seção `Conexões` do `docs/superpowers/MAPA.md`.
 
 Duas saídas do mesmo modelo:
@@ -265,6 +266,25 @@ def extrair_memorias(proj: Path) -> dict:
         if itens:
             filhos.append(_no("to-dolist (%d)" % len(itens),
                               filhos=[_no(t[:60], local="to-dolist.md", resumo=t) for t in itens[:25]]))
+    # diário de sessão (memory/DIARIO.md → memory/sessions/<data>-<assunto>.md): "o que conversamos/decidimos"
+    diario = proj / "memory" / "DIARIO.md"
+    if diario.exists():
+        data_atual, difilhos = "", []
+        for ln in diario.read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if ln.startswith("## "):
+                data_atual = ln[3:].strip()
+            elif ln.startswith("- ["):
+                # formato: - [<assunto>] <gist ...> → sessions/<arquivo>  (o gist pode conter setas; pega a ÚLTIMA)
+                m = re.match(r"-\s*\[([^\]]+)\]\s*(.*?)(?:\s*→\s*(\S+))?$", ln)
+                if not m:
+                    continue
+                assunto, gist, alvo = m.group(1).strip(), (m.group(2) or "").strip(), (m.group(3) or "").strip()
+                loc = alvo if alvo.startswith("memory/") else ("memory/" + alvo if alvo else "memory/DIARIO.md")
+                titulo = ("%s · %s" % (data_atual, assunto)) if data_atual else assunto
+                difilhos.append(_no(titulo[:60], local=loc.replace("\\", "/"), resumo=gist[:220]))
+        if difilhos:
+            filhos.append(_no("diário (%d)" % len(difilhos), filhos=difilhos[:25]))
     return _no("Memórias & conhecimento", "mem", filhos)
 
 
