@@ -395,3 +395,28 @@ def test_captura_delegacao_fecho():
         "nova-feature (fecho) não delega a captura ao /mss-spec:memory capturar"
     # a captura acontece antes de integrar (merge/finishing), consolidando as decisões do assunto
     assert "finishing" in nova.lower(), "nova-feature não posiciona a captura junto ao finishing/integração"
+
+
+def test_captura_hook_throttle():
+    """A decisão de cutucar respeita o intervalo (throttle) — aproxima 'a cada X' por evento."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "capturar_nudge", REPO / "hooks" / "capturar_nudge.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    # dentro do intervalo → não cutuca; passou do intervalo → cutuca; sem histórico → cutuca (1ª vez)
+    assert mod.deve_cutucar(ultimo_ts=1000.0, agora=1060.0, intervalo_s=1800) is False
+    assert mod.deve_cutucar(ultimo_ts=1000.0, agora=4600.0, intervalo_s=1800) is True
+    assert mod.deve_cutucar(ultimo_ts=None, agora=1000.0, intervalo_s=1800) is True
+
+
+def test_captura_hook_optin_doc():
+    """Hook é OPT-IN, off por padrão, não-bloqueante, e só CUTUCA (não grava sozinho)."""
+    assert (REPO / "hooks" / "capturar_nudge.py").exists(), "falta hooks/capturar_nudge.py"
+    doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
+    low = doc.lower()
+    assert "opt-in" in low or "desligado por padrão" in low, "hook não é documentado como opt-in/off por padrão"
+    assert "Stop" in doc and "PreCompact" in doc, "hook não documenta os eventos Stop/PreCompact"
+    assert "/mss-spec:memory capturar" in doc, "hook não cutuca pra rodar /mss-spec:memory capturar"
+    assert "não grava" in low or "nunca grava" in low, "hook não deixa claro que só cutuca (não grava)"
+    assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
