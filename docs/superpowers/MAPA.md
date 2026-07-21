@@ -1,6 +1,10 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/doctor-check-versao` — **em andamento**: novo check "versão do kit" no `/mss-spec:doctor` (compara instalada vs publicada no remoto via `git fetch` no clone, semver; só reporta ✓/⚠/ℹ; degrada gracioso offline/dev). Spec: `docs/superpowers/specs/2026-07-21-doctor-check-versao-remoto-design.md`.
+
+<!-- histórico do estado anterior -->
+
 `main` — **v0.11.0 integrada e publicada no GitHub** (merges `--no-ff`; suíte **62 verde**; push até `1994719`). Entregue (mapa neural F2.2+F2.3): **datas nos balões** (mtime), **camada associativa leve** (memória↔memória por `[[links]]`; spec↔código por `## Arquivos tocados`; nunca inventada) que **só aparece no hover** — bojando à direita, setas ‹ ›, realce da caixa conectada — e **layout tidy-tree horizontal** (curvas cubicBezier, balões modernos, zero-sobreposição). Bônus: fix da tela branca (`})` a mais, parse-time) + guarda `node --check`; `COMO-FUNCIONA.html` em dia (card do mapa + seção "memória viva" com mapa+precedentes). Spec: `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
 
 <!-- histórico do release anterior (v0.10.1) -->
