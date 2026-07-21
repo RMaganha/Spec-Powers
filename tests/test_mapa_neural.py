@@ -8,6 +8,7 @@ mesmo modelo: (a) `mapa-neural.md` (índice em texto que o assistente consulta) 
 Aqui exercitamos cada extrator + o render com fixtures; o wiring fica no smoke.
 """
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -37,7 +38,10 @@ def proj(tmp_path):
     (tmp_path / "docs" / "superpowers" / "specs" / "2026-01-01-emissao-design.md").write_text(
         "# emissão cosseguro — design\n\n"
         "Primeira linha de corpo (vira o lead/resumo).\n"
-        "Segunda linha com MARCADOR_SO_NO_CORPO que não é lead.\n",
+        "Segunda linha com MARCADOR_SO_NO_CORPO que não é lead.\n\n"
+        "## Arquivos tocados\n"
+        "- `services/emissao.py` (regra)\n"
+        "- `services/nao_existe.py` (arquivo inexistente — não pode virar aresta)\n",
         encoding="utf-8",
     )
     (tmp_path / "docs" / "decisoes.md").write_text("# Decisões\n- 2026 — banco = canal\n", encoding="utf-8")
@@ -56,6 +60,12 @@ def proj(tmp_path):
         "- [Motor Gemini migrado](m1.md) — migrou o motor\n- [Banco como canal](m2.md) — decisão\n",
         encoding="utf-8",
     )
+    # memórias reais com [[links]] cruzados (pra testar a camada associativa): slug com hífen no
+    # link vs. arquivo com underscore + prefixo (normalização), e um link órfão que não resolve.
+    (tmp_path / "memory" / "feedback_rel_a.md").write_text(
+        "# Rel A\nCorpo. Relacionado a [[rel-b]] e a [[nao-existe-xyz]].\n", encoding="utf-8")
+    (tmp_path / "memory" / "rel_b.md").write_text(
+        "# Rel B\nCorpo sem links de volta.\n", encoding="utf-8")
     (tmp_path / "memory" / "DIARIO.md").write_text(
         "# Diário de sessão — meu-proj\n\n## 2026-01-02\n"
         "- [emissao-retry] discutimos o retry no envio → backoff exponencial → sessions/2026-01-02-emissao-retry.md\n",
@@ -70,6 +80,18 @@ def _ids(no):
     for f in no.get("filhos", []):
         acc += _ids(f)
     return acc
+
+
+def _walk(no):
+    """Itera todos os nós da subárvore (o próprio + descendentes)."""
+    yield no
+    for f in no.get("filhos", []):
+        yield from _walk(f)
+
+
+def _acha(no, id_):
+    """1º nó (BFS/DFS) com o id dado, ou None."""
+    return next((n for n in _walk(no) if n["id"] == id_), None)
 
 
 # ---- extratores ----------------------------------------------------------
@@ -121,6 +143,55 @@ def test_extrair_diario(mn, proj):
     assert "emissao-retry" in ids, "o mapa mental não trouxe a entrada do diário (memory/DIARIO.md)"
 
 
+# ---- F2.2: datas nas folhas -----------------------------------------------
+
+def test_folha_com_arquivo_ganha_data_mtime(mn, proj):
+    """CA15 — nó-folha ancorado num arquivo em disco tem `data` = mtime (YYYY-MM-DD);
+    agrupador/raiz/endpoint (sem arquivo) não tem `data`."""
+    arv = mn.construir_arvore(proj)
+    main = _acha(arv, "main.py")
+    assert main is not None and re.match(r"^\d{4}-\d{2}-\d{2}$", main.get("data", "")), \
+        "a folha main.py não ganhou a data (mtime YYYY-MM-DD)"
+    # a raiz (projeto) e uma dimensão são agrupadores — não têm data
+    assert "data" not in arv, "a raiz não pode ter data"
+    dim_arq = _acha(arv, "Arquitetura interna")
+    assert "data" not in dim_arq, "a dimensão (agrupador) não pode ter data"
+    # o endpoint (não é arquivo) não tem data
+    ep = _acha(arv, "GET /api/queue_processar")
+    assert ep is not None and "data" not in ep, "endpoint não é arquivo — não pode ter data"
+
+
+# ---- F2.2: camada associativa ---------------------------------------------
+
+def _pares(assoc):
+    """Conjunto de pares não-ordenados {frozenset({a,b})} das arestas."""
+    return {frozenset((e["a"], e["b"])) for e in assoc}
+
+
+def test_associacoes_memoria_memoria_por_links(mn, proj):
+    """CA17 — [[link]] que resolve a um arquivo real vira aresta (com normalização de slug);
+    link órfão (não resolve) é descartado — nunca inventa nó/aresta."""
+    assoc = mn.extrair_associacoes(proj)
+    pares = _pares(assoc)
+    assert frozenset(("memory/feedback_rel_a.md", "memory/rel_b.md")) in pares, \
+        "não ligou feedback_rel_a ↔ rel_b (normalização do slug [[rel-b]] falhou)"
+    # nenhum lado de aresta pode citar o link órfão
+    assert not any("nao-existe" in x or "nao_existe" in x for e in assoc for x in (e["a"], e["b"])), \
+        "link órfão [[nao-existe-xyz]] não pode virar aresta"
+
+
+def test_associacoes_spec_codigo_por_arquivos_tocados(mn, proj):
+    """CA18 — caminho citado em `## Arquivos tocados` que existe em disco vira aresta spec↔código;
+    caminho inexistente é descartado."""
+    assoc = mn.extrair_associacoes(proj)
+    spec_local = "docs/superpowers/specs/2026-01-01-emissao-design.md"
+    pares = _pares(assoc)
+    assert frozenset((spec_local, "services/emissao.py")) in pares, \
+        "não ligou a spec ao services/emissao.py citado em Arquivos tocados"
+    assert not any("nao_existe" in x for e in assoc for x in (e["a"], e["b"])), \
+        "caminho inexistente (services/nao_existe.py) não pode virar aresta"
+
+
 def test_construir_arvore_projeto_no_centro_com_4_dimensoes(mn, proj):
     arv = mn.construir_arvore(proj)
     assert arv["dim"] == "projeto" and arv["id"] == "meu-proj"
@@ -168,6 +239,61 @@ def test_render_html_clique_abre_md_em_nova_aba(mn, proj):
     assert "mdToHtml" in html, "não há o renderizador markdown vanilla inline"
     # continua self-contained (sem CDN/script externo)
     assert "<script src=" not in html.lower(), "deixou de ser self-contained"
+
+
+def test_render_html_popup_mostra_data(mn, proj):
+    """CA16 — o pop-up injeta a data (n.data) quando presente."""
+    html = mn.render_html(mn.construir_arvore(proj))
+    assert "n.data" in html, "o HTML não injeta a data (n.data) no pop-up"
+
+
+def test_render_html_embute_associacoes_e_destaque(mn, proj):
+    """CA19 — HTML embute as associações (__ASSOC__ → dado) + hook que acende as arestas
+    ao focar um nó; segue self-contained/full-screen."""
+    arv = mn.construir_arvore(proj)
+    assoc = mn.extrair_associacoes(proj)
+    html = mn.render_html(arv, assoc=assoc)
+    assert "__ASSOC__" not in html, "o placeholder __ASSOC__ não foi substituído"
+    assert "var ASSOC" in html or "const ASSOC" in html, "as associações não foram embutidas como dado"
+    assert "acenderAssoc" in html, "não há o hook que acende as arestas associativas no hover"
+    assert "services/emissao.py" in html, "a associação spec↔código não chegou ao HTML"
+    assert "<script src=" not in html.lower(), "deixou de ser self-contained"
+
+
+def test_render_html_layout_tidy_tree_horizontal(mn, proj):
+    """F2.3 — layout horizontal tidy-tree (conexões curvas cubicBezier + balões arredondados),
+    no lugar do radial antigo."""
+    html = mn.render_html(mn.construir_arvore(proj))
+    assert "cubicBezier" in html, "as conexões não são curvas horizontais (cubicBezier)"
+    assert "YGAP" in html, "não há o layout tidy-tree (slots verticais por folha)"
+    assert "borderRadius:14" in html, "os balões não têm o arredondamento moderno"
+    assert "dragNodes:false" in html, "os nós deveriam ser fixos (auto-layout), não arrastáveis"
+
+
+def test_html_js_tem_sintaxe_valida(mn, proj, tmp_path):
+    """Guarda anti-tela-branca: o JS inline do HTML precisa PARSEAR. Substrings verdes não pegam
+    erro de sintaxe (parse-time), e foi assim que um `})` a mais deixou o mapa branco. Valida com
+    `node --check` (pula se node não estiver no PATH)."""
+    import shutil
+    import subprocess
+    if not shutil.which("node"):
+        pytest.skip("node não disponível — guarda de sintaxe pulada")
+    html = mn.render_html(mn.construir_arvore(proj), assoc=mn.extrair_associacoes(proj))
+    m = re.findall(r"<script>(.*?)</script>", html, re.S)
+    js = m[-1]  # o bloco principal (o 1º é a lib vis-network embutida)
+    stub = "var vis={Network:function(){},DataSet:function(){}},document={getElementById:function(){}},window={};\n"
+    f = tmp_path / "inline.js"
+    f.write_text(stub + js, encoding="utf-8")
+    r = subprocess.run(["node", "--check", str(f)], capture_output=True, text=True)
+    assert r.returncode == 0, "JS inline do HTML tem erro de sintaxe:\n" + r.stderr
+
+
+def test_render_texto_tem_secao_relacoes(mn, proj):
+    """CA19 (texto) — o índice .md ganha a seção Relações (associativa)."""
+    assoc = mn.extrair_associacoes(proj)
+    txt = mn.render_texto(mn.construir_arvore(proj), assoc=assoc)
+    assert "Relações" in txt, "o índice de texto não traz a seção Relações"
+    assert "services/emissao.py" in txt, "a relação spec↔código não aparece no índice de texto"
 
 
 def test_render_texto_lista_as_dimensoes(mn, proj):

@@ -8,10 +8,16 @@ preenchida por um extrator que lê o repo (nunca inventa):
     e o **diário de sessão** (índice `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md`).
   - **Conexões entre projetos** — a seção `Conexões` do `docs/superpowers/MAPA.md`.
 
+Cada folha ancorada num arquivo ganha a **data** (mtime `YYYY-MM-DD`), e o gerador extrai uma
+**camada associativa leve** (`extrair_associacoes`) — arestas heurísticas memória↔memória (`[[links]]`)
+e spec↔código (`## Arquivos tocados`), nunca inventadas.
+
 Duas saídas do mesmo modelo:
-  (a) `mapa-neural.md`   — índice em texto (o assistente consulta);
-  (b) `mapa-neural.html` — mapa radial **full-screen**, expansível (clique no ＋) e arrastável,
-      100% self-contained (SVG + JS vanilla inline, fontes de sistema — zero CDN).
+  (a) `mapa-neural.md`   — índice em texto (o assistente consulta) + seção Relações;
+  (b) `mapa-neural.html` — mapa em **árvore horizontal (tidy-tree, esquerda→direita)** full-screen,
+      expansível (clique no balão; irmãos se reacomodam sem sobrepor), conexões curvas (cubicBezier)
+      coloridas por ramo, balões modernos, e as arestas associativas pontilhadas que acendem no hover;
+      pan/zoom no fundo; 100% self-contained (vis-network embutido inline, fontes de sistema — zero CDN).
 
 Uso:
     python mapa_neural.py                 # projeto = diretório atual; saída no mesmo lugar
@@ -37,7 +43,7 @@ _CAMADAS = ["main.py", "config", "models", "schemas", "services", "routers", "re
             "utils", "commands", "templates", "pages", "static", "sql", "tests"]
 
 
-def _no(id, dim=None, filhos=None, resumo=None, local=None):
+def _no(id, dim=None, filhos=None, resumo=None, local=None, data=None):
     n = {"id": id}
     if dim:
         n["dim"] = dim
@@ -45,8 +51,20 @@ def _no(id, dim=None, filhos=None, resumo=None, local=None):
         n["resumo"] = resumo  # 1 linha do que a peça faz — pro índice servir de consulta, não só nomes
     if local:
         n["local"] = local  # caminho relativo — o pop-up mostra "onde está"
+    if data:
+        n["data"] = data  # mtime YYYY-MM-DD — "quando foi mexido" (verdade LOCAL; o commit atrasa na sessão)
     n["filhos"] = filhos or []
     return n
+
+
+def _data(path: Path) -> str:
+    """Data do arquivo = mtime em `YYYY-MM-DD`. Escolha do mtime (não do commit-date): durante a
+    sessão o arquivo pode mudar (hook/upgrade/geração) e o commit atrasaria; o mtime reflete a
+    verdade LOCAL agora (após push/pull todos sincronizam). Vazio se o arquivo não existe."""
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d")
+    except OSError:
+        return ""
 
 
 def _resumo(path: Path) -> str:
@@ -152,11 +170,12 @@ def extrair_arquitetura(proj: Path) -> dict:
         if not alvo.exists():
             continue
         if alvo.is_file():
-            filhos.append(_no(camada, resumo=_resumo(alvo), local=camada))
+            filhos.append(_no(camada, resumo=_resumo(alvo), local=camada, data=_data(alvo)))
             continue
         arqs = sorted([p for p in alvo.glob("*.py") if p.name != "__init__.py"] +
                       list(alvo.glob("*.md")), key=lambda p: p.name)
-        sub = [_no(p.name, resumo=_resumo(p), local="%s/%s" % (camada, p.name)) for p in arqs[:25]]
+        sub = [_no(p.name, resumo=_resumo(p), local="%s/%s" % (camada, p.name), data=_data(p))
+               for p in arqs[:25]]
         if len(arqs) > 25:
             sub.append(_no("… (+%d)" % (len(arqs) - 25)))
         filhos.append(_no(camada + "/", filhos=sub, local=camada + "/"))
@@ -226,7 +245,7 @@ def extrair_memorias(proj: Path) -> dict:
                    {p for p in proj.glob("docs/specs/*.md")})
     if specs:
         filhos.append(_no("specs", filhos=[
-            _no(_titulo_md(p), local=_rel(p, proj), resumo=_lead_md(p)) for p in specs[:25]
+            _no(_titulo_md(p), local=_rel(p, proj), resumo=_lead_md(p), data=_data(p)) for p in specs[:25]
         ]))
     # índice de memória (linha `- [Título](arquivo) — gancho`): título + caminho + gancho como resumo
     mem_idx = proj / "memory" / "MEMORY.md"
@@ -239,8 +258,9 @@ def extrair_memorias(proj: Path) -> dict:
             m = re.match(r"-\s*\[([^\]]+)\]\(([^)]+)\)\s*(?:[—-]\s*(.*))?$", ln)
             if m:
                 arq = m.group(2).strip()
-                loc = arq if "/" in arq else "memory/" + arq
-                itens.append(_no(m.group(1).strip(), local=loc.replace("\\", "/"), resumo=(m.group(3) or "").strip()))
+                loc = (arq if "/" in arq else "memory/" + arq).replace("\\", "/")
+                itens.append(_no(m.group(1).strip(), local=loc, resumo=(m.group(3) or "").strip(),
+                                 data=_data(proj / loc)))
             else:
                 corpo = ln[2:]
                 itens.append(_no(corpo.split("—")[0].strip(),
@@ -255,7 +275,7 @@ def extrair_memorias(proj: Path) -> dict:
             ln = ln.strip()
             if ln.startswith("- "):
                 txt = re.sub(r"^\d{4}-\d{2}-\d{2}\s*[—-]\s*", "", ln[2:].strip())
-                decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220]))
+                decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220], data=_data(dec)))
         if decs:
             filhos.append(_no("decisões (%d)" % len(decs), filhos=decs[:25]))
     # to-dolist pessoal (fora do git; só entra se existir) — captura rápida do owner
@@ -265,7 +285,8 @@ def extrair_memorias(proj: Path) -> dict:
                  if ln.strip().startswith("- ")]
         if itens:
             filhos.append(_no("to-dolist (%d)" % len(itens),
-                              filhos=[_no(t[:60], local="to-dolist.md", resumo=t) for t in itens[:25]]))
+                              filhos=[_no(t[:60], local="to-dolist.md", resumo=t, data=_data(todo))
+                                      for t in itens[:25]]))
     # diário de sessão (memory/DIARIO.md → memory/sessions/<data>-<assunto>.md): "o que conversamos/decidimos"
     diario = proj / "memory" / "DIARIO.md"
     if diario.exists():
@@ -282,10 +303,91 @@ def extrair_memorias(proj: Path) -> dict:
                 assunto, gist, alvo = m.group(1).strip(), (m.group(2) or "").strip(), (m.group(3) or "").strip()
                 loc = alvo if alvo.startswith("memory/") else ("memory/" + alvo if alvo else "memory/DIARIO.md")
                 titulo = ("%s · %s" % (data_atual, assunto)) if data_atual else assunto
-                difilhos.append(_no(titulo[:60], local=loc.replace("\\", "/"), resumo=gist[:220]))
+                loc = loc.replace("\\", "/")
+                difilhos.append(_no(titulo[:60], local=loc, resumo=gist[:220], data=_data(proj / loc)))
         if difilhos:
             filhos.append(_no("diário (%d)" % len(difilhos), filhos=difilhos[:25]))
     return _no("Memórias & conhecimento", "mem", filhos)
+
+
+# ---- camada associativa (arestas heurísticas, nunca inventadas) ----------
+
+_LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
+_PREFIXOS_SLUG = ("feedback_", "project_", "reference_", "user_")
+_COD_EXT = (".py", ".md", ".js", ".css", ".html", ".sql", ".txt", ".json", ".yml", ".yaml")
+
+
+def _norm_slug(s: str) -> str:
+    return s.strip().lower().replace("-", "_")
+
+
+def _slug_pelado(s: str) -> str:
+    for pre in _PREFIXOS_SLUG:
+        if s.startswith(pre):
+            return s[len(pre):]
+    return s
+
+
+def _secao_arquivos_tocados(texto: str) -> str:
+    out, dentro = [], False
+    for ln in texto.splitlines():
+        if re.match(r"^##\s+Arquivos tocados", ln.strip(), re.I):
+            dentro = True
+            continue
+        if dentro and ln.strip().startswith("## "):
+            break
+        if dentro:
+            out.append(ln)
+    return "\n".join(out)
+
+
+def extrair_associacoes(proj: Path) -> list:
+    """Arestas associativas heurísticas e DETERMINÍSTICAS, de duas fontes REAIS (nunca inventadas):
+      - **memória↔memória**: os `[[links]]` no corpo das memórias, resolvidos a um arquivo real de
+        `memory/` (slug normalizado: minúsculas, `-`↔`_`, tolerando prefixo `feedback_`/`project_`/…);
+        link órfão (que não resolve a arquivo) é **descartado**;
+      - **spec↔código**: os caminhos citados na seção `## Arquivos tocados` das specs, quando o
+        arquivo **existe em disco**.
+    Cada aresta = {"a": <local>, "b": <local>, "t": "mem"|"spec"}; pares deduplicados (não-ordenados).
+    """
+    proj = Path(proj)
+    vistos, arestas = set(), []
+
+    def _add(a, b, t):
+        if not a or not b or a == b:
+            return
+        chave = (t, frozenset((a, b)))
+        if chave not in vistos:
+            vistos.add(chave)
+            arestas.append({"a": a, "b": b, "t": t})
+
+    # memória↔memória: [[links]] resolvíveis (normalização de slug; só arquivo real vira aresta)
+    memdir = proj / "memory"
+    if memdir.is_dir():
+        arquivos = [p for p in memdir.glob("*.md") if p.name not in ("MEMORY.md", "DIARIO.md")]
+        por_slug, por_pelado = {}, {}
+        for p in arquivos:
+            slug = _norm_slug(p.stem)
+            por_slug.setdefault(slug, "memory/" + p.name)
+            por_pelado.setdefault(_slug_pelado(slug), "memory/" + p.name)
+        for p in arquivos:
+            origem = "memory/" + p.name
+            for bruto in _LINK_RE.findall(p.read_text(encoding="utf-8", errors="ignore")):
+                s = _norm_slug(bruto)
+                alvo = por_slug.get(s) or por_pelado.get(_slug_pelado(s))  # arquivo real, ou None
+                if alvo:
+                    _add(origem, alvo, "mem")
+
+    # spec↔código: caminhos de `## Arquivos tocados` que existem em disco
+    specs = sorted({p for p in proj.glob("docs/**/specs/*.md")} |
+                   {p for p in proj.glob("docs/specs/*.md")})
+    for p in specs:
+        sec = _secao_arquivos_tocados(p.read_text(encoding="utf-8", errors="ignore"))
+        for tok in re.findall(r"`([^`]+)`", sec):
+            cam = tok.strip().replace("\\", "/")
+            if "/" in cam and cam.lower().endswith(_COD_EXT) and (proj / cam).is_file():
+                _add(_rel(p, proj), cam, "spec")
+    return arestas
 
 
 # ---- árvore + saídas -----------------------------------------------------
@@ -322,7 +424,7 @@ def coletar_docs(proj: Path, arvore: dict) -> dict:
     return docs
 
 
-def render_texto(arvore: dict) -> str:
+def render_texto(arvore: dict, assoc: list | None = None) -> str:
     L = ["# Mapa mental — %s" % arvore["id"], "",
          "> Índice **derivado** do projeto (arquitetura · APIs · memórias · conexões).",
          "> Regenere com `/mss-spec:mapa-neural`. Não editar à mão.", ""]
@@ -330,7 +432,8 @@ def render_texto(arvore: dict) -> str:
     def caminha(no, nivel):
         for f in no.get("filhos", []):
             resumo = (" — " + f["resumo"]) if f.get("resumo") else ""
-            L.append("%s- %s%s" % ("  " * nivel, f["id"], resumo))
+            data = (" [%s]" % f["data"]) if f.get("data") else ""
+            L.append("%s- %s%s%s" % ("  " * nivel, f["id"], data, resumo))
             caminha(f, nivel + 1)
 
     for dim in arvore["filhos"]:
@@ -338,6 +441,14 @@ def render_texto(arvore: dict) -> str:
         if not dim.get("filhos"):
             L.append("_(nada detectado)_")
         caminha(dim, 0)
+        L.append("")
+    # Relações associativas (a camada "neural" leve: o que se liga a quê, atravessando a árvore)
+    if assoc:
+        L.append("## Relações (associativas)")
+        L.append("> Arestas heurísticas do repo (memória↔memória por `[[links]]`; spec↔código por"
+                 " `Arquivos tocados`). Nunca inventadas.")
+        for e in assoc:
+            L.append("- %s ↔ %s" % (e["a"], e["b"]))
         L.append("")
     return "\n".join(L) + "\n"
 
@@ -358,23 +469,26 @@ _HTML = """<!doctype html>
   .bar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:5px;font-size:12px;color:var(--muted);}
   .bar b{color:var(--ink);} .leg{display:inline-flex;align-items:center;gap:5px;}
   .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .dash{width:18px;height:0;border-top:2px dashed #9a8fb0;display:inline-block;}
   #wrap{flex:1 1 auto;position:relative;} #net{position:absolute;inset:0;}
   #pop{position:fixed;z-index:20;max-width:340px;background:#fff;border:1px solid #e2dccb;
        border-left:4px solid var(--ink);border-radius:8px;box-shadow:0 8px 28px rgba(31,42,68,.18);
        padding:9px 12px;font-size:12.5px;display:none;pointer-events:none;}
   #pop .nome{font-weight:700;font-size:14px;color:var(--ink);}
   #pop .loc{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);margin:2px 0 6px;word-break:break-all;}
+  #pop .dt{font-size:11px;color:var(--muted);margin:0 0 6px;} #pop .dt b{color:#33405c;font-weight:600;}
   #pop .res{color:#33405c;line-height:1.45;} #pop .muted{color:var(--muted);font-style:italic;}
 </style></head>
 <body>
 <header>
   <h1>Mapa <em>mental</em> do projeto — __TITLE__</h1>
   <div class="bar">
-    <span>clique no <b>＋</b> pra expandir · clique num item <b>.md</b> pra abrir o arquivo em nova aba · arraste a caixa · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes__GEN__</span>
+    <span>clique num balão pra <b>expandir/recolher</b> · clique num item <b>.md</b> pra abrir o arquivo em nova aba · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes (e <b>acender</b> as ligações pontilhadas)__GEN__</span>
     <span class="leg"><i class="dot" style="background:var(--arq)"></i>arquitetura</span>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
     <span class="leg"><i class="dot" style="background:var(--conn)"></i>conexões entre projetos</span>
+    <span class="leg"><i class="dash"></i>itens relacionados (aparecem ao passar o mouse)</span>
   </div>
 </header>
 <div id="wrap"><div id="net"></div></div>
@@ -385,6 +499,8 @@ _HTML = """<!doctype html>
   var COL={arq:'#2d6a4f',api:'#b5451f',mem:'#6a4c93',conn:'#1d4e89',projeto:'#1f2a44'};
   var TREE=__TREE__;
   var DOCS=__DOCS__;  // {caminho.md: conteúdo} — embutido na geração; abre em nova aba ao clicar
+  var ASSOC=__ASSOC__;  // [{a,b,t}] arestas associativas (memória↔memória, spec↔código) — nunca inventadas
+  var ACOL={mem:'#6a4c93', spec:'#b5451f'};  // cor da aresta associativa por tipo
   var uid=0, byUid={};
 
   // renderizador markdown vanilla inline (sem lib/CDN): títulos, listas, código, blockquote, links, ---
@@ -429,62 +545,111 @@ _HTML = """<!doctype html>
   (function init(n,p,dim){ n._uid=++uid; n._p=p; n.dim=n.dim||dim; if(n.exp===undefined)n.exp=(p===null);
     byUid[n._uid]=n; if(n.filhos)n.filhos.forEach(function(c){init(c,n,n.dim);}); })(TREE,null,'projeto');
 
+  // índice local -> [uids]: liga as arestas associativas aos nós certos (um mesmo arquivo pode ter +1 nó)
+  var byLocal={};
+  Object.keys(byUid).forEach(function(u){ var n=byUid[u];
+    if(n.local){ (byLocal[n.local]=byLocal[n.local]||[]).push(n._uid); } });
+
   var pop=document.getElementById('pop'), cont=document.getElementById('net');
   function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-  // layout RADIAL determinístico — SEM física (nada de animação "se mexendo").
-  // As posições são calculadas; expandir só ACRESCENTA os filhos, os demais nós não saem do lugar.
-  function Ldist(l){ return l<=1 ? 240 : 175; }
-  function layout(n,dir,level){
-    if(!n._p){ n._bx=0; n._by=0; }
-    else { n._bx=n._p._x+Ldist(level)*Math.cos(dir); n._by=n._p._y+Ldist(level)*Math.sin(dir); }
-    n._x=n._bx+(n._dx||0); n._y=n._by+(n._dy||0);
-    if(n.exp&&n.filhos){ var k=n.filhos.length;
-      for(var i=0;i<k;i++){ var cd;
-        if(level===0){ cd=2*Math.PI*i/k-Math.PI/2; }
-        else { var sp=Math.min(2.6,0.7+k*0.32); cd=(k===1)?dir:(dir-sp/2+sp*i/(k-1)); }
-        layout(n.filhos[i],cd,level+1); } }
+  // layout TIDY-TREE horizontal (esquerda→direita), determinístico e SEM física.
+  // Knuth: cada folha visível ocupa um slot vertical sequencial; o pai centra entre 1º e último filho —
+  // GARANTE zero-sobreposição. Ao expandir, os irmãos se reacomodam na hora (sem tremor/animação de física).
+  var XGAP=280, YGAP=46;
+  function layout(){ var slot=0;
+    (function place(n,depth){ n._x=depth*XGAP;
+      var kids=(n.exp&&n.filhos&&n.filhos.length)?n.filhos:null;
+      if(!kids){ n._y=slot*YGAP; slot++; return; }
+      var f,l; kids.forEach(function(c,i){ place(c,depth+1); if(i===0)f=c._y; l=c._y; });
+      n._y=(f+l)/2; })(TREE,0);
   }
   function visiveis(n,a){ a.push(n); if(n.exp&&n.filhos)n.filhos.forEach(function(c){visiveis(c,a);}); return a; }
 
   var nodes=new vis.DataSet(), edges=new vis.DataSet();
+  // estilo do balão por papel: centro (projeto) = cheio escuro; dimensão (filho do centro) = cor do
+  // ramo; folha = branco com texto suave. A cor do ramo viaja na borda/aresta.
+  function estilo(n){ var center=(n.dim==='projeto'), c=COL[n.dim]||'#1f2a44';
+    var isDim=(n._p&&n._p.dim==='projeto');
+    return { bg: center?c:'#ffffff', border: center?c:(isDim?c:'#d9d3c4'),
+             fcolor: center?'#faf8f3':(isDim?c:'#33405c'), fsize: center?17:(isDim?14:13),
+             bold: center||isDim }; }
+  // desenha (ou repõe) um balão no seu estilo-base — usado no rebuild e pra REVERTER o realce do hover
+  function pintarNo(n){ var s=estilo(n), kids=n.filhos&&n.filhos.length;
+    var mark=kids?(n.exp?'   –':'   +'):'';
+    nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:{x:true,y:true},
+      shape:'box', borderWidth:2, widthConstraint:{maximum:230}, margin:{top:9,bottom:9,left:15,right:15},
+      shapeProperties:{borderRadius:14}, shadow:{enabled:true,size:12,x:0,y:5,color:'rgba(31,42,68,0.12)'},
+      color:{ background:s.bg, border:s.border,
+              highlight:{ background:s.bg==='#ffffff'?'#faf7f0':s.bg, border:s.border } },
+      font:{ color:s.fcolor, size:s.fsize, face:'system-ui', bold:s.bold } });
+  }
   function rebuild(){
-    layout(TREE,-Math.PI/2,0);
+    layout();
     var vivos=visiveis(TREE,[]), ok={}; vivos.forEach(function(n){ ok[n._uid]=1; });
     nodes.getIds().forEach(function(id){ if(!ok[id]) nodes.remove(id); });
-    edges.getIds().forEach(function(id){ if(!ok[+String(id).slice(1)]) edges.remove(id); });
-    vivos.forEach(function(n){
-      var center=(n.dim==='projeto'), kids=n.filhos&&n.filhos.length;
-      var mark=kids?(n.exp?'  −':'  +'):'';
-      nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, shape:'box', margin:9, borderWidth:2, shadow:false,
-        color:{ background:center?'#1f2a44':'#ffffff', border:COL[n.dim]||'#1f2a44',
-                highlight:{ background:center?'#26324f':'#f3efe6', border:COL[n.dim]||'#1f2a44' } },
-        font:{ color:center?'#faf8f3':'#1f2a44', size:center?16:13, face:'system-ui', bold:!!center } });
-      if(n._p) edges.update({ id:'e'+n._uid, from:n._p._uid, to:n._uid, width:2,
-        color:{ color:COL[n.dim]||'#999', opacity:0.55, highlight:COL[n.dim]||'#999' }, smooth:{type:'continuous'} });
+    // limpa só as arestas de ÁRVORE ('e'+uid) que sumiram; as associativas ('a…') são refeitas abaixo
+    edges.getIds().forEach(function(id){ id=String(id);
+      if(id.charAt(0)==='e' && !ok[+id.slice(1)]) edges.remove(id);
+      else if(id.charAt(0)==='a') edges.remove(id); });
+    vivos.forEach(function(n){ pintarNo(n);
+      if(n._p) edges.update({ id:'e'+n._uid, from:n._p._uid, to:n._uid, width:2.2,
+        color:{ color:COL[n.dim]||'#999', opacity:0.6, highlight:COL[n.dim]||'#999' },
+        smooth:{ enabled:true, type:'cubicBezier', forceDirection:'horizontal', roundness:0.55 } });
     });
+    // arestas ASSOCIATIVAS: só entre nós VISÍVEIS (a "teia" cresce conforme se expande),
+    // pontilhadas e fracas — acendem no hover (acenderAssoc). Nunca inventadas: vêm do dado ASSOC.
+    ASSOC.forEach(function(e,i){ var A=byLocal[e.a]||[], B=byLocal[e.b]||[];
+      A.forEach(function(ua){ B.forEach(function(ub){
+        if(ua!==ub && ok[ua] && ok[ub]){
+          // ordena os extremos por altura (o de cima vira `from`): com curva horária, o arco boja
+          // sempre pra DIREITA — sai pelo lado direito dos balões, sem cruzar por dentro com a árvore.
+          var top=(byUid[ua]._y<=byUid[ub]._y)?ua:ub, bot=(top===ua)?ub:ua;
+          edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:top, to:bot, dashes:[3,5], width:1.6, _assoc:1, _base:ACOL[e.t]||'#999',
+            hidden:true,  // escondida por padrão — só aparece no hover do nó que ela liga
+            color:{ color:ACOL[e.t]||'#999', opacity:0.9 },
+            smooth:{ enabled:true, type:'curvedCW', roundness:0.5 },
+            arrows:{ from:{enabled:true,type:'arrow',scaleFactor:0.5}, to:{enabled:true,type:'arrow',scaleFactor:0.5} } });
+        } }); }); });
+  }
+  // hover num nó: acende as linhas associativas que o tocam E REALÇA a caixa do outro lado
+  // (borda grossa + brilho na cor da relação) — deixa explícito "isto se liga ÀQUILO".
+  var _hi=[];
+  function acenderAssoc(uid){ var viz={};
+    edges.forEach(function(e){ if(!e._assoc) return; var on=(e.from===uid||e.to===uid);
+      edges.update({ id:e.id, hidden:!on, shadow:on });   // MOSTRA só as que tocam o nó; resto fica escondido
+      if(on) viz[(e.from===uid)?e.to:e.from]=e._base; });
+    _hi=Object.keys(viz).map(Number);
+    _hi.forEach(function(u){ var n=byUid[u]; if(!n) return; var cor=viz[u], s=estilo(n);
+      nodes.update({ id:u, borderWidth:3,
+        color:{ background:s.bg, border:cor, highlight:{ background:s.bg, border:cor } },
+        shadow:{ enabled:true, size:22, x:0, y:0, color:cor+'99' } }); });  // brilho na cor da relação
+  }
+  function apagarAssoc(){ edges.forEach(function(e){ if(e._assoc)
+      edges.update({ id:e.id, hidden:true, shadow:false }); });   // esconde tudo de novo
+    _hi.forEach(function(u){ var n=byUid[u]; if(n) pintarNo(n); }); _hi=[];  // reverte o realce das caixas
   }
 
   var net=new vis.Network(cont, {nodes:nodes,edges:edges}, {
     physics:false, layout:{ improvedLayout:false },
-    interaction:{ hover:true, dragNodes:true, dragView:true, zoomView:true },
-    nodes:{ shapeProperties:{ borderRadius:8 } }
+    interaction:{ hover:true, dragNodes:false, dragView:true, zoomView:true },
+    nodes:{ shapeProperties:{ borderRadius:14 } }
   });
 
   net.on('click', function(p){ if(!p.nodes.length) return; var n=byUid[p.nodes[0]]; if(!n) return;
     if(n.filhos&&n.filhos.length){ n.exp=!n.exp; rebuild(); return; }   // nó com filhos: expande/recolhe
     if(n.local&&/\\.md$/i.test(n.local)) openDoc(n); });                 // folha .md: abre em nova aba
-  net.on('hoverNode', function(p){ showPop(byUid[p.node]); });
-  net.on('blurNode', hidePop); net.on('dragStart', hidePop); net.on('zoom', hidePop);
-  net.on('dragEnd', function(p){ if(p.nodes.length){ var id=p.nodes[0], n=byUid[id], pos=net.getPositions([id])[id];
-    if(n&&pos){ n._dx=pos.x-n._bx; n._dy=pos.y-n._by; } } });  // guarda o arraste (fica onde soltou)
+  net.on('hoverNode', function(p){ showPop(byUid[p.node]); acenderAssoc(p.node); });
+  net.on('blurNode', function(){ hidePop(); apagarAssoc(); });
+  net.on('dragStart', hidePop); net.on('zoom', hidePop);
 
   function showPop(n){ if(!n) return;
     var pos=net.getPositions([n._uid])[n._uid]; if(!pos) return;
     var dom=net.canvasToDOM(pos), rect=cont.getBoundingClientRect();
     var loc=n.local?'<div class="loc">'+esc(n.local)+'</div>':'';
+    var dt=n.data?'<div class="dt"><b>modificado:</b> '+esc(n.data)+'</div>':'';
     var res=n.resumo?'<div class="res">'+esc(n.resumo)+'</div>':'<div class="res muted">(sem descrição registrada)</div>';
-    pop.innerHTML='<div class="nome">'+esc(n.id)+'</div>'+loc+res;
+    pop.innerHTML='<div class="nome">'+esc(n.id)+'</div>'+loc+dt+res;
     pop.style.borderLeftColor=COL[n.dim]||'#1f2a44'; pop.style.display='block';
     var pw=pop.offsetWidth, ph=pop.offsetHeight;
     var left=rect.left+dom.x-pw/2; left=Math.max(8,Math.min(left,window.innerWidth-pw-8));
@@ -500,17 +665,19 @@ _HTML = """<!doctype html>
 """
 
 
-def render_html(arvore: dict, gerado_em: str = "", docs: dict | None = None) -> str:
+def render_html(arvore: dict, gerado_em: str = "", docs: dict | None = None,
+                assoc: list | None = None) -> str:
     gen = " · gerado em %s" % gerado_em if gerado_em else ""
     vis = (Path(__file__).resolve().parent / "vendor" / "vis-network.min.js").read_text(encoding="utf-8")
     html = (_HTML.replace("__TITLE__", str(arvore["id"]))
                  .replace("__GEN__", gen)
                  .replace("__VISLIB__", vis))
-    # __TREE__ e __DOCS__ carregam JSON que pode conter o texto do OUTRO placeholder
+    # __TREE__/__DOCS__/__ASSOC__ carregam JSON que pode conter o texto de OUTRO placeholder
     # (ex.: uma spec que menciona `__DOCS__`) — substituí num passo só pra não contaminar.
     subs = {"__TREE__": json.dumps(arvore, ensure_ascii=False),
-            "__DOCS__": json.dumps(docs or {}, ensure_ascii=False)}
-    return re.sub(r"__TREE__|__DOCS__", lambda m: subs[m.group(0)], html)
+            "__DOCS__": json.dumps(docs or {}, ensure_ascii=False),
+            "__ASSOC__": json.dumps(assoc or [], ensure_ascii=False)}
+    return re.sub(r"__TREE__|__DOCS__|__ASSOC__", lambda m: subs[m.group(0)], html)
 
 
 def gerar(proj_dir=None, out_dir=None):
@@ -518,14 +685,16 @@ def gerar(proj_dir=None, out_dir=None):
     if not proj.exists():
         raise ValueError("projeto não encontrado: %s" % proj)
     arv = construir_arvore(proj)
+    assoc = extrair_associacoes(proj)
     # saída em docs/ (todo projeto tem, via superpowers; fica isolado e não polui a raiz)
     out = Path(out_dir) if out_dir else proj / "docs"
     out.mkdir(parents=True, exist_ok=True)
     md = out / "mapa-neural.md"
     html = out / "mapa-neural.html"
     docs = coletar_docs(proj, arv)
-    md.write_text(render_texto(arv), encoding="utf-8")
-    html.write_text(render_html(arv, datetime.now().strftime("%Y-%m-%d %H:%M"), docs=docs), encoding="utf-8")
+    md.write_text(render_texto(arv, assoc=assoc), encoding="utf-8")
+    html.write_text(render_html(arv, datetime.now().strftime("%Y-%m-%d %H:%M"), docs=docs, assoc=assoc),
+                    encoding="utf-8")
     return md, html
 
 
