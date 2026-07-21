@@ -469,6 +469,7 @@ _HTML = """<!doctype html>
   .bar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:5px;font-size:12px;color:var(--muted);}
   .bar b{color:var(--ink);} .leg{display:inline-flex;align-items:center;gap:5px;}
   .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .dash{width:18px;height:0;border-top:2px dashed #9a8fb0;display:inline-block;}
   #wrap{flex:1 1 auto;position:relative;} #net{position:absolute;inset:0;}
   #pop{position:fixed;z-index:20;max-width:340px;background:#fff;border:1px solid #e2dccb;
        border-left:4px solid var(--ink);border-radius:8px;box-shadow:0 8px 28px rgba(31,42,68,.18);
@@ -487,6 +488,7 @@ _HTML = """<!doctype html>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
     <span class="leg"><i class="dot" style="background:var(--conn)"></i>conexões entre projetos</span>
+    <span class="leg"><i class="dash"></i>itens relacionados (passe o mouse p/ realçar)</span>
   </div>
 </header>
 <div id="wrap"><div id="net"></div></div>
@@ -572,6 +574,16 @@ _HTML = """<!doctype html>
     return { bg: center?c:'#ffffff', border: center?c:(isDim?c:'#d9d3c4'),
              fcolor: center?'#faf8f3':(isDim?c:'#33405c'), fsize: center?17:(isDim?14:13),
              bold: center||isDim }; }
+  // desenha (ou repõe) um balão no seu estilo-base — usado no rebuild e pra REVERTER o realce do hover
+  function pintarNo(n){ var s=estilo(n), kids=n.filhos&&n.filhos.length;
+    var mark=kids?(n.exp?'   –':'   +'):'';
+    nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:{x:true,y:true},
+      shape:'box', borderWidth:2, widthConstraint:{maximum:230}, margin:{top:9,bottom:9,left:15,right:15},
+      shapeProperties:{borderRadius:14}, shadow:{enabled:true,size:12,x:0,y:5,color:'rgba(31,42,68,0.12)'},
+      color:{ background:s.bg, border:s.border,
+              highlight:{ background:s.bg==='#ffffff'?'#faf7f0':s.bg, border:s.border } },
+      font:{ color:s.fcolor, size:s.fsize, face:'system-ui', bold:s.bold } });
+  }
   function rebuild(){
     layout();
     var vivos=visiveis(TREE,[]), ok={}; vivos.forEach(function(n){ ok[n._uid]=1; });
@@ -580,14 +592,7 @@ _HTML = """<!doctype html>
     edges.getIds().forEach(function(id){ id=String(id);
       if(id.charAt(0)==='e' && !ok[+id.slice(1)]) edges.remove(id);
       else if(id.charAt(0)==='a') edges.remove(id); });
-    vivos.forEach(function(n){ var s=estilo(n), kids=n.filhos&&n.filhos.length;
-      var mark=kids?(n.exp?'   –':'   +'):'';
-      nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:{x:true,y:true},
-        shape:'box', borderWidth:2, widthConstraint:{maximum:230}, margin:{top:9,bottom:9,left:15,right:15},
-        shapeProperties:{borderRadius:14}, shadow:{enabled:true,size:12,x:0,y:5,color:'rgba(31,42,68,0.12)'},
-        color:{ background:s.bg, border:s.border,
-                highlight:{ background:s.bg==='#ffffff'?'#faf7f0':s.bg, border:s.border } },
-        font:{ color:s.fcolor, size:s.fsize, face:'system-ui', bold:s.bold } });
+    vivos.forEach(function(n){ pintarNo(n);
       if(n._p) edges.update({ id:'e'+n._uid, from:n._p._uid, to:n._uid, width:2.2,
         color:{ color:COL[n.dim]||'#999', opacity:0.6, highlight:COL[n.dim]||'#999' },
         smooth:{ enabled:true, type:'cubicBezier', forceDirection:'horizontal', roundness:0.55 } });
@@ -601,11 +606,23 @@ _HTML = """<!doctype html>
             color:{ color:ACOL[e.t]||'#999', opacity:0.2 }, smooth:{ enabled:true, type:'curvedCW', roundness:0.3 } });
         } }); }); });
   }
-  function acenderAssoc(uid){ edges.forEach(function(e){ if(!e._assoc) return;
-    var on=(e.from===uid||e.to===uid);
-    edges.update({ id:e.id, width:on?2.6:1.4, shadow:!!on, color:{ color:e._base, opacity:on?0.95:0.2 } }); }); }
+  // hover num nó: acende as linhas associativas que o tocam E REALÇA a caixa do outro lado
+  // (borda grossa + brilho na cor da relação) — deixa explícito "isto se liga ÀQUILO".
+  var _hi=[];
+  function acenderAssoc(uid){ var viz={};
+    edges.forEach(function(e){ if(!e._assoc) return; var on=(e.from===uid||e.to===uid);
+      edges.update({ id:e.id, width:on?2.6:1.4, shadow:!!on, color:{ color:e._base, opacity:on?0.95:0.2 } });
+      if(on) viz[(e.from===uid)?e.to:e.from]=e._base; });
+    _hi=Object.keys(viz).map(Number);
+    _hi.forEach(function(u){ var n=byUid[u]; if(!n) return; var cor=viz[u], s=estilo(n);
+      nodes.update({ id:u, borderWidth:3,
+        color:{ background:s.bg, border:cor, highlight:{ background:s.bg, border:cor } },
+        shadow:{ enabled:true, size:22, x:0, y:0, color:cor+'99' } }); });  // brilho na cor da relação
+  }
   function apagarAssoc(){ edges.forEach(function(e){ if(e._assoc)
-    edges.update({ id:e.id, width:1.4, shadow:false, color:{ color:e._base, opacity:0.2 } }); }); }
+      edges.update({ id:e.id, width:1.4, shadow:false, color:{ color:e._base, opacity:0.2 } }); });
+    _hi.forEach(function(u){ var n=byUid[u]; if(n) pintarNo(n); }); _hi=[];  // reverte o realce das caixas
+  }
 
   var net=new vis.Network(cont, {nodes:nodes,edges:edges}, {
     physics:false, layout:{ improvedLayout:false },
