@@ -355,3 +355,16 @@ def test_captura_memory_dois_modos():
     assert "não duplic" in mem.lower(), "capturar não garante não-duplicação (CA2)"
     # foco em pivôs (a evolução das decisões, não só o estado final)
     assert "pivô" in mem.lower() or "repensad" in mem.lower(), "capturar não prioriza os pivôs no resumo de sessão"
+
+
+def test_captura_diario_template():
+    """Template do índice do diário: formato por dia, aponta os arquivos de sessão, foca nos pivôs."""
+    dia = REPO / "templates" / "DIARIO.md"
+    assert dia.exists(), "falta templates/DIARIO.md"
+    txt = dia.read_text(encoding="utf-8")
+    assert "## <data>" in txt, "DIARIO.md não mostra o formato de índice por dia (## <data>)"
+    assert "sessions/" in txt, "DIARIO.md não aponta os arquivos em memory/sessions/"
+    assert "pivô" in txt.lower() or "repensad" in txt.lower(), \
+        "DIARIO.md não orienta capturar os pivôs (a evolução das decisões)"
+    # dogfood: o próprio kit tem seu índice de diário
+    assert (REPO / "memory" / "DIARIO.md").exists(), "falta o dogfood memory/DIARIO.md"
