@@ -599,7 +599,7 @@ _HTML = """<!doctype html>
         if(ua!==ub && ok[ua] && ok[ub]){
           edges.add({ id:'a'+i+'_'+ua+'_'+ub, from:ua, to:ub, dashes:[3,5], width:1.4, _assoc:1, _base:ACOL[e.t]||'#999',
             color:{ color:ACOL[e.t]||'#999', opacity:0.2 }, smooth:{ enabled:true, type:'curvedCW', roundness:0.3 } });
-        } })); });
+        } }); }); });
   }
   function acenderAssoc(uid){ edges.forEach(function(e){ if(!e._assoc) return;
     var on=(e.from===uid||e.to===uid);

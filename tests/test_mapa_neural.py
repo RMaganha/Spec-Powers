@@ -270,6 +270,24 @@ def test_render_html_layout_tidy_tree_horizontal(mn, proj):
     assert "dragNodes:false" in html, "os nós deveriam ser fixos (auto-layout), não arrastáveis"
 
 
+def test_html_js_tem_sintaxe_valida(mn, proj, tmp_path):
+    """Guarda anti-tela-branca: o JS inline do HTML precisa PARSEAR. Substrings verdes não pegam
+    erro de sintaxe (parse-time), e foi assim que um `})` a mais deixou o mapa branco. Valida com
+    `node --check` (pula se node não estiver no PATH)."""
+    import shutil
+    import subprocess
+    if not shutil.which("node"):
+        pytest.skip("node não disponível — guarda de sintaxe pulada")
+    html = mn.render_html(mn.construir_arvore(proj), assoc=mn.extrair_associacoes(proj))
+    m = re.findall(r"<script>(.*?)</script>", html, re.S)
+    js = m[-1]  # o bloco principal (o 1º é a lib vis-network embutida)
+    stub = "var vis={Network:function(){},DataSet:function(){}},document={getElementById:function(){}},window={};\n"
+    f = tmp_path / "inline.js"
+    f.write_text(stub + js, encoding="utf-8")
+    r = subprocess.run(["node", "--check", str(f)], capture_output=True, text=True)
+    assert r.returncode == 0, "JS inline do HTML tem erro de sintaxe:\n" + r.stderr
+
+
 def test_render_texto_tem_secao_relacoes(mn, proj):
     """CA19 (texto) — o índice .md ganha a seção Relações (associativa)."""
     assoc = mn.extrair_associacoes(proj)
