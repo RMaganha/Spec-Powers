@@ -14,10 +14,12 @@ e spec↔código (`## Arquivos tocados`), nunca inventadas.
 
 Duas saídas do mesmo modelo:
   (a) `mapa-neural.md`   — índice em texto (o assistente consulta) + seção Relações;
-  (b) `mapa-neural.html` — mapa em **árvore horizontal (tidy-tree, esquerda→direita)** full-screen,
-      expansível (clique no balão; irmãos se reacomodam sem sobrepor), conexões curvas (cubicBezier)
-      coloridas por ramo, balões modernos, e as arestas associativas pontilhadas que acendem no hover;
-      pan/zoom no fundo; 100% self-contained (vis-network embutido inline, fontes de sistema — zero CDN).
+  (b) `mapa-neural.html` — mapa em **árvore horizontal (tidy-tree, esquerda→direita)** full-screen:
+      1 clique expande/recolhe (irmãos se reacomodam sem sobrepor — faixa vertical do tamanho real do
+      balão), **duplo clique** numa folha `.md` abre o arquivo, e cada caixa é **arrastável** (move só
+      ela; o offset é preservado ao expandir). Conexões curvas (cubicBezier) coloridas por ramo, balões
+      modernos, arestas associativas pontilhadas que acendem no hover; pan/zoom no fundo. 100%
+      self-contained (vis-network embutido inline, fontes de sistema — zero CDN).
 
 Uso:
     python mapa_neural.py                 # projeto = diretório atual; saída no mesmo lugar
@@ -483,7 +485,7 @@ _HTML = """<!doctype html>
 <header>
   <h1>Mapa <em>mental</em> do projeto — __TITLE__</h1>
   <div class="bar">
-    <span>clique num balão pra <b>expandir/recolher</b> · clique num item <b>.md</b> pra abrir o arquivo em nova aba · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes (e <b>acender</b> as ligações pontilhadas)__GEN__</span>
+    <span>clique num balão pra <b>expandir/recolher</b> · <b>duplo clique</b> num item <b>.md</b> abre o arquivo em nova aba · <b>arraste uma caixa</b> pra movê-la · role/arraste o fundo pra navegar · passe o mouse pra ver detalhes (e <b>acender</b> as ligações pontilhadas)__GEN__</span>
     <span class="leg"><i class="dot" style="background:var(--arq)"></i>arquitetura</span>
     <span class="leg"><i class="dot" style="background:var(--api)"></i>APIs &amp; integrações</span>
     <span class="leg"><i class="dot" style="background:var(--mem)"></i>memórias</span>
@@ -554,15 +556,18 @@ _HTML = """<!doctype html>
   function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
   // layout TIDY-TREE horizontal (esquerda→direita), determinístico e SEM física.
-  // Knuth: cada folha visível ocupa um slot vertical sequencial; o pai centra entre 1º e último filho —
-  // GARANTE zero-sobreposição. Ao expandir, os irmãos se reacomodam na hora (sem tremor/animação de física).
-  var XGAP=280, YGAP=46;
-  function layout(){ var slot=0;
-    (function place(n,depth){ n._x=depth*XGAP;
+  // Knuth: cada folha reserva uma faixa vertical do TAMANHO REAL do seu balão (nº de linhas), o pai
+  // centra entre 1º e último filho — GARANTE zero-sobreposição mesmo com rótulos de 2-3 linhas.
+  // Posição = base (_bx/_by) + offset do arraste (_ox/_oy), então mover uma caixa é preservado ao expandir.
+  var XGAP=300, ROW=21, PADV=30;
+  function boxH(n){ var len=(''+n.id).length, linhas=Math.max(1,Math.min(4,Math.ceil(len/24))); return linhas*ROW+PADV; }
+  function layout(){ var y=0;
+    (function place(n,depth){ var bx=depth*XGAP, by;
       var kids=(n.exp&&n.filhos&&n.filhos.length)?n.filhos:null;
-      if(!kids){ n._y=slot*YGAP; slot++; return; }
-      var f,l; kids.forEach(function(c,i){ place(c,depth+1); if(i===0)f=c._y; l=c._y; });
-      n._y=(f+l)/2; })(TREE,0);
+      if(!kids){ var h=boxH(n); by=y+h/2; y+=h; }
+      else { var f,l; kids.forEach(function(c,i){ place(c,depth+1); if(i===0)f=c._by; l=c._by; }); by=(f+l)/2; }
+      n._bx=bx; n._by=by; n._x=bx+(n._ox||0); n._y=by+(n._oy||0);   // centra o pai no _by (base) dos filhos
+    })(TREE,0);
   }
   function visiveis(n,a){ a.push(n); if(n.exp&&n.filhos)n.filhos.forEach(function(c){visiveis(c,a);}); return a; }
 
@@ -577,7 +582,7 @@ _HTML = """<!doctype html>
   // desenha (ou repõe) um balão no seu estilo-base — usado no rebuild e pra REVERTER o realce do hover
   function pintarNo(n){ var s=estilo(n), kids=n.filhos&&n.filhos.length;
     var mark=kids?(n.exp?'   –':'   +'):'';
-    nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:{x:true,y:true},
+    nodes.update({ id:n._uid, label:(''+n.id)+mark, x:n._x, y:n._y, fixed:false,
       shape:'box', borderWidth:2, widthConstraint:{maximum:230}, margin:{top:9,bottom:9,left:15,right:15},
       shapeProperties:{borderRadius:14}, shadow:{enabled:true,size:12,x:0,y:5,color:'rgba(31,42,68,0.12)'},
       color:{ background:s.bg, border:s.border,
@@ -632,16 +637,19 @@ _HTML = """<!doctype html>
 
   var net=new vis.Network(cont, {nodes:nodes,edges:edges}, {
     physics:false, layout:{ improvedLayout:false },
-    interaction:{ hover:true, dragNodes:false, dragView:true, zoomView:true },
+    interaction:{ hover:true, dragNodes:true, dragView:true, zoomView:true },
     nodes:{ shapeProperties:{ borderRadius:14 } }
   });
 
   net.on('click', function(p){ if(!p.nodes.length) return; var n=byUid[p.nodes[0]]; if(!n) return;
-    if(n.filhos&&n.filhos.length){ n.exp=!n.exp; rebuild(); return; }   // nó com filhos: expande/recolhe
-    if(n.local&&/\\.md$/i.test(n.local)) openDoc(n); });                 // folha .md: abre em nova aba
+    if(n.filhos&&n.filhos.length){ n.exp=!n.exp; rebuild(); } });        // 1 clique: expande/recolhe (folha: nada)
+  net.on('doubleClick', function(p){ if(!p.nodes.length) return; var n=byUid[p.nodes[0]]; if(!n) return;
+    if(n.local&&/\\.md$/i.test(n.local)) openDoc(n); });                 // DUPLO clique numa folha .md: abre em nova aba
   net.on('hoverNode', function(p){ showPop(byUid[p.node]); acenderAssoc(p.node); });
   net.on('blurNode', function(){ hidePop(); apagarAssoc(); });
   net.on('dragStart', hidePop); net.on('zoom', hidePop);
+  net.on('dragEnd', function(p){ if(p.nodes.length){ var id=p.nodes[0], n=byUid[id], pos=net.getPositions([id])[id];
+    if(n&&pos){ n._ox=pos.x-n._bx; n._oy=pos.y-n._by; } } });           // arraste move só a caixa; offset preservado no expand
 
   function showPop(n){ if(!n) return;
     var pos=net.getPositions([n._uid])[n._uid]; if(!pos) return;
