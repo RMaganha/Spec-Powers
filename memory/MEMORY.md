@@ -20,3 +20,4 @@
 - [Avaliar tool externa: ideia vs. stack](feedback_avaliar_tool_externa_ideia_vs_stack.md) — separar a ideia da implementação; integrar o stack só se casar com os pilares (não-serviço/curada/texto), senão reimplementar a ideia no idioma da casa (ex.: claude-mem → feature captura-de-memoria, zero dep)
 - [Testar o JS gerado com node --check](feedback_testar_js_gerado_node_check.md) — HTML com JS inline: valide a sintaxe com `node --check` no teste; substring verde não pega erro de parse (a "tela branca" do mapa neural)
 - [Versão vive em dois manifestos](project_versao_em_dois_manifestos.md) — a versão fica em plugin.json + marketplace.json (teste de coerência exige iguais); bumpe os dois e re-rode a suíte após o bump
+- [mss-spec instalado por junction (não marketplace)](project_mss_spec_instalado_por_junction.md) — ~/.claude/skills/mss-spec → o clone de dev; edições são live em todo projeto; nada de update/pull/push local, só recarregar a sessão
