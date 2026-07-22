@@ -265,9 +265,10 @@ def test_render_html_layout_tidy_tree_horizontal(mn, proj):
     no lugar do radial antigo."""
     html = mn.render_html(mn.construir_arvore(proj))
     assert "cubicBezier" in html, "as conexões não são curvas horizontais (cubicBezier)"
-    assert "YGAP" in html, "não há o layout tidy-tree (slots verticais por folha)"
+    assert "boxH" in html, "não há o layout tidy-tree com faixa proporcional à altura do balão"
     assert "borderRadius:14" in html, "os balões não têm o arredondamento moderno"
-    assert "dragNodes:false" in html, "os nós deveriam ser fixos (auto-layout), não arrastáveis"
+    assert "dragNodes:true" in html, "os nós deveriam ser arrastáveis (mover uma caixa)"
+    assert "doubleClick" in html, "abrir o .md deveria ser por duplo clique"
 
 
 def test_html_js_tem_sintaxe_valida(mn, proj, tmp_path):
