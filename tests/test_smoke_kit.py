@@ -446,3 +446,62 @@ def test_doctor_check_versao_wiring():
     # semver, não commit
     assert "semver" in low or "número de versão" in low, \
         "doctor.md não deixa claro que compara por versão (semver), não commit"
+
+
+def test_frontend_wiring():
+    """Design system frontend costurado de ponta a ponta — incluindo a PONTE no nova-feature.
+
+    Regressão real (2026-07): rodando /mss-spec:nova-feature "seguindo o padrão do
+    /mss-spec:frontend", o assistente declarou que /mss-spec:frontend "não existe" e chutou o
+    nível errado (Jinja em vez de React+Mantine pra tela densa). Causa: nova-feature.md fazia
+    ponte pra log/segurança/teste/mapa/memória, mas NÃO pro frontend — então, ao construir uma
+    tela, nada mandava consultar o docs/FRONTEND.md nem decidir Nível 1 × Nível 2. As demais
+    costuras (template/kickoff/upgrade/CLAUDE.md) já existiam; faltava só a ponte.
+    """
+    assert (REPO / "templates" / "FRONTEND.md").exists(), "falta templates/FRONTEND.md"
+    assert (REPO / "commands" / "frontend.md").exists(), "falta commands/frontend.md"
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    upgrade = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    # costuras que já existiam (regressão-guarda)
+    assert "templates/FRONTEND.md" in kickoff, "kickoff não copia templates/FRONTEND.md"
+    assert "docs/FRONTEND.md" in upgrade, "upgrade não sincroniza docs/FRONTEND.md"
+    assert "docs/FRONTEND.md" in claude, "CLAUDE.md não referencia docs/FRONTEND.md"
+    # A LACUNA: nova-feature tem que fazer a ponte pro design system ao construir uma tela.
+    assert "FRONTEND.md" in nova, "nova-feature não manda consultar o docs/FRONTEND.md numa feature de UI"
+    assert "/mss-spec:frontend" in nova, \
+        "nova-feature não aponta o /mss-spec:frontend (instala o Nível 2) pra tela densa"
+    assert "Nível" in nova, "nova-feature não cita a decisão Nível 1 × Nível 2 (stack por tela)"
+
+
+def test_comando_referenciado_existe_guardrail():
+    """Guardrail GERAL (Camada 2 da regressão do frontend): o CLAUDE.md ensina que um
+    /mss-spec:<x> referenciado — mesmo sem aparecer na lista de invocáveis, porque é
+    disable-model-invocation — EXISTE como commands/<x>.md e deve ser LIDO, nunca declarado
+    inexistente nem chutado de memória. É o que impede a mesma confusão com qualquer comando
+    (não só o frontend). Sempre-ativo (CLAUDE.md) e chega a projeto existente via upgrade (mescla).
+    """
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    low = claude.lower()
+    assert "disable-model-invocation" in claude, \
+        "CLAUDE.md não explica por que o comando não aparece na lista (disable-model-invocation)"
+    assert "commands/" in claude, "CLAUDE.md não diz que o comando existe como commands/<x>.md"
+    assert "leia o arquivo" in low, "CLAUDE.md não manda LER o arquivo do comando referenciado"
+    assert "não existe" in low, "CLAUDE.md não proíbe concluir que o comando 'não existe'"
+    # upgrade mescla CLAUDE.md → a regra nova chega a projeto que já nasceu (ex.: Energy)
+    upgrade = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    assert "CLAUDE.md" in upgrade and "MESCLA" in upgrade, \
+        "upgrade não mescla CLAUDE.md (a regra nova não chegaria a projeto existente)"
+
+
+def test_nova_feature_pontes_design_e_dados():
+    """nova-feature faz ponte pras capacidades que uma feature aciona (mesma natureza da
+    lacuna do frontend, achadas na varredura de completude): no DESIGN, checar reuso entre
+    projetos MSIG (precedentes); ao mexer em DADOS/DDL, rotear pela disciplina do banco (SQL
+    parametrizado, DDL versionada, rodada FORA do app)."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "precedentes" in nova, \
+        "nova-feature não manda checar precedentes MSIG no design (reuso entre projetos)"
+    assert "/mss-spec:banco" in nova, \
+        "nova-feature não roteia DDL/dados pela disciplina do /mss-spec:banco"
