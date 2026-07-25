@@ -22,7 +22,9 @@ Confirmado (2026-07-22): **não** aparece em `~/.claude/plugins/installed_plugin
 - `claude plugin marketplace update mss-spec` **falha / não faz nada** (não há marketplace mss-spec
   registrado) — **não** sugerir esse comando pra este setup.
 - Pra uma sessão **já aberta** pegar comandos/templates alterados: **recarregar/reiniciar o Claude Code**
-  no projeto (comandos e skills são lidos na partida).
+  no projeto (comandos e skills são lidos na partida). **PORÉM, isso nem sempre basta:** há um caso
+  em aberto em que o mss-spec **some depois de o app atualizar** e **sessão nova NÃO resolve** — ver
+  [[project_pendencia_intermitencia_pos_update]] (com o comando de captura e o de restaurar a junction).
 - O `git push` pro GitHub serve só pra **backup / outras máquinas / o check de versão do doctor** — não
   pro uso do owner na própria máquina.
 
