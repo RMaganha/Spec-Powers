@@ -505,3 +505,21 @@ def test_nova_feature_pontes_design_e_dados():
         "nova-feature não manda checar precedentes MSIG no design (reuso entre projetos)"
     assert "/mss-spec:banco" in nova, \
         "nova-feature não roteia DDL/dados pela disciplina do /mss-spec:banco"
+
+
+def test_guardrail_executar_nao_invocar():
+    """Face gêmea do guardrail (regressão vista no Energy): quando o kit manda "rode /mss-spec:X"
+    e X é disable-model-invocation, o assistente TENTAVA invocar via Skill e batia "Falha ao
+    executar a habilidade" (erro vermelho que faz parecer quebrado), antes de cair no manual. A
+    regra tem que dizer: EXECUTE os passos de commands/<x>.md você mesmo, NÃO invoque a skill.
+    Central no CLAUDE.md (chega ao Energy via upgrade) + nota no fecho do nova-feature
+    (junction-live: alívio imediato no exato fluxo — captura de memória — que errou)."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    low = claude.lower()
+    assert "falha ao executar a habilidade" in low, \
+        "CLAUDE.md não nomeia o erro real (Falha ao executar a habilidade) que denuncia a invocação indevida"
+    assert "execute os passos" in low, \
+        "CLAUDE.md não manda EXECUTAR os passos do comando (em vez de invocar a skill)"
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    assert "disable-model-invocation" in nova, \
+        "nova-feature (fecho) não avisa que os 'rode /mss-spec:X' são disable-model-invocation (executar, não invocar)"
