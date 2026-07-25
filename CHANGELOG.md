@@ -2,6 +2,11 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.13.2 — 2026-07-24 (guardrail: skills-dir plugin conta como instalado — 4ª face)
+- fix(CLAUDE.md): **quarta e última face conhecida da família** — o assistente disse "o plugin `mss-spec` não está instalado nesta máquina" porque checou só o registro de marketplace/`installed_plugins.json` e **não viu** que o `mss-spec` é um **skills-dir plugin** (`~/.claude/skills/<nome>/`, mecanismo oficial — o `claude plugin list` confirmou: `mss-spec@skills-dir`, v0.13.1, `√ loaded`, scope user, ao vivo). A regra do `CLAUDE.md` agora aponta a checagem certa (`claude plugin list` → seção "Skills-directory plugins") e crava: ausência no marketplace **≠** não instalado. Fecha as 4 faces (não-existe · falha-ao-invocar · não-instalado-registro · não-instalado-skills-dir).
+- nota: a via de instalação foi **mantida** (skills-dir por junction) — o `claude plugin list` prova que é plugin legítimo e ao vivo; converter pra marketplace seria regressão (perde edit-ao-vivo, ganha ritual de update).
+- test: `test_guardrail_skills_dir_instalado`. Suíte **68 passed** (era 67).
+
 ## 0.13.1 — 2026-07-24 (guardrail: "rode /mss-spec:X" = executar, não invocar)
 - fix(CLAUDE.md + nova-feature): **face gêmea do guardrail 0.13.0** — quando o kit manda "rode `/mss-spec:X`" (memory capturar, mapa, release, seguranca…), o assistente **tentava invocar** o slash-command via Skill e batia **"Falha ao executar a habilidade"** (é `disable-model-invocation`, só o humano dispara), antes de cair no manual — o erro vermelho que faz o kit parecer quebrado (visto rodando no Energy). A regra do `CLAUDE.md` agora diz: "rode `/mss-spec:X`" = **EXECUTE os passos de `commands/<x>.md` você mesmo, NÃO invoque**. Nota **junction-live** no fecho do `nova-feature` (alívio imediato no fluxo de captura de memória, sem esperar upgrade). Só o `plano-teste` (gate do humano) o assistente não roda — executa `pytest` direto. Achado pelo owner insistindo "cheque se não falta nada na Camada 2" — faltava.
 - test: `test_guardrail_executar_nao_invocar` trava a face nova (CLAUDE.md nomeia o erro real + manda executar; nova-feature avisa no fecho). Suíte **67 passed** (era 66).

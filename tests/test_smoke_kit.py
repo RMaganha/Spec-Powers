@@ -523,3 +523,17 @@ def test_guardrail_executar_nao_invocar():
     nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
     assert "disable-model-invocation" in nova, \
         "nova-feature (fecho) não avisa que os 'rode /mss-spec:X' são disable-model-invocation (executar, não invocar)"
+
+
+def test_guardrail_skills_dir_instalado():
+    """Quarta (e última) face da família: o assistente disse "o plugin mss-spec não está
+    instalado nesta máquina" — porque checou só o registro de marketplace/installed_plugins.json
+    e não viu que o mss-spec é um SKILLS-DIR plugin (em ~/.claude/skills/<nome>/, mecanismo
+    oficial; `claude plugin list` o mostra em 'Skills-directory plugins', √ loaded). A regra
+    impede o "não instalado" indevido apontando a checagem certa."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    low = claude.lower()
+    assert "skills-dir" in low, \
+        "CLAUDE.md não explica que o mss-spec pode estar instalado como skills-dir plugin"
+    assert "plugin list" in low, \
+        "CLAUDE.md não aponta o `claude plugin list` como a checagem certa (não o installed_plugins.json)"
