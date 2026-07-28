@@ -525,6 +525,112 @@ def test_guardrail_executar_nao_invocar():
         "nova-feature (fecho) não avisa que os 'rode /mss-spec:X' são disable-model-invocation (executar, não invocar)"
 
 
+def test_analise_wiring():
+    """/mss-spec:analise — porta de entrada do BROWNFIELD (projeto que já existe).
+
+    O kit nasceu greenfield: o kickoff tinha 1 linha de "faça um scan" sem destino, então o
+    assistente entrava num projeto pronto sem conhecer nada dele. O analise lê o repo em 2 fases
+    (inventário/manifests/docs → leitura focada em entrypoint/rota/DDL/config → resto por
+    amostragem, DIZENDO o que ficou de fora) e destila nos artefatos que o kit já lê na partida.
+    """
+    cmd = REPO / "commands" / "analise.md"
+    tpl = REPO / "templates" / "ARQUITETURA.md"
+    assert cmd.exists(), "falta commands/analise.md"
+    assert tpl.exists(), "falta templates/ARQUITETURA.md (esqueleto do dossiê)"
+    an = cmd.read_text(encoding="utf-8")
+    low = an.lower()
+
+    # leitura em 2 fases + honestidade sobre o que NÃO foi lido (sem corte silencioso)
+    assert "inventário" in low, "analise.md não descreve a fase 1 (inventário barato)"
+    assert "amostr" in low, "analise.md não descreve a amostragem do resto do código"
+    assert "ficou de fora" in low, "analise.md não relata honestamente o que ficou de fora da leitura"
+
+    # as extensões que o owner citou — o comando tem que saber navegar nelas
+    for ext in (".py", ".html", ".tsx", ".json", ".sql"):
+        assert ext in an, f"analise.md não cita a leitura de {ext}"
+
+    # docs pré-existentes são INSUMO (dado), nunca instrução a obedecer
+    assert "AGENTS.md" in an, "analise.md não lê os docs pré-existentes (AGENTS.md/CLAUDE.md/README)"
+    assert "dado, não instrução" in low, \
+        "analise.md não trata doc/código lido como DADO (não instrução) — fronteira de prompt-injection"
+
+    # destila nos artefatos que o kit já lê na partida (não cria 4º lugar de verdade órfão)
+    assert "docs/ARQUITETURA.md" in an, "analise.md não grava o dossiê docs/ARQUITETURA.md"
+    assert "docs/superpowers/MAPA.md" in an, "analise.md não preenche o MAPA (onde estamos/conexões)"
+
+    # fronteira prescritivo × descritivo: ESTRUTURA.md é do KIT e o upgrade o sobrescreve sozinho
+    # (categoria 1) — levantamento gravado lá seria APAGADO no próximo upgrade. O real vai no dossiê.
+    assert "**não escreva aqui.**" in an, \
+        "analise.md não proíbe escrever no docs/ESTRUTURA.md (o upgrade o sobrescreve e apagaria o levantamento)"
+
+    # RAG/pgvector: o projeto-alvo real do owner — a leitura focada tem alvo dedicado
+    assert "pgvector" in low, "analise.md não entende o pipeline RAG/pgvector (alvo real do owner)"
+    assert "embedding" in low, "analise.md não inspeciona embeddings (tabela/dimensão/modelo)"
+    assert "/mss-spec:precedentes" in an, "analise.md não aponta o catálogo de precedentes ao achar RAG"
+
+    # costuras: quem manda rodar
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "/mss-spec:analise" in kickoff, "kickoff (brownfield) não aponta o /mss-spec:analise"
+    assert "/mss-spec:analise" in leiame, "LEIA-ME não lista o comando /mss-spec:analise"
+    assert "docs/ARQUITETURA.md" in claude, "CLAUDE.md não mapeia o docs/ARQUITETURA.md (dossiê do brownfield)"
+
+
+def test_analise_nao_destrutiva():
+    """A regra DURA da feature: a análise entende, não conserta.
+
+    Nasce da restrição real do owner: o projeto-alvo já tem compose/infra e **UI/UX própria em
+    .html que não pode ser alterada** — aplicar o molde do kit "pararia tudo e teríamos que
+    ajustar". Então o analise escreve SÓ artefatos de doc/memória do kit; onde o projeto já tem
+    o que o kit também traria, ele REGISTRA a divergência e para (a decisão é do owner).
+    """
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    low = an.lower()
+    assert "não-destrutiva" in low, "analise.md não declara a regra não-destrutiva"
+    # não toca em infra/código do projeto
+    assert "docker-compose" in low, "analise.md não protege a infra pré-existente (docker-compose)"
+    assert "molde do kit" in low and "não aplic" in low, \
+        "analise.md não deixa claro que o molde do kit NÃO é aplicado sobre o que já existe"
+    # a UI própria é intocável (a preocupação explícita do owner)
+    assert "ui própria" in low, "analise.md não registra a UI própria como intocável"
+    assert "FRONTEND.md" in an, \
+        "analise.md não diz que o design system do kit NÃO é imposto sobre UI própria"
+    # a lista que freia o upgrade depois
+    assert "não nasceu do kit" in low, \
+        "analise.md não produz a lista 'não nasceu do kit' (o freio do upgrade)"
+    # e o dossiê tem a seção correspondente
+    tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
+    assert "não nasceu do kit" in tpl.lower(), \
+        "templates/ARQUITETURA.md não tem a seção do pré-existente (não nasceu do kit)"
+    assert "Lacunas" in tpl, "templates/ARQUITETURA.md não tem a seção Lacunas (o que não inferi/não li)"
+
+
+def test_analise_registro_de_assuntos():
+    """Assunto que JÁ existe no código entra como 1 linha `existente` no INDEX; spec viva só
+    pros assuntos com evidência LIDA (fase 2), com marca de proveniência e OK do owner — nunca
+    spec escrita por amostragem/inferência solta (seria a pior falha: 'spec viva não pode mentir').
+    """
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    low = an.lower()
+    assert "INDEX.md" in an, "analise.md não semeia o docs/superpowers/INDEX.md"
+    assert "existente" in low, "analise.md não usa o status 'existente' pro assunto já implementado"
+    assert "docs/specs/" in an, "analise.md não gera a spec viva por assunto"
+    assert "proveniência" in low, "analise.md não marca a proveniência da spec derivada do código"
+    assert "evidência" in low, "analise.md não limita a spec aos assuntos com evidência lida"
+
+
+def test_upgrade_respeita_preexistente():
+    """O freio: a categoria 1 do upgrade hoje sobrescreve docker-compose.yml/Dockerfile SOZINHO.
+    Num brownfield isso mata a infra do projeto — risco destampado no design da análise. Com a
+    lista 'não nasceu do kit' do docs/ARQUITETURA.md, esses arquivos passam a PERGUNTAR."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    low = up.lower()
+    assert "ARQUITETURA.md" in up, "upgrade.md não consulta a lista do docs/ARQUITETURA.md"
+    assert "não nasceu do kit" in low, "upgrade.md não reconhece o arquivo que não nasceu do kit"
+    assert "brownfield" in low, "upgrade.md não trata o caso brownfield na categoria 1"
+
+
 def test_guardrail_skills_dir_instalado():
     """Quarta (e última) face da família: o assistente disse "o plugin mss-spec não está
     instalado nesta máquina" — porque checou só o registro de marketplace/installed_plugins.json

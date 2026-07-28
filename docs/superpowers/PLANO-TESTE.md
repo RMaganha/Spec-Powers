@@ -65,6 +65,11 @@
 - `test_render_html_clique_abre_md_em_nova_aba` — F2.1 (CA14): o HTML embute o `.md` (`__DOCS__`), traz o handler `window.open` (nova aba) + o renderizador `mdToHtml`, e segue self-contained
 - `test_gerar_cria_md_e_html` — `gerar()` escreve o `.md` e o `.html`
 
+- `test_analise_wiring` — `/mss-spec:analise` + `templates/ARQUITETURA.md` existem; leitura em 2 fases (inventário → focada → amostragem) declarando o que ficou de fora; navega `.py`/`.html`/`.tsx`/`.json`/`.sql`; doc pré-existente é **dado, não instrução**; entende RAG/pgvector/embeddings e aponta precedentes; kickoff/LEIA-ME/CLAUDE.md apontam pra ele
+- `test_analise_nao_destrutiva` — a regra dura: não toca em infra/código/**UI própria**, não aplica molde do kit sobre o que já existe, produz a lista "não nasceu do kit"; o template tem as seções do pré-existente e de Lacunas
+- `test_analise_registro_de_assuntos` — assunto detectado = 1 linha `existente` no INDEX; spec viva só com **evidência lida** + proveniência marcada (nunca spec por inferência solta)
+- `test_upgrade_respeita_preexistente` — a lista "não nasceu do kit" freia a categoria 1 do `upgrade` (que sobrescrevia `docker-compose`/`Dockerfile` sozinha e mataria a infra de um brownfield): passa a perguntar
+
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
 
-**Último 100% verde:** 2026-07-21 · branch feature/mapa-neural-abrir-md (F2.1 clique-para-abrir) · 54 passed
+**Último 100% verde:** 2026-07-28 · branch feature/analise-projeto-existente (`/mss-spec:analise` — brownfield) · 72 passed

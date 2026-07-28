@@ -55,6 +55,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | Comando | O que faz |
 |---|---|
 | `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `docs/ESTRUTURA.md` (pastas em camadas), `docs/decisoes.md`, `config/logging.py`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
+| `/mss-spec:analise` | **Projeto que já existe (brownfield):** lê o repo de verdade (inventário + leitura focada em entrypoints, rotas, `.sql`, config, UI, pipeline RAG/pgvector) e destila no dossiê `docs/ARQUITETURA.md` + contexto do `CLAUDE.md`, `MAPA.md` e INDEX (1 linha `existente` por assunto). **Não-destrutivo:** nunca toca em código, infra ou UI própria — o que já existe é registrado, não substituído |
 | `/mss-spec:doctor` | Pré-vôo do ambiente MSIG (proxy, CA, ODBC, rede docker, `.env`, superpowers, resolução do plugin) — veredito ✓/✗; só reporta. Roda manual e sozinho na 1ª tarefa |
 | `/mss-spec:ambiente` | Gera infra no padrão MSIG (docker-compose com `mitiai_network`; override de proxy do escritório) |
 | `/mss-spec:banco` | Gera o módulo de conexão (SQL Server via pyodbc, ou Postgres) no padrão MSIG |
@@ -76,7 +77,8 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 
 ## Fluxo
 
-1. Num projeto (novo ou existente): `/mss-spec:kickoff "em 1 frase o que é e pra quem"` — entrevista e faz o scaffolding.
+1. Num projeto **novo**: `/mss-spec:kickoff "em 1 frase o que é e pra quem"` — entrevista e faz o scaffolding.
+   Num projeto que **já existe**: rode `/mss-spec:analise` **primeiro** (ele levanta o que o projeto é, sem tocar em código/infra/UI) e só então o `kickoff`, que reaproveita o dossiê em vez de reentrevistar.
 2. Por feature: `/mss-spec:nova-feature <nome>`.
 3. Mudança pequena (bugfix/refactor/chore) não precisa de `/mss-spec:nova-feature` — só pedir.
 

@@ -123,27 +123,30 @@ li{margin-bottom:6px}
       <li><a href="#comandos"><span class="nav-num">04</span>Os comandos</a></li>
       <div class="nav-group">Começar</div>
       <li><a href="#c-kickoff"><span class="nav-num">C1</span>kickoff</a></li>
-      <li><a href="#c-doctor"><span class="nav-num">C2</span>doctor</a></li>
+      <li><a href="#c-analise"><span class="nav-num">C2</span>analise</a></li>
+      <li><a href="#c-doctor"><span class="nav-num">C3</span>doctor</a></li>
       <div class="nav-group">Montar a base</div>
-      <li><a href="#c-ambiente"><span class="nav-num">C3</span>ambiente</a></li>
-      <li><a href="#c-banco"><span class="nav-num">C4</span>banco</a></li>
-      <li><a href="#c-log"><span class="nav-num">C5</span>log</a></li>
+      <li><a href="#c-ambiente"><span class="nav-num">C4</span>ambiente</a></li>
+      <li><a href="#c-banco"><span class="nav-num">C5</span>banco</a></li>
+      <li><a href="#c-log"><span class="nav-num">C6</span>log</a></li>
       <div class="nav-group">Construir</div>
-      <li><a href="#c-nova-feature"><span class="nav-num">C6</span>nova-feature</a></li>
-      <li><a href="#c-frontend"><span class="nav-num">C7</span>frontend</a></li>
-      <li><a href="#c-precedentes"><span class="nav-num">C8</span>precedentes</a></li>
+      <li><a href="#c-nova-feature"><span class="nav-num">C7</span>nova-feature</a></li>
+      <li><a href="#c-frontend"><span class="nav-num">C8</span>frontend</a></li>
+      <li><a href="#c-precedentes"><span class="nav-num">C9</span>precedentes</a></li>
       <div class="nav-group">Apoio no dia a dia</div>
-      <li><a href="#c-modo"><span class="nav-num">C9</span>modo</a></li>
-      <li><a href="#c-memory"><span class="nav-num">C10</span>memory</a></li>
-      <li><a href="#c-todolist"><span class="nav-num">C11</span>to-dolist</a></li>
+      <li><a href="#c-modo"><span class="nav-num">C10</span>modo</a></li>
+      <li><a href="#c-memory"><span class="nav-num">C11</span>memory</a></li>
+      <li><a href="#c-todolist"><span class="nav-num">C12</span>to-dolist</a></li>
       <div class="nav-group">Verificar &amp; publicar</div>
-      <li><a href="#c-plano-teste"><span class="nav-num">C12</span>plano-teste</a></li>
-      <li><a href="#c-seguranca"><span class="nav-num">C13</span>seguranca</a></li>
-      <li><a href="#c-compliance"><span class="nav-num">C14</span>compliance</a></li>
-      <li><a href="#c-release"><span class="nav-num">C15</span>release</a></li>
+      <li><a href="#c-plano-teste"><span class="nav-num">C13</span>plano-teste</a></li>
+      <li><a href="#c-seguranca"><span class="nav-num">C14</span>seguranca</a></li>
+      <li><a href="#c-compliance"><span class="nav-num">C15</span>compliance</a></li>
+      <li><a href="#c-release"><span class="nav-num">C16</span>release</a></li>
       <div class="nav-group">Manter &amp; compartilhar</div>
-      <li><a href="#c-upgrade"><span class="nav-num">C16</span>upgrade</a></li>
-      <li><a href="#c-documentacao"><span class="nav-num">C17</span>documentacao</a></li>
+      <li><a href="#c-upgrade"><span class="nav-num">C17</span>upgrade</a></li>
+      <li><a href="#c-documentacao"><span class="nav-num">C18</span>documentacao</a></li>
+      <li><a href="#c-mapa"><span class="nav-num">C19</span>mapa</a></li>
+      <li><a href="#c-mapa-neural"><span class="nav-num">C20</span>mapa-neural</a></li>
       <div class="nav-group">Como o kit pensa</div>
       <li><a href="#spec"><span class="nav-num">05</span>Spec-Driven na prática</a></li>
       <li><a href="#memoria"><span class="nav-num">06</span>Memória &amp; decisões</a></li>
@@ -164,7 +167,7 @@ li{margin-bottom:6px}
   <h1>Um assistente que já sabe <em>o jeito da casa</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> é um plugin criado pelo <strong>Ronaldo Maganha</strong> (MSIG) que trabalha <strong>em conjunto com o <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a></strong> — o assistente de programação da Anthropic. Ele ensina o assistente a começar cada projeto já do jeito certo da empresa: com organização, checagens de segurança e o padrão de infraestrutura da MSIG prontos, sem ninguém precisar lembrar de tudo à mão.</p>
   <div class="hero-meta">
-    <div>Comandos<span>19 atalhos</span></div>
+    <div>Comandos<span>20 atalhos</span></div>
     <div>Autor<span>R. Maganha (MSIG)</span></div>
     <div>Trabalha com<span>Claude Code</span></div>
     <div>Instala<span>uma vez só</span></div>
@@ -179,7 +182,7 @@ li{margin-bottom:6px}
   <p>Tecnicamente: é um <a class="gl" href="#g-plugin">plugin</a> que adiciona <strong>atalhos</strong> ao <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a>. A <strong>disciplina</strong> de trabalho (não sair fazendo sem alinhar, <a class="gl" href="#g-tdd">testar</a>, <a class="gl" href="#g-verificacao">verificar</a>, <a class="gl" href="#g-code-review">revisar</a>) não é invenção dele — vem de outro plugin, o <a class="gl" href="#g-superpowers">superpowers</a>. O <code>mss-spec</code> junta a esse rigor o <strong>jeito da MSIG</strong>: comandos fáceis de lembrar, geração automática de arquivos e o padrão de infraestrutura da casa já embutido.</p>
 
   <div class="scorebar">
-    <div class="rust"><span class="n">19</span><span class="l">comandos</span></div>
+    <div class="rust"><span class="n">20</span><span class="l">comandos</span></div>
     <div class="plum"><span class="n">1</span><span class="l">rede de segurança</span></div>
     <div class="ok"><span class="n">15+</span><span class="l">moldes prontos</span></div>
     <div class="ok"><span class="n">1×</span><span class="l">instala e esquece</span></div>
@@ -304,7 +307,7 @@ li{margin-bottom:6px}
   <div class="table-wrap"><table>
     <thead><tr><th>Peça</th><th>O que é</th></tr></thead>
     <tbody>
-      <tr><td><strong>Comandos</strong></td><td>Os 19 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
+      <tr><td><strong>Comandos</strong></td><td>Os 20 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
       <tr><td><strong>Moldes</strong> (templates)</td><td>Arquivos-modelo prontos (padrão MSIG) que os comandos copiam pro seu projeto — em vez de você copiar à mão.</td></tr>
       <tr><td><strong>Skill</strong></td><td>Uma rede de segurança que se ativa sozinha (catálogo de "isso já foi feito em outro projeto?").</td></tr>
     </tbody>
@@ -318,7 +321,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">04 — Os comandos</div>
-  <h2>Os dezenove <em>atalhos</em>, na ordem de uso</h2>
+  <h2>Os vinte <em>atalhos</em>, na ordem de uso</h2>
   <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
 
   <h3>Começar</h3>
@@ -331,12 +334,28 @@ li{margin-bottom:6px}
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:kickoff "sistema de cadastro de clientes com nome,
    endereço, telefone, e-mail e whatsapp"</code></pre>
-      <div class="label-row"><span class="pill ok">gera os arquivos</span><span class="pill graph">entende projeto que já existe</span></div>
+      <div class="label-row"><span class="pill ok">gera os arquivos</span><span class="pill graph">projeto que já existe: chama o analise antes</span></div>
+    </div>
+  </div>
+
+  <div class="node" id="c-analise">
+    <div class="node-head"><span class="node-idx">C2</span><span class="node-name">analise</span><span class="node-type">entende o que já existe</span></div>
+    <div class="node-body">
+      <p class="plain">Para projeto que <strong>já existe</strong>: o kit lê o código de verdade e aprende o que o sistema é, antes de qualquer mudança.</p>
+      <p>O kit nasceu para projeto novo — num sistema pronto, o assistente entrava às cegas e chutava. Aqui ele faz o levantamento em duas passadas: primeiro o <strong>inventário barato</strong> (pastas, quantos arquivos de cada tipo, dependências, e os documentos que já existiam — <code>README</code>, <code>CLAUDE.md</code>, <code>AGENTS.md</code>, specs e planos antigos); depois a <strong>leitura focada</strong> no que importa (o arquivo que sobe o sistema, as rotas, o <code>.sql</code> do banco, a configuração, a tela, e o pipeline de <a class="gl" href="#g-rag">RAG</a> quando existe — chunking, embeddings, <code>pgvector</code>, top_k). O resto vai por amostragem, e o relatório <strong>diz o que ficou de fora</strong> — nada de silêncio fazendo parecer que leu tudo.</p>
+      <p>O resultado vira o dossiê <code>docs/ARQUITETURA.md</code> (o que é · stack · mapa do código · rotas · dados · IA/RAG · lacunas) e preenche o que o kit já lê na partida: contexto das instruções do projeto, mapa e índice de assuntos.</p>
+      <p><strong>Ele entende, não conserta.</strong> Nunca mexe em código, infra ou <strong>tela própria</strong> — se o projeto já tem seu <code>docker-compose</code>, seu jeito de logar ou uma UI feita à mão, isso é <em>registrado</em> na lista "não nasceu do kit" e <em>preservado</em>. O padrão é manter o do projeto; aplicar molde do kit sobre um sistema que roda pararia o sistema. Bônus: essa lista também <strong>freia o upgrade</strong>, que passa a perguntar antes de tocar nesses arquivos.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:analise
+  → 412 .py · 38 .html · 11 .sql · RAG com pgvector (1536 dims, índice hnsw)
+  → dossiê gravado · 7 assuntos no índice · não mexi: docker-compose, UI própria
+  → lacunas: 2 perguntas (qual integração está viva? é produção?)</code></pre>
+      <div class="label-row"><span class="pill ok">projeto que já existe</span><span class="pill graph">não-destrutivo</span><span class="pill warn">não toca em código/UI</span></div>
     </div>
   </div>
 
   <div class="node" id="c-doctor">
-    <div class="node-head"><span class="node-idx">C2</span><span class="node-name">doctor</span><span class="node-type">check-up do ambiente</span></div>
+    <div class="node-head"><span class="node-idx">C3</span><span class="node-name">doctor</span><span class="node-type">check-up do ambiente</span></div>
     <div class="node-body">
       <p class="plain">Um "check-up" rápido do ambiente antes de começar — pega o erro cedo, não na hora de publicar.</p>
       <p>Confere os pré-requisitos da MSIG (o <a class="gl" href="#g-proxy">proxy</a> responde? o certificado está lá? o driver do banco existe? o <a class="gl" href="#g-superpowers">superpowers</a> está ligado? o próprio kit acha seus moldes?) e ainda avisa se a <strong>versão do kit</strong> que você tem instalada está atrás da publicada no repositório (compara o número da versão e, se houver uma nova, mostra o comando pra atualizar — sem atualizar sozinho). Dá um veredito ✓/✗. <strong>Só avisa</strong>, não conserta. Roda quando você chama <em>e</em> sozinho, no começo da 1ª tarefa. Rodar de novo nunca muda nada.</p>
@@ -351,7 +370,7 @@ li{margin-bottom:6px}
   <h3>Montar a base</h3>
 
   <div class="node" id="c-ambiente">
-    <div class="node-head"><span class="node-idx">C3</span><span class="node-name">ambiente</span><span class="node-type">a infra da casa</span></div>
+    <div class="node-head"><span class="node-idx">C4</span><span class="node-name">ambiente</span><span class="node-type">a infra da casa</span></div>
     <div class="node-body">
       <p class="plain">Monta a "caixa" onde o app roda, já configurada pra rede da MSIG.</p>
       <p>Copia a infra <a class="gl" href="#g-docker">Docker</a> padronizada (a CA da empresa já embutida) e explica como subir. Trata o <a class="gl" href="#g-proxy">proxy</a> e o certificado (<a class="gl" href="#g-ca">CA</a>) da empresa em camadas.</p>
@@ -363,7 +382,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-banco">
-    <div class="node-head"><span class="node-idx">C4</span><span class="node-name">banco</span><span class="node-type">conexão ao banco</span></div>
+    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">banco</span><span class="node-type">conexão ao banco</span></div>
     <div class="node-body">
       <p class="plain">Cria o código que conecta o app ao banco de dados, sem deixar senha exposta.</p>
       <p>Pergunta <a class="gl" href="#g-postgres">SQL Server ou Postgres</a>. Para SQL Server, oferece guardar a senha como <a class="gl" href="#g-env">variável de ambiente</a> (recomendado, mais seguro) ou via <a class="gl" href="#g-fernet">Fernet</a>. O <strong>Fernet fica só por continuidade</strong> com projetos que já o usam — é escolha consciente do desenvolvedor, documentada aqui para ciência, não um caminho recomendado (a variável de ambiente é sempre a preferida).</p>
@@ -375,7 +394,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-log">
-    <div class="node-head"><span class="node-idx">C5</span><span class="node-name">log</span><span class="node-type">registro de eventos · NOVO</span></div>
+    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">log</span><span class="node-type">registro de eventos · NOVO</span></div>
     <div class="node-body">
       <p class="plain">Liga o "diário de bordo" do app — as mensagens que contam o que está acontecendo (e o que deu errado).</p>
       <p>Instala o padrão de <a class="gl" href="#g-log">log</a> da casa: as mensagens vão pra <strong>saída padrão</strong> (que a nuvem <a class="gl" href="#g-azure">Azure</a> captura em produção) e também pra um arquivo local <strong>só em desenvolvimento</strong> (com ícones por nível, pra ler rápido no terminal). Você escolhe <strong>quais arquivos</strong> ganham log — nem tudo precisa. Regra dura: <strong>nunca</strong> grava senha nem dado pessoal (telefone, e-mail do cliente).</p>
@@ -389,7 +408,7 @@ li{margin-bottom:6px}
   <h3>Construir</h3>
 
   <div class="node" id="c-nova-feature">
-    <div class="node-head"><span class="node-idx">C6</span><span class="node-name">nova-feature</span><span class="node-type">abre uma funcionalidade</span></div>
+    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">nova-feature</span><span class="node-type">abre uma funcionalidade</span></div>
     <div class="node-body">
       <p class="plain">O jeito organizado de criar algo novo — combina o que vai fazer antes de fazer.</p>
       <p>Fluxo <a class="gl" href="#g-spec">Spec-Driven</a>: alinha o objetivo e os critérios de aceite → seu OK → plano → tarefas pequenas com <a class="gl" href="#g-tdd">TDD</a>. Guarda a "spec viva" do assunto e, ao fechar, roda o <a href="#c-release" class="gl">release</a> e registra decisões importantes. <strong>Abre uma <a class="gl" href="#g-branch">branch</a> própria antes de mexer no código — sempre a partir da linha principal, nunca de outra branch.</strong></p>
@@ -401,7 +420,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-frontend">
-    <div class="node-head"><span class="node-idx">C7</span><span class="node-name">frontend</span><span class="node-type">telas ricas</span></div>
+    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">frontend</span><span class="node-type">telas ricas</span></div>
     <div class="node-body">
       <p class="plain">Instala as ferramentas para telas mais elaboradas (grades, muitos campos).</p>
       <p>Traz o front moderno (<a class="gl" href="#g-frontend">React + Mantine</a>) com o tema MSIG. Telas simples ficam no jeito leve (servidor + Tailwind); telas densas ganham esse reforço.</p>
@@ -413,7 +432,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-precedentes">
-    <div class="node-head"><span class="node-idx">C8</span><span class="node-name">precedentes</span><span class="node-type">"já fizemos isso?"</span></div>
+    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">precedentes</span><span class="node-type">"já fizemos isso?"</span></div>
     <div class="node-body">
       <p class="plain">Consulta um caderninho de "isso já foi resolvido em outro projeto da MSIG".</p>
       <p>Aponta qual projeto já fez algo parecido (busca por documentos, extração de PDF, conexão a banco, integrações) para você reaproveitar em vez de refazer.</p>
@@ -429,7 +448,7 @@ li{margin-bottom:6px}
   <h3>Apoio no dia a dia</h3>
 
   <div class="node" id="c-modo">
-    <div class="node-head"><span class="node-idx">C9</span><span class="node-name">modo</span><span class="node-type">quanto ritual</span></div>
+    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">modo</span><span class="node-type">quanto ritual</span></div>
     <div class="node-body">
       <p class="plain">Regula a "quantidade de burocracia" — rápido para ajuste pequeno, completo para coisa grande.</p>
       <p>Três níveis: <strong>mínimo</strong> (vai direto), <strong>médio</strong> (padrão) e <strong>alto</strong> (ritual completo). Testar e verificar são inegociáveis em todos.</p>
@@ -441,7 +460,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-memory">
-    <div class="node-head"><span class="node-idx">C10</span><span class="node-name">memory</span><span class="node-type">memória do projeto · NOVO: captura</span></div>
+    <div class="node-head"><span class="node-idx">C11</span><span class="node-name">memory</span><span class="node-type">memória do projeto · NOVO: captura</span></div>
     <div class="node-body">
       <p class="plain">Guarda os aprendizados e as <strong>decisões</strong> do projeto junto com o código — inclusive as decisões de <em>não</em> fazer algo, pra ninguém repropor semanas depois o que já foi descartado.</p>
       <p>Tem dois modos. <strong><code>resgatar</code></strong> traz pra dentro do repositório a memória que ficou numa pasta "volátil" do Claude e a torna durável (versionada com o código). <strong><code>capturar</code></strong> (novo) <strong>destila a conversa</strong> ao fechar um assunto e distribui pros lugares certos: as decisões transversais, o que se decidiu <em>não</em> fazer, e um <strong>diário de sessão</strong> datado — um resumo curto do que se conversou e, sobretudo, dos <strong>pivôs</strong> (o que se cogitou, por que mudou de ideia, pra onde foi). Sempre com o seu <strong>OK antes de gravar</strong>; trechos marcados <code>&lt;private&gt;</code> nunca viram memória.</p>
@@ -456,7 +475,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-todolist">
-    <div class="node-head"><span class="node-idx">C11</span><span class="node-name">to-dolist</span><span class="node-type">bloco de recados</span></div>
+    <div class="node-head"><span class="node-idx">C12</span><span class="node-name">to-dolist</span><span class="node-type">bloco de recados</span></div>
     <div class="node-body">
       <p class="plain">Um bloco de recados pessoal que aparece em qualquer parte do trabalho.</p>
       <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Fica <strong>visível em qualquer <a class="gl" href="#g-branch">branch</a></strong> e é só seu (não vai pro compartilhamento). É também o destino da regra <strong>um assunto por janela</strong>: quando um segundo tema aparece no meio de uma tarefa, o assistente <em>alerta</em> e sugere anotá-lo aqui para tratá-lo depois, numa nova conversa.</p>
@@ -470,7 +489,7 @@ li{margin-bottom:6px}
   <h3>Verificar &amp; publicar</h3>
 
   <div class="node" id="c-plano-teste">
-    <div class="node-head"><span class="node-idx">C12</span><span class="node-name">plano-teste</span><span class="node-type">rede anti-quebra</span></div>
+    <div class="node-head"><span class="node-idx">C13</span><span class="node-name">plano-teste</span><span class="node-type">rede anti-quebra</span></div>
     <div class="node-body">
       <p class="plain">Roda a bateria de testes e guarda um "retrato do que passava" — a rede que avisa se algo quebrar depois.</p>
       <p><strong>Como faz:</strong> executa os <a class="gl" href="#g-tdd">testes</a> do projeto (se ainda não há suíte, cria um mínimo — o app sobe, as rotas respondem 200, o banco conecta).<br>
@@ -487,7 +506,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-seguranca">
-    <div class="node-head"><span class="node-idx">C13</span><span class="node-name">seguranca</span><span class="node-type">auditoria de segurança</span></div>
+    <div class="node-head"><span class="node-idx">C14</span><span class="node-name">seguranca</span><span class="node-type">auditoria de segurança</span></div>
     <div class="node-body">
       <p class="plain">Passa um pente-fino de segurança no app e aponta o que corrigir.</p>
       <p>Audita contra os riscos mais comuns (<a class="gl" href="#g-owasp">OWASP</a>) e o baseline da casa; corrige com o seu OK. Nunca declara "está seguro" (segurança é contínua).</p>
@@ -499,7 +518,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-compliance">
-    <div class="node-head"><span class="node-idx">C14</span><span class="node-name">compliance</span><span class="node-type">auditoria de convenção · NOVO</span></div>
+    <div class="node-head"><span class="node-idx">C15</span><span class="node-name">compliance</span><span class="node-type">auditoria de convenção · NOVO</span></div>
     <div class="node-body">
       <p class="plain">Confere se o projeto ainda está "no jeito da casa" — a estrutura e os padrões, não o funcionamento.</p>
       <p>Com o tempo, um projeto deriva do padrão. O compliance checa a <strong>aderência às convenções</strong> do mss-spec: pastas em camadas (não tudo jogado numa pasta só), documentação e memória no lugar, segredo protegido no <code>.gitignore</code>. <strong>Só reporta</strong> ✓/✗ — quem <em>conserta</em> arquivos desatualizados é o <a href="#c-upgrade" class="gl">upgrade</a>. É o terceiro de um trio de auditorias: <strong>doctor</strong> (ambiente) · <strong>seguranca</strong> (segurança) · <strong>compliance</strong> (convenção).</p>
@@ -511,7 +530,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-release">
-    <div class="node-head"><span class="node-idx">C15</span><span class="node-name">release</span><span class="node-type">inspeção final · NOVO</span></div>
+    <div class="node-head"><span class="node-idx">C16</span><span class="node-name">release</span><span class="node-type">inspeção final · NOVO</span></div>
     <div class="node-body">
       <p class="plain">A "inspeção final" antes de publicar: passa por tudo que importa e marca os pontos num veredito só.</p>
       <p>É um <strong>portão de pré-publicação</strong>. Num passo, ele: <strong>roda os testes</strong> (têm que estar 100% verdes), confere <strong>versão</strong> e <strong>CHANGELOG</strong>, aplica o checklist do <a href="#c-compliance" class="gl">compliance</a> (convenção), lembra da <a href="#c-seguranca" class="gl">segurança</a> se você mexeu numa porta de entrada, e vê se as <a class="gl" href="#g-spec">specs</a> batem com o entregue. <strong>Só reporta</strong> o que falta — não publica nem conserta. Verde → você segue pro merge/PR.</p>
@@ -525,7 +544,7 @@ li{margin-bottom:6px}
   <h3>Manter &amp; compartilhar</h3>
 
   <div class="node" id="c-upgrade">
-    <div class="node-head"><span class="node-idx">C16</span><span class="node-name">upgrade</span><span class="node-type">atualiza o projeto</span></div>
+    <div class="node-head"><span class="node-idx">C17</span><span class="node-name">upgrade</span><span class="node-type">atualiza o projeto</span></div>
     <div class="node-body">
       <p class="plain">Quando o kit melhora, atualiza um projeto antigo sem apagar o que você personalizou.</p>
       <p>Compara os arquivos do projeto com a versão nova dos moldes: os de referência atualiza sozinho; as instruções personalizadas (<code>CLAUDE.md</code>) ele <strong>mescla</strong> (acrescenta o novo, mantém o seu) e só pergunta em caso de conflito real; código ele nunca mexe sozinho.</p>
@@ -540,7 +559,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-documentacao">
-    <div class="node-head"><span class="node-idx">C17</span><span class="node-name">documentacao</span><span class="node-type">doc bonita</span></div>
+    <div class="node-head"><span class="node-idx">C18</span><span class="node-name">documentacao</span><span class="node-type">doc bonita</span></div>
     <div class="node-body">
       <p class="plain">Gera uma documentação HTML no estilo editorial — este mesmo visual que você está lendo.</p>
       <p>Copia o modelo de documento e troca só o conteúdo, mantendo o visual. Saída num arquivo único, fácil de abrir e apresentar.</p>
@@ -554,7 +573,7 @@ li{margin-bottom:6px}
   <h3>Contexto &amp; memória (anti-amnésia)</h3>
 
   <div class="node" id="c-mapa">
-    <div class="node-head"><span class="node-idx">C18</span><span class="node-name">mapa</span><span class="node-type">onde eu parei?</span></div>
+    <div class="node-head"><span class="node-idx">C19</span><span class="node-name">mapa</span><span class="node-type">onde eu parei?</span></div>
     <div class="node-body">
       <p class="plain">Mantém um "mapa de contexto" curto do projeto — pra quem chega (ou volta) não perder tempo redescobrindo onde as coisas estão.</p>
       <p>Guarda em <code>docs/superpowers/MAPA.md</code> três coisas: <strong>onde estamos</strong> (branch e assunto), o <strong>próximo passo</strong>, e as <strong>conexões</strong> com outros projetos MSIG. O assistente lê isso <strong>na partida</strong>, antes de qualquer outra coisa; o comando reconcilia com o git, o índice de tarefas e o código — e nunca inventa uma conexão.</p>
@@ -566,7 +585,7 @@ li{margin-bottom:6px}
   </div>
 
   <div class="node" id="c-mapa-neural">
-    <div class="node-head"><span class="node-idx">C19</span><span class="node-name">mapa-neural</span><span class="node-type">mapa mental do projeto</span></div>
+    <div class="node-head"><span class="node-idx">C20</span><span class="node-name">mapa-neural</span><span class="node-type">mapa mental do projeto</span></div>
     <div class="node-body">
       <p class="plain">Desenha o projeto como um mapa mental: o projeto no centro e tudo que gira em volta, pra bater o olho e entender o todo.</p>
       <p>Lê o próprio repositório e monta quatro ramos — <strong>arquitetura</strong> (camadas e arquivos), <strong>APIs &amp; integrações</strong>, <strong>memórias &amp; conhecimento</strong> (specs, decisões, aprendizados) e <strong>conexões entre projetos</strong>. Gera dois arquivos em <code>docs/</code>: um <strong>índice em texto</strong> (que o assistente consulta sem reabrir o projeto inteiro) e uma <strong>página interativa</strong>: uma <strong>árvore horizontal</strong> (projeto à esquerda, ramos abrindo pra direita com conexões curvas, sem sobrepor mesmo com muitos filhos) — clique num balão pra <strong>expandir/recolher</strong>, <strong>arraste uma caixa</strong> pra reposicioná-la (ou o fundo pra navegar), e passe o mouse pra ver <strong>nome, local, data e resumo</strong> de cada peça. Passar o mouse também <strong>acende as ligações entre itens relacionados</strong> (memórias que se citam; specs e o código que elas tocaram) e realça a caixa do outro lado — some quando você tira o mouse. E quando o balão é um arquivo <code>.md</code> (spec, memória, decisão, comando), <strong>um duplo clique abre o arquivo renderizado numa aba nova</strong> — o conteúdo já vem embutido na própria página. Arquivo único, sem depender de internet.</p>
@@ -753,6 +772,7 @@ Disparo em massa/agendado (fica pra outra feature).</code></pre>
     <div class="gloss" id="g-proxy"><dt>Proxy</dt><dd>O "porteiro" de rede da empresa: todo acesso à internet passa por ele. Precisa ser configurado para o app conseguir baixar coisas.</dd></div>
     <div class="gloss" id="g-ca"><dt>CA / certificado</dt><dd>O "carimbo" que prova que uma conexão segura (HTTPS) é confiável. A empresa tem o seu, que precisa entrar na caixa (container) para as conexões funcionarem.</dd></div>
     <div class="gloss" id="g-postgres"><dt>Postgres / SQL Server</dt><dd>Dois tipos de banco de dados — onde o app guarda a informação. A MSIG usa os dois, conforme o projeto.</dd></div>
+    <div class="gloss" id="g-rag"><dt>RAG / pgvector</dt><dd>RAG é a técnica de responder com <em>busca antes da resposta</em>: os documentos são picados em pedaços, cada pedaço é convertido num vetor de números (o <em>embedding</em>) e guardado; na pergunta, o sistema busca os pedaços mais parecidos e só então pede a resposta ao modelo. <code>pgvector</code> é a extensão que dá ao Postgres a capacidade de guardar e comparar esses vetores.</dd></div>
     <div class="gloss" id="g-azure"><dt>Azure (App Settings)</dt><dd>A nuvem da Microsoft onde os apps da MSIG são publicados. "App Settings" é onde se guardam configurações e segredos com segurança, lá na nuvem. É de lá que os logs de produção são capturados.</dd></div>
     <div class="gloss" id="g-env"><dt>.env / variável de ambiente</dt><dd>Um lugar <em>fora</em> do código para guardar configurações e senhas. O arquivo <code>.env</code> é local e nunca é compartilhado; na nuvem, o mesmo papel é feito pelas configurações do Azure.</dd></div>
     <div class="gloss" id="g-fernet"><dt>Fernet</dt><dd>Um jeito de embaralhar (criptografar) um texto. Só é segurança de verdade se a "chave" ficar guardada em outro lugar; se ela viaja junto do código, é apenas um disfarce.</dd></div>

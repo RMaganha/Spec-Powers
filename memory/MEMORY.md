@@ -21,4 +21,6 @@
 - [Testar o JS gerado com node --check](feedback_testar_js_gerado_node_check.md) — HTML com JS inline: valide a sintaxe com `node --check` no teste; substring verde não pega erro de parse (a "tela branca" do mapa neural)
 - [Versão vive em dois manifestos](project_versao_em_dois_manifestos.md) — a versão fica em plugin.json + marketplace.json (teste de coerência exige iguais); bumpe os dois e re-rode a suíte após o bump
 - [mss-spec instalado por junction (não marketplace)](project_mss_spec_instalado_por_junction.md) — ~/.claude/skills/mss-spec → o clone de dev; edições são live em todo projeto; nada de update/pull/push local, só recarregar a sessão
+- [Brownfield: entender e registrar, nunca aplicar molde por cima](feedback_brownfield_entender_nao_aplicar.md) — projeto que já existe: infra/log/UI própria são intocáveis; divergência se registra, o padrão é manter o do projeto
+- [Categoria 1 do upgrade sobrescreve — nada de projeto nela](project_upgrade_categoria1_sobrescreve.md) — SEGURANCA/ESTRUTURA/FRONTEND/docker/gitignore são só-molde; conteúdo do projeto vai no ARQUITETURA.md (prescritivo × descritivo)
 - [PENDÊNCIA: intermitência pós-update](project_pendencia_intermitencia_pos_update.md) — ABERTA: mss-spec às vezes para depois de o app atualizar e sessão nova NÃO resolve; falta capturar o estado quebrado (comando na memória)
