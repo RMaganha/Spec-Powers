@@ -33,6 +33,7 @@
 - `projeto.md` — base/contexto fundamental do projeto (lido primeiro; pode não existir)
 - `docs/AMBIENTE.md` — referência de ambiente corporativo MSIG (rede Docker, proxy, Postgres, SQL Server, Azure)
 - `docs/ESTRUTURA.md` — estrutura de pastas em camadas (onde cada arquivo novo nasce)
+- `docs/ARQUITETURA.md` — dossiê do projeto **como ele é hoje** (só em projeto que já existia antes do kit; gerado pelo `/mss-spec:analise`): stack · mapa do código · rotas · dados · IA/RAG · **o que não nasceu do kit** (intocável por padrão) · lacunas. É **descritivo** (o `ESTRUTURA.md` é o prescritivo) — leia antes de mexer em código de área que você não conhece
 - `docs/FRONTEND.md` — design system MSIG (só se tiver UI web): tokens, layout admin, ícones, JS, componentização
 - `docs/superpowers/MAPA.md` — mapa de contexto (lido na partida): onde estamos · próximo passo · conexões inter-projeto
 - `docs/superpowers/INDEX.md` — índice das tarefas (aponta pras specs vivas / planos)

@@ -34,6 +34,8 @@
 - [captura de memória](../specs/2026-07-21-captura-de-memoria-design.md) — ritual de captura consolidado como 2º modo do `/mss-spec:memory` (`capturar`): destila a sessão em decisões (incl. "não fazer") + **diário de sessão** datado/indexado (`memory/sessions/` + `DIARIO.md`), roteando pras 3 camadas de memória; gatilho determinístico no fecho/finishing + hook opt-in só como rede — **fechada** (suíte 51 verde; release/finishing = passo do owner)
 - [check de versão do plugin contra o remoto](specs/2026-07-21-doctor-check-versao-remoto-design.md) — novo check no `/mss-spec:doctor`: compara a versão instalada do kit com a publicada no remoto (via `git fetch` no clone, semver) e reporta ✓/⚠/ℹ, só reportando; degrada gracioso offline/dev — **fechada** (0.12.0)
 
+- [análise de projeto existente](specs/2026-07-28-analise-projeto-existente-design.md) — `/mss-spec:analise`: porta de entrada do **brownfield** — lê o repo em 2 fases (inventário/manifests/docs pré-existentes → leitura focada em entrypoint, rotas, `.sql`, config, UI, pipeline RAG/pgvector) e destila no dossiê `docs/ARQUITETURA.md` + CLAUDE/MAPA/INDEX/specs; **não-destrutivo** (nunca toca em código, infra ou UI própria — o pré-existente é registrado, não substituído) e a lista "não nasceu do kit" **freia a categoria 1 do upgrade** — **fechada** (0.14.0)
+
 ## Fora de escopo (não fazer)
 Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · registry / capabilities / catálogo de arquiteturas · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel`
 
