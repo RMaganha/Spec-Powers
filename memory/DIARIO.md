@@ -3,6 +3,9 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-07-28
+- [analise-projeto-existente] `/mss-spec:analise` — porta de entrada do brownfield (2 fases de leitura → dossiê `ARQUITETURA.md`); pivôs: a restrição "não pode ajustar / pode parar tudo" virou o **eixo** (regra não-destrutiva), UI própria intocável, spec retroativa só com evidência lida; achados: `upgrade` sobrescrevia infra de brownfield (freio) e eu mesmo escrevi em arquivo de categoria 1 (fronteira prescritivo × descritivo); release 0.14.0 → sessions/2026-07-28-analise-projeto-existente.md
+
 ## 2026-07-21
 - [doctor-check-versao] check de versão do kit no doctor (instalada × publicada no remoto via git fetch no clone); pivôs: doctor≠upgrade (diagnostica plugin × conserta arquivos), semver≠commit; release 0.12.0 → sessions/2026-07-21-doctor-check-versao.md
 - [mapa-neural-v0.11.0] datas (mtime) + camada associativa (só no hover, bojando à direita, com setas/realce) + layout tidy-tree horizontal; SOM descartado; fix tela branca (`})` a mais, parse-time) → guarda node --check → sessions/2026-07-21-mapa-neural-datas-associacoes-layout.md
