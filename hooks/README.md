@@ -35,8 +35,11 @@ mas cerca **não instalada** não cerca nada. O custo de o hook não disparar é
 
 ## Garantias
 
-- **Falha ABERTA**: entrada malformada, git ausente/antigo, exceção daqui → libera e sai **0**. Cerca
-  com defeito não pode parar o trabalho legítimo dentro do próprio projeto.
+- **Falha ABERTA** onde importa: entrada malformada, âncora indeterminável ou exceção daqui → libera e
+  sai **0**. Cerca com defeito não pode parar o trabalho legítimo dentro do próprio projeto.
+  **Uma exceção deliberada:** a *sonda de worktree* falha **FECHADA** (git ausente/antigo/travado →
+  nega) — sem git não existe worktree a liberar, e tratar isso como "indeterminado, libera" daria um
+  jeito trivial de a cerca sumir (bastaria o git faltar no PATH).
 - **Não vigia leitura** — ler outro projeto é o *objetivo* do `precedentes`.
 - **Não vigia Bash/PowerShell** — decisão do owner: parsear shell é heurística, dá falso positivo e
   ainda assim é furada. Shell fica coberto só pela prosa.

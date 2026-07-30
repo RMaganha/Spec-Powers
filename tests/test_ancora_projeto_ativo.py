@@ -209,9 +209,11 @@ def test_falha_aberta_em_entrada_estranha(tmp_path):
         "Bash está fora de escopo (heurística de shell é furada) — só a prosa cobre"
 
 
-def test_falha_aberta_quando_git_explode(tmp_path):
-    """Se a consulta ao git levantar, a decisão do worktree fica indeterminada —
-    e indeterminado libera (fail-open), não bloqueia."""
+def test_sonda_de_worktree_falha_FECHADA(tmp_path):
+    """A ÚNICA exceção ao fail-open: se o git não pode ser consultado, a liberação de
+    worktree não se aplica → nega. Sem git não existe worktree pra liberar, então tratar
+    isso como 'indeterminado, libera' seria dar um jeito trivial de a cerca sumir
+    (bastaria o git faltar no PATH)."""
     mod = _mod()
     ativo = tmp_path / "ativo"
     outro = tmp_path / "outro"
@@ -222,7 +224,7 @@ def test_falha_aberta_quando_git_explode(tmp_path):
         raise OSError("git não existe nesta máquina")
 
     assert mod.decidir(_evento(outro / "app.py", ativo),
-                       ambiente={}, git_common_dir=explode) is None
+                       ambiente={}, git_common_dir=explode) is not None
 
 
 # --- Contrato do processo: JSON de deny + exit code ----------------------------------

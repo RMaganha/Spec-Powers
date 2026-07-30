@@ -12,8 +12,10 @@ Contrato:
 - **nega** escrita fora da âncora, dizendo pra abrir uma janela na raiz do outro projeto;
 - **libera** temp do SO, `~/.claude` e worktree do MESMO repo (o kit manda usar worktree, e
   worktree fica fora da pasta do projeto);
-- **falha ABERTA**: entrada estranha, git ausente ou bug daqui → libera e sai 0. Cerca com
-  defeito não pode parar o trabalho legítimo dentro do próprio projeto.
+- **falha ABERTA** onde importa: entrada malformada, âncora indeterminável ou bug daqui → libera
+  e sai 0. Cerca com defeito não pode parar o trabalho legítimo dentro do próprio projeto.
+  **Exceção**: a sonda de worktree falha FECHADA (sem git não existe worktree a liberar — ver
+  `mesmo_repo`), senão bastaria o git faltar no PATH pra cerca sumir sozinha.
 
 Escape consciente: `MSS_ANCORA_OFF=1`.
 """
@@ -111,9 +113,17 @@ def _git_common_dir(diretorio):
 
 def mesmo_repo(alvo, ancora, git_common_dir):
     """True só se alvo e âncora compartilham o .git comum — ou seja, o alvo é um
-    worktree do MESMO repositório. Levanta se o git não puder ser consultado."""
-    comum_alvo = git_common_dir(os.path.dirname(alvo) or alvo)
-    comum_ancora = git_common_dir(ancora)
+    worktree do MESMO repositório.
+
+    Esta sonda falha FECHADA (git ausente/antigo/travado → False), ao contrário do resto
+    do hook: worktree só existe se git existe, então "não deu pra perguntar ao git" nunca
+    é um caso legítimo a liberar — seria só um jeito de a cerca sumir sozinha.
+    """
+    try:
+        comum_alvo = git_common_dir(os.path.dirname(alvo) or alvo)
+        comum_ancora = git_common_dir(ancora)
+    except Exception:
+        return False
     return bool(comum_alvo) and comum_alvo == comum_ancora
 
 
@@ -133,18 +143,17 @@ def decidir(evento, ambiente=None, git_common_dir=None):
         return None                                   # indeterminado → libera
 
     ancora = normalizar(ancora_bruta)
-    # caminho relativo resolve CONTRA a âncora (é como o tool o interpreta)
-    alvo = normalizar(bruto if os.path.isabs(bruto) else os.path.join(ancora_bruta, bruto))
+    # Os tools de escrita exigem caminho absoluto; se vier relativo, resolve como o tool
+    # resolveria — contra o cwd do evento (a âncora é o fallback).
+    base_relativa = _texto(evento.get("cwd")) or ancora_bruta
+    alvo = normalizar(bruto if os.path.isabs(bruto) else os.path.join(base_relativa, bruto))
 
     if dentro(alvo, ancora):
         return None
     if any(dentro(alvo, base) for base in bases_liberadas(ambiente)):
         return None
-    try:
-        if mesmo_repo(alvo, ancora, git_common_dir):
-            return None
-    except Exception:
-        return None                                   # git indisponível → fail-open
+    if mesmo_repo(alvo, ancora, git_common_dir):
+        return None
 
     return MOTIVO.format(ancora=ancora_bruta, alvo=bruto, env=ENV_DESLIGA)
 

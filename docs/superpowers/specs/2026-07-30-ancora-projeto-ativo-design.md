@@ -32,8 +32,11 @@ A cerca libera, pra não virar tranca: dentro da âncora (inclusive caminho **re
 contra ela); **temp do SO** (`TEMP`/`TMP`/`TMPDIR`) e **`~/.claude`**; **worktree do MESMO repo**
 (compara `git rev-parse --path-format=absolute --git-common-dir` — sem isso quebraria o fluxo
 `superpowers:using-git-worktrees` que o próprio kit recomenda); e o escape consciente
-`MSS_ANCORA_OFF=1`. **Falha ABERTA**: entrada malformada, git ausente/antigo ou exceção do próprio
-hook → libera e sai **0** — cerca com defeito não pode parar o trabalho legítimo dentro do projeto.
+`MSS_ANCORA_OFF=1`. **Falha ABERTA** onde importa: entrada malformada, âncora indeterminável ou
+exceção do próprio hook → libera e sai **0** — cerca com defeito não pode parar o trabalho legítimo
+dentro do projeto. **Uma exceção deliberada:** a *sonda de worktree* falha **FECHADA** (git
+ausente/antigo/travado → nega), porque sem git não existe worktree a liberar e "indeterminado libera"
+ali seria um jeito trivial de a cerca sumir sozinha (bastaria o git faltar no PATH).
 O deny sai pelos **dois** protocolos aceitos pelo runtime (`hookSpecificOutput.permissionDecision:
 "deny"` no stdout **e** exit code 2 com o motivo no stderr), em UTF-8 forçado (no Windows o default
 cp1252 quebraria os acentos da mensagem).
