@@ -18,6 +18,9 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
+**Canário da cerca da âncora, em sessão nova** (hooks carregam na partida): numa janela recarregada, pedir uma escrita num caminho de outro projeto — tem que voltar `[mss-spec] BLOQUEADO`. Se **não** bloquear, o carregamento de hooks pelo `plugin.json` não vale pra skills-dir plugin (junction) → registrar à mão no `settings.json` com o snippet do `hooks/README.md`. Depois: integrar/publicar a **0.15.0** e então o **primeiro uso real do `/mss-spec:analise`**
+
+<!-- histórico do próximo passo anterior -->
 **Primeiro uso real do `/mss-spec:analise`**: rodar no projeto de **RAG/pgvector** do owner (UI própria em `.html`, intocável) — é o teste de campo da regra não-destrutiva e da leitura do pipeline RAG. Nos outros projetos, o comando chega com `claude plugin marketplace update` (a v0.14.0 já está publicada). No `to-dolist`, aberto: perguntar na constituição se o projeto segue a **arquitetura de rede MSIG** ou tem **arquitetura própria** (hoje o kit assume MSIG e num projeto de fora isso é editado na mão).
 
 ## Conexões
