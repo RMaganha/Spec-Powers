@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`main` — **v0.15.1 integrada e publicada no GitHub** (merges `--no-ff`; suíte **92 verde** na `main`). A fronteira entre projetos está fechada nas duas faces: **escrita** (âncora — 0.15.0) e **leitura** (PERGUNTE o caminho, não vasculhe — 0.15.1).
+
+<!-- histórico do estado anterior -->
 `fix/perguntar-nao-vasculhar` (da `main`@0.15.0) — **0.15.1: a face de LEITURA da mesma fronteira**. Segundo relato do dia: o assistente passou 5 minutos varrendo o disco atrás do projeto `evolution-go` e do compose dele. Agora, faltando fato concreto que o owner tem na cabeça (caminho de projeto/pasta/container, nome exato de variável, qual arquivo é o compose) → **pergunta curta na hora**; `find`/`ls`/`Glob` de repositório em repositório, não. Está no `templates/CLAUDE.md` (bullet próprio + emenda na regra 8), na skill de precedentes e no `commands/precedentes.md`. Causa do **repeteco** (já reclamado em 24/07): a regra morava só na pasta **volátil** `~/.claude/projects/<proj>/memory/`, que não viaja entre projetos → resgatada pro repo e cravada no molde. **Só prosa**, sem cerca (bloquear busca barraria a leitura legítima do `precedentes`). Suíte **92 verde**; bump 0.15.0→0.15.1 nos 2 manifestos + CHANGELOG. Spec (mesmo assunto): `docs/superpowers/specs/2026-07-30-ancora-projeto-ativo-design.md`.
 
 <!-- histórico do estado anterior -->
