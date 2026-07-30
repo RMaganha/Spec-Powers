@@ -32,6 +32,13 @@ Os caminhos abaixo são **relativos à raiz onde você mantém os repositórios 
 (mantenha os projetos corporativos sob uma pasta-base comum; se quiser, exporte `MSIG_REPOS_DIR`
 apontando pra ela). Nada de caminho absoluto aqui — a máquina de cada dev é diferente.
 
+**Não sabe a raiz, ou o projeto não está no catálogo? PERGUNTE — não vasculhe.** Uma pergunta curta
+("onde fica o `<projeto>` nesta máquina?") custa 5 segundos; varrer o disco (`find`/`ls`/`Glob` de
+repositório em repositório) custa minutos, queima tokens e termina em chute. O owner sabe o caminho na
+hora — e o mesmo vale pro nome exato de um container, de uma variável de ambiente ou de qual arquivo é
+o compose de lá. Buscar no disco só **depois** que ele não souber, ou pra confirmar algo que ele já
+apontou.
+
 ## Catálogo
 
 | Tópico | Projeto de referência | O que faz | Observação |

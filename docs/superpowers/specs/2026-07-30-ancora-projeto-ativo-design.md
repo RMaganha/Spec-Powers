@@ -13,6 +13,16 @@ padrão encontrado lá é **trazido pra cá** (cópia pra dentro da âncora, com
 (um assunto **e um projeto** por janela); se enxergou um bug lá, **reporta** (`/mss-spec:to-dolist`),
 não conserta — não conhece o estado daquele repo nem tem os testes dele verdes na frente.
 
+A fronteira tem **duas faces**. A de **escrita** é a âncora (acima). A de **leitura** é: pra chegar ao
+outro projeto, **pergunte o caminho** — nunca varra o disco (`find`/`ls`/`Glob` de repositório em
+repositório, `grep` em `C:\`). O owner sabe onde está na hora; procurar é lento, queima tokens e termina
+em chute. Idem pro nome exato de um container, de uma variável de ambiente ou de qual arquivo é o compose
+de lá. Busca no disco só **depois** que ele não souber, ou pra confirmar algo que ele já apontou. Essa
+face é **só prosa** — e de propósito: bloquear busca por heurística barraria a leitura legítima que o
+`precedentes` exige (mesmo argumento que deixou Bash/PowerShell fora da cerca). Ela mora no
+`templates/CLAUDE.md` (bullet "PERGUNTE, não vasculhe" + emenda na regra 8), na skill de precedentes e
+no `commands/precedentes.md`.
+
 Isso vive em **três camadas**:
 
 1. **Prosa sempre-ativa** — regra crítica **8** do `templates/CLAUDE.md` (+ a regra "um assunto por
@@ -67,3 +77,12 @@ outro projeto é o *objetivo* do `precedentes`) · desfazer o dano já causado n
   reabriria o buraco) e cobertura **só nos tools de escrita** (Bash fora). Fail-open foi decisão de
   engenharia: a cerca é 2ª linha, e travar o trabalho legítimo por bug dela custaria mais que o risco
   que ela cobre.
+- 2026-07-30 — acrescentada a **face de leitura**: "PERGUNTE, não vasculhe" no molde do `CLAUDE.md`
+  (bullet próprio + emenda na regra 8), na skill de precedentes e no `commands/precedentes.md` (motivo:
+  segundo relato do mesmo dia — o assistente passou **5 minutos varrendo o disco** atrás do projeto
+  `evolution-go` e do compose dele, "gastando tokens à toa", quando o owner teria dito o caminho na hora;
+  já havia sido reclamado em 24/07 no caso do projeto `Energy`). Causa raiz do **repeteco**: o
+  aprendizado existia só na pasta **volátil** `~/.claude/projects/<proj>/memory/`, que não viaja entre
+  projetos — resgatado pro repo (`memory/feedback_perguntar_em_vez_de_vasculhar.md`) e, principalmente,
+  cravado no molde que o kit copia pra todo projeto. Ficou **só prosa** por decisão de design: cerca
+  determinística contra busca barraria a leitura legítima do `precedentes`.

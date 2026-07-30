@@ -59,3 +59,23 @@ não bloquear, registrar o hook à mão no `settings.json` (snippet no `hooks/RE
 **publicar** a 0.15.0 — sem push, nenhum outro projeto recebe a cerca nem a regra (que lá chega pelo
 `/mss-spec:upgrade`). Em seguida, o primeiro uso real do `/mss-spec:analise` no projeto de RAG/pgvector,
 que continua na fila.
+
+## Emenda (mesma sessão, 0.15.1) — a face de leitura
+Depois de integrar a 0.15.0, o owner trouxe um **segundo relato do mesmo assunto** (print de outra
+janela): o assistente passou **5 minutos varrendo o disco** atrás do projeto `evolution-go` e do compose
+dele — *"gastando tokens a toa para tentar achar!!"*, *"não é para investigar, me pergunte"*. A 0.15.0
+cercou a face de **escrita**; faltava a de **leitura**: **como se chega** ao outro projeto.
+
+- **Pivô:** a causa do **repeteco** não era falta de aprendizado — a regra existia (reclamada em 24/07,
+  caso do projeto `Energy`), mas morava **só** em `~/.claude/projects/<proj>/memory/`, pasta **volátil e
+  por-projeto**: não valia numa janela de outro projeto. Conserto de verdade = **cravar no
+  `templates/CLAUDE.md`**, que o kit copia pra todo projeto; o resgate da memória pro repo é secundário.
+  Confirma a regra da casa: **memória de um projeto não protege os outros**.
+- **Decisão:** ficou **só prosa**, sem cerca determinística — bloquear busca por heurística barraria a
+  leitura legítima que o próprio `precedentes` exige (o mesmo argumento que deixou Bash fora da cerca).
+- **Não gravado aqui:** o caminho concreto do `evolution-go` que o owner passou. É fato do **outro**
+  projeto — vai na memória dele, numa janela aberta lá; e o catálogo de precedentes é portável por regra
+  (só caminho relativo). Coerente com "um projeto por janela".
+- **Feito:** bullet "PERGUNTE, não vasculhe" no molde do `CLAUDE.md` + emenda na regra 8 · aviso na skill
+  e no `commands/precedentes.md` · `memory/feedback_perguntar_em_vez_de_vasculhar.md` resgatado pro repo
+  (+ ponteiro no `MEMORY.md`) · `test_perguntar_nao_vasculhar` → suíte **92 verde** · bump **0.15.1**.
