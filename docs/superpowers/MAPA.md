@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`main` — **v0.15.0 integrada e publicada no GitHub** (merge `--no-ff` de `feature/ancora-projeto-ativo`; suíte **91 verde** na `main`; push até `519b6dc`, em sincronia com o `origin`). Entregue: **âncora do projeto ativo** — um projeto por janela.
+
+<!-- histórico do estado anterior (a branch, antes da integração) -->
 `feature/ancora-projeto-ativo` (da `main`@0.14.0) — **âncora do projeto ativo (0.15.0)**: um projeto por janela. Nasceu de acidente real — trabalhando no projeto A, um *"olha como o projeto B resolveu isso"* fez o assistente **adotar o B como projeto de trabalho e quebrá-lo**. Entregue em 3 camadas: (1) **regra crítica 8** do `templates/CLAUDE.md` — o projeto ativo é a **âncora**, único destino de escrita, e não migra; outro projeto é referência **somente-leitura** (mudança que seria lá → pare e abra janela nova na raiz dele; bug visto lá → reporte, não conserte); (2) o **read-only escrito no ponto de contágio** (`precedentes-msig`, `commands/precedentes.md`, passo de precedentes do `nova-feature`); (3) **cerca determinística ligada por padrão** — `hooks/projeto_ativo.py`, `PreToolUse` em `Write|Edit|NotebookEdit`, nega fora da âncora, libera temp/`~/.claude`/**worktree do mesmo repo** e **falha aberta**; escape `MSS_ANCORA_OFF=1`. Fora de escopo por decisão do owner: Bash/PowerShell. Suíte **91 verde** (era 72); bump 0.14.0→0.15.0 nos 2 manifestos + CHANGELOG. **A confirmar ao vivo:** se o hook do `plugin.json` dispara com o kit instalado por junction (skills-dir) — teste de canário e fallback no `hooks/README.md`. Spec: `docs/superpowers/specs/2026-07-30-ancora-projeto-ativo-design.md`.
 
 <!-- histórico do estado anterior -->
