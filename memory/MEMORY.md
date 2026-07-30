@@ -24,3 +24,4 @@
 - [Brownfield: entender e registrar, nunca aplicar molde por cima](feedback_brownfield_entender_nao_aplicar.md) — projeto que já existe: infra/log/UI própria são intocáveis; divergência se registra, o padrão é manter o do projeto
 - [Categoria 1 do upgrade sobrescreve — nada de projeto nela](project_upgrade_categoria1_sobrescreve.md) — SEGURANCA/ESTRUTURA/FRONTEND/docker/gitignore são só-molde; conteúdo do projeto vai no ARQUITETURA.md (prescritivo × descritivo)
 - [PENDÊNCIA: intermitência pós-update](project_pendencia_intermitencia_pos_update.md) — ABERTA: mss-spec às vezes para depois de o app atualizar e sessão nova NÃO resolve; falta capturar o estado quebrado (comando na memória)
+- [Um projeto por janela: outro projeto é read-only](feedback_projeto_ativo_read_only.md) — o projeto ativo é a âncora de escrita e não migra; em outro projeto só se lê (bug lá = reporte, não conserte)

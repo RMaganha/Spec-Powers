@@ -9,6 +9,25 @@ Este é um índice, não a implementação. Cada entrada aponta pra um projeto r
 um padrão, **abra o caminho indicado e leia o código atual**, porque ele pode ter evoluído desde a
 última atualização deste catálogo (código muda; este arquivo só diz "olhe aqui").
 
+## O projeto de referência é SOMENTE-LEITURA (regra dura)
+
+O projeto ativo — a raiz onde esta janela abriu — é a **âncora**, e é o **único** destino de escrita.
+O projeto que você abre por este catálogo é **referência**: você vai lá **ler** (`Read`/`Grep`/`Glob`)
+e traz o padrão **pro projeto ativo**. Lá dentro, **nada** de `Write`/`Edit`, `git`, `pytest`, build,
+`npm install` ou "consertar de passagem". A âncora **não migra** porque você leu outro repositório.
+
+- Se o que precisa mudar é no outro projeto, **pare e diga**: *"isso é trabalho no projeto X — feche
+  esta janela e abra uma nova na raiz dele"*. Um assunto **e um projeto** por janela.
+- Se enxergar um bug/defasagem no projeto de referência, **reporte ao owner** (ofereça registrar com
+  `/mss-spec:to-dolist adicionar <assunto>`) — **não conserte**. Você não conhece o estado daquele
+  repo, nem tem os testes dele verdes na sua frente.
+- Copiar entre projetos (ex.: o `theme.ts`, um `get_connection.py`) é **cópia pra dentro** da âncora,
+  com o OK do owner — nunca edição no repo de origem.
+
+Isto nasceu de um acidente real: um *"olha como o projeto B resolveu isso"* virou o assistente
+adotando o B como projeto de trabalho e alterando arquivos lá — **quebrou o B**. O kit também põe uma
+cerca determinística (hook `PreToolUse` que nega escrita fora da âncora), mas a regra vem primeiro.
+
 Os caminhos abaixo são **relativos à raiz onde você mantém os repositórios MSIG** na sua máquina
 (mantenha os projetos corporativos sob uma pasta-base comum; se quiser, exporte `MSIG_REPOS_DIR`
 apontando pra ela). Nada de caminho absoluto aqui — a máquina de cada dev é diferente.
@@ -21,6 +40,8 @@ apontando pra ela). Nada de caminho absoluto aqui — a máquina de cada dev é 
 | Extração de PDF + multi-LLM | `IA Jeday Cosseguro/Azure` | Lê PDF com PyMuPDF, extrai dados via prompts Gemini + GPT | Ver `utils/`, `config/settings.py` e `config/seguradora/` (config por cliente com fallback) pra estrutura geral do pipeline |
 | Ambiente/infra corporativa (rede, proxy, Postgres, SQL Server, Azure pipeline) | plugin `mss-spec` — ver `templates/AMBIENTE.md` (copiado pro projeto pelo `/mss-spec:kickoff`) | Fatos fixos + padrões já consolidados num único doc de referência | Use esse arquivo diretamente em vez de reinvestigar do zero |
 | Conexão SQL Server — padrão canônico multi-ambiente | `Transportes/V2/get_connection.py` | Par Fernet KEY/CIPHERTEXT por base (SSC, MS10=`tkgs_corp`, TRP, OnBase) e ambiente (D0/HML/PRD); `.env` só com `CONEXAO_SQL` + `CONEXAO_SQL_PORTA` | Credencial NUNCA em `.env`. Pares prontos lá — copiar entre projetos é decisão do owner. Portas verificadas: SSC dev `10.170.210.36,1435`; SSC prod `10.170.210.48` |
+| Gráfico / dashboard — o **1º** do DS MSIG | `Energy/docs/deploy/poc-local/painel/web/src` (`DashboardPage.tsx` + `dashboard.ts`) e `Energy/docs/FRONTEND.md` §Gráficos | `@mantine/charts` na MESMA versão do `@mantine/core` + `recharts`; KPI tiles + barra horizontal + donut + tabela; paleta de status **validada por script** | **Não escolher cor a gosto** — rodar `dataviz/scripts/validate_palette.js` e só usar paleta que passa. Cidade tem nome longo → barra **horizontal**, nunca rótulo rotacionado. "Sem dado" = `—`, nunca `0`. Média ignora NULL. |
+| UI web — design system MSIG (Nível 2: React+Mantine) | `MSS-SSC/frontend/src` (tema/grid/providers) + `MSS-SSC/docs/FRONTEND.md` (o modelo) | Tema MSIG (`theme.ts`: brand `#E63329`/navy `#0E1A3A`), grid `mantine-datatable` com funil na coluna, Mantine 9 + React 19 + vite 8 + TS 7 | **Copiar o `theme.ts` literal**, nunca tema default. Nível 1 (Jinja+Tailwind+sidebar navy): ver `ATA Painel de Controle/templates`. Reuso confirmado no painel de leads do `Energy` (2026-07). |
 
 ## Como crescer este catálogo
 

@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/ancora-projeto-ativo` (da `main`@0.14.0) — **âncora do projeto ativo (0.15.0)**: um projeto por janela. Nasceu de acidente real — trabalhando no projeto A, um *"olha como o projeto B resolveu isso"* fez o assistente **adotar o B como projeto de trabalho e quebrá-lo**. Entregue em 3 camadas: (1) **regra crítica 8** do `templates/CLAUDE.md` — o projeto ativo é a **âncora**, único destino de escrita, e não migra; outro projeto é referência **somente-leitura** (mudança que seria lá → pare e abra janela nova na raiz dele; bug visto lá → reporte, não conserte); (2) o **read-only escrito no ponto de contágio** (`precedentes-msig`, `commands/precedentes.md`, passo de precedentes do `nova-feature`); (3) **cerca determinística ligada por padrão** — `hooks/projeto_ativo.py`, `PreToolUse` em `Write|Edit|NotebookEdit`, nega fora da âncora, libera temp/`~/.claude`/**worktree do mesmo repo** e **falha aberta**; escape `MSS_ANCORA_OFF=1`. Fora de escopo por decisão do owner: Bash/PowerShell. Suíte **91 verde** (era 72); bump 0.14.0→0.15.0 nos 2 manifestos + CHANGELOG. **A confirmar ao vivo:** se o hook do `plugin.json` dispara com o kit instalado por junction (skills-dir) — teste de canário e fallback no `hooks/README.md`. Spec: `docs/superpowers/specs/2026-07-30-ancora-projeto-ativo-design.md`.
+
+<!-- histórico do estado anterior -->
 `main` — **v0.14.0 integrada e publicada no GitHub** (merge `--no-ff` de `feature/analise-projeto-existente`; suíte **72 verde** na `main`; push até `430d667` — que levou junto os **7 commits que estavam retidos** desde 24/07: 0.13.0/0.13.1/0.13.2 + chore de memória). Entregue: `/mss-spec:analise`, a porta de entrada do **brownfield**. Lê o repo em 2 fases (inventário/manifests/docs pré-existentes → leitura focada em entrypoint, rotas, `.sql`, config, UI e pipeline **RAG/pgvector**; resto por amostragem, declarando o que ficou de fora) e destila no dossiê `docs/ARQUITETURA.md` + `CLAUDE.md`/`MAPA.md`/`INDEX.md` (assunto = linha `existente`) e specs só com evidência lida. **Não-destrutivo por regra**: nunca toca em infra, código ou **UI própria** — o pré-existente é registrado na lista "não nasceu do kit", que passou a **frear a categoria 1 do `upgrade`** (que sobrescrevia `docker-compose`/`Dockerfile` sozinha). Suíte **72 verde**; bump 0.13.2→0.14.0 nos 2 manifestos + CHANGELOG. Dois commits na branch: `c1938f4` (feature) + `a86022b` (captura de memória — decisão transversal, 2 aprendizados duráveis, diário). Spec: `docs/superpowers/specs/2026-07-28-analise-projeto-existente-design.md`.
 
 <!-- histórico do estado anterior -->
@@ -15,6 +18,9 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
+**Canário da cerca da âncora, em sessão nova** (hooks carregam na partida): numa janela recarregada, pedir uma escrita num caminho de outro projeto — tem que voltar `[mss-spec] BLOQUEADO`. Se **não** bloquear, o carregamento de hooks pelo `plugin.json` não vale pra skills-dir plugin (junction) → registrar à mão no `settings.json` com o snippet do `hooks/README.md`. Depois: integrar/publicar a **0.15.0** e então o **primeiro uso real do `/mss-spec:analise`**
+
+<!-- histórico do próximo passo anterior -->
 **Primeiro uso real do `/mss-spec:analise`**: rodar no projeto de **RAG/pgvector** do owner (UI própria em `.html`, intocável) — é o teste de campo da regra não-destrutiva e da leitura do pipeline RAG. Nos outros projetos, o comando chega com `claude plugin marketplace update` (a v0.14.0 já está publicada). No `to-dolist`, aberto: perguntar na constituição se o projeto segue a **arquitetura de rede MSIG** ou tem **arquitetura própria** (hoje o kit assume MSIG e num projeto de fora isso é editado na mão).
 
 ## Conexões
