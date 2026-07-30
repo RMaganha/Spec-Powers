@@ -9,6 +9,25 @@ Este é um índice, não a implementação. Cada entrada aponta pra um projeto r
 um padrão, **abra o caminho indicado e leia o código atual**, porque ele pode ter evoluído desde a
 última atualização deste catálogo (código muda; este arquivo só diz "olhe aqui").
 
+## O projeto de referência é SOMENTE-LEITURA (regra dura)
+
+O projeto ativo — a raiz onde esta janela abriu — é a **âncora**, e é o **único** destino de escrita.
+O projeto que você abre por este catálogo é **referência**: você vai lá **ler** (`Read`/`Grep`/`Glob`)
+e traz o padrão **pro projeto ativo**. Lá dentro, **nada** de `Write`/`Edit`, `git`, `pytest`, build,
+`npm install` ou "consertar de passagem". A âncora **não migra** porque você leu outro repositório.
+
+- Se o que precisa mudar é no outro projeto, **pare e diga**: *"isso é trabalho no projeto X — feche
+  esta janela e abra uma nova na raiz dele"*. Um assunto **e um projeto** por janela.
+- Se enxergar um bug/defasagem no projeto de referência, **reporte ao owner** (ofereça registrar com
+  `/mss-spec:to-dolist adicionar <assunto>`) — **não conserte**. Você não conhece o estado daquele
+  repo, nem tem os testes dele verdes na sua frente.
+- Copiar entre projetos (ex.: o `theme.ts`, um `get_connection.py`) é **cópia pra dentro** da âncora,
+  com o OK do owner — nunca edição no repo de origem.
+
+Isto nasceu de um acidente real: um *"olha como o projeto B resolveu isso"* virou o assistente
+adotando o B como projeto de trabalho e alterando arquivos lá — **quebrou o B**. O kit também põe uma
+cerca determinística (hook `PreToolUse` que nega escrita fora da âncora), mas a regra vem primeiro.
+
 Os caminhos abaixo são **relativos à raiz onde você mantém os repositórios MSIG** na sua máquina
 (mantenha os projetos corporativos sob uma pasta-base comum; se quiser, exporte `MSIG_REPOS_DIR`
 apontando pra ela). Nada de caminho absoluto aqui — a máquina de cada dev é diferente.

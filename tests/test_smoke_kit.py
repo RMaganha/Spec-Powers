@@ -423,6 +423,59 @@ def test_captura_hook_optin_doc():
     assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
 
 
+def test_ancora_hook_registrado():
+    """A cerca do projeto ativo vem LIGADA (ao contrário do nudge): hooks.json com
+    PreToolUse em Write|Edit|NotebookEdit, referenciado pelo plugin.json."""
+    plugin = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert plugin.get("hooks") == "./hooks/hooks.json", \
+        "plugin.json não aponta hooks/hooks.json — a cerca não seria carregada"
+    assert (REPO / "hooks" / "projeto_ativo.py").exists(), "falta hooks/projeto_ativo.py"
+
+    grupos = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]["PreToolUse"]
+    matcher = " ".join(g.get("matcher", "") for g in grupos)
+    for tool in ("Write", "Edit", "NotebookEdit"):
+        assert tool in matcher, f"matcher do PreToolUse não cobre {tool}"
+    comando = grupos[0]["hooks"][0]["command"]
+    assert "projeto_ativo.py" in comando, "hook registrado não é o projeto_ativo.py"
+    assert "CLAUDE_PLUGIN_ROOT" in comando, "caminho do hook não é portável (sem CLAUDE_PLUGIN_ROOT)"
+
+
+def test_ancora_regra_no_claude_md():
+    """A regra dura (camada 1) viaja pra todo projeto pelo molde do CLAUDE.md — e a
+    última regra crítica continua sendo o placeholder do projeto (o upgrade renumera)."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    low = claude.lower()
+    assert "âncora" in low, "CLAUDE.md não define a âncora (projeto ativo)"
+    assert "somente-leitura" in low, "CLAUDE.md não diz que outro projeto é somente-leitura"
+    assert "um projeto por janela" in low, "CLAUDE.md não carrega a regra 'um projeto por janela'"
+    assert "MSS_ANCORA_OFF" in claude, "CLAUDE.md não documenta o escape consciente da cerca"
+    assert "<regra específica do seu projeto…>" in claude, \
+        "o placeholder da regra do projeto sumiu — a regra nova tem que entrar ANTES dele"
+
+
+def test_ancora_prosa_no_ponto_de_contagio():
+    """Onde o kit MANDA abrir outro projeto, o read-only tem que estar escrito junto:
+    catálogo de precedentes, o comando, e o passo de precedentes do nova-feature."""
+    for rel in ("skills/precedentes-msig/SKILL.md", "commands/precedentes.md",
+                "commands/nova-feature.md"):
+        texto = (REPO / rel).read_text(encoding="utf-8")
+        low = texto.lower()
+        assert "somente-leitura" in low, f"{rel} manda abrir outro projeto sem dizer que é read-only"
+        assert "âncora" in low, f"{rel} não amarra a escrita à âncora (projeto ativo)"
+        assert "não conserte" in low, f"{rel} não diz 'reporte, não conserte' (bug no projeto de referência)"
+
+
+def test_ancora_hook_doc():
+    """README dos hooks explica a cerca: ligada, bloqueante, falha aberta e com escape."""
+    doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
+    low = doc.lower()
+    assert "ligado por padrão" in low, "README não deixa claro que a cerca vem ligada"
+    assert "falha aberta" in low, "README não documenta o fail-open (cerca com bug não trava o trabalho)"
+    assert "MSS_ANCORA_OFF" in doc, "README não documenta o escape consciente"
+    assert "worktree" in low, "README não documenta a liberação de worktree do mesmo repo"
+    assert "settings.json" in doc, "README não dá o fallback de registro caso o hook não dispare"
+
+
 def test_captura_docs_leiame():
     """LEIA-ME documenta o modo capturar do /mss-spec:memory (o dev descobre a capacidade)."""
     leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
