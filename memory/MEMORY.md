@@ -25,3 +25,4 @@
 - [Categoria 1 do upgrade sobrescreve — nada de projeto nela](project_upgrade_categoria1_sobrescreve.md) — SEGURANCA/ESTRUTURA/FRONTEND/docker/gitignore são só-molde; conteúdo do projeto vai no ARQUITETURA.md (prescritivo × descritivo)
 - [PENDÊNCIA: intermitência pós-update](project_pendencia_intermitencia_pos_update.md) — ABERTA: mss-spec às vezes para depois de o app atualizar e sessão nova NÃO resolve; falta capturar o estado quebrado (comando na memória)
 - [Um projeto por janela: outro projeto é read-only](feedback_projeto_ativo_read_only.md) — o projeto ativo é a âncora de escrita e não migra; em outro projeto só se lê (bug lá = reporte, não conserte)
+- [Perguntar em vez de vasculhar](feedback_perguntar_em_vez_de_vasculhar.md) — falta caminho/nome de container/variável? pergunto na hora; nunca `find` no disco (reclamado 2x)

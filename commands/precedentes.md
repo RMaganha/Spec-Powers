@@ -8,4 +8,6 @@ Consulte o catálogo de precedentes em `${CLAUDE_PLUGIN_ROOT}/skills/precedentes
 
 Se nada no catálogo casar, diga isso claramente em vez de inventar um precedente.
 
+**Não sabe onde o projeto vive? PERGUNTE — não vasculhe o disco.** O catálogo dá o caminho *relativo*; a raiz é da máquina do owner. Uma pergunta curta ("onde fica o `<projeto>`?") resolve na hora — `find`/`ls`/`Glob` de repositório em repositório queima tokens e termina em chute. Idem pro nome exato de container/variável/arquivo de compose de lá.
+
 **O projeto de referência é SOMENTE-LEITURA.** O projeto ativo (a raiz onde esta janela abriu) é a **âncora** — o único destino de escrita, e ela **não migra** porque você foi ler outro repositório. No projeto de referência: `Read`/`Grep`/`Glob` sim; `Write`/`Edit`, `git`, `pytest`, build ou "consertar de passagem", **nunca**. Se a mudança é lá, **pare** e diga ao owner pra fechar esta janela e abrir uma nova na raiz daquele projeto; se viu um bug lá, **reporte** (ofereça `/mss-spec:to-dolist`), não conserte.

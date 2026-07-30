@@ -73,6 +73,7 @@
 - `test_ancora_hook_registrado` — a cerca do projeto ativo vem **ligada**: `hooks/hooks.json` com `PreToolUse` cobrindo `Write`/`Edit`/`NotebookEdit`, referenciado pelo `plugin.json`, comando portável (`CLAUDE_PLUGIN_ROOT`)
 - `test_ancora_regra_no_claude_md` — a regra dura viaja no molde do `CLAUDE.md` (âncora · somente-leitura · um projeto por janela · `MSS_ANCORA_OFF`) e o placeholder da regra do projeto continua sendo o último (o `upgrade` renumera)
 - `test_ancora_prosa_no_ponto_de_contagio` — onde o kit manda abrir outro projeto (`precedentes-msig`, `commands/precedentes.md`, passo do `nova-feature`) está escrito que é read-only, amarrado à âncora, com "reporte, não conserte"
+- `test_perguntar_nao_vasculhar` — a face de leitura: "PERGUNTE, não vasculhe" presente no molde do `CLAUDE.md`, na skill de precedentes e no comando, nomeando a varredura de disco proibida
 - `test_ancora_hook_doc` — `hooks/README.md` documenta ligado-por-padrão · falha aberta · escape · worktree · fallback de registro
 
 `tests/test_ancora_projeto_ativo.py` — comportamento da cerca (hook `projeto_ativo.py`):
@@ -90,4 +91,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
 
-**Último 100% verde:** 2026-07-30 · branch feature/ancora-projeto-ativo (âncora do projeto ativo — um projeto por janela) · 91 passed
+**Último 100% verde:** 2026-07-30 · branch fix/perguntar-nao-vasculhar (face de leitura da fronteira) · 92 passed

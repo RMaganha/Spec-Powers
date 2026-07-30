@@ -465,6 +465,20 @@ def test_ancora_prosa_no_ponto_de_contagio():
         assert "não conserte" in low, f"{rel} não diz 'reporte, não conserte' (bug no projeto de referência)"
 
 
+def test_perguntar_nao_vasculhar():
+    """A face de LEITURA da fronteira: pra chegar a outro projeto (ou a qualquer fato que o
+    owner tem na cabeça — caminho, nome de container/variável, qual arquivo é o compose),
+    PERGUNTAR. Varrer o disco é lento, queima tokens e termina em chute — reclamado 2x.
+    Mora no molde do CLAUDE.md (viaja pra todo projeto) e onde o kit manda abrir outro repo."""
+    for rel in ("templates/CLAUDE.md", "skills/precedentes-msig/SKILL.md",
+                "commands/precedentes.md"):
+        low = (REPO / rel).read_text(encoding="utf-8").lower()
+        assert "não vasculhe" in low or "não vasculhar" in low, \
+            f"{rel} não carrega a regra 'pergunte, não vasculhe'"
+        assert "pergunte" in low, f"{rel} não manda perguntar o caminho ao owner"
+        assert "find" in low, f"{rel} não nomeia a varredura de disco que está proibida"
+
+
 def test_ancora_hook_doc():
     """README dos hooks explica a cerca: ligada, bloqueante, falha aberta e com escape."""
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
