@@ -70,6 +70,24 @@
 - `test_analise_registro_de_assuntos` — assunto detectado = 1 linha `existente` no INDEX; spec viva só com **evidência lida** + proveniência marcada (nunca spec por inferência solta)
 - `test_upgrade_respeita_preexistente` — a lista "não nasceu do kit" freia a categoria 1 do `upgrade` (que sobrescrevia `docker-compose`/`Dockerfile` sozinha e mataria a infra de um brownfield): passa a perguntar
 
-**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste.
+- `test_ancora_hook_registrado` — a cerca do projeto ativo vem **ligada**: `hooks/hooks.json` com `PreToolUse` cobrindo `Write`/`Edit`/`NotebookEdit`, referenciado pelo `plugin.json`, comando portável (`CLAUDE_PLUGIN_ROOT`)
+- `test_ancora_regra_no_claude_md` — a regra dura viaja no molde do `CLAUDE.md` (âncora · somente-leitura · um projeto por janela · `MSS_ANCORA_OFF`) e o placeholder da regra do projeto continua sendo o último (o `upgrade` renumera)
+- `test_ancora_prosa_no_ponto_de_contagio` — onde o kit manda abrir outro projeto (`precedentes-msig`, `commands/precedentes.md`, passo do `nova-feature`) está escrito que é read-only, amarrado à âncora, com "reporte, não conserte"
+- `test_ancora_hook_doc` — `hooks/README.md` documenta ligado-por-padrão · falha aberta · escape · worktree · fallback de registro
 
-**Último 100% verde:** 2026-07-28 · branch feature/analise-projeto-existente (`/mss-spec:analise` — brownfield) · 72 passed
+`tests/test_ancora_projeto_ativo.py` — comportamento da cerca (hook `projeto_ativo.py`):
+- `test_bloqueia_escrita_fora_da_ancora` — o caso do acidente: alvo no projeto B com âncora no A → nega, citando o alvo e oferecendo a saída (abrir janela na raiz do outro)
+- `test_bloqueia_edit_e_notebook` — vale nos 3 tools de escrita (o `NotebookEdit` usa `notebook_path`)
+- `test_libera_escrita_dentro_da_ancora` / `test_libera_caminho_relativo` — dentro passa, inclusive caminho relativo
+- `test_ancora_prefere_claude_project_dir` — âncora = `CLAUDE_PROJECT_DIR`; `cwd` do evento é só fallback
+- `test_libera_temp_e_claude_home` — temp do SO e `~/.claude` não são "outro projeto"
+- `test_libera_worktree_do_mesmo_repo` / `test_bloqueia_outro_repo` — mesmo `git-common-dir` = worktree do mesmo repo (libera); diferente = outro repo (nega)
+- `test_env_desliga_a_cerca` — `MSS_ANCORA_OFF=1` é o escape consciente do owner
+- `test_normaliza_case_e_barra` — Windows: `C:\X\a` e `c:/x/a` são o mesmo caminho (senão daria falso positivo dentro do próprio projeto)
+- `test_falha_aberta_em_entrada_estranha` — sem `file_path`, evento vazio, `Read`/`Bash` → libera (não vigia leitura nem shell)
+- `test_sonda_de_worktree_falha_FECHADA` — a única exceção ao fail-open: git inconsultável → nega (senão a cerca sumiria só por o git faltar no PATH)
+- `test_processo_nega_com_json_e_stderr` / `test_processo_libera_silencioso` / `test_processo_falha_aberta_com_stdin_invalido` — contrato do processo: deny pelos dois protocolos (JSON `permissionDecision` + exit 2 com motivo no stderr), liberação calada, stdin inválido sai 0
+
+**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
+
+**Último 100% verde:** 2026-07-30 · branch feature/ancora-projeto-ativo (âncora do projeto ativo — um projeto por janela) · 91 passed

@@ -106,7 +106,13 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Três redes prontas para quando algo dá errado — nenhuma é comando novo:
+Quatro redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Âncora do projeto ativo** — a única rede que **bloqueia**: o hook `hooks/projeto_ativo.py` (ligado
+  por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
+  referência **somente-leitura** — você lê o código dele pelo `precedentes` e traz o padrão pra cá.
+  Nasceu de acidente real: um *"olha como o projeto B fez isso"* virou o assistente adotando o B como
+  projeto de trabalho e **quebrando o B**. Libera temp, `~/.claude` e worktree do mesmo repo; escape
+  consciente `MSS_ANCORA_OFF=1`; falha aberta. Detalhes e o canário em `hooks/README.md`.
 - **Auto-teste** — `python -m pytest tests/ -q` (acima): pega referência morta antes de commitar.
 - **Rollback = git** — não há comando de "desfazer". Como `kickoff` e `upgrade` só mexem em arquivos versionados sob árvore de trabalho limpa, `git restore`/descartar a branch já reverte. Sem comando dedicado de propósito (YAGNI).
 - **CHANGELOG** — `CHANGELOG.md` versionado é a rede contra *drift* entre cópias (qual "v0.8" é qual). Na via git o `marketplace update` já traz a versão nova; na via pasta local, o CHANGELOG é o que diz se uma cópia está atrasada.
