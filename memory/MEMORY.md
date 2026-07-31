@@ -25,6 +25,7 @@
 - [Categoria 1 do upgrade sobrescreve — nada de projeto nela](project_upgrade_categoria1_sobrescreve.md) — SEGURANCA/ESTRUTURA/FRONTEND/docker/gitignore são só-molde; conteúdo do projeto vai no ARQUITETURA.md (prescritivo × descritivo)
 - [PENDÊNCIA: intermitência pós-update](project_pendencia_intermitencia_pos_update.md) — ABERTA: mss-spec às vezes para depois de o app atualizar e sessão nova NÃO resolve; falta capturar o estado quebrado (comando na memória)
 - [Um projeto por janela: outro projeto é read-only](feedback_projeto_ativo_read_only.md) — o projeto ativo é a âncora de escrita e não migra; em outro projeto só se lê (bug lá = reporte, não conserte)
+- [Kit não assume o ambiente de origem](project_kit_nao_assume_ambiente_de_origem.md) — infra MSIG virou pergunta no kickoff gravada no `CLAUDE.md`; quem sobrescreve (upgrade cat. 1) respeita, e projeto antigo recebe a linha perguntando
 - [Regra única em vez de config declarativa](feedback_regra_unica_em_vez_de_config.md) — owner corta mecanismo de configuração; uma regra repetível + exceções de 1 linha, apoiadas no que o projeto já declara
 - [subprocess text=True no Windows quebra chamada ao git](project_subprocess_texto_windows_quebra_git.md) — `\n`→`\r\n` na entrada fez o `check-ignore` devolver caminho aspeado e o filtro morrer calado; use bytes + `-z`
 - [Gerador: dogfood com diff antes × depois](project_dogfood_gerador_diff_antes_depois.md) — rodar no repo real e ler o diff da saída; fixture não vê o que só o projeto de verdade tem (pegou `hooks/` invisível e rota vinda de comentário)
