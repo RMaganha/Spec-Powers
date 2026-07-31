@@ -110,4 +110,10 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
 
-**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-nao-runtime (arquivo morto fora, n8n dentro) · 111 passed
+- `test_infra_pergunta_no_kickoff` — CA1: o kickoff pergunta MSIG × própria e grava na linha `Infra:` do `CLAUDE.md`
+- `test_infra_declarada_no_molde_do_claude_md` — CA2: a linha viaja no molde, nomeando o que MSIG implica e o que não se aplica
+- `test_infra_propria_nao_recebe_ca_nem_office` — CA3: sem `corp-ca.pem`, sem `docker-compose.office.yml`, compose base sem a rede externa
+- `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
+- `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
+
+**Último 100% verde:** 2026-07-31 · branch feature/infra-msig-ou-propria (o kit pergunta a infra em vez de assumir MSIG) · 116 passed

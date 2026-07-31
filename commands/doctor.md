@@ -10,6 +10,8 @@ Pré-vôo do ambiente: confere os pré-requisitos do ambiente MSIG e reporta **�
 
 Leia os valores esperados de `docs/AMBIENTE.md` (IP do proxy, nome da rede, host do SQL…) — **não** hardcode. Rode **só os checks que se aplicam** ao projeto (detecte pelos arquivos presentes); um check que não se aplica é **pulado**, não vira ✗.
 
+**Antes dos checks, leia a linha `**Infra:**` do Contexto do `CLAUDE.md`.** Se for **infra própria**, os checks **4 (proxy)**, **5 (CA corporativa)** e **6 (rede `mitiai_network`)** são **PULADOS** — não são ✗ nem "a verificar": aquela infra não existe neste projeto, e cobrá-la é ruído que treina o owner a ignorar o doctor. Reporte-os como *"pulado — infra própria"*. Se a linha não existir (projeto anterior a esta versão), **pergunte** em vez de assumir MSIG.
+
 Checks:
 1. **mss-spec acha os próprios templates?** (sempre, primeiro — é o alicerce) — `${CLAUDE_PLUGIN_ROOT}/templates/` existe e tem os moldes? Se a variável não resolveu, procure nos locais padrão do Code: `~/.claude/plugins/cache/*/mss-spec/*/templates/` (via marketplace) ou `~/.claude/skills/mss-spec/templates/` (auto-load). **Não achou em nenhum → ✗ com aviso claro**: o plugin não está resolvendo; registre/instale (ver instalação). Se este falha, os comandos que copiam template (kickoff, ambiente, banco, frontend, seguranca) também falham.
 2. **superpowers habilitado** (sempre) — `superpowers@claude-plugins-official` está em `enabledPlugins` do `.claude/settings.json` (ou instalado)?

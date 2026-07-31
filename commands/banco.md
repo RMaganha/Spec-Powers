@@ -6,6 +6,7 @@ disable-model-invocation: true
 
 Você vai gerar o **módulo de conexão** deste projeto no padrão MSIG. Consulte `docs/AMBIENTE.md` para hosts e convenções. Mostre o código e **confirme antes de gravar**.
 
+0. **Leia a linha `**Infra:**` do Contexto do `CLAUDE.md`.** Em **infra própria**, o padrão MSIG de conexão **não se aplica**: nada de par Fernet do Transportes V2, nada de bases corporativas (SSC/MS10/TRP/OnBase) e nada de host da rede MSIG. Vá direto à opção genérica — **string de conexão em variável de ambiente** (`.env` em dev, App Settings/secret manager em prod) — com o driver que o projeto usa. O resto deste comando (SQL parametrizado, DDL versionada em `sql/NN_*.sql` rodada fora do app, segredo nunca no código) vale igual.
 1. Pergunte: **SQL Server ou Postgres?**
 2. **SQL Server — escolha como guardar a credencial** (recomendo **variável de ambiente** pra projeto novo, que quase sempre é web app Azure):
    - **(a) Variável de ambiente [RECOMENDADO]** — a conn string vive numa variável: `.env` em dev (gitignored) → **Azure App Settings** em prod; o `get_connection.py` lê via `os.getenv` (ex.: `SQL_CONN_STR`). Segredo **nunca** no código nem no commit. `.env.example` traz só a chave vazia (`SQL_CONN_STR=`). É o mais seguro e o padrão de web app Azure — **não** precisa de Fernet nem de `cryptography`.
