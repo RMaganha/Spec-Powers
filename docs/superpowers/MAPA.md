@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`main` — **v0.16.0 integrada** (merge `--no-ff`; suíte **101 verde** na `main`). **Não publicada ainda** — falta `git push` (só quando o owner pedir).
+
+<!-- histórico do estado anterior (a branch, antes da integração) -->
 `fix/mapa-neural-descritivo` (da `main`@0.15.1) — **0.16.0: o mapa neural vira descritivo**. O owner rodou o gerador num projeto real de outro time e trouxe o diagnóstico: o mapa afirmava **18 rotas do projeto vizinho** (o `rglob` descia em `.claude/worktrees/`) e **zero** das 17 reais (regex só de FastAPI; lá é Flask), com `apis/`/`persistencia/` invisíveis (a lista `_CAMADAS` era filtro do molde) e placeholder de molde entrando como decisão. Os 4 consertos estão em `templates/mapa_neural.py`; o dogfood no próprio kit ainda destampou o `hooks/` invisível e um `GET /x` fantasma vindo de comentário. Suíte **101 verde** (era 92); bump 0.15.1→0.16.0 nos 2 manifestos + CHANGELOG. Spec (mesmo assunto, F2.4): `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
 
 <!-- histórico do estado anterior -->
@@ -30,6 +33,9 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
+**Publicar a 0.16.0** (`git push` — o owner dispara) e então **rodar o `/mss-spec:mapa-neural` no projeto que originou o diagnóstico** (Flask, `apis/`/`persistencia/`): é o teste de campo dos 4 consertos — as 17 rotas reais devem aparecer, as 18 fantasmas sumir e as camadas próprias ficar visíveis. Continuam na fila, da rodada anterior: o **canário da cerca da âncora em sessão nova** (pedir escrita num caminho de outro projeto → tem que voltar `[mss-spec] BLOQUEADO`; se não bloquear, registrar o hook à mão no `settings.json` com o snippet do `hooks/README.md`) e o **primeiro uso real do `/mss-spec:analise`** no projeto de RAG/pgvector.
+
+<!-- histórico do próximo passo anterior -->
 **Canário da cerca da âncora, em sessão nova** (hooks carregam na partida): numa janela recarregada, pedir uma escrita num caminho de outro projeto — tem que voltar `[mss-spec] BLOQUEADO`. Se **não** bloquear, o carregamento de hooks pelo `plugin.json` não vale pra skills-dir plugin (junction) → registrar à mão no `settings.json` com o snippet do `hooks/README.md`. Depois: integrar/publicar a **0.15.0** e então o **primeiro uso real do `/mss-spec:analise`**
 
 <!-- histórico do próximo passo anterior -->

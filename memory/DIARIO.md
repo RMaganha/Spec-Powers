@@ -3,6 +3,9 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-07-31
+- [mapa-neural-descritivo] o gerador virou descritivo (0.16.0): `.claude/` fora, rota Flask, camadas detectadas pelo conteúdo, placeholder ≠ fato; o owner perguntou "isso trará benefícios?" e a resposta que fechou foi *o mapa é o destilado que o assistente lê no lugar da fonte*; pivô meu = filtro de placeholder na linha inteira engoliu memória real → estreitado pro campo do assunto; o dogfood no próprio kit pegou `hooks/` invisível e `GET /x` vindo de comentário → sessions/2026-07-31-mapa-neural-descritivo.md
+
 ## 2026-07-28
 - [analise-projeto-existente] `/mss-spec:analise` — porta de entrada do brownfield (2 fases de leitura → dossiê `ARQUITETURA.md`); pivôs: a restrição "não pode ajustar / pode parar tudo" virou o **eixo** (regra não-destrutiva), UI própria intocável, spec retroativa só com evidência lida; achados: `upgrade` sobrescrevia infra de brownfield (freio) e eu mesmo escrevi em arquivo de categoria 1 (fronteira prescritivo × descritivo); release 0.14.0 → sessions/2026-07-28-analise-projeto-existente.md
 

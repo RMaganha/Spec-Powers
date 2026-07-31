@@ -25,4 +25,6 @@
 - [Categoria 1 do upgrade sobrescreve — nada de projeto nela](project_upgrade_categoria1_sobrescreve.md) — SEGURANCA/ESTRUTURA/FRONTEND/docker/gitignore são só-molde; conteúdo do projeto vai no ARQUITETURA.md (prescritivo × descritivo)
 - [PENDÊNCIA: intermitência pós-update](project_pendencia_intermitencia_pos_update.md) — ABERTA: mss-spec às vezes para depois de o app atualizar e sessão nova NÃO resolve; falta capturar o estado quebrado (comando na memória)
 - [Um projeto por janela: outro projeto é read-only](feedback_projeto_ativo_read_only.md) — o projeto ativo é a âncora de escrita e não migra; em outro projeto só se lê (bug lá = reporte, não conserte)
+- [Gerador: dogfood com diff antes × depois](project_dogfood_gerador_diff_antes_depois.md) — rodar no repo real e ler o diff da saída; fixture não vê o que só o projeto de verdade tem (pegou `hooks/` invisível e rota vinda de comentário)
+- [Parsear .md do kit: fora comentário; placeholder só em campo curto](project_parse_md_do_kit_descartar_comentario.md) — o molde planta bullets no comentário-guia; filtro `<…>` na linha inteira engole texto real
 - [Perguntar em vez de vasculhar](feedback_perguntar_em_vez_de_vasculhar.md) — falta caminho/nome de container/variável? pergunto na hora; nunca `find` no disco (reclamado 2x)
