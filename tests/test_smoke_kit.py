@@ -710,3 +710,64 @@ def test_guardrail_skills_dir_instalado():
         "CLAUDE.md não explica que o mss-spec pode estar instalado como skills-dir plugin"
     assert "plugin list" in low, \
         "CLAUDE.md não aponta o `claude plugin list` como a checagem certa (não o installed_plugins.json)"
+
+
+# ---- infra MSIG × infra própria (0.18.0) -----------------------------------
+# O kit nasceu dentro da MSIG e ASSUMIA a infra corporativa em todo projeto: copiava a CA do
+# FortiGate, o compose do escritório, punha proxy no `.env` e oferecia o `get_connection.py`
+# das bases MSIG — e o `doctor` cobrava proxy/CA/rede que, num projeto de fora, não existem.
+# Agora é PERGUNTA na constituição, e a resposta manda.
+
+def test_infra_pergunta_no_kickoff():
+    """CA1 — o kickoff pergunta na entrevista e grava a resposta no CLAUDE.md do projeto."""
+    kick = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    low = kick.lower()
+    assert "infra msig" in low or "arquitetura msig" in low, \
+        "kickoff não pergunta se o projeto segue a infra MSIG"
+    assert "própria" in low, "kickoff não oferece a alternativa 'infra própria'"
+    assert "**infra:**" in low, "kickoff não grava a resposta na linha `Infra:` do CLAUDE.md"
+
+
+def test_infra_declarada_no_molde_do_claude_md():
+    """CA2 — a linha viaja no molde: é ela que todo comando lê (o CLAUDE.md está sempre em
+    contexto), sem arquivo de configuração novo."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    low = claude.lower()
+    assert "**infra:**" in low, "o molde do CLAUDE.md não tem a linha `Infra:` no Contexto"
+    assert "mitiai_network" in low and "fortigate" in low, \
+        "a opção MSIG não nomeia o que ela implica (rede, CA)"
+    assert "própria" in low, "o molde não oferece a opção de infra própria"
+    for marca in ("proxy", "docker-compose.office", "get_connection"):
+        assert marca in low, f"o molde não diz que `{marca}` não se aplica em infra própria"
+
+
+def test_infra_propria_nao_recebe_ca_nem_office():
+    """CA3 — kickoff e ambiente não copiam a CA nem o compose do escritório; e o compose BASE
+    sai sem a rede externa `mitiai_network` (que não existe fora da MSIG — o serviço nem sobe)."""
+    for rel in ("commands/kickoff.md", "commands/ambiente.md"):
+        low = (REPO / rel).read_text(encoding="utf-8").lower()
+        assert "infra própria" in low, f"{rel} não trata o caso de infra própria"
+        assert "corp-ca.pem" in low and "docker-compose.office" in low, \
+            f"{rel} não nomeia os arquivos MSIG que ficam de fora"
+    amb = (REPO / "commands" / "ambiente.md").read_text(encoding="utf-8").lower()
+    assert "rede externa" in amb, \
+        "ambiente.md não diz que o compose base sai sem a rede externa MSIG em infra própria"
+
+
+def test_infra_propria_no_banco_e_no_doctor():
+    """CA4/CA5 — `banco` não oferece o padrão MSIG (Fernet/bases corporativas) e o `doctor`
+    PULA proxy, CA e rede em vez de marcar ✗ (check inaplicável não é pendência)."""
+    banco = (REPO / "commands" / "banco.md").read_text(encoding="utf-8").lower()
+    assert "infra própria" in banco, "banco.md não considera projeto de infra própria"
+    doctor = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8").lower()
+    assert "infra própria" in doctor, "doctor.md não considera projeto de infra própria"
+    assert "pulado" in doctor or "pule" in doctor, \
+        "doctor.md não diz que os checks MSIG são PULADOS (não ✗) em infra própria"
+
+
+def test_infra_propria_freia_o_upgrade():
+    """CA6 — a categoria 1 do upgrade sobrescreve sozinha; num projeto de infra própria ela não
+    pode reintroduzir CA/compose office (mesmo freio que a 0.14.0 pôs pro brownfield)."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8").lower()
+    assert "infra própria" in up, \
+        "upgrade.md não respeita a declaração de infra própria (reintroduziria os arquivos MSIG)"

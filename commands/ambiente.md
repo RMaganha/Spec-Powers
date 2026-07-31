@@ -6,6 +6,7 @@ disable-model-invocation: true
 
 Você vai montar a **infra Docker** deste projeto no padrão MSIG. Referência completa em `docs/AMBIENTE.md` (§1 rede, §2 proxy/TLS de 4 camadas). Mostre o que vai copiar/gerar e **confirme antes de gravar**.
 
+0. **Leia a linha `**Infra:**` do Contexto do `CLAUDE.md` antes de tudo.** Se for **infra própria**, este comando entrega só a parte genérica: **sem** `certs/corp-ca.pem` (CA do FortiGate), **sem** `docker-compose.office.yml`, **sem** proxy no `.env`/`.env.example`, e o `docker-compose.yml` base sai **sem a rede externa `mitiai_network`** (ela não existe fora da MSIG — o serviço não subiria). Pule também a explicação das 4 camadas de proxy/TLS: ela descreve a MSIG. Se a linha não existir (projeto anterior a esta versão), **pergunte ao owner** — não assuma MSIG.
 1. Pergunte: **este projeto será containerizado?** Se não, oriente só o `.env` (proxy/SSL) + `pip config` no host e pare.
 2. **`.env` / `.env.example`** — proxy e SSL vivem aqui (nunca no Docker Desktop; em arquivo versionado, só o override explícito do `docker-compose.office.yml`):
    ```
