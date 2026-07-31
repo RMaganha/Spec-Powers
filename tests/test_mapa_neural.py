@@ -453,6 +453,133 @@ def test_decisao_e_memoria_reais_continuam_aparecendo(mn, proj):
     assert "Memória no repo" in junto, "memória real com `<proj>` no gancho foi tratada como molde"
 
 
+# ---- F2.5: nada de corte silencioso · se está no repo, está no mapa ---------
+# Segunda rodada do mesmo projeto real: o índice mostrava 25 de 36 memórias **sem avisar**
+# (as 4 gravadas naquele dia ficaram fora), e a dimensão de arquitetura só enxergava o 1º nível
+# de pastas com `.py` — `web/` (só .html), `prompts/` (só .md) e `n8n/` (só .json) invisíveis,
+# e subpasta com código idem.
+
+@pytest.fixture()
+def proj_pastas(tmp_path):
+    """Projeto com pastas de todo tipo: código aninhado, pasta só de UI, só de prompt, só de
+    fluxo, uma vazia e uma de backup."""
+    p = tmp_path
+    (p / "docs" / "superpowers").mkdir(parents=True)
+    (p / "docs" / "superpowers" / "MAPA.md").write_text(
+        "# Mapa de contexto — proj-pastas\n", encoding="utf-8")
+    (p / "docs" / "nota.md").write_text("# doc solto\n", encoding="utf-8")
+    (p / "memory").mkdir()
+    (p / "memory" / "MEMORY.md").write_text("# índice\n", encoding="utf-8")
+    (p / "apis").mkdir()
+    (p / "apis" / "openapi.py").write_text('"""Contrato OpenAPI."""\n', encoding="utf-8")
+    (p / "apis" / "v1").mkdir()
+    (p / "apis" / "v1" / "rotas.py").write_text('"""Rotas da v1."""\n', encoding="utf-8")
+    (p / "apis" / "v1" / "esquemas").mkdir()
+    (p / "apis" / "v1" / "esquemas" / "item.py").write_text('"""Esquema do item."""\n', encoding="utf-8")
+    (p / "web").mkdir()
+    (p / "web" / "chat_v2.html").write_text("<html></html>\n", encoding="utf-8")
+    (p / "prompts").mkdir()
+    (p / "prompts" / "system_prompt.md").write_text("# prompt do agente\n", encoding="utf-8")
+    (p / "n8n").mkdir()
+    (p / "n8n" / "fluxo_cotacao.json").write_text("{}\n", encoding="utf-8")
+    (p / "backup").mkdir()
+    (p / "backup" / "velho.py").write_text("x = 1\n", encoding="utf-8")
+    (p / "vazia").mkdir()
+    return p
+
+
+def _filhos(no, id_):
+    """Ids dos filhos diretos do nó com o id dado."""
+    alvo = _acha(no, id_)
+    return [f["id"] for f in (alvo or {}).get("filhos", [])]
+
+
+def test_camada_entra_por_conteudo_nao_por_extensao(mn, proj_pastas):
+    """CA29 — se está no repo, está no mapa: pasta é camada por **ter conteúdo**, não por ter
+    `.py`. `web/` (só HTML), `prompts/` (só Markdown) e `n8n/` (só JSON de fluxo) são peças do
+    projeto. `docs/` e `memory/` ficam fora porque já têm ramo próprio; pasta vazia não é camada."""
+    ids = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
+    for camada in ("web/", "prompts/", "n8n/", "apis/"):
+        assert camada in ids, "%s deveria ser camada (tem conteúdo)" % camada
+    assert "docs/" not in ids and "memory/" not in ids, "dimensão própria não se repete na arquitetura"
+    assert "vazia/" not in ids, "pasta sem conteúdo não é camada"
+
+
+def test_camada_desce_nas_subpastas(mn, proj_pastas):
+    """CA30 — código dentro de subpasta é código do projeto: a árvore desce (`apis/v1/esquemas/`),
+    cada nível com os seus arquivos."""
+    arv = mn.extrair_arquitetura(proj_pastas)
+    assert "v1/" in _filhos(arv, "apis/"), "não desceu na subpasta com código"
+    assert "rotas.py" in _filhos(arv, "v1/"), "a subpasta não trouxe os arquivos dela"
+    assert "esquemas/" in _filhos(arv, "v1/"), "não desceu no 2º nível"
+    assert "item.py" in _filhos(arv, "esquemas/")
+
+
+def test_camada_ignorada_por_parametro(mn, proj_pastas):
+    """CA31 (parte 2) — `--ignorar` tira uma pasta versionada que só faz ruído."""
+    com = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
+    sem = [f["id"] for f in mn.extrair_arquitetura(proj_pastas, ignorar=["backup"])["filhos"]]
+    assert "backup/" in com, "sem declarar nada, pasta versionada aparece (regra: está no repo, está no mapa)"
+    assert "backup/" not in sem
+
+
+def test_camada_no_gitignore_fica_fora(mn, proj_pastas):
+    """CA31 — o que o próprio projeto manda o git ignorar não é o projeto: fica fora do mapa,
+    sem o gerador precisar adivinhar intenção em prosa."""
+    import shutil
+    import subprocess
+    if not shutil.which("git"):
+        pytest.skip("git não disponível")
+    (proj_pastas / ".gitignore").write_text("backup/\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=proj_pastas, capture_output=True)
+    ids = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
+    assert "backup/" not in ids, "pasta no .gitignore não pode entrar no mapa"
+    assert "apis/" in ids, "as demais camadas continuam"
+
+
+def test_rota_de_pasta_ignorada_nao_conta(mn, proj_pastas):
+    """CA31 (coerência) — pasta fora do mapa também não pode gerar endpoint: cópia velha em
+    `backup/` não é a API do projeto."""
+    (proj_pastas / "backup" / "rotas_velhas.py").write_text(
+        '@app.route("/rota-morta")\ndef v(): ...\n', encoding="utf-8")
+    ids = " | ".join(_ids(mn.extrair_apis(proj_pastas, ignorar=["backup"])))
+    assert "/rota-morta" not in ids
+
+
+def test_resumo_de_modulo_com_docstring_longa(mn, tmp_path):
+    """Regressão pega no dogfood: o resumo saía da 1ª linha da docstring **entre** as aspas de
+    abertura e fecho — módulo de docstring longa (o próprio `mapa_neural.py`) ficava sem resumo
+    no índice, calado. Agora basta a abertura."""
+    (tmp_path / "servico.py").write_text(
+        '"""Faz a coisa importante do módulo.\n\n' + ("prosa longa. " * 400) + '\n"""\nx = 1\n',
+        encoding="utf-8")
+    assert mn._resumo(tmp_path / "servico.py").startswith("Faz a coisa importante")
+
+
+def test_limite_corta_com_marcador(mn, tmp_path):
+    """CA27 — corte **sempre** deixa rastro `… (+N)`. Um `[:25]` mudo faz o índice afirmar um
+    todo que não é o todo: foi assim que 11 memórias (entre elas as do dia) sumiram sem aviso."""
+    (tmp_path / "memory").mkdir()
+    (tmp_path / "memory" / "MEMORY.md").write_text(
+        "".join("- [Memória %02d](m%02d.md) — gancho %02d\n" % (i, i, i) for i in range(30)),
+        encoding="utf-8")
+    no = mn.extrair_memorias(tmp_path, limite=25)
+    filhos = _filhos(no, "memórias")
+    assert len(filhos) == 26, "deveria haver 25 itens + 1 marcador"
+    assert filhos[-1] == "… (+5)", "cortou sem deixar rastro do que ficou de fora"
+
+
+def test_limite_padrao_nao_corta_projeto_real(mn, tmp_path):
+    """CA28 — com o limite padrão, um índice de 36 memórias (o caso real) aparece inteiro."""
+    (tmp_path / "memory").mkdir()
+    (tmp_path / "memory" / "MEMORY.md").write_text(
+        "".join("- [Memória %02d](m%02d.md) — gancho %02d\n" % (i, i, i) for i in range(36)),
+        encoding="utf-8")
+    filhos = _filhos(mn.extrair_memorias(tmp_path), "memórias")
+    assert len(filhos) == 36, "o limite padrão não pode esconder memória de um projeto real"
+    assert not any(f.startswith("…") for f in filhos)
+
+
 def test_decorator_citado_em_comentario_nao_e_rota(mn, tmp_path):
     """CA2c — rota só conta quando o decorator está no início da linha: `@app.route(...)` citado
     dentro de comentário/docstring é documentação, não API (o próprio gerador cita um)."""

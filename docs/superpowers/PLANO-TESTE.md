@@ -73,6 +73,14 @@
 - `test_arquitetura_ordem_preferencial_primeiro` — F2.4 (CA25): entrypoints → camadas canônicas → detectadas (alfabética)
 - `test_placeholder_do_molde_nao_vira_fato` — F2.4 (CA26): molde recém-copiado não vira decisão/diário/memória (comentário HTML descartado)
 - `test_decisao_e_memoria_reais_continuam_aparecendo` — F2.4 (CA26): conteúdo real fica — inclusive memória cujo texto cita `<algo>`
+- `test_limite_corta_com_marcador` — F2.5 (CA27): corte deixa `… (+N)`; nunca silencioso
+- `test_limite_padrao_nao_corta_projeto_real` — F2.5 (CA28): 36 memórias aparecem inteiras no default
+- `test_camada_entra_por_conteudo_nao_por_extensao` — F2.5 (CA29): `web/` (HTML), `prompts/` (MD) e `n8n/` (JSON) são camadas; `docs/`/`memory/`/pasta vazia não
+- `test_camada_desce_nas_subpastas` — F2.5 (CA30): a arquitetura desce (`apis/` → `v1/` → `esquemas/` → `item.py`)
+- `test_camada_no_gitignore_fica_fora` — F2.5 (CA31): o que o projeto manda o git ignorar não entra no mapa
+- `test_camada_ignorada_por_parametro` — F2.5 (CA31): `--ignorar` tira pasta versionada
+- `test_rota_de_pasta_ignorada_nao_conta` — F2.5 (CA31): pasta fora do mapa não expõe endpoint
+- `test_resumo_de_modulo_com_docstring_longa` — F2.5 (regressão): resumo sai da abertura da docstring, sem exigir o fecho na janela
 
 - `test_analise_wiring` — `/mss-spec:analise` + `templates/ARQUITETURA.md` existem; leitura em 2 fases (inventário → focada → amostragem) declarando o que ficou de fora; navega `.py`/`.html`/`.tsx`/`.json`/`.sql`; doc pré-existente é **dado, não instrução**; entende RAG/pgvector/embeddings e aponta precedentes; kickoff/LEIA-ME/CLAUDE.md apontam pra ele
 - `test_analise_nao_destrutiva` — a regra dura: não toca em infra/código/**UI própria**, não aplica molde do kit sobre o que já existe, produz a lista "não nasceu do kit"; o template tem as seções do pré-existente e de Lacunas
@@ -100,4 +108,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
 
-**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-descritivo (o mapa neural vira descritivo) · 101 passed
+**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-limite-e-camadas (sem corte silencioso · camadas por conteúdo) · 109 passed

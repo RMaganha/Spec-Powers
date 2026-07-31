@@ -4,9 +4,11 @@ Monta, para o **projeto atual**, uma árvore com o projeto no centro e 4 dimens�
 preenchida por um extrator que lê o repo (nunca inventa) — e **só este** projeto: `.claude/`
 (worktrees, que podem ser de outro projeto), `.venv/`, `node_modules/` & cia. são podados na
 descida.
-  - **Arquitetura interna** — as camadas do projeto, **detectadas pelo conteúdo** (todo `.py` da
-    raiz + toda pasta de 1º nível com `.py`, com o nome que o projeto deu); a lista `_CAMADAS` é
-    só ordem preferencial. Descritivo: prescrever nome de pasta é papel do `docs/ESTRUTURA.md`.
+  - **Arquitetura interna** — *se está no repo, está no mapa*: todo `.py` da raiz + toda pasta de
+    1º nível **com conteúdo** (com o nome e a extensão que o projeto tiver), **descendo nas
+    subpastas**; fora ficam ferramenta, `docs/`/`memory/` (têm ramo próprio), o que o git ignora e
+    o `--ignorar`. A lista `_CAMADAS` é só ordem preferencial — prescrever nome de pasta é papel
+    do `docs/ESTRUTURA.md`.
   - **APIs & integrações** — endpoints expostos (rotas FastAPI **e** Flask) + integrações
     (banco, HTTP, fila).
   - **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`, `to-dolist`
@@ -26,9 +28,13 @@ Duas saídas do mesmo modelo:
       modernos, arestas associativas pontilhadas que acendem no hover; pan/zoom no fundo. 100%
       self-contained (vis-network embutido inline, fontes de sistema — zero CDN).
 
+Cada ramo mostra até `_LIMITE` itens e, quando corta, **deixa o rastro** `… (+N)` — índice que
+corta calado afirma um todo que não é o todo.
+
 Uso:
     python mapa_neural.py                 # projeto = diretório atual; saída no mesmo lugar
     python mapa_neural.py --proj <dir> --out <dir>
+    python mapa_neural.py --ignorar backup,scratch --limite 500
 """
 from __future__ import annotations
 
@@ -36,6 +42,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -63,6 +70,15 @@ _IGNORAR_DIRS = {".git", ".claude", ".venv", "venv", "node_modules", "__pycache_
 # `docs/ESTRUTURA.md`. Ver `_camadas()`.
 _CAMADAS = ["config", "models", "schemas", "services", "routers", "repositories",
             "utils", "commands", "templates", "pages", "static", "sql", "tests"]
+# Pastas de 1º nível que já têm ramo próprio no mapa — não se repetem na arquitetura.
+_DIM_PROPRIA = {"docs", "memory"}
+# Arquivos que valem citar dentro de uma camada (o resto — binário, asset, lock — é ruído).
+_EXT_CONTEUDO = {".py", ".md", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx", ".css", ".sql",
+                 ".json", ".yml", ".yaml", ".j2", ".jinja", ".jinja2", ".txt", ".sh", ".ps1", ".bat"}
+# Teto por ramo. Alto de propósito: o corte é a exceção, e quando acontece **deixa rastro**
+# (`… (+N)`) — índice que corta calado afirma um todo que não é o todo.
+_LIMITE = 200
+_PROF_MAX = 5  # níveis de subpasta que a arquitetura desce (guarda contra árvore patológica)
 
 
 def _no(id, dim=None, filhos=None, resumo=None, local=None, data=None):
@@ -89,15 +105,29 @@ def _data(path: Path) -> str:
         return ""
 
 
+def _cortar(nos: list, limite: int) -> list:
+    """Corta a lista no limite **deixando o rastro** `… (+N)`. Nunca corte silencioso: um `[:25]`
+    mudo fez o índice de um projeto real mostrar 25 de 36 memórias como se fossem todas — e as que
+    ficaram de fora eram justamente as mais novas."""
+    if limite is None or len(nos) <= limite:
+        return nos
+    return nos[:limite] + [_no("… (+%d)" % (len(nos) - limite))]
+
+
 def _resumo(path: Path) -> str:
     """1-linha do que a peça faz: docstring de módulo (.py) ou `description` do frontmatter (.md)."""
+    if path.suffix.lower() not in (".py", ".md"):
+        return ""
     txt = path.read_text(encoding="utf-8", errors="ignore")
     if path.suffix == ".py":
-        m = re.search(r'(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', txt[:2000], re.S)
+        # só a ABERTURA da docstring — exigir o fecho na mesma janela fazia módulo de docstring
+        # longa (o próprio mapa_neural.py) ficar sem resumo no índice
+        m = re.search(r'(?:"""|\'\'\')', txt[:2000])
         if m:
-            for linha in m.group(1).splitlines():
-                if linha.strip():
-                    return linha.strip()[:90]
+            for linha in txt[m.end():m.end() + 2000].splitlines():
+                s = linha.strip().strip("\"'").strip()
+                if s:
+                    return s[:90]
     elif path.suffix == ".md":
         m = re.search(r"(?m)^description:\s*(.+?)\s*$", txt)
         if m:
@@ -105,13 +135,18 @@ def _resumo(path: Path) -> str:
     return ""
 
 
-def _py_files(proj: Path, limite=400):
+def _py_files(proj: Path, limite=400, fora=frozenset()):
     """Os `.py` DESTE projeto. A poda é feita na descida (`os.walk` + corte de `dirs`), não na
     saída: assim o gerador nem entra em `.claude/`, `node_modules/` & cia. — barato e, no caso do
-    `.claude/worktrees/`, é o que impede o mapa de descrever o projeto do vizinho."""
+    `.claude/worktrees/`, é o que impede o mapa de descrever o projeto do vizinho. `fora` são as
+    pastas de 1º nível que não são o projeto (gitignoradas, `--ignorar`): o que não é camada
+    também não expõe endpoint (cópia velha em `backup/` não é a API)."""
     out = []
+    raiz_proj = str(Path(proj).resolve())
     for raiz, dirs, arqs in os.walk(proj):
         dirs[:] = sorted(d for d in dirs if d not in _IGNORAR_DIRS)
+        if str(Path(raiz).resolve()) == raiz_proj:
+            dirs[:] = [d for d in dirs if d not in fora]
         for a in sorted(arqs):
             if a.endswith(".py"):
                 out.append(Path(raiz) / a)
@@ -120,14 +155,51 @@ def _py_files(proj: Path, limite=400):
     return out
 
 
-def _tem_py(d: Path) -> bool:
-    """A pasta contém código Python (em qualquer profundidade, fora dos diretórios ignorados)?
-    É o que qualifica uma pasta como **camada** — o critério é o conteúdo, não o nome."""
+def _tem_conteudo(d: Path) -> bool:
+    """A pasta tem **algum arquivo** (em qualquer profundidade, fora dos ignorados)? É o que
+    qualifica uma pasta como **camada**: *se está no repo, está no mapa*. Critério por arquivo, e
+    não por extensão, porque camada de verdade nem sempre tem `.py` — `web/` guarda o HTML da UI,
+    `prompts/` o system prompt, `n8n/` os fluxos de trabalho; todas são peças do projeto."""
     for raiz, dirs, arqs in os.walk(d):
-        dirs[:] = [x for x in dirs if x not in _IGNORAR_DIRS]
-        if any(a.endswith(".py") for a in arqs):
+        dirs[:] = [x for x in dirs if x not in _IGNORAR_DIRS and not x.startswith(".")]
+        if arqs:
             return True
     return False
+
+
+def _git_ignorados(proj: Path, nomes) -> set:
+    """Quais desses nomes o **próprio projeto** manda o git ignorar. Degrada gracioso: sem git,
+    sem repo ou com erro, devolve vazio (o mapa só não ganha esse filtro)."""
+    if not nomes:
+        return set()
+    # `-z` + bytes de propósito: em modo texto o Windows converte `\n` em `\r\n`, o git recebe o
+    # caminho com CR e devolve tudo aspeado (`"backup/\r"`) — o filtro virava pó em silêncio.
+    try:
+        r = subprocess.run(["git", "-C", str(proj), "check-ignore", "-z", "--stdin"],
+                           input=b"\0".join((n + "/").encode("utf-8") for n in nomes),
+                           capture_output=True, timeout=15)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return set()
+    saida = r.stdout.decode("utf-8", "ignore")
+    return {t.strip().replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
+            for t in saida.split("\0") if t.strip()}
+
+
+def _pastas_fora(proj: Path, ignorar=()) -> set:
+    """Pastas de 1º nível que **não** entram no mapa. A regra é uma só — *se está no repo, está no
+    mapa* — e as exceções são explicáveis em uma linha cada: pasta de ferramenta (`.venv`,
+    `node_modules`, `.claude`…), pasta que já tem ramo próprio (`docs/`, `memory/`), o que o
+    **próprio projeto** manda o git ignorar (se o git ignora, não é o repo) e o que veio em
+    `--ignorar`. Nada de adivinhar intenção lendo prosa do `CLAUDE.md`."""
+    try:
+        nomes = [d.name for d in proj.iterdir() if d.is_dir()]
+    except OSError:
+        return set(_DIM_PROPRIA)
+    fora = {n for n in nomes if n in _IGNORAR_DIRS or n.startswith(".")}
+    fora |= set(_DIM_PROPRIA)
+    fora |= {str(x).strip().strip("/\\") for x in (ignorar or ()) if str(x).strip()}
+    fora |= _git_ignorados(proj, [n for n in nomes if n not in fora])
+    return fora
 
 
 def _e_molde(campo: str) -> bool:
@@ -218,13 +290,12 @@ def extrair_conexoes(proj: Path) -> dict:
 
 # ---- extrator: arquitetura interna ---------------------------------------
 
-def _camadas(proj: Path) -> list:
+def _camadas(proj: Path, fora: set) -> list:
     """As camadas REAIS do projeto, na ordem de leitura. **Descritivo, não prescritivo**:
       - todo `.py` da raiz é entrypoint (não só `main.py` — projeto pode ter dois, com nomes
         próprios, e renomeá-los costuma estar fora de escopo);
-      - toda pasta de 1º nível **com `.py`** é camada, tenha o nome que tiver (`apis/`,
-        `persistencia/`, `dominio/`…);
-      - pasta do molde que existe **sem** `.py` (`templates/`, `sql/`, `static/`) continua entrando.
+      - **toda pasta de 1º nível com conteúdo** é camada, tenha o nome ou a extensão que tiver
+        (`apis/`, `persistencia/`, `web/`, `prompts/`, `n8n/`…) — menos as de `fora`.
     `_CAMADAS` entra só como **ordem**: entrypoints → camadas conhecidas na ordem canônica →
     demais em ordem alfabética.
     """
@@ -232,45 +303,56 @@ def _camadas(proj: Path) -> list:
     if "main.py" in raiz_py:  # entrypoint canônico primeiro, quando existe
         raiz_py.remove("main.py")
         raiz_py.insert(0, "main.py")
-    dirs = []
-    for d in sorted(proj.iterdir(), key=lambda p: p.name.lower()):
-        if not d.is_dir() or d.name in _IGNORAR_DIRS or d.name.startswith("."):
-            continue
-        if d.name in _CAMADAS or _tem_py(d):
-            dirs.append(d.name)
+    dirs = [d.name for d in sorted(proj.iterdir(), key=lambda p: p.name.lower())
+            if d.is_dir() and d.name not in fora and _tem_conteudo(d)]
     conhecidas = [n for n in _CAMADAS if n in dirs]
     detectadas = [n for n in dirs if n not in conhecidas]
-    return raiz_py[:25] + conhecidas + detectadas[:25]
+    return raiz_py + conhecidas + detectadas
 
 
-def extrair_arquitetura(proj: Path) -> dict:
+def _filhos_pasta(d: Path, rel: str, limite: int, prof: int = 1) -> list:
+    """Filhos de uma camada: os arquivos de conteúdo dela **e as subpastas, recursivamente**
+    (até `_PROF_MAX`). Descer é o ponto: código dentro de subpasta é código do projeto — antes o
+    mapa parava no 1º nível e `apis/v1/rotas.py` simplesmente não existia."""
+    try:
+        itens = sorted(d.iterdir(), key=lambda p: p.name.lower())
+    except OSError:
+        return []
+    nos = [_no(p.name, resumo=_resumo(p), local="%s/%s" % (rel, p.name), data=_data(p))
+           for p in itens
+           if p.is_file() and p.name != "__init__.py" and p.suffix.lower() in _EXT_CONTEUDO]
+    if prof < _PROF_MAX:
+        for s in itens:
+            if not s.is_dir() or s.name in _IGNORAR_DIRS or s.name.startswith("."):
+                continue
+            if not _tem_conteudo(s):
+                continue
+            sub_rel = "%s/%s" % (rel, s.name)
+            nos.append(_no(s.name + "/", local=sub_rel + "/",
+                           filhos=_filhos_pasta(s, sub_rel, limite, prof + 1)))
+    return _cortar(nos, limite)
+
+
+def extrair_arquitetura(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
+    fora = _pastas_fora(proj, ignorar)
     filhos = []
-    for camada in _camadas(proj):
+    for camada in _camadas(proj, fora):
         alvo = proj / camada
         if not alvo.exists():
             continue
         if alvo.is_file():
             filhos.append(_no(camada, resumo=_resumo(alvo), local=camada, data=_data(alvo)))
             continue
-        arqs = sorted([p for p in alvo.glob("*.py") if p.name != "__init__.py"] +
-                      list(alvo.glob("*.md")), key=lambda p: p.name)
-        sub = [_no(p.name, resumo=_resumo(p), local="%s/%s" % (camada, p.name), data=_data(p))
-               for p in arqs[:25]]
-        if len(arqs) > 25:
-            sub.append(_no("… (+%d)" % (len(arqs) - 25)))
-        if not sub:  # camada cujo código vive um nível abaixo (ex.: app/routers/): mostra as subpastas
-            sub = [_no(d.name + "/", local="%s/%s/" % (camada, d.name))
-                   for d in sorted(alvo.iterdir(), key=lambda p: p.name.lower())
-                   if d.is_dir() and d.name not in _IGNORAR_DIRS and _tem_py(d)][:25]
-        filhos.append(_no(camada + "/", filhos=sub, local=camada + "/"))
-    return _no("Arquitetura interna", "arq", filhos)
+        filhos.append(_no(camada + "/", local=camada + "/",
+                          filhos=_filhos_pasta(alvo, camada, limite)))
+    return _no("Arquitetura interna", "arq", _cortar(filhos, limite))
 
 
 # ---- extrator: APIs & integrações ----------------------------------------
 
-def extrair_apis(proj: Path) -> dict:
+def extrair_apis(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
     endpoints, imports = [], set()
-    for py in _py_files(proj):
+    for py in _py_files(proj, fora=_pastas_fora(proj, ignorar)):
         if any(seg in ("tests", "test") for seg in py.parts):
             continue  # rota/import em teste não é a API do projeto (evita fixtures como falso-positivo)
         txt = py.read_text(encoding="utf-8", errors="ignore")
@@ -294,7 +376,7 @@ def extrair_apis(proj: Path) -> dict:
         integr.append("fila / mensageria")
     filhos = []
     if endpoints:
-        filhos.append(_no("endpoints expostos", filhos=[_no(e) for e in endpoints[:30]]))
+        filhos.append(_no("endpoints expostos", filhos=_cortar([_no(e) for e in endpoints], limite)))
     if integr:
         filhos.append(_no("integrações externas", filhos=[_no(i) for i in integr]))
     return _no("APIs & integrações", "api", filhos)
@@ -327,15 +409,15 @@ def _rel(p: Path, proj: Path) -> str:
     return str(p.relative_to(proj)).replace("\\", "/")
 
 
-def extrair_memorias(proj: Path) -> dict:
+def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
     filhos = []
     # specs — título + caminho + lead como resumo
     specs = sorted({p for p in proj.glob("docs/**/specs/*.md")} |
                    {p for p in proj.glob("docs/specs/*.md")})
     if specs:
-        filhos.append(_no("specs", filhos=[
-            _no(_titulo_md(p), local=_rel(p, proj), resumo=_lead_md(p), data=_data(p)) for p in specs[:25]
-        ]))
+        filhos.append(_no("specs", filhos=_cortar([
+            _no(_titulo_md(p), local=_rel(p, proj), resumo=_lead_md(p), data=_data(p)) for p in specs
+        ], limite)))
     # índice de memória (linha `- [Título](arquivo) — gancho`): título + caminho + gancho como resumo
     mem_idx = proj / "memory" / "MEMORY.md"
     if mem_idx.exists():
@@ -355,7 +437,7 @@ def extrair_memorias(proj: Path) -> dict:
                 itens.append(_no(corpo.split("—")[0].strip(),
                                  resumo=corpo.split("—", 1)[1].strip() if "—" in corpo else ""))
         if itens:
-            filhos.append(_no("memórias", filhos=itens[:25]))
+            filhos.append(_no("memórias", filhos=_cortar(itens, limite)))
     # decisões transversais — cada uma vira um filho (texto = resumo; caminho = decisoes.md)
     dec = proj / "docs" / "decisoes.md"
     if dec.exists():
@@ -366,7 +448,7 @@ def extrair_memorias(proj: Path) -> dict:
                 txt = re.sub(r"^\d{4}-\d{2}-\d{2}\s*[—-]\s*", "", ln[2:].strip())
                 decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220], data=_data(dec)))
         if decs:
-            filhos.append(_no("decisões (%d)" % len(decs), filhos=decs[:25]))
+            filhos.append(_no("decisões (%d)" % len(decs), filhos=_cortar(decs, limite)))
     # to-dolist pessoal (fora do git; só entra se existir) — captura rápida do owner
     # (sem filtro de `<placeholder>` aqui: item de verdade cita a sintaxe de comando com `<algo>`)
     todo = proj / "to-dolist.md"
@@ -375,8 +457,8 @@ def extrair_memorias(proj: Path) -> dict:
                  if ln.strip().startswith("- ")]
         if itens:
             filhos.append(_no("to-dolist (%d)" % len(itens),
-                              filhos=[_no(t[:60], local="to-dolist.md", resumo=t, data=_data(todo))
-                                      for t in itens[:25]]))
+                              filhos=_cortar([_no(t[:60], local="to-dolist.md", resumo=t,
+                                                  data=_data(todo)) for t in itens], limite)))
     # diário de sessão (memory/DIARIO.md → memory/sessions/<data>-<assunto>.md): "o que conversamos/decidimos"
     diario = proj / "memory" / "DIARIO.md"
     if diario.exists():
@@ -398,7 +480,7 @@ def extrair_memorias(proj: Path) -> dict:
                 loc = loc.replace("\\", "/")
                 difilhos.append(_no(titulo[:60], local=loc, resumo=gist[:220], data=_data(proj / loc)))
         if difilhos:
-            filhos.append(_no("diário (%d)" % len(difilhos), filhos=difilhos[:25]))
+            filhos.append(_no("diário (%d)" % len(difilhos), filhos=_cortar(difilhos, limite)))
     return _no("Memórias & conhecimento", "mem", filhos)
 
 
@@ -484,12 +566,12 @@ def extrair_associacoes(proj: Path) -> list:
 
 # ---- árvore + saídas -----------------------------------------------------
 
-def construir_arvore(proj: Path) -> dict:
+def construir_arvore(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
     proj = Path(proj)
     return _no(nome_projeto(proj), "projeto", [
-        extrair_arquitetura(proj),
-        extrair_apis(proj),
-        extrair_memorias(proj),
+        extrair_arquitetura(proj, limite, ignorar),
+        extrair_apis(proj, limite, ignorar),
+        extrair_memorias(proj, limite),
         extrair_conexoes(proj),
     ])
 
@@ -778,11 +860,11 @@ def render_html(arvore: dict, gerado_em: str = "", docs: dict | None = None,
     return re.sub(r"__TREE__|__DOCS__|__ASSOC__", lambda m: subs[m.group(0)], html)
 
 
-def gerar(proj_dir=None, out_dir=None):
+def gerar(proj_dir=None, out_dir=None, limite: int = _LIMITE, ignorar=()):
     proj = Path(proj_dir) if proj_dir else Path.cwd()
     if not proj.exists():
         raise ValueError("projeto não encontrado: %s" % proj)
-    arv = construir_arvore(proj)
+    arv = construir_arvore(proj, limite, ignorar)
     assoc = extrair_associacoes(proj)
     # saída em docs/ (todo projeto tem, via superpowers; fica isolado e não polui a raiz)
     out = Path(out_dir) if out_dir else proj / "docs"
@@ -800,9 +882,15 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Gera o mapa mental do projeto (4 dimensões).")
     ap.add_argument("--proj", help="diretório do projeto (default: diretório atual)")
     ap.add_argument("--out", help="pasta de saída (default: o próprio projeto)")
+    ap.add_argument("--limite", type=int, default=_LIMITE,
+                    help="máximo de itens por ramo (default: %d); o excedente vira `… (+N)`" % _LIMITE)
+    ap.add_argument("--ignorar", default="",
+                    help="pastas de 1º nível a deixar fora, separadas por vírgula "
+                         "(o que o .gitignore já ignora sai sozinho)")
     args = ap.parse_args(argv)
+    ignorar = [x for x in (args.ignorar or "").split(",") if x.strip()]
     try:
-        md, html = gerar(proj_dir=args.proj, out_dir=args.out)
+        md, html = gerar(proj_dir=args.proj, out_dir=args.out, limite=args.limite, ignorar=ignorar)
     except ValueError as e:
         raise SystemExit(str(e))
     print("mapa mental gerado:\n  texto: %s\n  html:  %s" % (Path(md).resolve(), Path(html).resolve()))
