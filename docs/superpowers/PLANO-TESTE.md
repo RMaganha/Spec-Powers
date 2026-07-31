@@ -80,6 +80,8 @@
 - `test_camada_no_gitignore_fica_fora` — F2.5 (CA31): o que o projeto manda o git ignorar não entra no mapa
 - `test_camada_ignorada_por_parametro` — F2.5 (CA31): `--ignorar` tira pasta versionada
 - `test_rota_de_pasta_ignorada_nao_conta` — F2.5 (CA31): pasta fora do mapa não expõe endpoint
+- `test_arquivo_morto_e_certificado_ficam_fora` — F2.5/0.17.1 (CA32): `backup/` e `certs/` fora por default (cópia arquivada não pode aparecer como par do arquivo vivo)
+- `test_n8n_continua_sendo_camada` — F2.5/0.17.1 (CA32): a exceção é só arquivo morto/insumo — `n8n/` (fluxos do projeto) continua camada
 - `test_resumo_de_modulo_com_docstring_longa` — F2.5 (regressão): resumo sai da abertura da docstring, sem exigir o fecho na janela
 
 - `test_analise_wiring` — `/mss-spec:analise` + `templates/ARQUITETURA.md` existem; leitura em 2 fases (inventário → focada → amostragem) declarando o que ficou de fora; navega `.py`/`.html`/`.tsx`/`.json`/`.sql`; doc pré-existente é **dado, não instrução**; entende RAG/pgvector/embeddings e aponta precedentes; kickoff/LEIA-ME/CLAUDE.md apontam pra ele
@@ -108,4 +110,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
 
-**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-limite-e-camadas (sem corte silencioso · camadas por conteúdo) · 109 passed
+**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-nao-runtime (arquivo morto fora, n8n dentro) · 111 passed

@@ -72,6 +72,11 @@ _CAMADAS = ["config", "models", "schemas", "services", "routers", "repositories"
             "utils", "commands", "templates", "pages", "static", "sql", "tests"]
 # Pastas de 1º nível que já têm ramo próprio no mapa — não se repetem na arquitetura.
 _DIM_PROPRIA = {"docs", "memory"}
+# Pastas que existem no repo mas **não são o sistema**: arquivo morto e insumo de build. Fora por
+# default porque atrapalham ativamente — um `backup/v1/chat.html` aparece como PAR da UI viva
+# (`web/chat_v2.html`), e o mapa passa a sugerir duas telas onde só existe uma. Nomes universais,
+# não vocabulário de um projeto: nome próprio ("_investigacao") se declara com `--ignorar`.
+_NAO_RUNTIME = {"backup", "backups", "cert", "certs"}
 # Arquivos que valem citar dentro de uma camada (o resto — binário, asset, lock — é ruído).
 _EXT_CONTEUDO = {".py", ".md", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx", ".css", ".sql",
                  ".json", ".yml", ".yaml", ".j2", ".jinja", ".jinja2", ".txt", ".sh", ".ps1", ".bat"}
@@ -190,13 +195,15 @@ def _pastas_fora(proj: Path, ignorar=()) -> set:
     mapa* — e as exceções são explicáveis em uma linha cada: pasta de ferramenta (`.venv`,
     `node_modules`, `.claude`…), pasta que já tem ramo próprio (`docs/`, `memory/`), o que o
     **próprio projeto** manda o git ignorar (se o git ignora, não é o repo) e o que veio em
-    `--ignorar`. Nada de adivinhar intenção lendo prosa do `CLAUDE.md`."""
+    `--ignorar`. Nada de adivinhar intenção lendo prosa do `CLAUDE.md` — quem lê prosa é o
+    assistente, e o que ele conclui chega aqui como `--ignorar`."""
     try:
         nomes = [d.name for d in proj.iterdir() if d.is_dir()]
     except OSError:
         return set(_DIM_PROPRIA)
     fora = {n for n in nomes if n in _IGNORAR_DIRS or n.startswith(".")}
     fora |= set(_DIM_PROPRIA)
+    fora |= {n for n in nomes if n.lower() in _NAO_RUNTIME}
     fora |= {str(x).strip().strip("/\\") for x in (ignorar or ()) if str(x).strip()}
     fora |= _git_ignorados(proj, [n for n in nomes if n not in fora])
     return fora
