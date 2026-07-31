@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **v0.16.0 integrada** (merge `--no-ff`; suíte **101 verde** na `main`). **Não publicada ainda** — falta `git push` (só quando o owner pedir).
+`main` — **v0.16.0 integrada e publicada no GitHub** (merge `--no-ff`; suíte **101 verde** na `main`; push até `3238803`, em sincronia com o `origin`). O kit deste ambiente está instalado por **junction** para este clone, então o gerador consertado já vale em toda janela — sem `marketplace update` e sem `upgrade` (nada de molde mudou).
 
 <!-- histórico do estado anterior (a branch, antes da integração) -->
 `fix/mapa-neural-descritivo` (da `main`@0.15.1) — **0.16.0: o mapa neural vira descritivo**. O owner rodou o gerador num projeto real de outro time e trouxe o diagnóstico: o mapa afirmava **18 rotas do projeto vizinho** (o `rglob` descia em `.claude/worktrees/`) e **zero** das 17 reais (regex só de FastAPI; lá é Flask), com `apis/`/`persistencia/` invisíveis (a lista `_CAMADAS` era filtro do molde) e placeholder de molde entrando como decisão. Os 4 consertos estão em `templates/mapa_neural.py`; o dogfood no próprio kit ainda destampou o `hooks/` invisível e um `GET /x` fantasma vindo de comentário. Suíte **101 verde** (era 92); bump 0.15.1→0.16.0 nos 2 manifestos + CHANGELOG. Spec (mesmo assunto, F2.4): `docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md`.
