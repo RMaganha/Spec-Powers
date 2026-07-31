@@ -515,12 +515,40 @@ def test_camada_desce_nas_subpastas(mn, proj_pastas):
     assert "item.py" in _filhos(arv, "esquemas/")
 
 
+def test_arquivo_morto_e_certificado_ficam_fora(mn, proj_pastas):
+    """CA32 — `backup/` e `certs/` saem por default: arquivo morto **não é o sistema** e material
+    de certificado é insumo de build. O caso concreto: `backup/v1/chat.html` aparecia como **par**
+    de `web/chat_v2.html` — duas UIs de aparência equivalente no mapa, sendo que só uma existe
+    (e "reviver a UI v1" está declarado fora de escopo lá). Ambiguidade dessas já custou caro."""
+    (proj_pastas / "certs").mkdir()
+    (proj_pastas / "certs" / "corp-ca.pem").write_text("-----BEGIN-----\n", encoding="utf-8")
+    (proj_pastas / "backup" / "v1").mkdir()
+    (proj_pastas / "backup" / "v1" / "chat.html").write_text("<html>v1</html>\n", encoding="utf-8")
+    ids = " | ".join(_ids(mn.extrair_arquitetura(proj_pastas)))
+    assert "backup/" not in ids and "chat.html" not in ids, "arquivo morto não é camada"
+    assert "certs/" not in ids, "material de certificado não é camada"
+    assert "web/" in ids, "a UI viva continua no mapa"
+
+
+def test_n8n_continua_sendo_camada(mn, proj_pastas):
+    """CA32 (limite da exceção) — a exclusão é só de arquivo morto/insumo. `n8n/` guarda os
+    **fluxos de trabalho do projeto** (decisão do owner: "n8n com certeza") e continua camada,
+    mesmo sem `.py`."""
+    ids = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
+    assert "n8n/" in ids
+    assert "fluxo_cotacao.json" in _filhos(mn.extrair_arquitetura(proj_pastas), "n8n/")
+
+
 def test_camada_ignorada_por_parametro(mn, proj_pastas):
-    """CA31 (parte 2) — `--ignorar` tira uma pasta versionada que só faz ruído."""
+    """CA31 (parte 2) — `--ignorar` tira uma pasta versionada que o **projeto** sabe não ser
+    runtime (nome próprio, ex.: `_investigacao/`): é por aqui que a leitura de prosa feita pelo
+    assistente chega ao gerador, sem o gerador adivinhar nada."""
+    (proj_pastas / "_investigacao").mkdir()
+    (proj_pastas / "_investigacao" / "teste.py").write_text("x = 1\n", encoding="utf-8")
     com = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
-    sem = [f["id"] for f in mn.extrair_arquitetura(proj_pastas, ignorar=["backup"])["filhos"]]
-    assert "backup/" in com, "sem declarar nada, pasta versionada aparece (regra: está no repo, está no mapa)"
-    assert "backup/" not in sem
+    sem = [f["id"] for f in mn.extrair_arquitetura(proj_pastas, ignorar=["_investigacao"])["filhos"]]
+    assert "_investigacao/" in com, "sem declarar nada, pasta versionada aparece (está no repo, está no mapa)"
+    assert "_investigacao/" not in sem
 
 
 def test_camada_no_gitignore_fica_fora(mn, proj_pastas):
@@ -530,20 +558,26 @@ def test_camada_no_gitignore_fica_fora(mn, proj_pastas):
     import subprocess
     if not shutil.which("git"):
         pytest.skip("git não disponível")
-    (proj_pastas / ".gitignore").write_text("backup/\n", encoding="utf-8")
+    (proj_pastas / "relatorios").mkdir()
+    (proj_pastas / "relatorios" / "saida.html").write_text("<html></html>\n", encoding="utf-8")
+    (proj_pastas / ".gitignore").write_text("relatorios/\n", encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=proj_pastas, capture_output=True)
     ids = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
-    assert "backup/" not in ids, "pasta no .gitignore não pode entrar no mapa"
+    assert "relatorios/" not in ids, "pasta no .gitignore não pode entrar no mapa"
     assert "apis/" in ids, "as demais camadas continuam"
 
 
 def test_rota_de_pasta_ignorada_nao_conta(mn, proj_pastas):
-    """CA31 (coerência) — pasta fora do mapa também não pode gerar endpoint: cópia velha em
-    `backup/` não é a API do projeto."""
-    (proj_pastas / "backup" / "rotas_velhas.py").write_text(
+    """CA31 (coerência) — pasta fora do mapa também não pode gerar endpoint: cópia velha não é a
+    API do projeto. Vale tanto pelo `--ignorar` quanto pelo default (`backup/`)."""
+    (proj_pastas / "sobras").mkdir()
+    (proj_pastas / "sobras" / "rotas_velhas.py").write_text(
         '@app.route("/rota-morta")\ndef v(): ...\n', encoding="utf-8")
-    ids = " | ".join(_ids(mn.extrair_apis(proj_pastas, ignorar=["backup"])))
-    assert "/rota-morta" not in ids
+    (proj_pastas / "backup" / "rotas_arquivadas.py").write_text(
+        '@app.route("/rota-arquivada")\ndef a(): ...\n', encoding="utf-8")
+    ids = " | ".join(_ids(mn.extrair_apis(proj_pastas, ignorar=["sobras"])))
+    assert "/rota-morta" not in ids, "pasta em --ignorar não pode expor endpoint"
+    assert "/rota-arquivada" not in ids, "pasta de arquivo morto não pode expor endpoint"
 
 
 def test_resumo_de_modulo_com_docstring_longa(mn, tmp_path):
