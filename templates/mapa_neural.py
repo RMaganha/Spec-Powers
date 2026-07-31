@@ -74,8 +74,9 @@ _CAMADAS = ["config", "models", "schemas", "services", "routers", "repositories"
 _DIM_PROPRIA = {"docs", "memory"}
 # Pastas que existem no repo mas **não são o sistema**: arquivo morto e insumo de build. Fora por
 # default porque atrapalham ativamente — um `backup/v1/chat.html` aparece como PAR da UI viva
-# (`web/chat_v2.html`), e o mapa passa a sugerir duas telas onde só existe uma. Nomes universais,
-# não vocabulário de um projeto: nome próprio ("_investigacao") se declara com `--ignorar`.
+# (`web/chat_v2.html`), e o mapa passa a sugerir duas telas onde só existe uma. O critério é
+# **risco de confusão com o que está vivo**, NÃO "não é runtime": script de investigação, notebook
+# de análise e export de workflow não rodam em produção e continuam sendo peça útil no mapa.
 _NAO_RUNTIME = {"backup", "backups", "cert", "certs"}
 # Arquivos que valem citar dentro de uma camada (o resto — binário, asset, lock — é ruído).
 _EXT_CONTEUDO = {".py", ".md", ".html", ".htm", ".js", ".jsx", ".ts", ".tsx", ".css", ".sql",

@@ -2,6 +2,10 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.17.2 — 2026-07-31 (mapa neural: o critério é "cópia arquivada", não "não é runtime")
+- fix(contradição da 0.17.1): o passo 2 do `commands/mapa-neural.md` mandava o assistente traduzir *"não é runtime"* em `--ignorar` — e o `CLAUDE.md` do projeto real diz exatamente isso do `_investigacao/`, que o owner quer **ver** no mapa ("essencial para análises"). Na execução seguinte a pasta sumiria contra a decisão dele. O critério passa a ser **risco de confundir com o que está vivo** (cópia obsoleta de tela/módulo: `backup/`, `_referencia/`, `v1_antigo/`), e o comando diz explicitamente para **não** excluir por não rodar em produção: script de investigação, notebook de análise, export de workflow e fixture são peças do projeto. Na dúvida, **mantenha e pergunte** — esconder o que existe é pior que listar de menos.
+- nota(o gerador não mudou): `backup`/`backups`/`cert`/`certs` seguem sendo as únicas exclusões por nome; `n8n/` e `_investigacao/` continuam no mapa por default. Mudança de **critério de leitura** do assistente + o porquê no código e na spec.
+
 ## 0.17.1 — 2026-07-31 (mapa neural: arquivo morto fora, `n8n` dentro)
 - fix(arquivo morto e insumo de build): a regra larga da 0.17.0 trouxe `backup/`, `certs/`, `n8n/` e `_investigacao/`. Só um era problema de verdade: **`backup/v1/chat.html` aparecia como par de `web/chat_v2.html`** — duas UIs de aparência equivalente no mapa, num projeto onde a UI é uma só e "reviver a v1" está fora de escopo (mesma classe de ambiguidade que o `_referencia/` e o import shadowado já custaram lá). 5ª exceção, por nome universal: `backup`/`backups`/`cert`/`certs`. Pasta excluída também **não expõe endpoint**.
 - nota(`n8n` fica): a janela do outro projeto recomendou excluir também o `n8n/`; o owner tinha dito o contrário — *"n8n com certeza, há fluxo de trabalho no projeto"* —, e a palavra dele prevalece. Teste trava `n8n/` **dentro**: a exceção é arquivo morto/insumo, **não** "pasta sem `.py`".
