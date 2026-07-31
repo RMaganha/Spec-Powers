@@ -57,7 +57,9 @@ def proj(tmp_path):
     (tmp_path / "services" / "emissao.py").write_text("# regra de emissão\n", encoding="utf-8")
     (tmp_path / "memory").mkdir()
     (tmp_path / "memory" / "MEMORY.md").write_text(
-        "- [Motor Gemini migrado](m1.md) — migrou o motor\n- [Banco como canal](m2.md) — decisão\n",
+        "- [Motor Gemini migrado](m1.md) — migrou o motor\n- [Banco como canal](m2.md) — decisão\n"
+        # gancho REAL que cita um caminho com `<proj>` — não é placeholder de molde
+        "- [Memória no repo](m3.md) — nunca em ~/.claude/projects/<proj>/memory/\n",
         encoding="utf-8",
     )
     # memórias reais com [[links]] cruzados (pra testar a camada associativa): slug com hífen no
@@ -308,3 +310,156 @@ def test_gerar_cria_md_e_html(mn, proj, tmp_path):
     md, html = mn.gerar(proj_dir=proj, out_dir=out)
     assert Path(md).exists() and Path(md).suffix == ".md"
     assert Path(html).exists() and Path(html).suffix == ".html"
+
+
+# ---- F2.4: o mapa é DESCRITIVO (retrata o projeto, não o molde) -------------
+# Os 4 achados vieram de rodar o gerador num projeto real de outro time (Flask, pastas com nome
+# próprio, worktree de projeto vizinho dentro de .claude/): o mapa saiu com 18 rotas de OUTRO
+# projeto, 0 das 17 reais, as camadas principais invisíveis e placeholders do molde como se
+# fossem decisões. Este fixture reproduz aquele projeto.
+
+@pytest.fixture()
+def proj_alt(tmp_path):
+    """Projeto que NÃO segue o molde: Flask, camadas batizadas pelo time (`apis/`,
+    `persistencia/`), dois entrypoints na raiz (nenhum é `main.py`), um worktree de projeto
+    vizinho em `.claude/` e os arquivos de memória recém-copiados do molde (só placeholder)."""
+    p = tmp_path
+    (p / "docs" / "superpowers").mkdir(parents=True)
+    (p / "docs" / "superpowers" / "MAPA.md").write_text(
+        "# Mapa de contexto — proj-flask\n\n## Conexões\n- nenhuma\n", encoding="utf-8")
+    # entrypoints da raiz — dois, e nenhum se chama main.py (renomear está fora de escopo lá)
+    (p / "app_web.py").write_text(
+        '"""Entrypoint web (Flask)."""\n'
+        'from flask import Flask\napp = Flask(__name__)\n'
+        '@app.route("/chat", methods=["POST"])\ndef chat(): ...\n'
+        '@app.route("/health")\ndef health(): ...\n', encoding="utf-8")
+    (p / "worker.py").write_text('"""Entrypoint do worker de fila."""\n', encoding="utf-8")
+    # camadas com nome PRÓPRIO do projeto (decisão registrada lá) — não estão na lista do molde
+    (p / "apis").mkdir()
+    (p / "apis" / "openapi.py").write_text(
+        '"""Contrato OpenAPI do projeto."""\n'
+        '@bp.route("/api/v1/itens", methods=["GET", "PUT"])\ndef itens(): ...\n', encoding="utf-8")
+    (p / "persistencia").mkdir()
+    (p / "persistencia" / "repo_itens.py").write_text(
+        '"""Acesso a dados dos itens."""\nimport psycopg2\n', encoding="utf-8")
+    # camadas do molde SEM .py — não podem sumir com a detecção nova
+    (p / "sql").mkdir()
+    (p / "sql" / "01_schema.sql").write_text("-- ddl\n", encoding="utf-8")
+    (p / "templates").mkdir()
+    (p / "templates" / "index.html").write_text("<html></html>\n", encoding="utf-8")
+    # pastas de ferramenta — nunca são camada do projeto
+    for lixo in (".venv", "node_modules"):
+        (p / lixo).mkdir()
+        (p / lixo / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    # worktree de PROJETO VIZINHO dentro de .claude/ — a origem das rotas fantasma
+    viz = p / ".claude" / "worktrees" / "vizinho" / "routers"
+    viz.mkdir(parents=True)
+    (viz / "fantasma.py").write_text(
+        "@router.get('/api/fantasma')\ndef f(): ...\n", encoding="utf-8")
+    # decisões e diário recém-copiados do molde: só placeholder, nenhum fato do projeto
+    (p / "docs" / "decisoes.md").write_text(
+        "<!-- MODELO — copie para docs/decisoes.md. Formato:\n"
+        "       - <data> — decidimos <X> em vez de <Y> — porque <Z>. -->\n\n"
+        "# Decisões — proj-flask\n\n_(ainda sem decisões registradas)_\n", encoding="utf-8")
+    (p / "memory").mkdir()
+    (p / "memory" / "DIARIO.md").write_text(
+        "# Diário de sessão\n\n## <data>\n"
+        "- [<assunto>] <gist de 1 linha — o pivô da sessão> → sessions/<data>-<assunto>.md\n",
+        encoding="utf-8")
+    (p / "memory" / "MEMORY.md").write_text(
+        "<!-- MODELO de índice de memória.\n"
+        "     - Só ponteiros de 1 linha, NUNCA o conteúdo da memória em si.\n"
+        "     - Organize por tópico, não por data. -->\n\n# Memória do projeto — índice\n",
+        encoding="utf-8")
+    return p
+
+
+def test_ignora_worktree_de_projeto_vizinho(mn, proj_alt):
+    """CA1 — `.claude/` (onde vivem os worktrees) é território de OUTRO projeto: nada de lá pode
+    entrar no mapa deste. Sem isso, o `rglob` desce em `.claude/worktrees/` e o mapa afirma rotas
+    que não existem aqui — a mesma fronteira 'um projeto por janela', na leitura automática."""
+    txt = mn.render_texto(mn.construir_arvore(proj_alt))
+    assert "/api/fantasma" not in txt, "trouxe rota de um projeto vizinho (worktree em .claude/)"
+    assert ".claude" not in txt, "citou caminho dentro de .claude/ (projeto alheio)"
+
+
+def test_extrai_rota_flask(mn, proj_alt):
+    """CA2 — em Flask o método vai como argumento (`methods=[...]`), não no nome do decorator;
+    sem `methods=`, o default do framework é GET."""
+    ids = " | ".join(_ids(mn.extrair_apis(proj_alt)))
+    assert "POST /chat" in ids, "não extraiu a rota Flask com methods=['POST']"
+    assert "GET /health" in ids, "rota Flask sem methods= deveria virar GET (default do framework)"
+    assert "GET /api/v1/itens" in ids and "PUT /api/v1/itens" in ids, \
+        "não expandiu os múltiplos métodos de uma mesma rota Flask"
+
+
+def test_arquitetura_detecta_camadas_com_nome_proprio(mn, proj_alt):
+    """CA3 — `_CAMADAS` é ORDEM PREFERENCIAL, não filtro: pasta com `.py` entra mesmo com nome
+    fora do molde, e TODO `.py` da raiz é entrypoint (não só `main.py`). O mapa é descritivo —
+    quem prescreve nome de pasta é o `ESTRUTURA.md`."""
+    ids = _ids(mn.extrair_arquitetura(proj_alt))
+    assert "apis/" in ids and "persistencia/" in ids, \
+        "camada com nome próprio do projeto ficou invisível (mapa prescritivo)"
+    assert "app_web.py" in ids and "worker.py" in ids, \
+        "entrypoints da raiz sumiram (a lista só esperava main.py)"
+    assert "openapi.py" in ids and "repo_itens.py" in ids, "não desceu nos arquivos da camada nova"
+
+
+def test_arquitetura_mantem_pasta_do_molde_sem_py(mn, proj_alt):
+    """CA3b — sem regressão: pasta da lista preferencial que não tem `.py` (`sql/`, `templates/`)
+    continua no mapa."""
+    ids = _ids(mn.extrair_arquitetura(proj_alt))
+    assert "sql/" in ids and "templates/" in ids
+
+
+def test_arquitetura_ignora_pastas_de_ferramenta(mn, proj_alt):
+    """CA3c — `.venv`, `node_modules` e `.claude` nunca são camada do projeto."""
+    ids = " | ".join(_ids(mn.extrair_arquitetura(proj_alt)))
+    for lixo in (".venv", "node_modules", ".claude"):
+        assert lixo not in ids, "%s não pode virar camada" % lixo
+
+
+def test_arquitetura_ordem_preferencial_primeiro(mn, proj_alt):
+    """CA3d — a lista do molde vira ORDEM: entrypoints, depois as camadas conhecidas na ordem
+    canônica, depois as demais em ordem alfabética."""
+    filhos = [f["id"] for f in mn.extrair_arquitetura(proj_alt)["filhos"]]
+    assert filhos.index("app_web.py") < filhos.index("templates/"), "entrypoint vem primeiro"
+    assert filhos.index("templates/") < filhos.index("sql/"), "ordem canônica do molde"
+    assert filhos.index("sql/") < filhos.index("apis/"), "camada conhecida antes da detectada"
+    assert filhos.index("apis/") < filhos.index("persistencia/"), "detectadas em ordem alfabética"
+
+
+def test_placeholder_do_molde_nao_vira_fato(mn, proj_alt):
+    """CA4 — arquivo recém-copiado do molde só tem placeholder; nem o texto dentro de comentário
+    HTML nem a linha `- [<assunto>] <gist>` podem virar decisão/entrada de diário/memória.
+    Mapa que inventa fato é pior que mapa vazio."""
+    ids = _ids(mn.extrair_memorias(proj_alt))
+    junto = " | ".join(ids)
+    assert not any(i.startswith("decisões") for i in ids), "placeholder do molde virou decisão"
+    assert not any(i.startswith("diário") for i in ids), "placeholder do molde virou entrada de diário"
+    assert not any(i.startswith("memórias") for i in ids), "comentário-guia do molde virou memória"
+    assert "decidimos" not in junto and "<assunto>" not in junto and "ponteiros" not in junto
+
+
+def test_decisao_e_memoria_reais_continuam_aparecendo(mn, proj):
+    """CA4b — sem regressão: no projeto com conteúdo de verdade, decisão e memória seguem no mapa —
+    **inclusive** a memória cujo texto real cita `<algo>` (o primeiro filtro, aplicado à linha
+    inteira, engoliu a memória que fala de `~/.claude/projects/<proj>/memory/` — pego rodando o
+    gerador no próprio kit). Por isso o filtro só vale pra campo curto/estruturado."""
+    no = mn.extrair_memorias(proj)
+    junto = " | ".join(_ids(no))
+    assert "banco = canal" in junto, "a decisão real sumiu junto com o filtro de placeholder"
+    assert "Gemini" in junto, "a memória real sumiu junto com o filtro de placeholder"
+    assert "Memória no repo" in junto, "memória real com `<proj>` no gancho foi tratada como molde"
+
+
+def test_decorator_citado_em_comentario_nao_e_rota(mn, tmp_path):
+    """CA2c — rota só conta quando o decorator está no início da linha: `@app.route(...)` citado
+    dentro de comentário/docstring é documentação, não API (o próprio gerador cita um)."""
+    (tmp_path / "doc_mod.py").write_text(
+        '"""Exemplo na docstring: @app.route("/na-docstring")."""\n'
+        '# comentário citando @app.get("/no-comentario")\n'
+        '@app.route("/de-verdade")\ndef v(): ...\n', encoding="utf-8")
+    ids = " | ".join(_ids(mn.extrair_apis(tmp_path)))
+    assert "GET /de-verdade" in ids
+    assert "na-docstring" not in ids and "no-comentario" not in ids

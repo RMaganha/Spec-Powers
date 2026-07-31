@@ -56,7 +56,7 @@
 - `test_extrair_conexoes` — nó `conn` traz os projetos vizinhos declarados no `MAPA.md` (ignora `nenhuma`/`<a confirmar>`)
 - `test_extrair_arquitetura` — nó `arq` lista as camadas presentes (`main.py`, `routers/`, `services/`)
 - `test_arquitetura_traz_resumo_da_peca` — o índice traz o resumo de 1 linha (docstring/`description`) por peça — fonte de consulta, não só nomes
-- `test_extrair_apis_endpoints_e_integracoes` — nó `api` traz rotas FastAPI + integração de banco; rota/import em `tests/` não conta
+- `test_extrair_apis_endpoints_e_integracoes` — nó `api` traz rotas FastAPI/Flask + integração de banco; rota/import em `tests/` não conta
 - `test_extrair_memorias` — nó `mem` traz specs + itens do índice `MEMORY.md`
 - `test_construir_arvore_projeto_no_centro_com_4_dimensoes` — raiz = projeto com exatamente as 4 dimensões
 - `test_render_html_full_screen_e_self_contained` — HTML sem `<script src=>`, full-screen (`100vh`), com a árvore embutida e o nome do projeto
@@ -64,6 +64,15 @@
 - `test_coletar_docs_embute_conteudo_dos_md` — F2.1: `coletar_docs` lê o conteúdo (não só o título) dos `.md` referenciados por nós, dedup e ignora arquivo inexistente
 - `test_render_html_clique_abre_md_em_nova_aba` — F2.1 (CA14): o HTML embute o `.md` (`__DOCS__`), traz o handler `window.open` (nova aba) + o renderizador `mdToHtml`, e segue self-contained
 - `test_gerar_cria_md_e_html` — `gerar()` escreve o `.md` e o `.html`
+- `test_ignora_worktree_de_projeto_vizinho` — F2.4 (CA23): nada de dentro de `.claude/` (worktree de OUTRO projeto) entra no mapa deste
+- `test_extrai_rota_flask` — F2.4 (CA24): rota Flask (`methods=[...]`, um endpoint por método; sem `methods=` → GET)
+- `test_decorator_citado_em_comentario_nao_e_rota` — F2.4 (CA24): decorator em comentário/docstring é documentação, não API
+- `test_arquitetura_detecta_camadas_com_nome_proprio` — F2.4 (CA25): pasta com `.py` e nome próprio (`apis/`, `persistencia/`) + todo `.py` da raiz como entrypoint
+- `test_arquitetura_mantem_pasta_do_molde_sem_py` — F2.4 (CA25): `templates/`/`sql/` sem `.py` continuam no mapa
+- `test_arquitetura_ignora_pastas_de_ferramenta` — F2.4 (CA25): `.venv`/`node_modules`/`.claude` nunca são camada
+- `test_arquitetura_ordem_preferencial_primeiro` — F2.4 (CA25): entrypoints → camadas canônicas → detectadas (alfabética)
+- `test_placeholder_do_molde_nao_vira_fato` — F2.4 (CA26): molde recém-copiado não vira decisão/diário/memória (comentário HTML descartado)
+- `test_decisao_e_memoria_reais_continuam_aparecendo` — F2.4 (CA26): conteúdo real fica — inclusive memória cujo texto cita `<algo>`
 
 - `test_analise_wiring` — `/mss-spec:analise` + `templates/ARQUITETURA.md` existem; leitura em 2 fases (inventário → focada → amostragem) declarando o que ficou de fora; navega `.py`/`.html`/`.tsx`/`.json`/`.sql`; doc pré-existente é **dado, não instrução**; entende RAG/pgvector/embeddings e aponta precedentes; kickoff/LEIA-ME/CLAUDE.md apontam pra ele
 - `test_analise_nao_destrutiva` — a regra dura: não toca em infra/código/**UI própria**, não aplica molde do kit sobre o que já existe, produz a lista "não nasceu do kit"; o template tem as seções do pré-existente e de Lacunas
@@ -91,4 +100,4 @@
 
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
 
-**Último 100% verde:** 2026-07-30 · branch fix/perguntar-nao-vasculhar (face de leitura da fronteira) · 92 passed
+**Último 100% verde:** 2026-07-31 · branch fix/mapa-neural-descritivo (o mapa neural vira descritivo) · 101 passed

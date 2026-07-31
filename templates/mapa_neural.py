@@ -1,9 +1,14 @@
 """mapa_neural.py — o mapa MENTAL do projeto (F2 do mapa de contexto).
 
 Monta, para o **projeto atual**, uma árvore com o projeto no centro e 4 dimensões, cada uma
-preenchida por um extrator que lê o repo (nunca inventa):
-  - **Arquitetura interna** — camadas/módulos presentes (main.py, routers/, services/, ...).
-  - **APIs & integrações** — endpoints expostos (rotas FastAPI) + integrações (banco, HTTP, fila).
+preenchida por um extrator que lê o repo (nunca inventa) — e **só este** projeto: `.claude/`
+(worktrees, que podem ser de outro projeto), `.venv/`, `node_modules/` & cia. são podados na
+descida.
+  - **Arquitetura interna** — as camadas do projeto, **detectadas pelo conteúdo** (todo `.py` da
+    raiz + toda pasta de 1º nível com `.py`, com o nome que o projeto deu); a lista `_CAMADAS` é
+    só ordem preferencial. Descritivo: prescrever nome de pasta é papel do `docs/ESTRUTURA.md`.
+  - **APIs & integrações** — endpoints expostos (rotas FastAPI **e** Flask) + integrações
+    (banco, HTTP, fila).
   - **Memórias & conhecimento** — specs, índice `memory/MEMORY.md`, `docs/decisoes.md`, `to-dolist`
     e o **diário de sessão** (índice `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md`).
   - **Conexões entre projetos** — a seção `Conexões` do `docs/superpowers/MAPA.md`.
@@ -29,19 +34,34 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
 
 _TITULO_RE = re.compile(r"^#\s*Mapa de contexto\s*[—–-]\s*(.+?)\s*$", re.MULTILINE)
 _COMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-_ROTA_RE = re.compile(r"@\w+\.(get|post|put|delete|patch|head|options)\s*\(\s*[\"']([^\"']+)[\"']", re.I)
+# rota: o método pode estar no NOME do decorator (FastAPI: @app.get("/x")) ou no ARGUMENTO
+# (Flask: @app.route("/x", methods=["POST"]) — sem `methods=`, o default do framework é GET).
+# O `^[ \t]*` exige o decorator no início da linha: decorator citado dentro de comentário ou
+# docstring (acontece — este arquivo mesmo cita um) não é rota do projeto.
+_ROTA_RE = re.compile(r"^[ \t]*@\w+\.(get|post|put|delete|patch|head|options)\s*\(\s*[\"']([^\"']+)[\"']",
+                      re.I | re.M)
+_ROTA_FLASK_RE = re.compile(r"^[ \t]*@\w+\.route\s*\(\s*[\"']([^\"']+)[\"']([^)]*)\)", re.I | re.M)
+_METODO_RE = re.compile(r"[\"'](get|post|put|delete|patch|head|options)[\"']", re.I)
 _IMPORT_RE = re.compile(r"^\s*(?:from|import)\s+([\w.]+)", re.M)
 _H1_RE = re.compile(r"^#\s+(.*?)\s*$", re.MULTILINE)
+# `<algo>` = lacuna a preencher do molde, não fato do projeto (mesmo critério do parse_conexoes)
+_PLACEHOLDER_RE = re.compile(r"<[^<>]{1,60}>")
 
-_IGNORAR_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache",
+# `.claude/` guarda worktrees — que podem ser de OUTRO projeto. Território alheio: o mapa deste
+# projeto nunca lê de lá (a fronteira "um projeto por janela", na leitura automática).
+_IGNORAR_DIRS = {".git", ".claude", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache",
                  ".mypy_cache", ".ruff_cache", "dist", "build", ".idea", ".vscode"}
-_CAMADAS = ["main.py", "config", "models", "schemas", "services", "routers", "repositories",
+# ORDEM preferencial das camadas conhecidas — NÃO é filtro. O mapa é descritivo: quem batizou as
+# pastas com nome próprio (`apis/`, `persistencia/`) aparece como é; prescrever nome é papel do
+# `docs/ESTRUTURA.md`. Ver `_camadas()`.
+_CAMADAS = ["config", "models", "schemas", "services", "routers", "repositories",
             "utils", "commands", "templates", "pages", "static", "sql", "tests"]
 
 
@@ -86,14 +106,47 @@ def _resumo(path: Path) -> str:
 
 
 def _py_files(proj: Path, limite=400):
+    """Os `.py` DESTE projeto. A poda é feita na descida (`os.walk` + corte de `dirs`), não na
+    saída: assim o gerador nem entra em `.claude/`, `node_modules/` & cia. — barato e, no caso do
+    `.claude/worktrees/`, é o que impede o mapa de descrever o projeto do vizinho."""
     out = []
-    for p in proj.rglob("*.py"):
-        if any(part in _IGNORAR_DIRS for part in p.parts):
-            continue
-        out.append(p)
-        if len(out) >= limite:
-            break
+    for raiz, dirs, arqs in os.walk(proj):
+        dirs[:] = sorted(d for d in dirs if d not in _IGNORAR_DIRS)
+        for a in sorted(arqs):
+            if a.endswith(".py"):
+                out.append(Path(raiz) / a)
+                if len(out) >= limite:
+                    return out
     return out
+
+
+def _tem_py(d: Path) -> bool:
+    """A pasta contém código Python (em qualquer profundidade, fora dos diretórios ignorados)?
+    É o que qualifica uma pasta como **camada** — o critério é o conteúdo, não o nome."""
+    for raiz, dirs, arqs in os.walk(d):
+        dirs[:] = [x for x in dirs if x not in _IGNORAR_DIRS]
+        if any(a.endswith(".py") for a in arqs):
+            return True
+    return False
+
+
+def _e_molde(campo: str) -> bool:
+    """Campo que veio do MOLDE (é a lacuna `<algo>` a preencher), não fato do projeto — mesmo
+    critério que `parse_conexoes` já aplica às conexões. Placeholder virando "decisão" no mapa é
+    fato inventado, e não inventar fato é regra sempre-ativa do kit.
+
+    Aplicado só a **campo curto e estruturado** (o assunto de uma entrada de diário), nunca à
+    linha inteira: texto de verdade cita `<algo>` com naturalidade — foi assim que a primeira
+    versão deste filtro engoliu a memória cujo gancho fala de `~/.claude/projects/<proj>/memory/`.
+    O placeholder que os moldes plantam em prosa vive **dentro de comentário HTML**, e quem
+    resolve isso é o `_linhas_uteis`."""
+    return bool(_PLACEHOLDER_RE.search(campo))
+
+
+def _linhas_uteis(p: Path) -> list:
+    """Linhas de um `.md` sem os comentários HTML — o comentário-guia dos moldes é instrução pra
+    quem preenche, não conteúdo (e os moldes têm bullets lá dentro)."""
+    return _COMENT_RE.sub("", p.read_text(encoding="utf-8", errors="ignore")).splitlines()
 
 
 def nome_projeto(proj: Path) -> str:
@@ -165,9 +218,34 @@ def extrair_conexoes(proj: Path) -> dict:
 
 # ---- extrator: arquitetura interna ---------------------------------------
 
+def _camadas(proj: Path) -> list:
+    """As camadas REAIS do projeto, na ordem de leitura. **Descritivo, não prescritivo**:
+      - todo `.py` da raiz é entrypoint (não só `main.py` — projeto pode ter dois, com nomes
+        próprios, e renomeá-los costuma estar fora de escopo);
+      - toda pasta de 1º nível **com `.py`** é camada, tenha o nome que tiver (`apis/`,
+        `persistencia/`, `dominio/`…);
+      - pasta do molde que existe **sem** `.py` (`templates/`, `sql/`, `static/`) continua entrando.
+    `_CAMADAS` entra só como **ordem**: entrypoints → camadas conhecidas na ordem canônica →
+    demais em ordem alfabética.
+    """
+    raiz_py = sorted((p.name for p in proj.glob("*.py") if p.name != "__init__.py"), key=str.lower)
+    if "main.py" in raiz_py:  # entrypoint canônico primeiro, quando existe
+        raiz_py.remove("main.py")
+        raiz_py.insert(0, "main.py")
+    dirs = []
+    for d in sorted(proj.iterdir(), key=lambda p: p.name.lower()):
+        if not d.is_dir() or d.name in _IGNORAR_DIRS or d.name.startswith("."):
+            continue
+        if d.name in _CAMADAS or _tem_py(d):
+            dirs.append(d.name)
+    conhecidas = [n for n in _CAMADAS if n in dirs]
+    detectadas = [n for n in dirs if n not in conhecidas]
+    return raiz_py[:25] + conhecidas + detectadas[:25]
+
+
 def extrair_arquitetura(proj: Path) -> dict:
     filhos = []
-    for camada in _CAMADAS:
+    for camada in _camadas(proj):
         alvo = proj / camada
         if not alvo.exists():
             continue
@@ -180,6 +258,10 @@ def extrair_arquitetura(proj: Path) -> dict:
                for p in arqs[:25]]
         if len(arqs) > 25:
             sub.append(_no("… (+%d)" % (len(arqs) - 25)))
+        if not sub:  # camada cujo código vive um nível abaixo (ex.: app/routers/): mostra as subpastas
+            sub = [_no(d.name + "/", local="%s/%s/" % (camada, d.name))
+                   for d in sorted(alvo.iterdir(), key=lambda p: p.name.lower())
+                   if d.is_dir() and d.name not in _IGNORAR_DIRS and _tem_py(d)][:25]
         filhos.append(_no(camada + "/", filhos=sub, local=camada + "/"))
     return _no("Arquitetura interna", "arq", filhos)
 
@@ -192,10 +274,15 @@ def extrair_apis(proj: Path) -> dict:
         if any(seg in ("tests", "test") for seg in py.parts):
             continue  # rota/import em teste não é a API do projeto (evita fixtures como falso-positivo)
         txt = py.read_text(encoding="utf-8", errors="ignore")
-        for metodo, path in _ROTA_RE.findall(txt):
+        for metodo, path in _ROTA_RE.findall(txt):            # FastAPI: método no decorator
             ep = "%s %s" % (metodo.upper(), path)
             if ep not in endpoints:
                 endpoints.append(ep)
+        for path, args in _ROTA_FLASK_RE.findall(txt):        # Flask: método em methods=[...]
+            for metodo in (_METODO_RE.findall(args) or ["GET"]):
+                ep = "%s %s" % (metodo.upper(), path)
+                if ep not in endpoints:
+                    endpoints.append(ep)
         for m in _IMPORT_RE.finditer(txt):  # só imports reais — menção em string/comentário não conta
             imports.add(m.group(1).split(".")[0])
     integr = []
@@ -253,7 +340,7 @@ def extrair_memorias(proj: Path) -> dict:
     mem_idx = proj / "memory" / "MEMORY.md"
     if mem_idx.exists():
         itens = []
-        for ln in mem_idx.read_text(encoding="utf-8").splitlines():
+        for ln in _linhas_uteis(mem_idx):
             ln = ln.strip()
             if not ln.startswith("- "):
                 continue
@@ -273,7 +360,7 @@ def extrair_memorias(proj: Path) -> dict:
     dec = proj / "docs" / "decisoes.md"
     if dec.exists():
         decs = []
-        for ln in dec.read_text(encoding="utf-8").splitlines():
+        for ln in _linhas_uteis(dec):
             ln = ln.strip()
             if ln.startswith("- "):
                 txt = re.sub(r"^\d{4}-\d{2}-\d{2}\s*[—-]\s*", "", ln[2:].strip())
@@ -281,9 +368,10 @@ def extrair_memorias(proj: Path) -> dict:
         if decs:
             filhos.append(_no("decisões (%d)" % len(decs), filhos=decs[:25]))
     # to-dolist pessoal (fora do git; só entra se existir) — captura rápida do owner
+    # (sem filtro de `<placeholder>` aqui: item de verdade cita a sintaxe de comando com `<algo>`)
     todo = proj / "to-dolist.md"
     if todo.exists():
-        itens = [ln.strip()[2:].strip() for ln in todo.read_text(encoding="utf-8").splitlines()
+        itens = [ln.strip()[2:].strip() for ln in _linhas_uteis(todo)
                  if ln.strip().startswith("- ")]
         if itens:
             filhos.append(_no("to-dolist (%d)" % len(itens),
@@ -293,16 +381,18 @@ def extrair_memorias(proj: Path) -> dict:
     diario = proj / "memory" / "DIARIO.md"
     if diario.exists():
         data_atual, difilhos = "", []
-        for ln in diario.read_text(encoding="utf-8").splitlines():
+        for ln in _linhas_uteis(diario):
             ln = ln.strip()
             if ln.startswith("## "):
-                data_atual = ln[3:].strip()
+                data_atual = "" if _e_molde(ln) else ln[3:].strip()
             elif ln.startswith("- ["):
                 # formato: - [<assunto>] <gist ...> → sessions/<arquivo>  (o gist pode conter setas; pega a ÚLTIMA)
                 m = re.match(r"-\s*\[([^\]]+)\]\s*(.*?)(?:\s*→\s*(\S+))?$", ln)
                 if not m:
                     continue
                 assunto, gist, alvo = m.group(1).strip(), (m.group(2) or "").strip(), (m.group(3) or "").strip()
+                if _e_molde(assunto):  # `- [<assunto>] …` é a linha-exemplo do molde, viva fora de comentário
+                    continue
                 loc = alvo if alvo.startswith("memory/") else ("memory/" + alvo if alvo else "memory/DIARIO.md")
                 titulo = ("%s · %s" % (data_atual, assunto)) if data_atual else assunto
                 loc = loc.replace("\\", "/")
