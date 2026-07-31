@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **v0.17.0 integrada** (merge `--no-ff` de `fix/mapa-neural-limite-e-camadas`; suíte **109 verde**). **Ainda sem push.** Segunda rodada do mapa neural, vinda de rodar a 0.16.0 no projeto Flask: fim do **corte silencioso** (`_LIMITE` 200 + rastro `… (+N)` + `--limite`) e regra única **"se está no repo, está no mapa"** — camada por **conteúdo** (HTML/MD/JSON contam) e árvore **descendo nas subpastas**, com 4 exceções (ferramenta · `docs/`/`memory/` · `.gitignore` do projeto · `--ignorar`). Spec: F2.5 + CA27–CA31.
+`main` — **v0.17.0 integrada e publicada no GitHub** (merge `--no-ff` de `fix/mapa-neural-limite-e-camadas`; suíte **109 verde**; em sincronia com o `origin`). Segunda rodada do mapa neural, vinda de rodar a 0.16.0 no projeto Flask: fim do **corte silencioso** (`_LIMITE` 200 + rastro `… (+N)` + `--limite`) e regra única **"se está no repo, está no mapa"** — camada por **conteúdo** (HTML/MD/JSON contam) e árvore **descendo nas subpastas**, com 4 exceções (ferramenta · `docs/`/`memory/` · `.gitignore` do projeto · `--ignorar`). Spec: F2.5 + CA27–CA31.
 
 <!-- histórico do estado anterior -->
 `main` — **v0.16.0 integrada e publicada no GitHub** (merge `--no-ff`; suíte **101 verde** na `main`; push até `3238803`, em sincronia com o `origin`). O kit deste ambiente está instalado por **junction** para este clone, então o gerador consertado já vale em toda janela — sem `marketplace update` e sem `upgrade` (nada de molde mudou).
@@ -36,7 +36,7 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
-**Rodar o `/mss-spec:mapa-neural` de novo no projeto Flask** (a junction já entrega a 0.17.0 sem publicar): conferir as 36 memórias inteiras, `web/`/`prompts/`/`n8n/` como camadas, subpastas descendo e `_investigacao/`+`backup/` saindo por `.gitignore` ou `--ignorar`. Depois **publicar** (`git push` — o owner dispara). Continuam na fila: **canário da cerca da âncora em sessão nova** (escrita fora da âncora → `[mss-spec] BLOQUEADO`; se não bloquear, registrar o hook no `settings.json` pelo `hooks/README.md`) e o **1º uso real do `/mss-spec:analise`** no projeto de RAG/pgvector.
+**Rodar o `/mss-spec:mapa-neural` de novo no projeto Flask** (a junction já entrega a 0.17.0 sem publicar): conferir as 36 memórias inteiras, `web/`/`prompts/`/`n8n/` como camadas, subpastas descendo e `_investigacao/`+`backup/` saindo por `.gitignore` ou `--ignorar`. Continuam na fila: **canário da cerca da âncora em sessão nova** (escrita fora da âncora → `[mss-spec] BLOQUEADO`; se não bloquear, registrar o hook no `settings.json` pelo `hooks/README.md`) e o **1º uso real do `/mss-spec:analise`** no projeto de RAG/pgvector.
 
 <!-- histórico do próximo passo anterior -->
 **Publicar a 0.16.0** (`git push` — o owner dispara) e então **rodar o `/mss-spec:mapa-neural` no projeto que originou o diagnóstico** (Flask, `apis/`/`persistencia/`): é o teste de campo dos 4 consertos — as 17 rotas reais devem aparecer, as 18 fantasmas sumir e as camadas próprias ficar visíveis. Continuam na fila, da rodada anterior: o **canário da cerca da âncora em sessão nova** (pedir escrita num caminho de outro projeto → tem que voltar `[mss-spec] BLOQUEADO`; se não bloquear, registrar o hook à mão no `settings.json` com o snippet do `hooks/README.md`) e o **primeiro uso real do `/mss-spec:analise`** no projeto de RAG/pgvector.
