@@ -25,4 +25,7 @@ feature `captura-de-memoria` (v0.10.0), com zero dependência nova.
 Quando não couber, proponha reimplementar a **ideia**, não o serviço. Registre a decisão — o que se
 rejeitou e por quê — em `docs/decisoes.md` (insumo anti-re-litígio). Mesma linha de
 [[feedback-visual-pro-humano-dados-pro-assistente]] ("o ganho é texto consultável, não máquina nova")
-e de [[feedback-consultar-destilado-antes-da-fonte]].
+e de [[feedback-consultar-destilado-antes-da-fonte]]. Segundo precedente: skill
+[caveman](https://github.com/juliusbrussee/caveman) (2026-08-14) — stack rejeitado (hooks por turno +
+edição do settings.json), ideias extraídas como regras de estilo no CLAUDE.md global
+([[feedback-estilo-resposta-direto]]).

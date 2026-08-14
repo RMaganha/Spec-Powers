@@ -31,3 +31,4 @@
 - [Gerador: dogfood com diff antes × depois](project_dogfood_gerador_diff_antes_depois.md) — rodar no repo real e ler o diff da saída; fixture não vê o que só o projeto de verdade tem (pegou `hooks/` invisível e rota vinda de comentário)
 - [Parsear .md do kit: fora comentário; placeholder só em campo curto](project_parse_md_do_kit_descartar_comentario.md) — o molde planta bullets no comentário-guia; filtro `<…>` na linha inteira engole texto real
 - [Perguntar em vez de vasculhar](feedback_perguntar_em_vez_de_vasculhar.md) — falta caminho/nome de container/variável? pergunto na hora; nunca `find` no disco (reclamado 2x)
+- [Estilo de resposta direto (regras da skill caveman)](feedback_estilo_resposta_direto.md) — 5 regras no CLAUDE.md global (direto, negação intocável, verbatim técnico, sem abreviação inventada, exceções de clareza); skill caveman avaliada e NÃO instalada (hook por turno anula o ganho)
