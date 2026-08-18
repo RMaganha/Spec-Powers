@@ -1,6 +1,7 @@
 ---
 name: project-memoria-local-ao-repo
 description: "Decisão do owner — memória persistente do kit Spec-Powers vive em memory/ dentro do repo do projeto, não em ~/.claude/projects/<proj>/memory/"
+gatilho: quando gravar memória ou aprendizado durável
 metadata: 
   node_type: memory
   type: project

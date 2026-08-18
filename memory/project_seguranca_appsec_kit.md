@@ -1,6 +1,7 @@
 ---
 name: project-seguranca-appsec-kit
 description: Capacidade de segurança do kit — baseline SEGURANCA.md, /mss-spec:seguranca, e os princípios decididos (obscuridade≠segurança, frontend público, auth 2 baldes)
+gatilho: quando criar ou alterar rota/endpoint, ou revisar segurança
 metadata:
   type: project
 ---

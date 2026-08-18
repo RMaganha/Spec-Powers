@@ -20,6 +20,8 @@ Você vai **constituir este projeto**. NÃO escreva código de aplicação nesta
    - `templates/CLAUDE.md`   → `CLAUDE.md` (raiz)
    - `templates/MEMORY.md`   → `memory/MEMORY.md`
    - `templates/DIARIO.md`   → `memory/DIARIO.md` (índice do diário de sessão) **+ crie a pasta `memory/sessions/`** (onde o `/mss-spec:memory capturar` grava os resumos datados por assunto — versionada; se precisar de um placeholder pro git rastrear a pasta vazia, um `.gitkeep`)
+   - `templates/EVALS.md`    → `docs/EVALS.md` (corpus de falhas — nasce só com o cabeçalho e o formato; **nenhum caso inventado**: o 1º entra quando a 1ª falha acontecer, pelo `/mss-spec:memory capturar`)
+   - `templates/rules/`      → `.claude/rules/` (regras **path-scoped**: cada uma tem `paths:` no frontmatter e o Claude Code a carrega **sozinho** quando um arquivo casa com o glob — é o que faz a regra chegar na hora certa sem depender de alguém lembrar. Apague a que não se aplica: sem UI, sem `frontend.md`; sem banco, sem `banco-e-segredo.md`)
    - `templates/INDEX.md`    → `docs/superpowers/INDEX.md`
    - `templates/MAPA.md`     → `docs/superpowers/MAPA.md` (mapa de contexto anti-amnésia; preencha **Onde estamos** = "recém-constituído" e **Próximo passo** = "primeira feature via /mss-spec:nova-feature". **Conexões:** no brownfield, **proponha** as integrações que achar no código — routers/endpoints que outro sistema chama, clients HTTP p/ outros serviços, filas, banco compartilhado — e confirme comigo; **nunca invente**. Sem integração conhecida, deixe "nenhuma conhecida ainda".)
    - `templates/AMBIENTE.md` → `docs/AMBIENTE.md` (ajuste os `<...>` do projeto; apague seções que não se aplicam, ex.: sem SQL Server)

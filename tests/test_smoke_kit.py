@@ -771,3 +771,125 @@ def test_infra_propria_freia_o_upgrade():
     up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8").lower()
     assert "infra própria" in up, \
         "upgrade.md não respeita a declaração de infra própria (reintroduziria os arquivos MSIG)"
+
+
+def test_premissa_com_fonte():
+    """CA1/CA2 — antes do OK do owner, o nova-feature declara o que está assumindo SEM ter sido dito,
+    cada premissa com fonte (ou marcada `sem fonte`), as sem-fonte primeiro. Premissa derrubada vira
+    caso no corpus de falhas, no fecho. Nasceu do F-011 (li 'sem harness' como 'raso basta')."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    low = nova.lower()
+    assert "premissa" in low, "nova-feature não manda declarar premissas"
+    assert "sem fonte" in low, "nova-feature não prevê a premissa SEM FONTE (a que quebra)"
+    assert "antes do ok" in low or "antes de pedir o ok" in low, \
+        "nova-feature não posiciona as premissas ANTES do OK do owner"
+    # as sem-fonte vêm primeiro (é a ordem que faz o owner ver o risco de cara)
+    assert "primeiro" in low, "nova-feature não manda listar as `sem fonte` primeiro"
+    # passar no destilado antes de listar: se está lá, não é premissa, é fato com fonte
+    for alvo in ("MAPA.md", "MEMORY.md", "docs/EVALS.md"):
+        assert alvo in nova, f"nova-feature não manda consultar o destilado ({alvo}) antes de listar"
+    # premissa derrubada vira caso no corpus, no fecho
+    assert "derrubada" in low, "nova-feature não trata a premissa DERRUBADA pelo owner"
+    assert "/mss-spec:memory capturar" in nova, \
+        "nova-feature não manda a premissa derrubada virar caso via /mss-spec:memory capturar"
+    # não inventar premissa pra preencher o bloco
+    assert "não invente" in low or "não inventar" in low, \
+        "nova-feature não proíbe inventar premissa quando não há nenhuma não-dita"
+
+
+def test_capturar_alimenta_corpus_e_poda():
+    """CA3 — o capturar passa a colher (a) premissa derrubada → docs/EVALS.md, (b) o que DEU CERTO
+    (abordagem confirmada, não só correção) e (c) a poda: memória superada sai do índice."""
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    low = mem.lower()
+    assert "docs/EVALS.md" in mem, "capturar não roteia premissa derrubada pro corpus docs/EVALS.md"
+    assert "derrubada" in low, "capturar não colhe a premissa derrubada nesta sessão"
+    assert "deu certo" in low, "capturar não colhe o que DEU CERTO (abordagem confirmada)"
+    assert "gatilho" in low, "capturar não exige o gatilho: na memória nova"
+    assert "obsoleta" in low, "capturar não marca memória superada como obsoleta (poda)"
+    assert "200" in mem and "25" in mem, "capturar não zela pelo teto do índice (200 linhas / 25 KB)"
+
+
+def _rules_do_molde():
+    d = REPO / "templates" / "rules"
+    assert d.is_dir(), "falta templates/rules/ (regras path-scoped do Claude Code)"
+    arqs = sorted(d.glob("*.md"))
+    assert arqs, "templates/rules/ está vazia"
+    return arqs
+
+
+def test_rules_path_scoped_bem_formadas():
+    """CA7 — regra path-scoped só carrega se tiver `paths:` no frontmatter; e tem que ser CURTA
+    (ela entra no contexto toda vez que um arquivo casa) e apontar a memória de origem."""
+    for md in _rules_do_molde():
+        txt = md.read_text(encoding="utf-8")
+        assert txt.startswith("---"), f"{md.name}: sem frontmatter"
+        fm = txt.split("---")[1]
+        assert re.search(r"(?m)^paths:", fm), f"{md.name}: sem `paths:` — não carrega sozinha"
+        assert re.search(r'(?m)^\s+-\s+"', fm), f"{md.name}: `paths:` sem nenhum glob"
+        n = len(txt.splitlines())
+        assert n <= 40, f"{md.name}: {n} linhas (teto 40 — regra path-scoped é curta por design)"
+        assert "memory/" in txt, f"{md.name}: não aponta a memória de origem (memory/<arquivo>.md)"
+
+
+def test_rules_dogfood_espelha_o_molde():
+    """CA7 — o próprio kit roda com as regras que distribui."""
+    vivas = {p.name for p in (REPO / ".claude" / "rules").glob("*.md")}
+    molde = {p.name for p in _rules_do_molde()}
+    faltando = sorted(molde - vivas)
+    assert not faltando, "regras do molde que o kit não usa em .claude/rules/:\n" + "\n".join(faltando)
+
+
+def test_rules_instaladas_pelo_kickoff_e_upgrade():
+    """CA8 — sem instalação, o mecanismo não existe no projeto do usuário."""
+    for cmd in ("kickoff", "upgrade"):
+        txt = (REPO / "commands" / f"{cmd}.md").read_text(encoding="utf-8")
+        assert "templates/rules/" in txt, f"{cmd}.md não copia templates/rules/"
+        assert ".claude/rules/" in txt, f"{cmd}.md não instala em .claude/rules/"
+
+
+def test_ponteiro_memoria_nativa():
+    """CA9 — o índice que o Claude Code auto-carrega é o da pasta NATIVA; o durável é o do repo.
+    Depois do resgate, a nativa vira um ponteiro de 1 linha pro índice do repo, e o doctor confere.
+    Sem isso, memória durável fica fora da sessão sem ninguém perceber (caso F-012)."""
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    assert "ponteiro" in mem.lower(), "memory.md (resgatar) não deixa o ponteiro na pasta nativa"
+    assert "~/.claude/projects/" in mem, "memory.md não nomeia a pasta nativa"
+    assert "auto-carreg" in mem.lower() or "carrega sozinho" in mem.lower(), \
+        "memory.md não explica POR QUE o ponteiro existe (só a nativa auto-carrega)"
+    doctor = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    assert "ponteiro" in doctor.lower(), "doctor não checa o ponteiro da memória nativa"
+    assert "memory/MEMORY.md" in doctor, "doctor não confere pra onde o ponteiro aponta"
+
+
+def test_release_cobra_casos_abertos():
+    """CA10 — sem cobrança o corpus apodrece: o gate de publicação conta os casos de docs/EVALS.md
+    sem guardrail e reporta. ⚠ que lista — não trava (é dívida de prosa, não defeito de código)."""
+    rel = (REPO / "commands" / "release.md").read_text(encoding="utf-8")
+    assert "docs/EVALS.md" in rel, "release não olha o corpus de falhas"
+    low = rel.lower()
+    assert "aberto" in low, "release não reporta os casos ABERTOS (sem guardrail)"
+    assert "não trava" in low or "não bloqueia" in low, \
+        "release não deixa claro que caso aberto é ⚠, não bloqueio"
+
+
+def test_claude_md_carrega_corpus_e_gatilho():
+    """CA11 — o molde que vai pra todo projeto aponta o corpus de falhas e a regra do gatilho.
+    Uma linha cada: CLAUDE.md inchado faz o Code ignorar a instrução que importa."""
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "docs/EVALS.md" in claude, "CLAUDE.md não aponta o corpus de falhas"
+    assert "gatilho" in claude.lower(), "CLAUDE.md não explica que o índice de memória é por gatilho"
+    assert ".claude/rules/" in claude, "CLAUDE.md não menciona as regras path-scoped"
+
+
+def test_corpus_instalado_sem_sobrescrever():
+    """O corpus nasce com o projeto (kickoff) e chega ao projeto antigo (upgrade) VAZIO de casos —
+    caso é conteúdo do owner: a categoria 1 nunca pode sobrescrever docs/EVALS.md."""
+    kick = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "templates/EVALS.md" in kick, "kickoff não copia templates/EVALS.md"
+    assert "docs/EVALS.md" in kick, "kickoff não cria docs/EVALS.md"
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    assert "docs/EVALS.md" in up, "upgrade não leva o corpus ao projeto antigo"
+    trecho = up[up.index("docs/EVALS.md") - 400: up.index("docs/EVALS.md") + 500].lower()
+    assert "não toque" in trecho or "não sobrescre" in trecho, \
+        "upgrade não protege os casos já registrados no docs/EVALS.md"

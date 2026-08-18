@@ -1,6 +1,7 @@
 ---
 name: feedback_consultar_destilado_antes_da_fonte
 description: consultar mapa/índice/memória (o destilado) ANTES de reabrir arquivos-fonte; RE-ler tudo a cada pergunta é a amnésia que o mapa de contexto existe pra matar
+gatilho: quando precisar de contexto do projeto — na partida ou ao reabrir um assunto
 metadata:
   type: feedback
 ---

@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/evals-e-context-engineering` (da `main`@0.18.0) — **0.19.0: evals e context engineering, pronta pra integrar** (suíte **136 verde**, era 116). O laço **falha → caso → guardrail → teste** existe: premissa **com fonte** antes do OK no `nova-feature` · `docs/EVALS.md` com os **12 casos reais** deste repo (sem guardrail = `aberto`) · `gatilho:` nas **34** memórias e índice agrupado por gatilho (teto 200 linhas/25 KB) · 3 regras **path-scoped** em `.claude/rules/` que o Code carrega sozinho · a memória nativa vira **ponteiro** pro índice do repo (ela auto-carregava 6 de 33 entradas — a causa-raiz do repeteco) · `capturar` colhendo **o que deu certo** e podando, `doctor` com o check 8 e `release` com o check 7. Falta: aplicar o ponteiro na pasta nativa desta máquina (fora do repo, precisa do OK do owner) e integrar. Spec: `docs/superpowers/specs/2026-08-18-evals-e-context-engineering-design.md`.
+
+<!-- histórico do estado anterior -->
 `main` — **v0.18.0 integrada e publicada no GitHub** (merge `--no-ff` de `feature/infra-msig-ou-propria`; suíte **116 verde**; em sincronia com o `origin`). O kit deixou de **assumir** a infra MSIG: agora o `kickoff` **pergunta** (MSIG × própria) e grava na linha `**Infra:**` do `CLAUDE.md`; com infra própria não entram CA do FortiGate, `docker-compose.office.yml`, proxy no `.env` nem a rede externa `mitiai_network`, o banco vai ao genérico e o `doctor` **pula** proxy/CA/rede. O `upgrade` não reintroduz nada disso e leva a linha nova perguntando. Nasceu do to-dolist de 28/07 + os 2 projetos do owner que não são MSS. Spec: `docs/superpowers/specs/2026-07-31-infra-msig-ou-propria-design.md`.
 
 <!-- histórico do estado anterior -->

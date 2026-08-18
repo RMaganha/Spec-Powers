@@ -1,6 +1,7 @@
 ---
 name: project_pendencia_intermitencia_pos_update
 description: PENDÊNCIA ABERTA — o mss-spec (junction skills-dir) às vezes para de funcionar DEPOIS de o app Claude Code atualizar, e sessão nova NÃO resolve; causa-raiz ainda não achada (falta capturar o estado quebrado)
+gatilho: quando o mss-spec parar de responder depois de o app atualizar
 metadata:
   type: project
 ---

@@ -1,6 +1,7 @@
 ---
 name: docker-build-fortigate
 description: Build Docker com ODBC atrás do FortiGate — 3 armadilhas (base bookworm, apt via HTTPS, repo MS sem duplo colchete) + rotação de proxy/appliance quebra por CA faltando no corp-ca.pem ("issuer unknown")
+gatilho: quando montar build Docker com ODBC atrás do proxy corporativo
 metadata:
   type: project
 ---

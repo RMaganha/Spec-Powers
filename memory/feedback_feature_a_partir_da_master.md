@@ -1,6 +1,7 @@
 ---
 name: feedback_feature_a_partir_da_master
 description: Fluxo de branch do kit — main é a linha principal atualizada; toda feature nova sai da main
+gatilho: quando abrir branch de feature ou fix
 metadata:
   type: feedback
 ---

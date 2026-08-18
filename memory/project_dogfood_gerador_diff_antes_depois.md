@@ -1,6 +1,7 @@
 ---
 name: project_dogfood_gerador_diff_antes_depois
 description: Gerador/CLI do kit — antes de fechar, rode no repo REAL e faça diff da saída antiga × nova; teste com fixture não vê o que só o projeto de verdade tem
+gatilho: quando fechar mudança em gerador ou CLI do kit
 metadata:
   type: project
 ---

@@ -1,6 +1,7 @@
 ---
 name: feedback_testar_js_gerado_node_check
 description: HTML/JS gerado — validar a SINTAXE do JS inline com `node --check` no teste; substring verde não pega erro de parse (a "tela branca")
+gatilho: quando gerar HTML com JS inline
 metadata:
   type: feedback
 ---

@@ -1,6 +1,7 @@
 ---
 name: feedback-validacao-ui-deterministica
 description: Nunca validar UI dirigindo o browser ao vivo (clicar/screenshot em loop); tela = teste determinístico e smoke visual = humano
+gatilho: quando for validar uma tela ou UI
 metadata:
   type: feedback
 ---

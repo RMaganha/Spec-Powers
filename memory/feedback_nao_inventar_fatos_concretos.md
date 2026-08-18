@@ -1,6 +1,7 @@
 ---
 name: feedback-nao-inventar-fatos-concretos
 description: Nunca chutar caminhos/hosts/nomes de recurso concretos — usar só o que está no repo/projeto.md ou o que o owner confirmar
+gatilho: quando citar caminho, host, nome de container, variável ou recurso
 metadata: 
   node_type: memory
   type: feedback

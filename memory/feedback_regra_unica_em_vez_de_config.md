@@ -1,6 +1,7 @@
 ---
 name: feedback_regra_unica_em_vez_de_config
 description: Owner prefere UMA regra explicável a mecanismo declarativo — proposta com seção de config foi cortada por confundir; exceções valem se cada uma cabe em 1 linha
+gatilho: quando propor mecanismo de configuração, flag ou seção declarativa
 metadata:
   type: feedback
 ---

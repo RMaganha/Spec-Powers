@@ -1,6 +1,7 @@
 ---
 name: feedback-frontend-tailwind-arquivos-separados
 description: "Front-end/HTML de aplicação — sempre Tailwind CSS + plugin @tailwindcss/typography, e JS/CSS/estilos em arquivos e pastas separadas, nunca tudo inline"
+gatilho: quando criar ou editar HTML, CSS ou JS de aplicação
 metadata: 
   node_type: memory
   type: feedback

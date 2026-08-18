@@ -1,6 +1,7 @@
 ---
 name: feedback-brownfield-entender-nao-aplicar
 description: Em projeto que já existe, entender e registrar primeiro — nunca aplicar molde/padrão por cima de infra, log ou UI própria que já funciona
+gatilho: quando trabalhar num projeto que já existia antes do kit
 metadata:
   node_type: memory
   type: feedback
