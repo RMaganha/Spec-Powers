@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **v0.20.1** (suíte **148 verde**). O ciclo de evals + context engineering fechou em 3 releases: **0.19.0** o recall (premissa com fonte · `docs/EVALS.md` · `gatilho:` nas memórias · `.claude/rules/` · ponteiro na nativa), **0.20.0** o orçamento (partida de 12.976 → 6.374 tokens, teto virando teste) e **0.20.1** o último caso aberto. **`docs/EVALS.md` está 13/13 fechados.** Falta publicar (`git push` — o owner dispara).
+`main` — **v0.20.1** (suíte **148 verde**). O ciclo de evals + context engineering fechou em 3 releases: **0.19.0** o recall (premissa com fonte · `docs/EVALS.md` · `gatilho:` nas memórias · `.claude/rules/` · ponteiro na nativa), **0.20.0** o orçamento (partida de 12.976 → 6.374 tokens, teto virando teste) e **0.20.1** o último caso aberto. **`docs/EVALS.md` está 13/13 fechados.** Publicado no GitHub (`886764a..09712d1`), em sincronia com o `origin`.
 
 <!-- histórico do estado anterior -->
 `feature/context-engineering-orcamento` (da `main`@0.19.0) — **0.20.0: o kit para de inchar a própria janela** (suíte **146 verde**). A partida caiu de **12.976 → 6.374 tokens (−51%)**: `CLAUDE.md` 17.920 → 7.989 bytes (poda por **mover, nunca apagar**), `MAPA.md` 14.621 → 3.603 (histórico foi pro `MAPA-historico.md`), `INDEX.md` 11.256 → 3.031 (fechadas foram pro `INDEX-historico.md`). Novo: check 9 do `doctor` medindo o orçamento em bytes · diretiva de `/compact` (preserva branch e **premissas**) · higiene de janela (`/clear` + subagente). A poda derrubou 9 testes de wiring — cada um restaurado ou reapontado na mão. Spec (2ª metade): `docs/superpowers/specs/2026-08-18-evals-e-context-engineering-design.md`.
