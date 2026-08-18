@@ -901,3 +901,15 @@ def test_corpus_instalado_sem_sobrescrever():
     trecho = up[up.index("docs/EVALS.md") - 400: up.index("docs/EVALS.md") + 500].lower()
     assert "não toque" in trecho or "não sobrescre" in trecho, \
         "upgrade não protege os casos já registrados no docs/EVALS.md"
+
+
+def test_pedido_com_mais_de_um_assunto():
+    """CA17 — pedido que nomeia 2+ assuntos ("evals E context engineering") exige cobertura
+    declarada de CADA um. Nasceu do F-013: entreguei a metade de recall e chamei de completo,
+    e o owner teve que apontar duas vezes o que faltava."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    low = nova.lower()
+    assert "mais de um assunto" in low, \
+        "nova-feature não trata o pedido que nomeia mais de um assunto"
+    assert "cada" in low and "sem peça" in low, \
+        "nova-feature não exige dizer qual peça serve cada assunto (e qual ficou sem)"
