@@ -2,6 +2,11 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.20.1 — 2026-08-18 (fecha o F-010: desenho se apresenta em termos do owner)
+- fix(último caso aberto do corpus): o `commands/nova-feature.md` passa a exigir que **desenho novo seja apresentado por tabela ou exemplo concreto** (o que acontece, onde, em qual arquivo) **antes** de nomear qualquer conceito — e **nunca batizar** um mecanismo que o owner não nomeou. Termo inventado pelo assistente soa como coisa que já existe no projeto e manda o owner caçar o que não está lá. Estendido também a **referência interna** (id de caso, número medido, nome de check): diga o que é na primeira menção.
+- origem: F-010 (2026-07-31) — *"chave MSIG"* travou a conversa até virar tabela do-que-acontece-onde; e a falha **reincidiu hoje**, numa resposta cheia de "F-010"/"95.593 B"/"staleness" sem explicação, o que motivou fechar o caso agora.
+- test: `test_desenho_em_termos_do_owner`. Suíte **148 passed** (era 147). **`docs/EVALS.md` fica 13/13 fechados, zero abertos** — o `/mss-spec:release` (check 7) passa a reportar corpus limpo.
+
 ## 0.20.0 — 2026-08-18 (context engineering: o kit para de inchar a própria janela)
 - diagnóstico(medido, não achado): `templates/CLAUDE.md` custava **17.920 bytes (~4.343 tokens) em TODA sessão de TODO projeto**, e o ritual de partida (CLAUDE + MAPA + MEMORY + INDEX + EVALS) somava **~13.000 tokens antes de qualquer trabalho útil** — com **79% do `MAPA.md`** em blocos `<!-- histórico -->` relidos toda vez. O owner: *"e sobre o context engineering não vi nada aqui"* — a 0.19.0 tinha entregue só a metade de **recall**.
 - feat(`doctor` check 9 — orçamento de contexto): mede em **bytes** os 5 arquivos da partida contra teto (`CLAUDE.md` 8 KB · `MAPA.md` 6 KB · `INDEX.md` 7 KB · `MEMORY.md` 25 KB/200 linhas · `EVALS.md`), dá o total e ⚠ no que estourar **apontando o conserto**. Nunca sugere apagar guardrail pra caber.
