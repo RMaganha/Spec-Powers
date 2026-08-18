@@ -41,6 +41,19 @@ bytes) · 3 regras path-scoped em `.claude/rules/` + molde em `templates/rules/`
 check 8 do `doctor` · `capturar` colhendo o acerto e podando + check 7 do `release` · proteção do
 corpus no `upgrade` (achada na revisão do próprio diff) · bump 0.19.0.
 
+## Segunda metade — depois de "não vi nada de context engineering aqui"
+Entreguei a 1ª metade (recall) e chamei o assunto de fechado. O owner apontou o buraco: o item 4 dizia
+"evals **e** context engineering", e eu tinha coberto um lado só. **Medir foi o que destravou** — 2
+minutos de `wc -c` mostraram o kit como maior consumidor de contexto do próprio projeto (`CLAUDE.md`
+17.920 bytes em toda sessão; ~13.000 tokens de partida; 79% do MAPA em histórico). Daí saíram 5 peças
+e um resultado verificável: partida de **12.976 → 6.374 tokens (−51%)**.
+
+Dois aprendizados desta metade: (1) a poda derrubou **9 testes de wiring** — foi a suíte, não minha
+memória, que garantiu "mover, nunca apagar"; cada regressão foi decidida uma a uma; (2) meu próprio
+teto (7 KB) não coube, e mudei o número **declarando o porquê** no arquivo de teste, em vez de apagar
+guardrail pra fechar a conta. Virou o caso **F-013** (entregar metade e chamar de completo) com
+guardrail no `nova-feature` e a memória [[feedback-medir-antes-de-afirmar-ganho]].
+
 ## Próximo
 F-010 segue **aberto** (jargão inventado ao explicar desenho — sem guardrail). Item 5 do to-dolist
 (garantir COMO-FUNCIONA/MAPA/mapa-neural no fecho) continua na fila, em janela própria.

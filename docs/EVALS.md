@@ -23,6 +23,7 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-010 | 2026-07-31 | quando explicar um desenho novo ao owner | comunicação | — | aberto |
 | F-011 | 2026-08-18 | quando o owner delimitar o escopo numa nota curta (to-dolist, mensagem de uma linha) | premissa não-dita | `commands/nova-feature.md` (premissa com fonte) · `test_premissa_com_fonte` | fechado |
 | F-012 | 2026-08-18 | quando confiar que a memória durável do repo já está no contexto | memória não carregou | ponteiro na nativa + check 8 do `doctor` · `test_ponteiro_memoria_nativa` | fechado |
+| F-013 | 2026-08-18 | quando o pedido nomear dois assuntos coordenados ("A **e** B") | entrega pela metade | `commands/nova-feature.md` (cubra cada assunto) · `test_pedido_com_mais_de_um_assunto` | fechado |
 
 ## F-010 · quando explicar um desenho novo ao owner — **aberto**
 

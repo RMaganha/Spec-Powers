@@ -131,7 +131,12 @@ def test_log_wiring():
     claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
     assert "templates/logging.py" in kickoff, "kickoff não monta templates/logging.py"
     assert "/logs/" in gi, "templates/gitignore precisa ignorar /logs/ ancorado na raiz"
-    assert "LOG_ATIVO" in claude, "CLAUDE.md não carrega a regra de log (LOG_ATIVO / stdout prod)"
+    # 0.20.0 — LOG_ATIVO/stdout são detalhe de config e moveram pro commands/log.md; no CLAUDE.md
+    # (que entra em TODA sessão) fica só a regra de comportamento + o ponteiro.
+    log_md = (REPO / "commands" / "log.md").read_text(encoding="utf-8")
+    assert "LOG_ATIVO" in log_md, "commands/log.md não documenta o toggle LOG_ATIVO"
+    assert "/mss-spec:log" in claude, "CLAUDE.md não aponta o /mss-spec:log"
+    assert "print" in claude, "CLAUDE.md não carrega a regra de comportamento (nunca print)"
 
 
 def test_protocolo_log_por_arquivo_wiring():
@@ -704,12 +709,15 @@ def test_guardrail_skills_dir_instalado():
     e não viu que o mss-spec é um SKILLS-DIR plugin (em ~/.claude/skills/<nome>/, mecanismo
     oficial; `claude plugin list` o mostra em 'Skills-directory plugins', √ loaded). A regra
     impede o "não instalado" indevido apontando a checagem certa."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
-    low = claude.lower()
+    # 0.20.0 — este troubleshooting saiu do CLAUDE.md (custo em toda sessão) e foi pro check 1 do
+    # doctor, que é justamente quem diagnostica "o plugin resolve?". O CLAUDE.md manda ir lá.
+    low = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8").lower()
     assert "skills-dir" in low, \
-        "CLAUDE.md não explica que o mss-spec pode estar instalado como skills-dir plugin"
+        "doctor não explica que o mss-spec pode estar instalado como skills-dir plugin"
     assert "plugin list" in low, \
-        "CLAUDE.md não aponta o `claude plugin list` como a checagem certa (não o installed_plugins.json)"
+        "doctor não aponta o `claude plugin list` como a checagem certa (não o installed_plugins.json)"
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "/mss-spec:doctor" in claude, "CLAUDE.md não manda diagnosticar a instalação pelo doctor"
 
 
 # ---- infra MSIG × infra própria (0.18.0) -----------------------------------
@@ -893,3 +901,15 @@ def test_corpus_instalado_sem_sobrescrever():
     trecho = up[up.index("docs/EVALS.md") - 400: up.index("docs/EVALS.md") + 500].lower()
     assert "não toque" in trecho or "não sobrescre" in trecho, \
         "upgrade não protege os casos já registrados no docs/EVALS.md"
+
+
+def test_pedido_com_mais_de_um_assunto():
+    """CA17 — pedido que nomeia 2+ assuntos ("evals E context engineering") exige cobertura
+    declarada de CADA um. Nasceu do F-013: entreguei a metade de recall e chamei de completo,
+    e o owner teve que apontar duas vezes o que faltava."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    low = nova.lower()
+    assert "mais de um assunto" in low, \
+        "nova-feature não trata o pedido que nomeia mais de um assunto"
+    assert "cada" in low and "sem peça" in low, \
+        "nova-feature não exige dizer qual peça serve cada assunto (e qual ficou sem)"

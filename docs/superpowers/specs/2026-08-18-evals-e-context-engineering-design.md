@@ -46,6 +46,49 @@ marcada `obsoleta:` e sai do índice (o arquivo fica, para não perder a narrati
 reporta no veredito quantos casos de `docs/EVALS.md` estão **abertos sem guardrail** — ⚠ que lista, não
 trava a publicação.
 
+### Segunda metade — orçamento de contexto (0.20.0)
+
+O kit era o maior consumidor de contexto do próprio projeto, e ninguém media. Medição de 2026-08-18:
+`templates/CLAUDE.md` custava **17.920 bytes (~4.343 tokens) em toda sessão de todo projeto**, e o
+ritual de partida somava **~13.000 tokens antes de qualquer trabalho útil** — com **79% do `MAPA.md`**
+sendo blocos `<!-- histórico -->` relidos toda vez.
+
+**7. Orçamento medido (`/mss-spec:doctor`, check 9).** Mede em bytes o que entra na janela na partida
+(`CLAUDE.md` 8 KB · `MAPA.md` 6 KB · `INDEX.md` 7 KB · `MEMORY.md` 25 KB/200 linhas · `EVALS.md`),
+soma o total e ⚠ no que estourar, **apontando o conserto** (histórico pro arquivo, procedimento pro
+comando ou pra `.claude/rules/`, memória superada pra `obsoleta:`). Nunca sugere apagar guardrail.
+
+**8. `CLAUDE.md` na altitude certa.** Teto por **bytes** (8 KB), não por linhas, e nenhuma linha acima
+de 600 bytes — linha gigante é procedimento disfarçado de regra. A poda foi **mover, nunca apagar**:
+front → `.claude/rules/frontend.md`; segurança → `docs/SEGURANCA.md`; log → `/mss-spec:log`;
+troubleshooting de instalação → check 1 do `doctor`. Guardrail que não podia sair (âncora,
+`MSS_ANCORA_OFF`, "não vasculhe", o erro literal da invocação indevida) ficou literal — a suíte pegou
+9 regressões durante a poda e cada uma foi decidida: restaurar ou mover-e-reapontar-o-teste.
+
+**9. MAPA e INDEX param de carregar arquivo morto.** O `MAPA.md` guarda o estado atual + **1** anterior
+(o resto vai pro `MAPA-historico.md`); o `INDEX.md` fica só com tarefa **aberta** + a seção
+anti-re-litígio "Fora de escopo" (fechadas vão pro `INDEX-historico.md`). Ambos lidos sob demanda.
+
+**10. Sobreviver ao `/compact`.** Diretiva no molde: ao compactar, preservar branch e assunto,
+**premissas declaradas**, critérios de aceite abertos, comando de teste com a última saída, arquivos
+tocados.
+
+**11. Higiene de janela.** `/clear` entre assuntos (o "um assunto por janela" ganhou o mecanismo) e
+investigação ampla por **subagente**, que lê em janela separada e devolve só o resumo.
+
+**Resultado medido:** partida de **12.976 → 6.374 tokens (−51%)**, já contando o `docs/EVALS.md` novo.
+
+- **CA12** — DADO `templates/CLAUDE.md`, ENTÃO ele tem ≤ 8 KB, nenhuma linha > 600 bytes, e cada
+  guardrail podado tem ponteiro pro novo lar (nenhum apagado).
+- **CA13** — DADO `docs/superpowers/MAPA.md`, ENTÃO tem ≤ 1 bloco de histórico e ≤ 6 KB, com
+  `MAPA-historico.md` guardando o resto.
+- **CA14** — DADO `docs/superpowers/INDEX.md`, ENTÃO tem ≤ 7 KB, só tarefa aberta + "Fora de escopo",
+  com `INDEX-historico.md` guardando as fechadas.
+- **CA15** — DADO `commands/doctor.md`, ENTÃO existe o check de **orçamento de contexto** medindo os 5
+  arquivos em bytes.
+- **CA16** — DADO `templates/CLAUDE.md`, ENTÃO ele traz a diretiva de `/compact` (branch + premissas) e
+  a higiene de janela (`/clear` + subagente).
+
 ### Critérios de Aceite
 
 - **CA1** — DADO `commands/nova-feature.md`, QUANDO leio o passo 2, ENTÃO ele manda declarar as premissas
@@ -75,7 +118,8 @@ que validação de comportamento ao vivo é do humano) · tipo novo de memória 
 confirmada reusam `feedback_*`) · premissas explícitas fora do `nova-feature` (`analise`/`kickoff`/regra
 sempre-ativa no `CLAUDE.md`) · mexer na estrutura do diário de sessão (premissa derrubada já é um **Pivô**)
 · `release` **bloquear** por caso aberto (é dívida de prosa, ⚠ basta) · embeddings/busca semântica sobre a
-memória (o gatilho é texto casado por leitura, não vetor).
+memória (o gatilho é texto casado por leitura, não vetor) · contar tokens de verdade (o kit mede **bytes**;
+tokenizer viraria dependência) · podar os comandos (carregam sob demanda, não na partida).
 
 ## Histórico
 
@@ -93,3 +137,10 @@ memória (o gatilho é texto casado por leitura, não vetor).
   path-scoped, suíte **136 verde** (era 116). Acrescentado ao desenho original durante a execução: a
   proteção do corpus no `upgrade` (caso é conteúdo do owner, categoria 1 não pode sobrescrever) e o
   teste `test_evals_so_cita_teste_que_existe` (corpus que cita teste fantasma é teatro).
+- 2026-08-18 — 2ª metade na 0.20.0, depois de o owner apontar que "sobre o context engineering não vi
+  nada aqui": a 1ª metade tinha entregue só **recall**. A medição mostrou o kit como maior consumidor
+  de contexto do próprio projeto (~13.000 tokens de partida, 79% do MAPA em histórico). 5 peças (G-K),
+  partida de 12.976 → **6.374 tokens (−51%)**, suíte **146 verde**. Durante a poda do `CLAUDE.md` a
+  suíte acusou **9 regressões** — a prova de que "mover, nunca apagar" precisa de teste, não de boa
+  intenção. Também mudei meu próprio teto (7 KB → 8 KB) ao constatar que os 881 bytes restantes só
+  sairiam apagando guardrail; o número está justificado no topo de `tests/test_orcamento_contexto.py`.
