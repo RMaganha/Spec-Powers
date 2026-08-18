@@ -1,3 +1,6 @@
+<!-- TETO: o MAPA é 1 tela (~6 KB). Guarde o estado atual + **1** anterior; o que sair desse rodízio
+     vai pro `docs/superpowers/MAPA-historico.md`, lido **sob demanda** ("como chegamos aqui?") e
+     nunca na partida. Histórico acumulado aqui é custo de contexto pago em TODA sessão. -->
 <!-- MAPA DE CONTEXTO do projeto (anti-amnésia de partida). Copiado pelo /mss-spec:kickoff para
      docs/superpowers/MAPA.md. É a PRIMEIRA coisa que o assistente lê ao abrir uma janela nova.
      Regra de ouro: CURTO (1 tela) e NÃO MENTE. Mantido pelo fluxo (kickoff cria; nova-feature

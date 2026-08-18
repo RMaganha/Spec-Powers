@@ -1,3 +1,5 @@
+<!-- TETO: este índice é lido na PARTIDA — só tarefa ABERTA + a seção "Fora de escopo" (anti-re-litígio).
+     Tarefa que fecha SAI daqui para o `docs/superpowers/INDEX-historico.md`, lido sob demanda. -->
 <!-- Índice de TAREFAS do projeto. O /mss-spec:kickoff SEMEIA aqui as necessidades levantadas na conversa
      (1 linha 'aberta' por assunto, ainda sem spec); o /mss-spec:nova-feature mantém depois: 1 linha por tarefa.
      O link aponta pra spec viva do assunto (uma por assunto, em docs/specs/).
