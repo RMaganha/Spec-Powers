@@ -144,3 +144,7 @@ tokenizer viraria dependência) · podar os comandos (carregam sob demanda, não
   suíte acusou **9 regressões** — a prova de que "mover, nunca apagar" precisa de teste, não de boa
   intenção. Também mudei meu próprio teto (7 KB → 8 KB) ao constatar que os 881 bytes restantes só
   sairiam apagando guardrail; o número está justificado no topo de `tests/test_orcamento_contexto.py`.
+- 2026-08-18 — 0.20.1: fechado o **F-010**, último caso aberto do corpus — desenho novo se
+  apresenta por tabela/exemplo concreto e não se batiza conceito que o owner não nomeou
+  (`test_desenho_em_termos_do_owner`). O corpus fica **13/13 fechados**. Motivo de fechar agora: a
+  falha reincidiu na própria sessão, numa resposta cheia de referência interna não explicada.

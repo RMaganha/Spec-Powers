@@ -913,3 +913,15 @@ def test_pedido_com_mais_de_um_assunto():
         "nova-feature não trata o pedido que nomeia mais de um assunto"
     assert "cada" in low and "sem peça" in low, \
         "nova-feature não exige dizer qual peça serve cada assunto (e qual ficou sem)"
+
+
+def test_desenho_em_termos_do_owner():
+    """F-010 — apresentei um desenho usando um termo que EU inventei ("chave MSIG") e a conversa
+    travou até eu trocar por uma tabela do-que-acontece-onde. Termo que o owner não usou soa como
+    coisa que já existe, e o manda caçar o que não está lá — custa uma rodada inteira."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    low = nova.lower()
+    assert "batiz" in low, "nova-feature não proíbe batizar conceito que o owner não nomeou"
+    assert "tabela" in low and "exemplo concreto" in low, \
+        "nova-feature não manda apresentar o desenho por tabela/exemplo concreto antes de nomear"
+    assert "f-010" in low, "o guardrail não aponta o caso de origem no corpus"
