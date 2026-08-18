@@ -1,6 +1,7 @@
 ---
 name: plugin-load-cross-marketplace
 description: NÃO declarar dependência cross-marketplace no plugin.json enquanto o mss-spec carrega via skills-dir/symlink — quebra o load e somem TODOS os comandos
+gatilho: quando mexer em dependências no plugin.json
 metadata:
   type: project
 ---

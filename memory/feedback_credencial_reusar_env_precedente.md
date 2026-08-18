@@ -1,6 +1,7 @@
 ---
 name: credencial-reusar-env-precedente
 description: Segredo de conexão — env-var (recomendado pra web app Azure: .env dev → App Settings prod) OU Fernet-no-código (continuidade, é ofuscação); escolha por-projeto no /mss-spec:banco; nunca pedir credencial digitada nem pôr segredo no código/commit
+gatilho: quando configurar conexão de banco ou qualquer segredo da aplicação
 metadata:
   type: feedback
 ---

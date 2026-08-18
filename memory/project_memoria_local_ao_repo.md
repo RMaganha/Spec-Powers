@@ -1,6 +1,7 @@
 ---
 name: project-memoria-local-ao-repo
 description: "Decisão do owner — memória persistente do kit Spec-Powers vive em memory/ dentro do repo do projeto, não em ~/.claude/projects/<proj>/memory/"
+gatilho: quando gravar memória ou aprendizado durável
 metadata: 
   node_type: memory
   type: project
@@ -28,7 +29,12 @@ porque a regra repo-local do plugin é por-projeto. Fix: (1) regra no **`~/.clau
 `C:\Ronaldo\_Mitsui\_backup-claude\<timestamp>\`.
 
 **Protocolo replicado do nativo** (não é um sistema novo, só relocado):
-- `memory/MEMORY.md` é só **índice** (1 linha por item, até ~150-200 linhas) — nunca o conteúdo.
+- `memory/MEMORY.md` é só **índice** — nunca o conteúdo. Desde 2026-08-18 ele é **agrupado por gatilho**
+  (cada linha começa por *quando* abrir) e tem teto de **200 linhas / 25 KB**, o mesmo que o Claude Code
+  aplica ao índice de auto-memory.
+- **A pasta nativa não é mais 2ª fonte:** só o `MEMORY.md` **dela** é auto-carregado no início da sessão,
+  então ela guarda apenas um **ponteiro de uma linha** pro índice do repo. Sem isso, o durável fica fora
+  do contexto sem ninguém notar — foi o que aconteceu com 27 das 33 memórias (caso F-012 de `docs/EVALS.md`).
 - Arquivos individuais em `memory/` (frontmatter: name/description/metadata.type) são lidos **sob demanda**,
   só quando o índice aponta relevância — nunca a pasta inteira de uma vez.
 - Manutenção/poda: skill `anthropic-skills:consolidate-memory`, rodada periodicamente.

@@ -3,6 +3,9 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-08-18
+- [evals-e-context-engineering] o kit fecha o laço falha → caso → guardrail → teste (0.19.0): premissa **com fonte** antes do OK, `docs/EVALS.md` com 12 casos reais, `gatilho:` nas 34 memórias + índice agrupado por gatilho, `.claude/rules/` path-scoped, a nativa virando ponteiro, `capturar` colhendo o acerto e `release` cobrando caso aberto; pivôs: o owner cortou meu 1º desenho por **raso** (transcrevi o item do to-dolist), a pesquisa em **fonte Anthropic** destampou 4 mecanismos que o kit não usava, e o achado de que o índice auto-carregado é o **nativo com 6 de 33 entradas** trocou 'espelhar o índice' por 'ponteiro de uma linha'; achei ainda uma memória que **mentia** ('o MEMORY.md já vem carregado') → sessions/2026-08-18-evals-e-context-engineering.md
+
 ## 2026-07-31
 - [infra-msig-ou-propria] o kit deixou de assumir a infra MSIG: `kickoff` pergunta e grava na linha `**Infra:**` do `CLAUDE.md`; com infra própria caem CA, compose office, proxy, rede externa e o `get_connection` corporativo, e o `doctor` pula proxy/CA/rede; pivôs: meu jargão ("chave MSIG") travou a conversa até eu trocar por tabela do-que-acontece-onde, o owner cravou o escopo, e ao escrever apareceu que a categoria 1 do `upgrade` reintroduziria tudo (freio) e que projeto antigo tem de receber a linha **perguntando** → sessions/2026-07-31-infra-msig-ou-propria.md
 - [mapa-neural-limite-e-camadas] 2ª rodada (0.17.0): fim do corte silencioso (limite 200 + `… (+N)`) e regra única "se está no repo, está no mapa" (camada por conteúdo, árvore descendo, exceções = ferramenta · docs/memory · `.gitignore` · `--ignorar`); pivôs: o owner cortou minha seção declarativa por complexidade e corrigiu 2 premissas (n8n entra; subpasta com código tem que ser mapeada); bug silencioso meu: `text=True` no Windows mandou `backup/\r` pro git e matou o filtro sem erro → sessions/2026-07-31-mapa-neural-limite-e-camadas.md

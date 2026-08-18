@@ -1,6 +1,7 @@
 ---
 name: project_subprocess_texto_windows_quebra_git
 description: subprocess com text=True no Windows converte \n em \r\n na entrada — o git recebe o caminho com CR e devolve tudo aspeado; use bytes + `-z`
+gatilho: quando chamar processo externo (git, cli) por subprocess no Windows
 metadata:
   type: project
 ---

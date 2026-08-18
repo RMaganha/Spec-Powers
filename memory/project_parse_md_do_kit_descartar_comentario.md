@@ -1,6 +1,7 @@
 ---
 name: project_parse_md_do_kit_descartar_comentario
 description: Ler .md do kit por código — descarte os comentários HTML antes de parsear (é onde vivem os placeholders) e filtre `<placeholder>` só em campo curto, nunca na linha inteira
+gatilho: quando escrever código que parseia .md do kit
 metadata:
   type: project
 ---

@@ -1,6 +1,7 @@
 ---
 name: feedback_nao_encerrar_com_pergunta
 description: não terminar respostas com pergunta/oferta de próximo passo não solicitada
+gatilho: quando fechar uma resposta ou entrega
 metadata:
   type: feedback
 ---

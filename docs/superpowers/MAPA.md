@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/evals-e-context-engineering` (da `main`@0.18.0) — **0.19.0: evals e context engineering, pronta pra integrar** (suíte **136 verde**, era 116). O laço **falha → caso → guardrail → teste** existe: premissa **com fonte** antes do OK no `nova-feature` · `docs/EVALS.md` com os **12 casos reais** deste repo (sem guardrail = `aberto`) · `gatilho:` nas **34** memórias e índice agrupado por gatilho (teto 200 linhas/25 KB) · 3 regras **path-scoped** em `.claude/rules/` que o Code carrega sozinho · a memória nativa vira **ponteiro** pro índice do repo (ela auto-carregava 6 de 33 entradas — a causa-raiz do repeteco) · `capturar` colhendo **o que deu certo** e podando, `doctor` com o check 8 e `release` com o check 7. O ponteiro na pasta nativa desta máquina **já foi aplicado** (a nativa tinha 6 das 33 entradas). Spec: `docs/superpowers/specs/2026-08-18-evals-e-context-engineering-design.md`.
+
+<!-- histórico do estado anterior -->
 `main` — **v0.18.0 integrada e publicada no GitHub** (merge `--no-ff` de `feature/infra-msig-ou-propria`; suíte **116 verde**; em sincronia com o `origin`). O kit deixou de **assumir** a infra MSIG: agora o `kickoff` **pergunta** (MSIG × própria) e grava na linha `**Infra:**` do `CLAUDE.md`; com infra própria não entram CA do FortiGate, `docker-compose.office.yml`, proxy no `.env` nem a rede externa `mitiai_network`, o banco vai ao genérico e o `doctor` **pula** proxy/CA/rede. O `upgrade` não reintroduz nada disso e leva a linha nova perguntando. Nasceu do to-dolist de 28/07 + os 2 projetos do owner que não são MSS. Spec: `docs/superpowers/specs/2026-07-31-infra-msig-ou-propria-design.md`.
 
 <!-- histórico do estado anterior -->
@@ -45,6 +48,9 @@
 `main` — **v0.10.1** (F2.1 do mapa neural): clique num balão-folha `.md` abre o arquivo **renderizado em nova aba** (`coletar_docs` + `mdToHtml`/`openDoc`; self-contained, zero CDN).
 
 ## Próximo passo
+**Sentir a 0.19.0 em uso, em sessão nova** — é o único teste que importa aqui: numa janela recarregada, o índice do repo tem que entrar sozinho (pelo ponteiro da nativa) e as regras de `.claude/rules/` têm que acender quando eu tocar um `.html`/`.sql`/`routes/`. Se o owner ainda precisar lembrar de algo que está na memória, isso vira caso novo em `docs/EVALS.md`. Depois: **1 caso aberto** (F-010, jargão inventado ao explicar desenho) e o **item 5 do to-dolist** (garantir COMO-FUNCIONA/MAPA/mapa-neural no fecho), em janela própria. `git push` só quando o owner pedir.
+
+<!-- histórico do próximo passo anterior -->
 Nos **2 projetos que não são MSS**, rodar o `/mss-spec:upgrade` pra a linha `**Infra:**` chegar lá — ele vai **perguntar**; respondendo "própria", o `doctor` para de cobrar proxy/CA/rede e o upgrade para de reintroduzir CA e compose office. **Ciclo do mapa neural fechado** e validado em campo (24 rotas, 0 fantasmas, 36/36 memórias, 8 camadas reais). Na fila: **canário da cerca da âncora em sessão nova** (escrita fora da âncora → `[mss-spec] BLOQUEADO`; se não bloquear, registrar o hook no `settings.json` pelo `hooks/README.md`) e o **1º uso real do `/mss-spec:analise`** no projeto de RAG/pgvector.
 
 <!-- histórico do próximo passo anterior -->

@@ -25,6 +25,7 @@ Três categorias:
 1. **Arquivos só-do-kit (referência) — atualiza sozinho, sem perguntar.** São iguais em todo projeto; substitua pela versão nova do template:
    - `docs/SEGURANCA.md` ← `templates/SEGURANCA.md`
    - `docs/ESTRUTURA.md` ← `templates/ESTRUTURA.md`
+   - `.claude/rules/*.md` ← `templates/rules/` (regras path-scoped; **acrescente as que faltam**, e não recrie a que o projeto apagou de propósito por não se aplicar)
    - `docs/FRONTEND.md` ← `templates/FRONTEND.md` (só se o projeto tem UI web)
    - `docker-compose.yml` · `docker-compose.office.yml` · `Dockerfile` · `.dockerignore` ← `templates/docker/` (só se o projeto usa Docker)
    - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou)
@@ -40,6 +41,8 @@ Três categorias:
    - **Limite honesto:** o upgrade não guarda a versão *antiga* do template que o projeto nasceu, então a reconciliação é por seção/regra (não é 3-way merge). Na dúvida entre mexer ou não, **erre pro lado de manter o do owner**.
    - **Caso da linha `**Infra:**` (novidade da 0.18.0):** ela é o que faz o kit parar de assumir a infra MSIG, e num projeto anterior a esta versão **não existe**. Ao mesclar o `CLAUDE.md`, acrescente-a no Contexto — mas **não escolha por ele**: mostre as duas opções e **pergunte** (*"este projeto roda na infra MSIG — rede `mitiai_network`, proxy, CA do FortiGate, SQL Server corporativo — ou tem infra própria?"*). Enquanto ele não responder, deixe `<MSIG | própria — a confirmar>`; **assumir MSIG em silêncio é justamente o erro** que a versão conserta.
    - **Caso do `MAPA.md`:** se **falta**, crie de `${CLAUDE_PLUGIN_ROOT}/templates/MAPA.md` (novidade do kit num projeto que nasceu antes dela — senão a regra de partida no `CLAUDE.md` apontaria pra um arquivo inexistente). Se **já existe**, **mescle a ESTRUTURA** do template que faltar — as 3 seções fixas (`Onde estamos`, `Próximo passo`, `Conexões`) e o **comentário-guia do formato de Conexões** (o `/mss-spec:mapa-neural` depende dele pra parsear) — **mantendo intacto** o conteúdo que o owner preencheu (branch/próximo passo/conexões declaradas). O conteúdo é volátil/regenerável (`/mss-spec:mapa` reconcilia), então **não trate divergência de conteúdo como conflito** — erre pro lado de manter o do owner e só garanta que a estrutura nova está presente.
+
+   - **Caso do `docs/EVALS.md` (novidade da 0.19.0):** se **falta**, crie de `${CLAUDE_PLUGIN_ROOT}/templates/EVALS.md` — **vazio de casos** (o corpus é do projeto; nunca invente falha que não aconteceu). Se **já existe**, **não toque**: os casos são conteúdo do owner, jamais sobrescritos pela categoria 1. Mesma coisa pro `memory/MEMORY.md`: se o índice ainda não estiver agrupado por **gatilho**, **proponha** a migração (mostrando o antes/depois) em vez de reescrever sozinho.
 
 3. **Código do projeto (ex.: `utils/get_connection.py`) — só avisa.** Mexer em código sozinho é arriscado. Se `templates/get_connection.py` evoluiu, **mostre o diff** e diga "o molde do kit mudou — revise à mão"; **não** aplique.
 

@@ -1,6 +1,7 @@
 ---
 name: marketplace-relative-path-serve-git-e-local
 description: marketplace.json com source relative-path serve tanto add por pasta local quanto por URL git — o Code clona o repo e resolve o plugin dentro do clone; não precisa source separado
+gatilho: quando publicar ou instalar o kit por marketplace
 metadata:
   type: project
 ---

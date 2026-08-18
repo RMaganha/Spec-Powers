@@ -1,6 +1,7 @@
 ---
 name: feedback-avaliar-tool-externa-ideia-vs-stack
 description: Ao avaliar ferramenta externa, separar a IDEIA da IMPLEMENTAÇÃO — integrar o stack só se casar com os pilares; senão, capturar só a ideia
+gatilho: quando avaliar ferramenta/plugin externo pra integrar ao kit
 metadata:
   node_type: memory
   type: feedback

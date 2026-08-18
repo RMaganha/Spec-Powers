@@ -1,6 +1,7 @@
 ---
 name: feedback-projeto-ativo-read-only
 description: Um projeto por janela — o projeto ativo é a âncora de escrita e não migra; qualquer outro projeto é referência somente-leitura
+gatilho: quando a tarefa mencionar outro projeto além do desta janela
 metadata:
   node_type: memory
   type: feedback

@@ -1,6 +1,7 @@
 ---
 name: front-moderno-mantine
 description: Padrão de front em dois níveis — Jinja+Tailwind (simples) × React+TS+Mantine (denso); Mantine escolhida, Next/Remix fora de propósito; decisão por-tela
+gatilho: quando decidir o nível de front de uma tela
 metadata:
   type: project
 ---
