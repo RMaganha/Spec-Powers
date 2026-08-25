@@ -6,6 +6,9 @@
 
 ## Estados anteriores
 <!-- histórico do estado anterior -->
+`main` — **v0.21.0 publicada no GitHub** (`c56e452..9587413`, em sincronia com o `origin`; merge `--no-ff` de `feature/divergir`; suíte **149 verde**). **Anti-ancoragem no design**, ideia do repo `adhd` em prosa (stack npm rejeitado — 3º ideia-vs-stack): piso sempre-ativo no brainstorm do `nova-feature` (frames distintos + armadilha sedutora) · `/mss-spec:divergir` (subagentes isolados, **auto-proposto** quando a decisão é aberta E cara de reverter; caso **F-014**, corpus **14/14 fechados**) · memória com `gatilho:`. Spec: `docs/specs/divergir.md`.
+
+<!-- histórico do estado anterior -->
 `feature/divergir` (da `main`@0.20.1) — **anti-ancoragem no design**: a ideia do repositório `adhd` (divergir antes de convergir) reimplementada em prosa, com o stack npm rejeitado. Três camadas: piso sempre-ativo no brainstorm do `nova-feature` (abordagens sob frames distintos + armadilha sedutora marcada) · comando opt-in `/mss-spec:divergir` (subagentes isolados, 1 frame cada; auto-proposto quando a decisão é **aberta e cara de reverter**) · memória com `gatilho:` pras janelas fora do ritual. Spec: `docs/specs/divergir.md`.
 
 <!-- histórico do estado anterior -->
