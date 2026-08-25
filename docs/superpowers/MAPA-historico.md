@@ -6,6 +6,9 @@
 
 ## Estados anteriores
 <!-- histórico do estado anterior -->
+`feature/divergir` (da `main`@0.20.1) — **anti-ancoragem no design**: a ideia do repositório `adhd` (divergir antes de convergir) reimplementada em prosa, com o stack npm rejeitado. Três camadas: piso sempre-ativo no brainstorm do `nova-feature` (abordagens sob frames distintos + armadilha sedutora marcada) · comando opt-in `/mss-spec:divergir` (subagentes isolados, 1 frame cada; auto-proposto quando a decisão é **aberta e cara de reverter**) · memória com `gatilho:` pras janelas fora do ritual. Spec: `docs/specs/divergir.md`.
+
+<!-- histórico do estado anterior -->
 `main` — **v0.20.1** (suíte **148 verde**). O ciclo de evals + context engineering fechou em 3 releases: **0.19.0** o recall (premissa com fonte · `docs/EVALS.md` · `gatilho:` nas memórias · `.claude/rules/`), **0.20.0** o orçamento (partida 12.976 → 6.374 tokens, teto virando teste), **0.20.1** o último caso aberto — **`docs/EVALS.md` 13/13 fechados**. Publicado no GitHub (`886764a..09712d1`), em sincronia com o `origin`.
 
 <!-- histórico do estado anterior -->

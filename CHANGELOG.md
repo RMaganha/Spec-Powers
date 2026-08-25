@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.22.0 — 2026-08-25 (anatomia de runtime: o kit se explica com números medidos)
+- feat(`/mss-spec:anatomia` + `templates/anatomia.py`): gerador determinístico (irmão do mapa-neural) que produz `docs/anatomia.html` — **quando** cada peça entra na janela (partida/evento/demanda/fecho; a lane "sob demanda" se distribui sozinha pelo frontmatter, invocável × `disable-model-invocation`) · **matriz lê×escreve** por artefato · **riscos** (curados + medidos: caso aberto do EVALS, orçamento estourado) · **fila** (MAPA + INDEX). Números sempre **medidos** (manifestos lidos com `utf-8-sig` — a lição do BOM de ontem virou código e teste); metadado curado declara `alvos` e o teste confere que todos existem.
+- chore(gitignore ×2 + LEIA-ME): saída ancorada `/docs/anatomia.html` (padrão solto ignoraria `commands/anatomia.md` — mesma armadilha do mapa-neural) e comando listado.
+- origem: item do to-dolist de 2026-08-25, nascido do protótipo manual da sessão de avaliação do kit. Decisão gerador × prosa × nada em `docs/decisoes.md`. Spec viva: `docs/specs/anatomia.md`.
+- test: `tests/test_anatomia.py` (9, incl. regressão do BOM e `node --check` do JS) + `test_anatomia_wiring`. Suíte **159 passed** (era 149).
+
 ## 0.21.0 — 2026-08-25 (anti-ancoragem no design: divergir antes de convergir)
 - feat(`/mss-spec:divergir`): novo comando opt-in — 3-5 **subagentes paralelos isolados** (1 frame cognitivo cada: inversão, plantonista às 3h, orçamento $0/$∞, auditor, concorrente, leigo) geram abordagens sem se ver, e a janela faz o **crítico** (agrupa, pontua novidade×viabilidade×encaixe, marca a **armadilha sedutora** por grupo, aprofunda top-2). Gate de pré-voo: decisão **aberta** (2+ arquiteturas, sem precedente MSIG — reuso vence divergência) **e cara de reverter**, custo (~10 chamadas, 5-10×) sempre anunciado.
 - feat(`nova-feature`, 2 ganchos): piso **sempre-ativo** no brainstorm — as 2-3 abordagens vêm de frames deliberadamente distintos, cada uma com a armadilha sedutora marcada; e **auto-proposta** do `divergir` quando a decisão qualifica — o gatilho vive no kit, não na cabeça do owner ("pode ser que eu esqueça de chamar e aí?"). 3ª camada: memória `feedback_divergir_antes_de_convergir.md` com `gatilho:` pras janelas fora do ritual.
