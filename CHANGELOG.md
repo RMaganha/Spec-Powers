@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.21.0 — 2026-08-25 (anti-ancoragem no design: divergir antes de convergir)
+- feat(`/mss-spec:divergir`): novo comando opt-in — 3-5 **subagentes paralelos isolados** (1 frame cognitivo cada: inversão, plantonista às 3h, orçamento $0/$∞, auditor, concorrente, leigo) geram abordagens sem se ver, e a janela faz o **crítico** (agrupa, pontua novidade×viabilidade×encaixe, marca a **armadilha sedutora** por grupo, aprofunda top-2). Gate de pré-voo: decisão **aberta** (2+ arquiteturas, sem precedente MSIG — reuso vence divergência) **e cara de reverter**, custo (~10 chamadas, 5-10×) sempre anunciado.
+- feat(`nova-feature`, 2 ganchos): piso **sempre-ativo** no brainstorm — as 2-3 abordagens vêm de frames deliberadamente distintos, cada uma com a armadilha sedutora marcada; e **auto-proposta** do `divergir` quando a decisão qualifica — o gatilho vive no kit, não na cabeça do owner ("pode ser que eu esqueça de chamar e aí?"). 3ª camada: memória `feedback_divergir_antes_de_convergir.md` com `gatilho:` pras janelas fora do ritual.
+- origem: avaliação do repo [adhd](https://github.com/uditakhourii/adhd) (convergência prematura do chain-of-thought). **Ideia acolhida, stack npm rejeitado** (`adhd-agent` TypeScript/CLI — o kit é comandos-prosa sem dependência de runtime; 3º precedente do padrão ideia-vs-stack, ver `docs/decisoes.md`). Spec viva: `docs/specs/divergir.md`.
+- test: `test_divergir_wiring`. Suíte **149 passed** (era 148).
+
 ## 0.20.1 — 2026-08-18 (fecha o F-010: desenho se apresenta em termos do owner)
 - fix(último caso aberto do corpus): o `commands/nova-feature.md` passa a exigir que **desenho novo seja apresentado por tabela ou exemplo concreto** (o que acontece, onde, em qual arquivo) **antes** de nomear qualquer conceito — e **nunca batizar** um mecanismo que o owner não nomeou. Termo inventado pelo assistente soa como coisa que já existe no projeto e manda o owner caçar o que não está lá. Estendido também a **referência interna** (id de caso, número medido, nome de check): diga o que é na primeira menção.
 - origem: F-010 (2026-07-31) — *"chave MSIG"* travou a conversa até virar tabela do-que-acontece-onde; e a falha **reincidiu hoje**, numa resposta cheia de "F-010"/"95.593 B"/"staleness" sem explicação, o que motivou fechar o caso agora.

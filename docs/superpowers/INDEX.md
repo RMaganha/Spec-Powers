@@ -7,6 +7,7 @@
 
 ## A fazer (ordem)
 5. upgrade — sincroniza projeto existente com a evolução dos templates — **em andamento** (sem commit)
+- [divergir](../specs/divergir.md) — anti-ancoragem no design: piso de frames no brainstorm + `/mss-spec:divergir` opt-in auto-proposto — aberta
 
 ## Fora de escopo (não fazer)
 Key Vault direto (escolhemos variável de ambiente) · profiles multi-nuvem · generators no lugar de templates · registry / capabilities / catálogo de arquiteturas · policies como camada nova · feature matrix · hooks pre-commit bloqueantes · `modo` mexendo no `effortLevel` · **na análise de projeto existente:** spec viva pra assunto visto só por **amostragem** · aplicar molde do kit ou reorganizar pastas em brownfield · análise semântica profunda (call graph/tipos) · executar o código do projeto · **na cerca da âncora:** vigiar Bash/PowerShell (heurística de shell é furada e dá falso positivo) · vigiar leitura de outro projeto (é o objetivo do `precedentes`) · check "a cerca está ativa?" no `doctor` · **no mapa-neural:** Django (`path()`/`re_path()`), `add_url_rule` e resolver o `url_prefix` de Blueprint no registro (o caminho sai como está escrito no decorator) · filtro de placeholder no `to-dolist` (item de verdade cita `<algo>`) · **seção declarativa `## Camadas` no `MAPA.md`** e **ler intenção em prosa do `CLAUDE.md`** (quem declara "isto não é o projeto" é o `.gitignore` ou o `--ignorar`)
