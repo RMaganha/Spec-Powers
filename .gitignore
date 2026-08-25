@@ -41,3 +41,6 @@ node_modules/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Anatomia de runtime (/mss-spec:anatomia) — saida derivada/regeneravel, mesma regra do mapa-neural
+/docs/anatomia.html

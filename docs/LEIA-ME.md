@@ -65,6 +65,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | `/mss-spec:precedentes <assunto>` | Consulta o catálogo do que já foi resolvido em outro projeto MSIG |
 | `/mss-spec:mapa` | Lê/atualiza o mapa de contexto (`docs/superpowers/MAPA.md`): onde estamos · próximo passo · conexões com outros projetos MSIG — reconcilia com git/INDEX/código e grava |
 | `/mss-spec:mapa-neural` | Agrega as seções Conexões dos `MAPA.md` de todos os repos (via `MSIG_REPOS_DIR`) num índice de texto + um grafo HTML self-contained "o que vai pra onde" |
+| `/mss-spec:anatomia` | Gera o painel "anatomia de runtime" do kit: quando cada peça entra na janela (partida/evento/demanda/fecho) · matriz quem lê × quem escreve · riscos · fila — números medidos, HTML self-contained fora do git |
 | `/mss-spec:modo <nível>` | Alterna o nível de cerimônia do fluxo: mínimo · médio (padrão) · alto |
 | `/mss-spec:memory <modo>` | Memória do projeto: `resgatar` a nativa (`~/.claude/...`) pro `memory/` do repo (não-destrutivo) · `capturar` a sessão em decisões (incl. "não fazer") + diário datado (`memory/sessions/` + `DIARIO.md`) |
 | `/mss-spec:to-dolist <ação>` | Caixa de captura pessoal (adicionar/listar/feito), visível em qualquer branch, fora do git |

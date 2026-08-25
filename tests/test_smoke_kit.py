@@ -948,6 +948,32 @@ def test_divergir_wiring():
     assert "feedback_divergir_antes_de_convergir.md" in idx, "a memória do divergir está fora do índice"
 
 
+def test_anatomia_wiring():
+    """Painel 'anatomia de runtime' montado: gerador testável em templates/, comando aponta o
+    script e declara a saída derivada FORA do git (ancorada em /docs/, mesma armadilha do
+    mapa-neural: padrão solto ignoraria commands/anatomia.md), LEIA-ME lista o comando, e o
+    painel é PRO HUMANO (o assistente segue lendo MAPA/INDEX/memória como fonte).
+    O comportamento do gerador vive em tests/test_anatomia.py."""
+    assert (REPO / "templates" / "anatomia.py").exists(), "falta templates/anatomia.py (o gerador)"
+    assert (REPO / "commands" / "anatomia.md").exists(), "falta commands/anatomia.md"
+    cmd = (REPO / "commands" / "anatomia.md").read_text(encoding="utf-8")
+    low = cmd.lower()
+    assert "templates/anatomia.py" in cmd, "anatomia.md não aponta o gerador templates/anatomia.py"
+    assert "fora do git" in low, "anatomia.md não declara a saída como derivada/fora do git"
+    assert "pro humano" in low, "anatomia.md não carrega 'visual é pro humano; dados pro assistente'"
+    for secao in ("partida", "matriz", "risco", "fila"):
+        assert secao in low, f"anatomia.md não descreve a seção de {secao}"
+
+    for gi_path in ("templates/gitignore", ".gitignore"):
+        linhas = [l.strip() for l in (REPO / gi_path).read_text(encoding="utf-8").splitlines()]
+        assert "/docs/anatomia.html" in linhas, f"{gi_path} não ancora a saída /docs/anatomia.html"
+        assert "anatomia.md" not in linhas, \
+            f"{gi_path}: padrão 'anatomia.md' SOLTO ignoraria commands/anatomia.md — ancore em /docs/"
+
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:anatomia" in leiame, "LEIA-ME não lista o comando /mss-spec:anatomia"
+
+
 def test_desenho_em_termos_do_owner():
     """F-010 — apresentei um desenho usando um termo que EU inventei ("chave MSIG") e a conversa
     travou até eu trocar por uma tabela do-que-acontece-onde. Termo que o owner não usou soa como
