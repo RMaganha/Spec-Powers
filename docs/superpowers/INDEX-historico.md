@@ -3,6 +3,7 @@
 
 # Índice de tarefas — histórico (fechadas)
 ## Feito
+0. [divergir](../specs/divergir.md) — anti-ancoragem no design: piso de frames no brainstorm + `/mss-spec:divergir` opt-in auto-proposto — fechada (0.21.0, b47a390)
 1. superpowers como dependência — **revertido** (a dep cross-marketplace quebrava o load via skills-dir/symlink; superpowers segue habilitado no `settings.json`). Reentra com o **item 9** (marketplace git), onde a allowlist funciona.
 2. tirar C:\Ronaldo dos arquivos — caminhos portáveis (precedentes/banco) — fechada (7cda347)
 3. to-dolist — captura rápida visível em qualquer branch — fechada (97c28cb)
