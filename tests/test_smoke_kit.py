@@ -915,6 +915,39 @@ def test_pedido_com_mais_de_um_assunto():
         "nova-feature não exige dizer qual peça serve cada assunto (e qual ficou sem)"
 
 
+def test_divergir_wiring():
+    """Anti-ancoragem no design (ideia do repo `adhd`; stack npm rejeitado — ver decisoes.md),
+    montada em 3 camadas: (1) piso SEMPRE-ATIVO no brainstorm do nova-feature — as 2-3 abordagens
+    vêm de frames deliberadamente distintos e cada uma tem a armadilha sedutora marcada;
+    (2) comando opt-in /mss-spec:divergir (subagentes paralelos ISOLADOS, 1 frame cada; a janela
+    é o crítico) com gate de AUTO-PROPOSTA no nova-feature — decisão aberta E cara de reverter →
+    o assistente propõe sozinho, anunciando o custo (o owner não precisa lembrar que existe);
+    (3) memória com gatilho cobre as janelas que não passam pelo nova-feature."""
+    # (2) o comando existe e descreve o mecanismo
+    cmd = REPO / "commands" / "divergir.md"
+    assert cmd.exists(), "falta commands/divergir.md"
+    div = cmd.read_text(encoding="utf-8")
+    low = div.lower()
+    assert "subagente" in low, "divergir.md não dispara subagentes (a divergência é paralela)"
+    assert "isolad" in low, "divergir.md não exige isolamento entre os ramos (é o que mata a ancoragem)"
+    assert "frame" in low, "divergir.md não usa frames (ângulos deliberadamente distintos)"
+    assert "armadilha" in low, "divergir.md não manda o crítico marcar a armadilha sedutora"
+    assert "custo" in low, "divergir.md não declara o custo (5-10× uma resposta direta)"
+    assert "precedente" in low, "divergir.md não subordina a divergência ao precedente MSIG (reuso vence)"
+    # (1) + (2) as pontes no nova-feature: piso sempre-ativo e auto-proposta com critério
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    nlow = nova.lower()
+    assert "frames" in nlow, "nova-feature não exige frames distintos nas abordagens do brainstorm"
+    assert "armadilha sedutora" in nlow, "nova-feature não manda marcar a armadilha sedutora por abordagem"
+    assert "/mss-spec:divergir" in nova, "nova-feature não aponta o /mss-spec:divergir"
+    assert "cara de reverter" in nlow, "nova-feature não carrega o critério de auto-proposta (aberta + cara de reverter)"
+    # (3) a memória com gatilho existe e está no índice (formato validado pelo test_memoria_gatilho)
+    assert (REPO / "memory" / "feedback_divergir_antes_de_convergir.md").exists(), \
+        "falta memory/feedback_divergir_antes_de_convergir.md (a rede fora do nova-feature)"
+    idx = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "feedback_divergir_antes_de_convergir.md" in idx, "a memória do divergir está fora do índice"
+
+
 def test_desenho_em_termos_do_owner():
     """F-010 — apresentei um desenho usando um termo que EU inventei ("chave MSIG") e a conversa
     travou até eu trocar por uma tabela do-que-acontece-onde. Termo que o owner não usou soa como

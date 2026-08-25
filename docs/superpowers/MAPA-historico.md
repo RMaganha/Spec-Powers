@@ -6,6 +6,9 @@
 
 ## Estados anteriores
 <!-- histórico do estado anterior -->
+`feature/context-engineering-orcamento` (da `main`@0.19.0) — **0.20.0: o kit para de inchar a própria janela** (suíte **146 verde**). A partida caiu de **12.976 → 6.374 tokens (−51%)**: `CLAUDE.md` 17.920 → 7.989 bytes (poda por **mover, nunca apagar**), `MAPA.md` 14.621 → 3.603 (histórico foi pro `MAPA-historico.md`), `INDEX.md` 11.256 → 3.031 (fechadas foram pro `INDEX-historico.md`). Novo: check 9 do `doctor` medindo o orçamento em bytes · diretiva de `/compact` (preserva branch e **premissas**) · higiene de janela (`/clear` + subagente). A poda derrubou 9 testes de wiring — cada um restaurado ou reapontado na mão. Spec (2ª metade): `docs/superpowers/specs/2026-08-18-evals-e-context-engineering-design.md`.
+
+<!-- histórico do estado anterior -->
 `feature/evals-e-context-engineering` (da `main`@0.18.0) — **0.19.0: evals e context engineering, pronta pra integrar** (suíte **136 verde**, era 116). O laço **falha → caso → guardrail → teste** existe: premissa **com fonte** antes do OK no `nova-feature` · `docs/EVALS.md` com os **12 casos reais** deste repo (sem guardrail = `aberto`) · `gatilho:` nas **34** memórias e índice agrupado por gatilho (teto 200 linhas/25 KB) · 3 regras **path-scoped** em `.claude/rules/` que o Code carrega sozinho · a memória nativa vira **ponteiro** pro índice do repo (ela auto-carregava 6 de 33 entradas — a causa-raiz do repeteco) · `capturar` colhendo **o que deu certo** e podando, `doctor` com o check 8 e `release` com o check 7. O ponteiro na pasta nativa desta máquina **já foi aplicado** (a nativa tinha 6 das 33 entradas). Spec: `docs/superpowers/specs/2026-08-18-evals-e-context-engineering-design.md`.
 
 <!-- histórico do estado anterior -->
