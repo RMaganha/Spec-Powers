@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **v0.22.0 integrada** (merge `--no-ff` de `feature/anatomia`; suíte **159 verde**; local, sem push — o remoto está na 0.21.0). **`/mss-spec:anatomia`**: gerador determinístico (`templates/anatomia.py`) do painel "anatomia de runtime" — disparo por regime · matriz lê×escreve · riscos · fila — com números **medidos** (manifestos em `utf-8-sig` — regressão do BOM virou teste) e metadado curado com `alvos` travados por teste. Saída `/docs/anatomia.html` fora do git (2 gitignores). Dogfood rodado: 103.815 B em 22 comandos, medido pelo próprio painel. Spec: `docs/specs/anatomia.md`.
+`main` — **v0.22.0 publicada no GitHub** (`7374903..7a6f3ab`, em sincronia com o `origin`; merge `--no-ff` de `feature/anatomia`; suíte **159 verde**). **`/mss-spec:anatomia`**: gerador determinístico (`templates/anatomia.py`) do painel "anatomia de runtime" — disparo por regime · matriz lê×escreve · riscos · fila — com números **medidos** (manifestos em `utf-8-sig` — regressão do BOM virou teste) e metadado curado com `alvos` travados por teste. Saída `/docs/anatomia.html` fora do git (2 gitignores). Dogfood rodado: 103.815 B em 22 comandos, medido pelo próprio painel. Spec: `docs/specs/anatomia.md`.
 
 <!-- histórico do estado anterior -->
 `feature/anatomia` (da `main`@0.21.0) — **`/mss-spec:anatomia`**: gerador determinístico (irmão do `mapa_neural.py`) que regenera o painel "anatomia de runtime" do kit com números medidos e metadado curado travado por wiring. Protótipo manual da mesma janela virou o design; gate do `divergir` foi aplicado e **negado** (decisão aberta porém barata de reverter → piso de frames bastou) — primeiro uso real da 0.21.0. Spec: `docs/specs/anatomia.md`.
