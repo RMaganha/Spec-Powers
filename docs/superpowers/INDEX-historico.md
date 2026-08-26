@@ -3,6 +3,7 @@
 
 # Índice de tarefas — histórico (fechadas)
 ## Feito
+000. [diagnóstico disciplinado](../specs/diagnostico.md) — trilho anti-loop de hipóteses em 4 camadas (regra crítica 11 · `/mss-spec:diagnostico` · memória+F-015 · propagação via upgrade) — fechada (0.23.0, 076d1e1)
 00. [anatomia](../specs/anatomia.md) — painel de runtime do kit (disparo por regime · lê×escreve · riscos · fila), gerador determinístico — fechada (0.22.0, cc92023)
 0. [divergir](../specs/divergir.md) — anti-ancoragem no design: piso de frames no brainstorm + `/mss-spec:divergir` opt-in auto-proposto — fechada (0.21.0, b47a390)
 1. superpowers como dependência — **revertido** (a dep cross-marketplace quebrava o load via skills-dir/symlink; superpowers segue habilitado no `settings.json`). Reentra com o **item 9** (marketplace git), onde a allowlist funciona.
