@@ -984,3 +984,43 @@ def test_desenho_em_termos_do_owner():
     assert "tabela" in low and "exemplo concreto" in low, \
         "nova-feature não manda apresentar o desenho por tabela/exemplo concreto antes de nomear"
     assert "f-010" in low, "o guardrail não aponta o caso de origem no corpus"
+
+
+def test_diagnostico_wiring():
+    """F-015 — 6 rodadas perdidas num 503 (deploy MSS-SSC, 2026-08-26): loop de hipóteses de
+    plataforma enquanto a causa (caminho relativo no main.py) aparecia num diff contra o projeto
+    de referência que o owner apontou desde o início; + 2 rodadas re-litigando uma App Setting
+    correta quando a resposta era "reiniciar". A skill systematic-debugging existia e nunca foi
+    invocada. Guardrail em camadas: regra crítica sempre-ativa no molde (dispara na hora 2, quando
+    EVALS/memória já saíram do foco) + comando como alavanca do owner (o detector de loop mais
+    confiável daquela sessão foi ele) + memória com gatilho + caso no corpus."""
+    cmd = REPO / "commands" / "diagnostico.md"
+    assert cmd.exists(), "falta commands/diagnostico.md"
+    diag = cmd.read_text(encoding="utf-8")
+    low = diag.lower()
+    # o trilho: disciplina de skill, precedente-primeiro (boot incluso), condição real, fatos do owner
+    assert "systematic-debugging" in diag, "diagnostico.md não invoca a superpowers:systematic-debugging"
+    assert "precedente" in low and "diff completo" in low,         "diagnostico.md não manda o diff completo contra o precedente que funciona"
+    assert "boot" in low, "diagnostico.md não inclui o código de boot/entrypoint no diff (só infra não basta)"
+    assert "não se re-litiga" in low, "diagnostico.md não protege o fato afirmado pelo owner"
+    assert "condição real" in low and "cwd" in low,         "diagnostico.md não exige reproduzir a condição REAL do ambiente (CWD/envs) — 'passou local' não prova"
+    assert "um teste que discrimina" in low,         "diagnostico.md não impõe a economia de rodadas (1 pedido de evidência = 1 teste que discrimina)"
+    # âncora no ponto de contágio: o diff abre outro projeto → read-only, reporte
+    assert "somente-leitura" in low and "âncora" in low and "não conserte" in low,         "diagnostico.md manda abrir o precedente sem a fronteira da âncora (read-only; reporte)"
+    assert "docs/EVALS.md" in diag, "diagnostico.md não fecha registrando o caso no corpus"
+    # regra sempre-ativa no molde (é o único mecanismo vivo na hora 2 de uma sessão longa)
+    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    clow = claude.lower()
+    assert "systematic-debugging" in claude, "CLAUDE.md não manda invocar a systematic-debugging no bug"
+    assert "diff completo" in clow, "CLAUDE.md não carrega o diff-antes-de-pedir-evidência"
+    assert "não se re-litiga" in clow, "CLAUDE.md não carrega 'fato do owner não se re-litiga'"
+    assert "/mss-spec:diagnostico" in claude, "CLAUDE.md não aponta o trilho /mss-spec:diagnostico"
+    # o owner descobre a alavanca dele
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:diagnostico" in leiame, "LEIA-ME não lista o /mss-spec:diagnostico"
+    # memória com gatilho + caso no corpus (as camadas de registro)
+    assert (REPO / "memory" / "feedback_diagnostico_disciplinado.md").exists(),         "falta memory/feedback_diagnostico_disciplinado.md"
+    mem_idx = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "feedback_diagnostico_disciplinado.md" in mem_idx, "MEMORY.md não indexa a memória do diagnóstico"
+    evals = (REPO / "docs" / "EVALS.md").read_text(encoding="utf-8")
+    assert "F-015" in evals, "docs/EVALS.md não registra o caso F-015"
