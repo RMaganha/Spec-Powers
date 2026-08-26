@@ -52,6 +52,9 @@
 - **quando publicar ou instalar o kit por marketplace** → [relative-path serve git E local](project_marketplace_relative_path_serve_git_e_local.md) — o mesmo `marketplace.json` resolve os dois
 - **quando mexer em dependências no `plugin.json`** → [Dep cross-marketplace quebra o load](project_plugin_load_cross_marketplace.md) — some tudo enquanto carrega por symlink
 
+## Ao diagnosticar uma falha
+- **quando entrar em loop de diagnóstico (falha que não fecha em 2 rodadas)** → [Diagnóstico disciplinado](feedback_diagnostico_disciplinado.md) — diff contra o precedente que funciona (boot incluso) antes de pedir evidência; fato do owner não se re-litiga; trilho em `/mss-spec:diagnostico`
+
 ## Ao testar
 - **quando escrever teste pra comando ou skill do kit** → [Comando-prosa não se testa como código](feedback_comandos_prosa_nao_unit_test.md) — wiring no smoke, nunca unit test teatral
 - **quando for validar uma tela ou UI** → [Validação de UI só determinística](feedback_validacao_ui_deterministica.md) — nunca dirigir o browser ao vivo; smoke visual = humano

@@ -63,6 +63,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | `/mss-spec:nova-feature <nome>` | Abre feature: Critérios de Aceite → seu OK → plano → tasks (TDD + verificação); mantém o `INDEX.md`; no fecho roda o `release` |
 | `/mss-spec:frontend` | Instala o front moderno (React + TS + Mantine, tema MSIG) para telas densas — scaffold Vite + guia ilha × rota SPA |
 | `/mss-spec:precedentes <assunto>` | Consulta o catálogo do que já foi resolvido em outro projeto MSIG |
+| `/mss-spec:diagnostico [sintoma]` | Corta o loop de diagnóstico (o assistente "teimoso"): systematic-debugging + diff completo contra o precedente que funciona (boot incluso) ANTES de pedir evidência; fato do owner não se re-litiga; 1 pedido = 1 teste que discrimina |
 | `/mss-spec:mapa` | Lê/atualiza o mapa de contexto (`docs/superpowers/MAPA.md`): onde estamos · próximo passo · conexões com outros projetos MSIG — reconcilia com git/INDEX/código e grava |
 | `/mss-spec:mapa-neural` | Agrega as seções Conexões dos `MAPA.md` de todos os repos (via `MSIG_REPOS_DIR`) num índice de texto + um grafo HTML self-contained "o que vai pra onde" |
 | `/mss-spec:anatomia` | Gera o painel "anatomia de runtime" do kit: quando cada peça entra na janela (partida/evento/demanda/fecho) · matriz quem lê × quem escreve · riscos · fila — números medidos, HTML self-contained fora do git |

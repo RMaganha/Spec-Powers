@@ -73,3 +73,6 @@
 
 <!-- histórico do próximo passo anterior -->
 **Primeiro uso real do `/mss-spec:analise`**: rodar no projeto de **RAG/pgvector** do owner (UI própria em `.html`, intocável) — é o teste de campo da regra não-destrutiva e da leitura do pipeline RAG. Nos outros projetos, o comando chega com `claude plugin marketplace update` (a v0.14.0 já está publicada). No `to-dolist`, aberto: perguntar na constituição se o projeto segue a **arquitetura de rede MSIG** ou tem **arquitetura própria** (hoje o kit assume MSIG e num projeto de fora isso é editado na mão).
+
+<!-- histórico do estado anterior -->
+`feature/anatomia` (da `main`@0.21.0) — **`/mss-spec:anatomia`**: gerador determinístico (irmão do `mapa_neural.py`) que regenera o painel "anatomia de runtime" do kit com números medidos e metadado curado travado por wiring. Protótipo manual da mesma janela virou o design; gate do `divergir` foi aplicado e **negado** (decisão aberta porém barata de reverter → piso de frames bastou) — primeiro uso real da 0.21.0. Spec: `docs/specs/anatomia.md`.
