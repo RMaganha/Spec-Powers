@@ -376,7 +376,7 @@ def test_html_desenha_os_elementos_bpmn(html_web):
     assert "motor.risco" in html_web, "piscina externa não desenhada"
     assert "e-dados" in html_web, "armazenamento de dados não desenhado"
     assert "e-borda" in html_web, "evento de borda não desenhado"
-    assert "msg" in html_web, "fluxo de mensagem não desenhado"
+    assert 'class="msg"' in html_web, "fluxo de mensagem não DESENHADO (a substring 'msg' casava com o CSS)"
 
 
 def test_html_tem_legenda_e_declara_o_nao_derivavel(html_web):
@@ -536,3 +536,182 @@ def test_codigo_com_html_nao_quebra_o_desenho(bpmn, tmp_path):
     assert "<script>Compara" not in h and "<script> &" not in h, "código cru vazou pro HTML"
     assert "&lt;script&gt;" in h, "o docstring não foi escapado"
     assert h.count("<script>") == 1, "sobrou tag script além do JS do desenho"
+
+
+# ----------------------------------- regressao: "abri o html e nao havia desenho nenhum" (owner)
+
+def test_desenho_visivel_sem_js(html_web):
+    """O owner abriu o HTML e viu só a legenda e os nomes das rotas. Causa: as seções nasciam
+    `display:none` e só o JS inline revelava uma — script que não roda (viewer que sandboxa, CSP,
+    erro em runtime) apagava o desenho inteiro. O precedente que funciona (`anatomia.html`) tem
+    ZERO `display:none`. Agora esconder é **enriquecimento** do JS: sem JS, tudo aparece."""
+    escondem = [l for l in html_web.split("\n") if "display:none" in l and ".processo" in l]
+    assert escondem, "nenhuma regra esconde processo — o seletor com JS deixou de funcionar?"
+    assert all("body.js" in l for l in escondem), (
+        "esconde processo SEM depender de JS — o desenho desaparece inteiro se o script não roda: "
+        + str(escondem))
+    assert 'id="p0"' in html_web, "seção sem id — o índice não tem pra onde apontar sem JS"
+
+
+def test_indice_navega_sem_js(html_web, modelo_web):
+    """Sem JS o seletor de botões não faz nada; com âncora, ele pelo menos rola até o processo."""
+    for i in range(len(modelo_web["processos"])):
+        assert f'href="#p{i}"' in html_web, f"índice não aponta a âncora #p{i}"
+
+
+def test_processos_do_mais_rico_pro_mais_pobre(bpmn, proj_web):
+    """A página abria em `GET /` (2 nós: início + fim) porque a ordem era alfabética, enquanto
+    `POST /endosso` (41 nós) ficava enterrado — parecia que a ferramenta não achou nada.
+    Ordem passa a ser nº de nós desc, nome asc como desempate (determinística)."""
+    m = bpmn.extrair(proj_web)
+    tamanhos = [len(bpmn.achatar(p["nos"])) for p in m["processos"]]
+    assert tamanhos == sorted(tamanhos, reverse=True), \
+        f"processos fora de ordem (rico → pobre): {[(p['nome'], len(bpmn.achatar(p['nos']))) for p in m['processos']]}"
+    assert m["processos"][0]["nome"] == "POST /cotacao", m["processos"][0]["nome"]
+
+
+# --------------------------- gap achado rodando no MSS-SSC: cliente de LLM nao virava piscina
+
+GEMINI_SVC = '''
+class GeminiService:
+    def __init__(self):
+        import google.generativeai as genai  # import tardio: so quando for usar de fato
+        genai.configure(api_key="x")
+        self.model = genai.GenerativeModel("gemini-2.0-flash")
+
+    def extrair_pdf(self, pdf):
+        """Envia um PDF + prompt ao Gemini e devolve o JSON extraido."""
+        resp = self.model.generate_content(["prompt", pdf])
+        return resp.text
+'''
+
+OPENAI_SVC = '''
+from openai import OpenAI
+
+
+def resumir(texto):
+    """Resume o texto com o modelo."""
+    cliente = OpenAI()
+    r = cliente.chat.completions.create(model="gpt", messages=[])
+    return r.choices[0].message.content
+'''
+
+ROTA_LLM = '''
+from fastapi import FastAPI
+from services.gemini import GeminiService
+from services.resumo import resumir
+
+app = FastAPI()
+
+
+@app.post("/extrair")
+def extrair(pdf):
+    """Extrai o consolidado da apolice."""
+    dados = GeminiService().extrair_pdf(pdf)
+    resumir(dados)
+    return dados
+'''
+
+
+@pytest.fixture(scope="module")
+def proj_llm(tmp_path_factory):
+    p = tmp_path_factory.mktemp("proj_llm")
+    (p / "routers").mkdir()
+    (p / "services").mkdir()
+    (p / "routers" / "api.py").write_text(ROTA_LLM, encoding="utf-8")
+    (p / "services" / "gemini.py").write_text(GEMINI_SVC, encoding="utf-8")
+    (p / "services" / "resumo.py").write_text(OPENAI_SVC, encoding="utf-8")
+    return p
+
+
+def test_cliente_de_llm_vira_piscina_externa(bpmn, proj_llm):
+    """Rodando no MSS-SSC (24 rotas, 56 armazenamentos de dados) saíram ZERO fluxos de mensagem —
+    num app cuja razão de existir é chamar o Gemini. Duas causas: `google.generativeai` fora da
+    tabela de libs, e a chamada de verdade ser método de instância (`self.model.generate_content`),
+    que nenhuma heurística de nome de import resolve. O sinal honesto é o **import do SDK** no
+    arquivo (mesmo tardio, dentro do método): com ele, construtor de cliente e método de geração
+    contam como fluxo de mensagem (11) pra piscina (13) nomeada pelo SDK."""
+    m = bpmn.extrair(proj_llm)
+    assert "Gemini" in m["piscinas"], m["piscinas"]
+    assert "OpenAI" in m["piscinas"], m["piscinas"]
+    p = m["processos"][0]
+    msgs = {x for n in bpmn.achatar(p["nos"]) for x in n["mensagens"]}
+    assert "Gemini" in msgs, f"o subprocesso do Gemini não carrega o fluxo de mensagem: {msgs}"
+    assert "OpenAI" in msgs, msgs
+
+
+def test_sem_import_de_sdk_nao_inventa_piscina(bpmn, tmp_path):
+    """A contrapartida: sem import de SDK no arquivo, um método chamado `generate_content` ou uma
+    função `create` NÃO viram piscina — o gerador não inventa integração."""
+    (tmp_path / "app.py").write_text(
+        "class Coisa:\n    def generate_content(self, x):\n        return x\n\n\n"
+        "def main():\n    Coisa().generate_content(1)\n    return 2\n", encoding="utf-8")
+    m = bpmn.extrair(tmp_path)
+    assert m["piscinas"] == [], m["piscinas"]
+
+
+def test_fluxo_de_mensagem_dentro_do_subprocesso_e_desenhado(bpmn, tmp_path):
+    """Reconferindo o MSS-SSC: `Gemini` estava no texto e na lista de piscinas, a caixa da piscina
+    era desenhada — e NENHUMA seta apontava pra ela. O nó do Gemini fica 2 níveis fundo (dentro da
+    expansão do subprocesso), e o SVG da expansão era gerado com a lista de piscinas VAZIA. O
+    teste antigo não pegou porque procurava a substring "msg", que casa com o CSS."""
+    (tmp_path / "routers").mkdir()
+    (tmp_path / "services").mkdir()
+    (tmp_path / "routers" / "api.py").write_text(
+        "from fastapi import FastAPI\n"
+        "from services.fluxo import orquestrar\n\n"
+        "app = FastAPI()\n\n\n"
+        '@app.post("/extrair")\n'
+        "def extrair(pdf):\n"
+        '    """Extrai o consolidado."""\n'
+        "    return orquestrar(pdf)\n", encoding="utf-8")
+    (tmp_path / "services" / "fluxo.py").write_text(
+        "from services.llm import chamar_modelo\n\n\n"
+        "def orquestrar(pdf):\n"
+        '    """Orquestra a extracao."""\n'
+        "    if not pdf:\n"
+        "        raise ValueError('sem pdf')\n"
+        "    return chamar_modelo(pdf)\n", encoding="utf-8")
+    (tmp_path / "services" / "llm.py").write_text(
+        "def chamar_modelo(pdf):\n"
+        '    """Envia o PDF ao Gemini."""\n'
+        "    import google.generativeai as genai\n"
+        "    m = genai.GenerativeModel('x')\n"
+        "    return m.generate_content([pdf])\n", encoding="utf-8")
+
+    m = bpmn.extrair(tmp_path)
+    h = bpmn.render_html(m)
+    assert "Gemini" in m["piscinas"], m["piscinas"]
+    assert 'class="msg"' in h, \
+        "a piscina foi desenhada sem NENHUMA seta de fluxo de mensagem apontando pra ela"
+    # o subprocesso colapsado tem de carregar a mensagem: quem fala com o Gemini, na leitura BPMN,
+    # é a caixa visível no nível de cima
+    topo = m["processos"][0]["nos"]
+    assert any("Gemini" in n["mensagens"] for n in topo), \
+        [(n["rotulo"], n["mensagens"]) for n in topo]
+
+
+def test_chamada_dentro_do_return_vira_tarefa(bpmn, tmp_path):
+    """`return servico(x)` — o padrão do router fino — perdia a tarefa: o statement caía no ramo
+    do `ast.Return` e saía só o evento de fim. Achado montando o teste do fluxo de mensagem em 3
+    níveis; no MSS-SSC escapou porque as rotas fazem `dados = gen(...)` antes do `return`."""
+    (tmp_path / "servicos").mkdir()
+    (tmp_path / "servicos" / "calc.py").write_text(
+        "def _somar(a):\n    return a\n\n\n"
+        "def calcular(x):\n"
+        '    """Calcula o premio."""\n'
+        "    if x < 0:\n"
+        "        raise ValueError('negativo')\n"
+        "    return _somar(x)\n", encoding="utf-8")
+    (tmp_path / "web.py").write_text(
+        "from fastapi import FastAPI\n"
+        "from servicos.calc import calcular\n\n"
+        "app = FastAPI()\n\n\n"
+        '@app.get("/premio")\n'
+        "def premio(x):\n"
+        "    return calcular(x)\n", encoding="utf-8")
+    m = bpmn.extrair(tmp_path)
+    p = [x for x in m["processos"] if x["nome"] == "GET /premio"][0]
+    fns = [n["fn"] for n in bpmn.achatar(p["nos"])]
+    assert "calcular" in fns, f"a tarefa do `return calcular(x)` sumiu: {fns}"
+    assert "_somar" in fns, f"a tarefa do `return _somar(x)` dentro do serviço sumiu: {fns}"

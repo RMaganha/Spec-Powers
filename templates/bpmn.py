@@ -43,8 +43,24 @@ _DB_FUNCOES = frozenset({"connect", "create_engine", "read_sql", "read_sql_query
 _DB_LIBS = frozenset({"pyodbc", "psycopg2", "psycopg", "sqlite3", "sqlalchemy", "pymssql", "asyncpg"})
 
 # HTTP / serviço externo (elementos 11 e 13 — fluxo de mensagem e piscina)
-_HTTP_LIBS = frozenset({"requests", "httpx", "aiohttp", "urllib", "urllib3", "openai", "anthropic"})
+_HTTP_LIBS = frozenset({"requests", "httpx", "aiohttp", "urllib", "urllib3"})
 _HTTP_METODOS = frozenset({"get", "post", "put", "delete", "patch", "request", "send"})
+
+# SDK de LLM: o serviço externo que NÃO se detecta por nome de lib na chamada, porque a chamada
+# de verdade é método de instância (`self.model.generate_content(...)`). O sinal honesto é o
+# **import do SDK no arquivo** — mesmo tardio, dentro do método, como no MSS-SSC. Sem import, o
+# gerador não inventa piscina.
+_LLM_SDKS = {
+    "google.generativeai": "Gemini", "google.genai": "Gemini", "vertexai": "Vertex AI",
+    "openai": "OpenAI", "anthropic": "Anthropic", "cohere": "Cohere",
+    "langchain_openai": "OpenAI", "langchain_google_genai": "Gemini",
+}
+_LLM_CONSTRUTORES = frozenset({"GenerativeModel", "configure", "Client", "OpenAI", "AsyncOpenAI",
+                               "AzureOpenAI", "AsyncAzureOpenAI", "Anthropic", "AsyncAnthropic",
+                               "ChatOpenAI", "ChatGoogleGenerativeAI"})
+_LLM_METODOS = frozenset({"generate_content", "generate_content_async", "send_message",
+                          "start_chat", "count_tokens", "invoke", "ainvoke"})
+_LLM_CADEIAS = (".completions.create", ".messages.create", ".responses.create")
 
 # paralelismo (elemento 7 — gateway paralelo)
 _PARALELO = frozenset({"gather", "ThreadPoolExecutor", "ProcessPoolExecutor", "as_completed"})
@@ -210,6 +226,7 @@ def indexar(proj: Path, ignorar=()) -> dict:
     nao_lidos: list[dict] = []
     todas: list[dict] = []
     imports_crus: dict[str, list] = {}      # arquivo -> [(nome, modulo, nivel)]
+    sdk: dict[str, dict] = {}               # arquivo -> {nome local do import: piscina}
     conhecidos: set[str] = set()
 
     arquivos = _arquivos_py(proj, ignorar)
@@ -244,6 +261,17 @@ def indexar(proj: Path, ignorar=()) -> dict:
                 for a in no.names:
                     imports_crus.setdefault(rel, []).append(
                         (a.asname or a.name, no.module or "", no.level or 0))
+                    # `from google import genai` / `from openai import OpenAI`
+                    for chave in (f"{no.module}.{a.name}" if no.module else a.name, no.module):
+                        if chave in _LLM_SDKS:
+                            sdk.setdefault(rel, {})[a.asname or a.name] = _LLM_SDKS[chave]
+                            break
+            elif isinstance(no, ast.Import):
+                # `import google.generativeai as genai` — inclusive TARDIO, dentro do método
+                for a in no.names:
+                    if a.name in _LLM_SDKS:
+                        local = a.asname or a.name.split(".")[0]
+                        sdk.setdefault(rel, {})[local] = _LLM_SDKS[a.name]
 
         for no in arvore.body:
             if isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -260,7 +288,7 @@ def indexar(proj: Path, ignorar=()) -> dict:
             if destino:
                 importado.setdefault(arquivo, {})[nome] = destino
 
-    return {"por_nome": defs, "por_arquivo": por_arquivo, "todas": todas,
+    return {"por_nome": defs, "por_arquivo": por_arquivo, "todas": todas, "sdk": sdk,
             "importado": importado, "nao_lidos": nao_lidos, "arquivos": len(arquivos)}
 
 
@@ -312,6 +340,32 @@ def _e_http(call: ast.Call) -> str:
     return ""
 
 
+def _e_llm(call: ast.Call, sdks: dict) -> str:
+    """Rótulo da piscina de LLM, ou '' — só quando o arquivo importa um SDK de LLM.
+
+    `sdks` mapeia o nome LOCAL do import para a piscina (`genai` → Gemini, `OpenAI` → OpenAI).
+    Sem import no arquivo não há piscina: integração se declara no código, não se adivinha.
+    """
+    if not sdks:
+        return ""
+    raiz, attr = _nome_chamado(call)
+    if raiz in sdks:                                    # genai.GenerativeModel / genai.configure
+        return sdks[raiz]
+    if attr in sdks:                                    # google.genai.Client após `from google …`
+        return sdks[attr]
+    padrao = next(iter(sdks.values()))                  # o SDK declarado neste arquivo
+    if attr in _LLM_CONSTRUTORES or attr in _LLM_METODOS or (not attr and raiz in _LLM_CONSTRUTORES):
+        return padrao
+    fonte = _fonte(call.func)                           # cliente.chat.completions.create(...)
+    if any(fonte.endswith(c) for c in _LLM_CADEIAS):
+        return padrao
+    return ""
+
+
+def _e_externo(call: ast.Call, sdks: dict) -> str:
+    return _e_http(call) or _e_llm(call, sdks)
+
+
 def _calls(no) -> list[ast.Call]:
     """Chamadas de um statement, em ordem de leitura do código."""
     achadas = [x for x in ast.walk(no) if isinstance(x, ast.Call)]
@@ -330,13 +384,14 @@ def _paralelo_em(stmt) -> list[ast.Call]:
 
 # ------------------------------------------------------------------------------ perfil de uma função
 
-def _perfil(fdef) -> dict:
+def _perfil(fdef, sdks: dict | None = None) -> dict:
     """O que o corpo da função faz, sem descer em outras funções do projeto.
 
     Serve pra dois fins: anexar banco/mensagem/borda à TAREFA que chama a função (é ela que toca o
     dado, na leitura BPMN) e decidir se a função é tarefa simples ou subprocesso.
     """
     dados, msgs, bordas = [], [], []
+    sdks = sdks or {}
     tem_decisao = False
 
     for no in ast.walk(fdef):
@@ -355,7 +410,7 @@ def _perfil(fdef) -> dict:
             d = _e_banco(no)
             if d:
                 dados.append(d)
-            h = _e_http(no)
+            h = _e_externo(no, sdks)
             if h:
                 msgs.append(h)
 
@@ -403,7 +458,7 @@ class _Montador:
         d = self.resolver(nome, arquivo_caller)
         if not d:
             return None
-        perfil = _perfil(d["no"])
+        perfil = _perfil(d["no"], self.ix["sdk"].get(d["arquivo"], {}))
         tem_chamada_projeto = any(
             self.resolver(_nome_chamado(c)[1] or (c.func.id if isinstance(c.func, ast.Name) else ""),
                           d["arquivo"])
@@ -422,6 +477,11 @@ class _Montador:
         chave = (d["arquivo"], nome)
         if subproc and prof < self.profundidade and chave not in pilha:
             no["filhos"] = self.nos_do_corpo(d["no"].body, d, prof + 1, pilha + (chave,))
+            # quem fala com o serviço externo, na leitura BPMN, é a caixa VISÍVEL no nível de
+            # cima: sem subir a mensagem do filho, a piscina era desenhada sem seta nenhuma
+            # apontando pra ela (visto no MSS-SSC, com o Gemini dois níveis fundo).
+            dentro = [x for f in achatar(no["filhos"]) for x in f["mensagens"]]
+            no["mensagens"] = list(dict.fromkeys(no["mensagens"] + dentro))
         return no
 
     # -- statements de um corpo ---------------------------------------------------------------
@@ -462,8 +522,12 @@ class _Montador:
             return nos
 
         if isinstance(stmt, ast.Return):
+            # `return servico(x)` é o padrão do router fino: a chamada TEM de virar tarefa antes
+            # do evento de fim, senão o processo inteiro sai como início → fim.
+            nos = self._chamadas_do_statement(stmt, dono, prof, pilha, borda) if stmt.value else []
             alvo = _fonte(stmt.value) or "fim"
-            return [_no("fim", alvo, raia=dono["raia"], arquivo=dono["arquivo"])]
+            nos.append(_no("fim", alvo, raia=dono["raia"], arquivo=dono["arquivo"]))
+            return nos
 
         if isinstance(stmt, ast.Raise):
             return [_no("fim_erro", _fonte(stmt.exc) or "raise",
@@ -487,6 +551,7 @@ class _Montador:
 
     def _chamadas_do_statement(self, stmt, dono, prof, pilha, borda) -> list:
         nos: list[dict] = []
+        sdks = self.ix["sdk"].get(dono["arquivo"], {})
         for c in _calls(stmt):
             raiz, attr = _nome_chamado(c)
             nome = attr or raiz
@@ -504,7 +569,7 @@ class _Montador:
                                    raia=dono["raia"], arquivo=dono["arquivo"], dados=[d],
                                    borda=borda))
                 continue
-            h = _e_http(c)
+            h = _e_externo(c, sdks)
             if h:
                 if h not in self.piscinas:
                     self.piscinas.append(h)
@@ -519,10 +584,11 @@ class _Montador:
     def _chamadas_soltas(self, corpo, dono, borda) -> list:
         """Corpo que só chama lib externa: vira uma tarefa com os dados/mensagens dele."""
         dados, msgs, rotulo = [], [], ""
+        sdks = self.ix["sdk"].get(dono["arquivo"], {})
         for stmt in corpo:
             for c in _calls(stmt):
                 raiz, attr = _nome_chamado(c)
-                d, h = _e_banco(c), _e_http(c)
+                d, h = _e_banco(c), _e_externo(c, sdks)
                 if d:
                     dados.append(d)
                 if h:
@@ -642,6 +708,11 @@ def extrair(proj, profundidade: int = _PROFUNDIDADE, limite: int = _LIMITE_NOS,
         for n in achatar(p["nos"]):
             if n["fn"] and uso.get(n["fn"], 0) >= 2:
                 n["reuso"] = True
+
+    # ordem: do mais rico pro mais pobre (nome desempata). A alfabética abria a página em
+    # `GET /` com 2 nós — dois circulinhos — enquanto o processo de 41 nós ficava enterrado, e
+    # isso lia como "a ferramenta não achou nada".
+    processos.sort(key=lambda p: (-len(achatar(p["nos"])), p["nome"]))
 
     piscinas = list(dict.fromkeys(x for p in processos for x in p["piscinas"]))
     return {
@@ -796,12 +867,16 @@ h1 small{color:var(--mut);font-weight:400;font-size:14px}
 .sub{color:var(--mut);margin:6px 0 0;max-width:88ch;font-size:14px}
 main{padding:0 4vw}
 nav{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 6px}
-nav button{font:inherit;font-size:13px;cursor:pointer;background:var(--card);color:var(--ink);
-border:1px solid var(--line);border-radius:999px;padding:7px 14px}
-nav button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.processo{display:none;background:var(--card);border:1px solid var(--line);
+nav a{font:inherit;font-size:13px;cursor:pointer;background:var(--card);color:var(--ink);
+border:1px solid var(--line);border-radius:999px;padding:7px 14px;text-decoration:none}
+nav a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.processo{background:var(--card);border:1px solid var(--line);
 border-radius:12px;padding:16px 18px 20px;margin:10px 0 22px}
-.processo.on{display:block}
+/* Esconder é ENRIQUECIMENTO do JS, nunca o estado inicial: o owner abriu um HTML e viu só a
+   legenda porque as seções nasciam display:none e o script não rodou. Sem JS, tudo aparece e o
+   índice vira âncora; com JS, `body.js` liga o seletor de um processo por vez. */
+body.js .processo{display:none}
+body.js .processo.on{display:block}
 .processo h2{margin:0 0 2px;font-size:18px}
 .meta{color:var(--mut);font-size:13px;margin:0 0 12px}
 .meta code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
@@ -845,13 +920,13 @@ text{font:12px "Segoe UI",system-ui,sans-serif;fill:var(--ink)}
 
 _JS = """
 function mostra(i){
-  var secs=document.querySelectorAll('.processo'), bts=document.querySelectorAll('nav button');
+  var secs=document.querySelectorAll('.processo'), bts=document.querySelectorAll('nav a');
   for(var k=0;k<secs.length;k++) secs[k].className='processo'+(k===i?' on':'');
   for(var k=0;k<bts.length;k++) bts[k].className=(k===i?'on':'');
 }
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest('nav button');
-  if(b) mostra(parseInt(b.getAttribute('data-alvo'),10));
+  var b=ev.target.closest('nav a');
+  if(b){ev.preventDefault();mostra(parseInt(b.getAttribute('data-alvo'),10));}
   var z=ev.target.closest('.zoom button');
   if(z){
     var tela=document.getElementById(z.getAttribute('data-tela'));
@@ -879,6 +954,8 @@ for(var i=0;i<telas.length;i++){
     });
   })(telas[i]);
 }
+// só AQUI o seletor entra em cena: se este script não rodar, o HTML já mostra todos os desenhos
+document.body.className='js';
 mostra(0);
 """
 
@@ -1056,6 +1133,11 @@ def _seta(x1, y1, x2, y2, rotulo="", classe="seta") -> str:
     return "".join(s)
 
 
+def _piscinas_de(nos: list) -> list:
+    """As piscinas que ESTES nós de fato referenciam — cada SVG só desenha a piscina que ele usa."""
+    return list(dict.fromkeys(x for n in achatar(nos) for x in n["mensagens"]))
+
+
 def _svg(nos: list, piscinas: list) -> str:
     caixas, setas, colunas = _posicionar(nos)
     if not caixas:
@@ -1184,7 +1266,8 @@ def _icone_legenda(tipo: str) -> str:
 def render_html(modelo: dict, gerado_em: str = "") -> str:
     """Desenho BPMN self-contained (SVG + JS vanilla, zero CDN — proxy MSIG derruba externo)."""
     processos = modelo["processos"]
-    nav = "".join('<button data-alvo="%d">%s</button>' % (i, _esc(p["nome"]))
+    # âncora, não botão: sem JS o índice ainda leva ao processo (com JS, troca o painel)
+    nav = "".join('<a href="#p%d" data-alvo="%d">%s</a>' % (i, i, _esc(p["nome"]))
                   for i, p in enumerate(processos))
 
     secoes = []
@@ -1198,7 +1281,7 @@ def render_html(modelo: dict, gerado_em: str = "") -> str:
         if p["cortados"]:
             meta.append("<b>cortado no teto: +%d nó(s)</b>" % p["cortados"])
         tela = "tela%d" % i
-        corpo = ['<section class="processo"><h2>' + _esc(p["nome"]) + "</h2>",
+        corpo = ['<section class="processo" id="p%d"><h2>%s</h2>' % (i, _esc(p["nome"])),
                  '<p class="meta">' + " · ".join(meta) + "</p>",
                  '<div class="tela" id="%s">%s</div>' % (tela, _svg(p["nos"], p["piscinas"])),
                  '<div class="zoom"><button data-tela="%s" data-passo="-0.15">−</button>'
@@ -1208,7 +1291,8 @@ def render_html(modelo: dict, gerado_em: str = "") -> str:
             if n["filhos"]:
                 corpo.append('<p class="expansao"><b>Expansão do subprocesso</b> “%s” '
                              '— <code>%s</code></p>' % (_esc(n["rotulo"]), _esc(n["arquivo"])))
-                corpo.append('<div class="tela">%s</div>' % _svg(n["filhos"], []))
+                corpo.append('<div class="tela">%s</div>'
+                             % _svg(n["filhos"], _piscinas_de(n["filhos"])))
         corpo.append("</section>")
         secoes.append("".join(corpo))
 
