@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.25.1 — 2026-09-02 (três defeitos que o owner viu antes de mim)
+- fix(**seção mostrava o desenho de outro módulo** — o print do owner): três funções `gerar` neste repo viravam três drill-downs com slug `1-gerar`; `getElementById` devolve o **primeiro**, então a seção do `mapa_neural` renderizava o XML do `anatomia` (daí caixas `_item`, que só existem lá). No MSS-SSC eram **duas** seções trocadas. Slug passa a levar o nome do processo (`base--N-nome`); teste garante id único no documento. Caso **F-020**.
+- fix(**import com apelido fazia a tarefa desaparecer**): `from servicos.regras import aprovar as aprovar_cotacao` + `aprovar_cotacao(x)` → eu guardava só o nome **local** e procurava `aprovar_cotacao` no módulo destino; não achava e o processo saía início → fim. Agora o índice guarda o par local/original. E o `fn` do nó passou a ser a identidade da **definição**, não o nome no ponto de chamada (dois apelidos do mesmo alvo contavam como dois no reuso).
+- fix(**os 36 desenhos falhavam com o painel estreito**): `fit-viewport` do bpmn-js mede o container; sem tamanho ainda, estoura em `SVGMatrix scale: non-finite` e **nada** sobe. Agora monta **sob demanda** (`IntersectionObserver`), espera a moldura ter tamanho (quadro a quadro, até ~2s) e nunca aplica escala/altura não-finita — de quebra, 36 visualizadores não são criados de entrada. Caso **F-021**.
+- fix(acento no slug): `Gerador de etapas da extração` virava `...extra-o` (o `ç` e o `ã` eram apagados); agora translitera para `extracao` — o nome do `.bpmn` é o que você lê na pasta.
+- verificado: MSS-SSC com **0 id duplicado**, 36 XMLs válidos, e o desenho subindo **num painel de 780×455** (onde antes falhavam todos) — conferido por inspeção do DOM, não por impressão.
+- test: `tests/test_bpmn.py` 53 → **57**. Suíte **219 passed** (era 215).
+
 ## 0.25.0 — 2026-09-02 (o desenho vira BPMN de verdade: bpmn.io vendorizado, XML pro Bizagi)
 - **veredito que motivou a versão:** o owner abriu o HTML da 0.24.1 e disse *"ficou péssimo, não dá visibilidade alguma... não agregou em nada"*. Medido: o maior diagrama tinha **3.964 × 576 px** e **222 rótulos truncados** — você olhava 4 mil pixels por uma janela de mil. Não era gosto, era ilegível.
 - feat(**renderizador trocado**): saiu o layout SVG artesanal (`_svg`/`_forma`/`_seta`, ~450 linhas), entrou **BPMN 2.0 XML** + **`bpmn-auto-layout` 1.3.0** (coordenadas) + **`bpmn-js` 18.27.0** (desenho), os dois do bpmn.io e **vendorizados** em `templates/vendor/` — exatamente como o `vis-network.min.js` que o kit já embutia desde a 0.11.0 pro mapa-neural. **O precedente estava na mesma pasta e eu não o usei**: caso **F-018**.

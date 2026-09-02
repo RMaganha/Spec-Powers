@@ -46,7 +46,7 @@ e a página **falha legível** (`<noscript>` + texto em cada moldura apontando o
 porque com o bpmn-js o desenho passa a exigir JS — F-017 mudou de forma, não de lição.
 
 Verificado no **MSS-SSC** (FastAPI real): 24 portas de entrada, 36 diagramas, 19 arquivos `.py`,
-0 não lido, piscina `Gemini` detectada. Testes: `tests/test_bpmn.py` (53) + `test_bpmn_wiring` e
+0 não lido, piscina `Gemini` detectada. Testes: `tests/test_bpmn.py` (57) + `test_bpmn_wiring` e
 `test_suposicao_do_owner_nao_e_requisito` no smoke.
 
 Fora de escopo: linguagem fora do Python (JS/TS, SQL, JSON de fluxo do n8n) · processo de **negócio**
@@ -69,3 +69,13 @@ virar fonte de leitura do assistente · análise semântica profunda de tipos/ch
   com fonte na frase do owner, em vez de aconselhar o padrão da área — e cheguei a pôr o XML do
   Bizagi em "fora de escopo" citando essa frase. Casos **F-018** (reinventei layout) e **F-019**
   (suposição do owner virou requisito), com regra no `commands/nova-feature.md`.
+- 2026-09-02 — 0.25.1, três defeitos que o owner viu antes de mim (ele abriu o dogfood do próprio
+  kit e o desenho de um módulo aparecia sob o cabeçalho de outro): **slug de diagrama colidia** —
+  três `gerar` no mesmo projeto viravam três `1-gerar`, o `getElementById` devolvia o primeiro e a
+  seção renderizava o XML alheio (no MSS-SSC eram duas seções trocadas) · **import com apelido**
+  (`from x import y as z`) fazia a tarefa **desaparecer**, porque eu guardava só o nome local ·
+  e **todos os 36 desenhos falhavam com o painel estreito** (`SVGMatrix scale: non-finite`),
+  porque o `fit-viewport` mede o container e ele ainda não tinha tamanho — agora monta sob demanda
+  e espera o tamanho. Casos **F-020** e **F-021**. Junto: acento no slug translitera
+  (`extração` → `extracao`, era `extra-o`) e `fn` do nó passou a ser a identidade da **definição**,
+  não o nome no ponto de chamada.

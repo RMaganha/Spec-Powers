@@ -20,6 +20,7 @@ import ast
 import html as _html
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 # ------------------------------------------------------------------------------------- constantes
@@ -225,7 +226,7 @@ def indexar(proj: Path, ignorar=()) -> dict:
     por_arquivo: dict[tuple, dict] = {}
     nao_lidos: list[dict] = []
     todas: list[dict] = []
-    imports_crus: dict[str, list] = {}      # arquivo -> [(nome, modulo, nivel)]
+    imports_crus: dict[str, list] = {}      # arquivo -> [(local, original, modulo, nivel)]
     sdk: dict[str, dict] = {}               # arquivo -> {nome local do import: piscina}
     conhecidos: set[str] = set()
 
@@ -259,8 +260,11 @@ def indexar(proj: Path, ignorar=()) -> dict:
         for no in ast.walk(arvore):
             if isinstance(no, ast.ImportFrom):
                 for a in no.names:
+                    # o nome LOCAL e o ORIGINAL: com `import aprovar as aprovar_cotacao` só o
+                    # local não resolve (a função no módulo destino chama-se `aprovar`), e a
+                    # tarefa desaparecia do desenho.
                     imports_crus.setdefault(rel, []).append(
-                        (a.asname or a.name, no.module or "", no.level or 0))
+                        (a.asname or a.name, a.name, no.module or "", no.level or 0))
                     # `from google import genai` / `from openai import OpenAI`
                     for chave in (f"{no.module}.{a.name}" if no.module else a.name, no.module):
                         if chave in _LLM_SDKS:
@@ -283,10 +287,10 @@ def indexar(proj: Path, ignorar=()) -> dict:
 
     importado: dict[str, dict] = {}
     for arquivo, itens in imports_crus.items():
-        for nome, modulo, nivel in itens:
+        for local, original, modulo, nivel in itens:
             destino = _modulo_para_arquivo(modulo, nivel, arquivo, conhecidos)
             if destino:
-                importado.setdefault(arquivo, {})[nome] = destino
+                importado.setdefault(arquivo, {})[local] = (destino, original)
 
     return {"por_nome": defs, "por_arquivo": por_arquivo, "todas": todas, "sdk": sdk,
             "importado": importado, "nao_lidos": nao_lidos, "arquivos": len(arquivos)}
@@ -445,9 +449,11 @@ class _Montador:
         d = self.ix["por_arquivo"].get((arquivo_caller, nome))
         if d:
             return d
-        destino = self.ix["importado"].get(arquivo_caller, {}).get(nome)
-        if destino:
-            d = self.ix["por_arquivo"].get((destino, nome))
+        alvo = self.ix["importado"].get(arquivo_caller, {}).get(nome)
+        if alvo:
+            destino, original = alvo
+            d = self.ix["por_arquivo"].get((destino, original)) or \
+                self.ix["por_arquivo"].get((destino, nome))
             if d:
                 return d
         return self.defs.get(nome)
@@ -469,12 +475,14 @@ class _Montador:
                 self.piscinas.append(m)
 
         no = _no(
+            # `fn` é a identidade da DEFINIÇÃO, não o nome no ponto de chamada: com apelido de
+            # import (`aprovar as aprovar_cotacao`) o mesmo alvo contaria como dois no reuso.
             "subprocesso" if subproc else "tarefa", d["rotulo"],
-            raia=d["raia"], arquivo=d["arquivo"], fn=nome,
+            raia=d["raia"], arquivo=d["arquivo"], fn=d["nome"],
             dados=perfil["dados"], mensagens=perfil["mensagens"],
             borda=borda or perfil["borda"], anotacao=d["doc"],
         )
-        chave = (d["arquivo"], nome)
+        chave = (d["arquivo"], d["nome"])
         if subproc and prof < self.profundidade and chave not in pilha:
             no["filhos"] = self.nos_do_corpo(d["no"].body, d, prof + 1, pilha + (chave,))
             # quem fala com o serviço externo, na leitura BPMN, é a caixa VISÍVEL no nível de
@@ -857,7 +865,10 @@ def _atr(texto) -> str:
 
 
 def _slug(texto: str) -> str:
-    s = re.sub(r"[^a-zA-Z0-9]+", "-", " ".join(str(texto).split())).strip("-").lower()
+    """`extração` → `extracao`, não `extra-o`: acento se translitera, não se apaga."""
+    plano = unicodedata.normalize("NFKD", " ".join(str(texto).split()))
+    plano = "".join(c for c in plano if not unicodedata.combining(c))
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", plano).strip("-").lower()
     return (s or "processo")[:60]
 
 
@@ -899,7 +910,10 @@ def diagramas(processo: dict) -> list[dict]:
     """Os NÍVEIS do processo: a rota (subprocessos colapsados) + um por subprocesso expandido.
 
     Drill-down com menos de 2 elementos não vira diagrama — saía um círculo solto na tela.
+    O slug leva o nome do PROCESSO: três `gerar` no mesmo projeto viravam três `1-gerar`, o
+    `getElementById` devolvia o primeiro e a seção mostrava o desenho de outro módulo.
     """
+    base = _slug(processo["nome"])
     saida = []
     for nome, arquivo, nos in [(processo["nome"], processo["arquivo"], processo["nos"])] + [
             (rotulo_desenho(n), n["arquivo"], n["filhos"])
@@ -909,7 +923,7 @@ def diagramas(processo: dict) -> list[dict]:
             continue
         saida.append({"nome": nome, "arquivo": arquivo, "nos": nos, "elementos": len(pontos),
                       "fluxos": len([1 for a, b, _r in arestas if a in pontos and b in pontos]),
-                      "slug": _slug(nome) if not saida else f"{len(saida)}-{_slug(nome)}"})
+                      "slug": base if not saida else f"{base}--{len(saida)}-{_slug(nome)}"[:110]})
     return saida
 
 
@@ -1166,29 +1180,61 @@ margin:16px 0;font-size:14px}
 """
 
 _JS_PAGINA = """
-// o XML embutido vem SEM coordenadas: o auto-layout calcula aqui e o bpmn-js desenha.
-document.querySelectorAll('.tela').forEach(function(el){
+// O XML embutido vem SEM coordenadas: o auto-layout calcula aqui e o bpmn-js desenha.
+// Montagem SOB DEMANDA (quando a moldura entra na tela): o `fit-viewport` do bpmn-js divide pela
+// dimensao do container, e com o container ainda sem tamanho ele estoura em
+// "SVGMatrix scale: non-finite" e NENHUM desenho sobe (visto com o painel estreito). De quebra,
+// 36 visualizadores de uma vez e peso que ninguem precisa pagar de entrada.
+function bpmnAjusta(el, tela){
+  var vb = tela.viewbox();
+  if(!vb || !isFinite(vb.scale) || !vb.inner || !isFinite(vb.inner.height)) return;
+  var alta = Math.min(Math.round(window.innerHeight * 0.74),
+                      Math.max(240, Math.round(vb.inner.height * vb.scale) + 90));
+  if(!isFinite(alta) || alta <= 0) return;
+  el.style.height = alta + 'px';
+  tela.resized();
+  tela.zoom('fit-viewport');
+}
+
+function bpmnMonta(el, tentativa){
+  if(el.getAttribute('data-montado')) return;
+  // sem tamanho ainda? espera o proximo quadro (ate ~2s) em vez de estourar no fit-viewport
+  if((el.clientWidth < 40 || el.clientHeight < 40) && (tentativa || 0) < 120){
+    requestAnimationFrame(function(){ bpmnMonta(el, (tentativa || 0) + 1); });
+    return;
+  }
   var dados = document.getElementById('xml-' + el.getAttribute('data-slug'));
   if(!dados) return;
+  el.setAttribute('data-montado', '1');
   BpmnAutoLayout.layoutProcess(dados.textContent).then(function(comDI){
     el.innerHTML = '';
     var visor = new BpmnJS({ container: el });
     return visor.importXML(comDI).then(function(){
       var tela = visor.get('canvas');
       tela.zoom('fit-viewport');
-      // altura pelo CONTEUDO: moldura fixa deixava meia pagina em branco num diagrama de 4 caixas
-      var vb = tela.viewbox();
-      el.style.height = Math.min(Math.round(window.innerHeight * 0.74),
-        Math.max(240, Math.round(vb.inner.height * vb.scale) + 90)) + 'px';
-      tela.resized();
-      tela.zoom('fit-viewport');
+      bpmnAjusta(el, tela);
     });
   }).catch(function(e){
     el.innerHTML = '<p class="espera erro">Nao foi possivel montar este desenho (' +
       (e && e.message ? e.message : e) + '). Use o arquivo .bpmn ao lado (abre no Bizagi) ' +
       'ou o bpmn.md.</p>';
   });
-});
+}
+
+var bpmnTelas = document.querySelectorAll('.tela');
+if(typeof IntersectionObserver === 'function'){
+  var bpmnObs = new IntersectionObserver(function(entradas){
+    entradas.forEach(function(entrada){
+      if(entrada.isIntersecting){
+        bpmnObs.unobserve(entrada.target);
+        bpmnMonta(entrada.target, 0);
+      }
+    });
+  }, { rootMargin: '300px' });
+  for(var i = 0; i < bpmnTelas.length; i++) bpmnObs.observe(bpmnTelas[i]);
+} else {
+  for(var k = 0; k < bpmnTelas.length; k++) bpmnMonta(bpmnTelas[k], 0);
+}
 """
 
 
