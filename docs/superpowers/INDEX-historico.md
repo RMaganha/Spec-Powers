@@ -3,6 +3,7 @@
 
 # Índice de tarefas — histórico (fechadas)
 ## Feito
+0000. [bpmn](../specs/bpmn.md) — desenha os processos do projeto em BPMN lendo o código (`/mss-spec:bpmn` + `templates/bpmn.py`; um processo por porta de entrada, raias por pasta; `bpmn.html` pro humano + `bpmn.md` pro assistente, fora do git) — fechada (0.24.0, bbce108)
 000. [diagnóstico disciplinado](../specs/diagnostico.md) — trilho anti-loop de hipóteses em 4 camadas (regra crítica 11 · `/mss-spec:diagnostico` · memória+F-015 · propagação via upgrade) — fechada (0.23.0, 076d1e1)
 00. [anatomia](../specs/anatomia.md) — painel de runtime do kit (disparo por regime · lê×escreve · riscos · fila), gerador determinístico — fechada (0.22.0, cc92023)
 0. [divergir](../specs/divergir.md) — anti-ancoragem no design: piso de frames no brainstorm + `/mss-spec:divergir` opt-in auto-proposto — fechada (0.21.0, b47a390)
