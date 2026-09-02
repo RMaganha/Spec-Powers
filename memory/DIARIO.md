@@ -3,6 +3,9 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-09-02
+- [bpmn] o infográfico "Elementos do Bizagi" virou a 0.24.0: `/mss-spec:bpmn` + gerador determinístico que lê o código por `ast` e desenha um processo por porta de entrada (`bpmn.md` pro assistente + `bpmn.html` pro humano, fora do git); pivôs: a premissa que decidia tudo (processo = **execução do código**, não processo de negócio) foi declarada `sem fonte` e aprovada direto · gate do `divergir` aplicado e **negado** de novo (precedente do mapa-neural/anatomia decide a forma; a altitude é barata de reverter) · o **dogfood achou 3 bugs com a suíte verde**, o pior deles `gerar` homônimo fazendo um processo desenhar as caixas internas do outro → caso **F-016** · e a guarda determinística de layout (duas caixas na mesma coluna/linha) pegou colisão de gateway aninhado sem dirigir browser → sessions/2026-09-02-bpmn.md
+
 ## 2026-08-25
 - [anatomia] "algo melhor que um diagrama" pra avaliar o kit virou a 0.22.0: `/mss-spec:anatomia` + gerador determinístico (números MEDIDOS: 22 comandos, hooks, orçamento, corpus; metadado curado com `alvos` travados por teste; BOM → `utf-8-sig` + regressão); pivôs: mapa-neural não servia (estrutura ≠ tempo/risco), gate do divergir aplicado e negado (barato de reverter → piso bastou), e o owner estranhou o número da fila → leitura "soma ≠ taxa por sessão" (o painel incomodando é o painel funcionando) → sessions/2026-08-25-anatomia.md
 - [divergir] avaliação do repo `adhd` virou a 0.21.0: ideia acolhida (divergência isolada + crítico mecânico + armadilha sedutora), stack npm rejeitado (3º ideia-vs-stack); pivô central: o owner derrubou o opt-in puro ("pode ser que eu esqueça de chamar") → 3 camadas com **auto-proposta** no `nova-feature` quando a decisão é aberta E cara de reverter (precedente MSIG vence divergência) → caso F-014; tropeço: BOM do PS 5.1 nos manifestos derrubou 3 testes → sessions/2026-08-25-divergir.md
