@@ -941,3 +941,83 @@ def test_indice_lista_so_as_portas_de_entrada(bpmn, modelo_web):
     for p in modelo_web["processos"]:
         d0 = bpmn.diagramas(p)[0]
         assert f'href="#{d0["slug"]}"' in nav, f"porta de entrada fora do índice: {p['nome']}"
+
+
+def test_slug_de_diagrama_e_unico_no_documento(bpmn, tmp_path):
+    """O BUG que o owner viu: três processos deste repo têm um subprocesso chamado `gerar`, e o
+    slug do drill-down era `1-gerar` para os três. `getElementById` devolve o PRIMEIRO, então a
+    seção do `mapa_neural` renderizava o XML do `anatomia` — cabeçalho de um, desenho de outro.
+    No MSS-SSC duas seções estavam trocadas do mesmo jeito. Slug tem de ser único no documento."""
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    for pasta, sufixo in (("a", "A"), ("b", "B")):
+        (tmp_path / pasta / "svc.py").write_text(
+            f"def _passo{sufixo}(x):\n    return x\n\n\n"
+            "def gerar(x):\n"          # SEM docstring, como os três `gerar` deste repo: o rótulo
+            "    if not x:\n"          # fica igual nos dois e os slugs colidem
+            f"        raise ValueError('{sufixo}')\n"
+            f"    return _passo{sufixo}(x)\n", encoding="utf-8")
+    (tmp_path / "web.py").write_text(
+        "from fastapi import FastAPI\n"
+        "from a.svc import gerar as gerar_a\n"
+        "from b.svc import gerar as gerar_b\n\n"
+        "app = FastAPI()\n\n\n"
+        '@app.get("/a")\n'
+        "def rota_a(x):\n    return gerar_a(x)\n\n\n"
+        '@app.get("/b")\n'
+        "def rota_b(x):\n    return gerar_b(x)\n", encoding="utf-8")
+
+    m = bpmn.extrair(tmp_path)
+    slugs = [d["slug"] for p in m["processos"] for d in bpmn.diagramas(p)]
+    assert len(slugs) == len(set(slugs)), f"slug repetido no modelo: {slugs}"
+
+    h = bpmn.render_html(m)
+    ids = re.findall(r'id="(xml-[^"]+)"', h)
+    assert len(ids) == len(set(ids)), f"id de XML repetido no HTML: {ids}"
+    secoes = re.findall(r'<section class="diagrama" id="([^"]+)"', h)
+    assert len(secoes) == len(set(secoes)), f"id de seção repetido: {secoes}"
+
+
+def test_slug_transliteta_acento_em_vez_de_apagar(bpmn):
+    """`Gerador de etapas da extração` virava `gerador-de-etapas-da-extra-o` — o `ç` e o `ã`
+    sumiam e o nome do arquivo .bpmn ficava ilegível."""
+    assert bpmn._slug("Gerador de etapas da extração") == "gerador-de-etapas-da-extracao"
+    assert bpmn._slug("Apólice — validação") == "apolice-validacao"
+
+
+def test_import_com_apelido_resolve(bpmn, tmp_path):
+    """`from servicos.regras import aprovar as aprovar_cotacao` e depois `aprovar_cotacao(x)`:
+    eu guardava só o nome LOCAL do import, então procurava `aprovar_cotacao` no módulo destino,
+    não achava e a tarefa **desaparecia** — o processo saía início → fim. Apelido é comum."""
+    (tmp_path / "servicos").mkdir()
+    (tmp_path / "servicos" / "regras.py").write_text(
+        "def _checar(x):\n    return x\n\n\n"
+        "def aprovar(x):\n"
+        '    """Aprova a cotacao."""\n'
+        "    return _checar(x)\n", encoding="utf-8")
+    (tmp_path / "web.py").write_text(
+        "from fastapi import FastAPI\n"
+        "from servicos.regras import aprovar as aprovar_cotacao\n\n"
+        "app = FastAPI()\n\n\n"
+        '@app.get("/x")\n'
+        "def rota(x):\n    return aprovar_cotacao(x)\n", encoding="utf-8")
+    m = bpmn.extrair(tmp_path)
+    nos = bpmn.achatar(m["processos"][0]["nos"])
+    achado = [n for n in nos if n["fn"] == "aprovar"]
+    assert achado, f"a tarefa do apelido sumiu: {[(n['tipo'], n['fn']) for n in nos]}"
+    assert achado[0]["arquivo"] == "servicos/regras.py", achado[0]["arquivo"]
+    assert achado[0]["raia"] == "servicos", achado[0]["raia"]
+
+
+def test_montagem_espera_a_moldura_ter_tamanho(html_web):
+    """Com o painel estreito, os 36 desenhos do MSS-SSC falharam TODOS em
+    `SVGMatrix scale: non-finite` — o `fit-viewport` do bpmn-js divide pela dimensão do container,
+    e ele ainda não tinha tamanho quando o script rodou. Guardas: monta sob demanda (moldura
+    entrando na tela), espera o quadro seguinte enquanto o tamanho for zero, e nunca aplica
+    altura não-finita."""
+    js = "\n".join(re.findall(r"<script>(.*?)</script>", html_web, re.S)[-1:])
+    assert "IntersectionObserver" in js, "não monta sob demanda: 36 visualizadores de uma vez"
+    assert "clientWidth" in js and "requestAnimationFrame" in js, \
+        "não espera a moldura ter tamanho antes do fit-viewport"
+    assert js.count("isFinite") >= 2, "aplica altura/escala sem checar se é finita"
+    assert "data-montado" in js, "sem marca de montado, a moldura pode ser montada duas vezes"
