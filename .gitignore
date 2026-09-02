@@ -44,3 +44,9 @@ Thumbs.db
 
 # Anatomia de runtime (/mss-spec:anatomia) — saida derivada/regeneravel, mesma regra do mapa-neural
 /docs/anatomia.html
+
+# Desenho BPMN dos processos (/mss-spec:bpmn) - saida derivada/regeneravel, mesma regra do
+# mapa-neural: ANCORADO em /docs/ (sem a barra, o padrao casaria por nome e ignoraria o
+# proprio commands/bpmn.md).
+/docs/bpmn.html
+/docs/bpmn.md

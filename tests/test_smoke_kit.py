@@ -1024,3 +1024,38 @@ def test_diagnostico_wiring():
     assert "feedback_diagnostico_disciplinado.md" in mem_idx, "MEMORY.md não indexa a memória do diagnóstico"
     evals = (REPO / "docs" / "EVALS.md").read_text(encoding="utf-8")
     assert "F-015" in evals, "docs/EVALS.md não registra o caso F-015"
+
+
+def test_bpmn_wiring():
+    """Desenho BPMN montado: gerador testável em templates/, comando aponta o script, declara as
+    DUAS saídas (texto pro assistente + desenho pro humano) e a saída derivada FORA do git —
+    ancorada em /docs/ (mesma armadilha do mapa-neural/anatomia: padrão solto ignoraria
+    commands/bpmn.md). Declara também o que a leitura estática NÃO deriva, senão o desenho parece
+    completo sem ser. O comportamento do gerador vive em tests/test_bpmn.py."""
+    assert (REPO / "templates" / "bpmn.py").exists(), "falta templates/bpmn.py (o gerador)"
+    assert (REPO / "commands" / "bpmn.md").exists(), "falta commands/bpmn.md"
+    cmd = (REPO / "commands" / "bpmn.md").read_text(encoding="utf-8")
+    low = cmd.lower()
+    assert "templates/bpmn.py" in cmd, "bpmn.md não aponta o gerador templates/bpmn.py"
+    assert "fora do git" in low, "bpmn.md não declara a saída como derivada/fora do git"
+    assert "pro humano" in low, "bpmn.md não carrega 'visual é pro humano; dados pro assistente'"
+    assert "bpmn.md" in cmd and "bpmn.html" in cmd, "bpmn.md não declara as DUAS saídas"
+    assert "deriv" in low and "gateway inclusivo" in low, \
+        "bpmn.md não declara o que a leitura estática não deriva (gateway inclusivo, por evento…)"
+    for elemento in ("início", "tarefa", "subprocesso", "gateway", "raia", "borda"):
+        assert elemento in low, f"bpmn.md não diz de onde sai o elemento {elemento}"
+
+    for gi_path in ("templates/gitignore", ".gitignore"):
+        linhas = [l.strip() for l in (REPO / gi_path).read_text(encoding="utf-8").splitlines()]
+        for saida in ("/docs/bpmn.html", "/docs/bpmn.md"):
+            assert saida in linhas, f"{gi_path} não ancora a saída {saida}"
+        assert "bpmn.md" not in linhas, \
+            f"{gi_path}: padrão 'bpmn.md' SOLTO ignoraria commands/bpmn.md — ancore em /docs/"
+
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:bpmn" in leiame, "LEIA-ME não lista o comando /mss-spec:bpmn"
+
+    spec = (REPO / "docs" / "specs" / "bpmn.md")
+    assert spec.exists(), "falta a spec viva docs/specs/bpmn.md"
+    txt = spec.read_text(encoding="utf-8")
+    assert "## Estado atual" in txt and "## Histórico" in txt, "spec sem as seções fixas"
