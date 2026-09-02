@@ -1,69 +1,71 @@
 # bpmn — desenho do processo a partir do código
 
 ## Estado atual
-O `/mss-spec:bpmn` (`commands/bpmn.md`) roda o gerador determinístico `templates/bpmn.py` (irmão do
-`mapa_neural.py` e do `anatomia.py`) e produz **duas saídas do mesmo modelo**, ambas em `docs/` e
-**fora do git**: `docs/bpmn.md` (índice em texto — é o que o **assistente** lê) e `docs/bpmn.html`
-(desenho BPMN em SVG, self-contained, zero CDN — é o que o **humano** vê). A extração é **estática,
-via `ast` da stdlib**, e **nunca inventa caixa que não está no código**. Os processos saem
-**ordenados do mais rico pro mais pobre** (nº de nós desc, nome asc) — a ordem alfabética abria a
-página num processo de 2 nós e lia como "não achou nada". No HTML, **esconder é enriquecimento do
-JS**: sem script, os 24 desenhos aparecem empilhados e o índice do topo é âncora; com script,
-`body.js` liga o seletor de um processo por vez.
+O `/mss-spec:bpmn` (`commands/bpmn.md`) roda o gerador determinístico `templates/bpmn.py` — Python
+puro, sem Node nem npm — que lê o código do projeto por **`ast`** e produz **três saídas**, todas em
+`docs/` e **fora do git**:
 
-**Um processo por porta de entrada**, descobertas em **cascata**: rota Flask/FastAPI
-(`POST /cotacao`) → `main()` de arquivo da raiz → `main()` em qualquer módulo (o 3º degrau nasceu do
-dogfood: os scripts deste kit vivem em `templates/`, e sem ele o projeto saía com **zero** processo).
-`--entrada <funcao>` aponta uma porta que não é rota nem `main` (um job de cron, por exemplo).
-Chamada resolve na ordem **mesmo arquivo → import declarado (`from x.y import z`) → qualquer
-arquivo** — sem isso, dois módulos com uma função `gerar` faziam o processo de um desenhar as caixas
-internas do outro (desenho errado com cara de certo). Dentro do processo, o mapeamento para a
-notação BPMN (numeração do infográfico do Bizagi que o owner usou como modelo):
+| saída | o que é | pra quem |
+|---|---|---|
+| `docs/bpmn.html` | o desenho, renderizado pelo **bpmn-js 18.27.0** sobre coordenadas do **bpmn-auto-layout 1.3.0** (bpmn.io), ambos **vendorizados** em `templates/vendor/` — self-contained, zero CDN | **humano** |
+| `docs/bpmn/<slug>.bpmn` | um **BPMN 2.0 XML** por diagrama; abre no **Bizagi**/Camunda Modeler pra editar, organizar e publicar | **humano**, na ferramenta dele |
+| `docs/bpmn.md` | os processos em texto: passos, tipo de elemento, raia, desfechos, integrações | **assistente** |
 
-| elemento | de onde sai |
-|---|---|
-| 1. evento de início | decorator de rota, ou `main()`/`if __name__` |
-| 4. tarefa | chamada a função **definida no projeto** (mesmo módulo incluso — senão o desenho de um script de arquivo único sairia vazio); rótulo = 1ª linha do docstring, senão o nome |
-| 5. subprocesso | tarefa que por dentro também tem chamadas/decisões (expande até `--profundidade`, default 2) |
-| 6. gateway exclusivo | `if/elif/else`; ramo rotulado pela condição como está escrita no código |
-| 7. gateway paralelo | `asyncio.gather`, `ThreadPoolExecutor`/`ProcessPoolExecutor` |
-| 3. evento de fim | `return` (rótulo = o que retorna) · `raise` → fim de **erro** |
-| 19. evento de borda | `try/except` em volta da tarefa |
-| 16. armazenamento de dados | `cursor.execute`, SQLAlchemy, `pyodbc` |
-| 11. fluxo de mensagem + 13. piscina | `requests`/`httpx` → piscina pelo host · e **SDK de LLM** (`google.generativeai`, `google.genai`, `openai`, `anthropic`, `vertexai`, `cohere`, wrappers langchain) → piscina pelo SDK: o sinal é o **import no arquivo**, mesmo tardio dentro do método, porque a chamada de verdade é método de instância (`self.model.generate_content`). Sem import, nenhuma piscina — não se adivinha integração. A mensagem de um filho **sobe** para o subprocesso colapsado, que é a caixa visível no nível de cima |
-| 14. raia | módulo/pasta da função (`apis/`, `services/`, `persistencia/`) |
-| 17. anotação | docstring da função |
-| 20. chamada de atividade | subprocesso que aparece em **2+ processos** (reuso de verdade) |
+**O gerador não calcula coordenada.** Emite XML semântico; quem posiciona é o `bpmn-auto-layout`,
+empacotado uma vez com `esbuild` (`--format=iife`, 83 KB) e rodando **no navegador** — é isso que
+mantém o comando Python puro. Layout escrito à mão foi o erro da 0.24.x e virou o caso **F-018**.
 
-Regras duras: **poda antes de fidelidade** — só vira caixa chamada a função do próprio projeto ou decisão que muda o desfecho (chamada a lib/stdlib não vira)
-(`if` interno que não faz nem um nem outro não aparece); guarda (`if not x: raise`) **nunca** desaparece,
-vira gateway + fim de erro; corte deixa rastro `… (+N)` (F-009, sem corte calado); `.py` que não parseia
-não derruba a geração — vai para a seção **não lido** (falha aberta, sem inventar); todo rótulo vindo
-do código é **escapado** (docstring com `<script>` quebraria o SVG); a linha de cada nó é alocada
-**globalmente por processo**, senão o ramo de um gateway aninhado cai sobre a linha de um ramo irmão
-e duas caixas se empilham. O desenho é **pro humano**; o assistente lê o `.md`.
+**Estrutura em níveis:** um diagrama por **porta de entrada** — rota Flask/FastAPI, ou `main()` em
+cascata (raiz → qualquer módulo) — **mais um por subprocesso** com 2+ elementos (drill-down logo
+abaixo do diagrama pai, com âncora própria). Índice lista só as portas de entrada.
 
-Rodado no **MSS-SSC** (FastAPI real): 24 processos, 19 arquivos `.py`, 0 não lido, 307
-caixas, piscina `Gemini` com 4 fluxos de mensagem. Saídas do dogfood neste repo (que não tem rota):
-**5 processos** (os `main()` de `hooks/` e
-`templates/`), 7 arquivos `.py` lidos, 1 não lido (`templates/get_connection.py` é molde com
-placeholder — reportado, não escondido). Testes: `tests/test_bpmn.py` (40) + `test_bpmn_wiring`.
+**Mapeamento** (numeração do infográfico do Bizagi que o owner usou como modelo): rota/`main` →
+início (1) · chamada a função **do projeto** → tarefa (4), rótulo da 1ª frase do docstring, senão o
+nome · função com decisão/chamadas por dentro → subprocesso (5) · `if/elif/else` → gateway exclusivo
+(6) · `asyncio.gather`/pool → gateway paralelo (7) · `return` → fim (3) · `raise` → fim de erro ·
+`try/except` → evento de borda (19) · `cursor.execute`/SQLAlchemy/pyodbc → armazenamento de dados
+(16) · `requests`/`httpx` **e SDK de LLM** (`google.generativeai`, `openai`, `anthropic`, `vertexai`,
+wrappers langchain) → fluxo de mensagem (11) pra piscina (13), detectado pelo **import no arquivo**
+(mesmo tardio, dentro do método — a chamada real é método de instância) · módulo/pasta → raia (14) ·
+docstring → anotação (17) · função usada por 2+ fluxos → chamada de atividade (20).
 
-Fora de escopo: `.bpmn` XML 2.0 importável no Bizagi/Camunda (v1 é só visual — palavra do owner) ·
-elementos não deriváveis do código (gateway inclusivo 8, por evento 9, objeto de dados 15, grupo 18) ·
-qualquer linguagem fora do Python (JS/TS, SQL, JSON de fluxo do n8n) · processo de **negócio** que não
-está no código · editar/arrastar o desenho (é leitura, não modelagem) · o `.html` virar fonte de leitura
-do assistente · análise semântica profunda de tipos/chamada dinâmica (mesma fronteira do `INDEX.md`).
+**Rótulo em pt-BR, inglês só onde é texto de programação** (pedido do owner): a condição vira
+pergunta (`Falta anexos?`, `linha está vazio?`, `valor maior que 100000?`), o ramo vira `sim`/`não`,
+o SQL dá o verbo (`Consulta o banco`, `Grava no banco`), o serviço externo vira `Chama Gemini`, e o
+desfecho vira `Retorna JSONResponse` / `Erro: ValidacaoError`. O **modelo e o `bpmn.md` seguem
+verbatim**; a abreviação é só de apresentação, pra caber na caixa.
+
+**Dois tipos de buraco, os dois declarados na página** — desenho que parece completo sem ser é pior
+que buraco visível: **(a) não derivável do código** (gateway inclusivo 8, por evento 9, objeto de
+dados 15, grupo 18, rota dinâmica, framework fora de Flask/FastAPI, linguagem fora do Python);
+**(b) não posicionado pelo auto-layout** — raia, piscina, fluxo de mensagem, anotação e associação,
+limitação declarada pela própria lib, que por isso vivem no `bpmn.md`, na ficha de cada diagrama e
+no `.bpmn` pro Bizagi. Mais: `.py` que não parseia vai pra **não lido** e a geração segue (falha
+aberta); corte no teto deixa `… (+N)`; ativo de `vendor/` faltando **para** a geração com erro claro;
+e a página **falha legível** (`<noscript>` + texto em cada moldura apontando o `.bpmn`/`bpmn.md`),
+porque com o bpmn-js o desenho passa a exigir JS — F-017 mudou de forma, não de lição.
+
+Verificado no **MSS-SSC** (FastAPI real): 24 portas de entrada, 36 diagramas, 19 arquivos `.py`,
+0 não lido, piscina `Gemini` detectada. Testes: `tests/test_bpmn.py` (53) + `test_bpmn_wiring` e
+`test_suposicao_do_owner_nao_e_requisito` no smoke.
+
+Fora de escopo: linguagem fora do Python (JS/TS, SQL, JSON de fluxo do n8n) · processo de **negócio**
+que não está no código · editar o desenho no HTML (é leitura; quem edita é o Bizagi) · o `.html`
+virar fonte de leitura do assistente · análise semântica profunda de tipos/chamada dinâmica.
 
 ## Histórico
 - 2026-09-02 — criado: pedido do owner com o infográfico "Elementos do Bizagi" como modelo de notação;
   desenho **A** (fluxo por porta de entrada, raias por camada) aprovado contra B (diagrama único do
-  sistema — seria o mapa-neural de novo) e C (sem gerador, o assistente desenha a cada pedido — o custo
-  que a decisão de 2026-08-25 já havia rejeitado na `anatomia`).
-- 2026-09-02 — 0.24.1, cinco consertos vindos de rodar no MSS-SSC (o owner abriu o HTML e não viu
-  desenho): o esconder das seções passou a depender do JS (era `display:none` puro, e script que
-  não roda apagava tudo) · ordem por riqueza (abria em `GET /` com 2 nós) · **SDK de LLM vira
-  piscina** (Gemini/OpenAI/Anthropic; 24 rotas saíam com zero fluxo de mensagem) · a mensagem do
-  filho **sobe** pro subprocesso colapsado (a piscina era desenhada sem seta apontando pra ela) ·
-  e `return servico(x)` — o padrão do router fino — passou a virar tarefa, não só evento de fim
-  (motivo: o statement caía no ramo do `ast.Return` e o processo saía início → fim). Caso F-017.
+  sistema) e C (sem gerador, o assistente desenha a cada pedido).
+- 2026-09-02 — 0.24.1, cinco consertos vindos de rodar no MSS-SSC: esconder das seções passou a
+  depender do JS · ordem por riqueza · SDK de LLM virou piscina · mensagem do filho sobe pro
+  subprocesso colapsado · `return servico(x)` virou tarefa. Caso F-017.
+- 2026-09-02 — **0.25.0, o renderizador foi trocado**: o owner abriu o HTML da 0.24.1 e o veredito
+  foi *"ficou péssimo, não dá visibilidade alguma"* — medido, o maior diagrama tinha **3.964 px de
+  largura e 222 rótulos truncados**. Saiu o layout SVG artesanal, entrou **BPMN 2.0 XML +
+  bpmn-auto-layout + bpmn-js vendorizados** (o kit já vendorizava `vis-network`; o precedente estava
+  na mesma pasta). Ganhou também o `.bpmn` que abre no Bizagi e o rótulo em pt-BR. Motivo raiz de eu
+  não ter feito assim de saída: tratei *"acho que até algo html funcionaria"* como decisão fechada,
+  com fonte na frase do owner, em vez de aconselhar o padrão da área — e cheguei a pôr o XML do
+  Bizagi em "fora de escopo" citando essa frase. Casos **F-018** (reinventei layout) e **F-019**
+  (suposição do owner virou requisito), com regra no `commands/nova-feature.md`.

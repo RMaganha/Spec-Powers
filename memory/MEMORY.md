@@ -34,6 +34,7 @@
 - **quando a decisão de design for aberta e cara de reverter** → [Divergir antes de convergir](feedback_divergir_antes_de_convergir.md) — proponha você mesmo o `/mss-spec:divergir` (ramos isolados por frame); a 1ª resposta é a de manual
 - **quando avaliar ferramenta ou plugin externo** → [Ideia vs. stack](feedback_avaliar_tool_externa_ideia_vs_stack.md) — integrar só se casar com os pilares; senão, reimplementar a ideia
 - **quando propor visualização como ganho pro assistente** → [Visual é pro humano; dados pro assistente](feedback_visual_pro_humano_dados_pro_assistente.md) — o ganho vem de texto agregado
+- **quando a feature pedir desenho, diagrama, grafo ou layout** → [Use a lib consagrada, vendorizada](feedback_visualizacao_usa_lib_consagrada.md) — geometria à mão saiu com 4.000 px e 222 rótulos truncados; o kit já vendoriza lib
 
 ## Ao tocar outro projeto, brownfield ou infra
 - **quando a tarefa mencionar outro projeto** → [Um projeto por janela: outro é read-only](feedback_projeto_ativo_read_only.md) — a âncora não migra; bug lá = reporte
