@@ -1059,3 +1059,25 @@ def test_bpmn_wiring():
     assert spec.exists(), "falta a spec viva docs/specs/bpmn.md"
     txt = spec.read_text(encoding="utf-8")
     assert "## Estado atual" in txt and "## Histórico" in txt, "spec sem as seções fixas"
+
+
+def test_suposicao_do_owner_nao_e_requisito():
+    """F-019 — o owner escreveu "acho que até algo html funcionaria" e eu registrei como premissa
+    "com fonte: você disse", fechando a decisão do MEIO da entrega na hesitação dele; cheguei a
+    pôr o `.bpmn` do Bizagi em "fora de escopo" citando a frase. F-018, do mesmo dia: escrevi
+    layout SVG à mão (tira de 4.000 px, 222 rótulos truncados) quando o kit já vendoriza
+    biblioteca (`vis-network.min.js`) e o `bpmn-js` estava a um `npm view` de distância."""
+    nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
+    low = nova.lower()
+    assert "hesitação" in low or "hesitacao" in low, \
+        "nova-feature não distingue suposição do owner de requisito"
+    assert "acho que" in low, "a regra não cita a forma como a suposição chega ('acho que X')"
+    assert "templates/vendor/" in nova, \
+        "nova-feature não manda olhar o que o projeto já vendoriza antes de desenhar layout"
+    for caso in ("F-018", "F-019"):
+        assert caso in nova, f"a regra não aponta o caso {caso} do corpus"
+
+    # e o kit tem de fato a lib vendorizada que o caso exige
+    vendor = REPO / "templates" / "vendor"
+    for ativo in ("bpmn-navigated-viewer.min.js", "bpmn-auto-layout.min.js", "bpmn-js.css"):
+        assert (vendor / ativo).exists(), f"falta templates/vendor/{ativo}"

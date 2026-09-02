@@ -615,11 +615,12 @@ class _Montador:
         ramos.append({"rotulo": "senão", "nos": nos_nao or
                       [_no("segue", "segue o fluxo", raia=dono["raia"])]})
         return [_no("gateway", self._pergunta(stmt.test, cond), raia=dono["raia"],
-                    arquivo=dono["arquivo"], ramos=ramos, borda=borda)]
+                    arquivo=dono["arquivo"], ramos=ramos, borda=borda,
+                    pergunta=pergunta_ptbr(stmt.test))]
 
     @staticmethod
     def _pergunta(teste, cond: str) -> str:
-        """A pergunta do losango: o sujeito da decisão (os ramos carregam a condição inteira)."""
+        """O sujeito da decisão (o rótulo verbatim do modelo; os ramos levam a condição inteira)."""
         if isinstance(teste, ast.Compare):
             return _fonte(teste.left) or cond
         if isinstance(teste, ast.UnaryOp):
@@ -720,6 +721,245 @@ def extrair(proj, profundidade: int = _PROFUNDIDADE, limite: int = _LIMITE_NOS,
         "piscinas": piscinas, "profundidade": profundidade, "limite": limite,
         "arquivos_lidos": indice["arquivos"],
     }
+
+
+# ----------------------------------------------- rótulo de DESENHO (pt-BR; modelo fica verbatim)
+#
+# Regra do owner: "trazer o conteúdo em pt-br, inglês só no que for texto de programação".
+# Então o MODELO (e o `bpmn.md`) guardam o código como está escrito, e é aqui que nasce o texto
+# que vai DENTRO da caixa desenhada: verbo e pergunta em português, identificador do código intacto.
+
+_OPS_PTBR = [
+    (ast.Gt, "maior que"), (ast.GtE, "maior ou igual a"),
+    (ast.Lt, "menor que"), (ast.LtE, "menor ou igual a"),
+    (ast.Eq, "é igual a"), (ast.NotEq, "é diferente de"),
+    (ast.In, "está em"), (ast.NotIn, "não está em"),
+]
+
+_SQL_PTBR = {"SELECT": "Consulta o banco", "INSERT": "Grava no banco",
+             "UPDATE": "Atualiza o banco", "DELETE": "Exclui do banco",
+             "MERGE": "Grava no banco", "EXEC": "Executa no banco"}
+
+_TETO_CAIXA = 40          # a caixa de tarefa do bpmn-js cabe ~3 linhas curtas
+
+
+def _curtinho(texto: str, teto: int) -> str:
+    """Corta em fronteira de palavra — rótulo que estoura a caixa é o que fez o desenho falhar."""
+    texto = " ".join(str(texto).split())
+    if len(texto) <= teto:
+        return texto
+    corte = texto[:teto].rsplit(" ", 1)[0]
+    return (corte or texto[:teto]).rstrip(" ,;:.") + "…"
+
+
+def pergunta_ptbr(teste) -> str:
+    """A condição do `if` como PERGUNTA em pt-BR, com o identificador do código dentro.
+
+    `not dados` → "Falta dados?" · `linha is None` → "linha está vazio?" ·
+    `valor > 100000` → "valor maior que 100000?" · `anexos` → "Tem anexos?".
+    Sem isto o losango saía rotulado `anexos` ou `row`, que não dizem nada a quem lê o processo.
+    """
+    if isinstance(teste, ast.UnaryOp) and isinstance(teste.op, ast.Not):
+        return f"Falta {_fonte(teste.operand)}?"
+    if isinstance(teste, ast.Compare) and len(teste.ops) == 1:
+        esq, op = _fonte(teste.left), teste.ops[0]
+        dire = _fonte(teste.comparators[0])
+        if isinstance(op, ast.Is) and dire == "None":
+            return f"{esq} está vazio?"
+        if isinstance(op, ast.IsNot) and dire == "None":
+            return f"{esq} existe?"
+        for tipo, txt in _OPS_PTBR:
+            if isinstance(op, tipo):
+                return f"{esq} {txt} {dire}?"
+    if isinstance(teste, (ast.Name, ast.Attribute, ast.Subscript)):
+        return f"Tem {_fonte(teste)}?"
+    if isinstance(teste, ast.Call):
+        return f"{_fonte(teste)} confirma?"
+    return f"{_fonte(teste)}?"
+
+
+def _so_o_nome(chamada: str) -> str:
+    """`JSONResponse({...})` → JSONResponse · `mssc.ValidacaoError('x')` → ValidacaoError."""
+    m = re.match(r"^([A-Za-z_][\w.]*)\s*\(", " ".join(str(chamada).split()))
+    return m.group(1).split(".")[-1] if m else str(chamada)
+
+
+def _verbo_sql(sql: str) -> str:
+    """O verbo sai do próprio SQL — derivado do código, não inventado."""
+    primeira = re.sub(r"^[\s(]+", "", str(sql)).split(" ", 1)[0].upper()
+    return _SQL_PTBR.get(primeira, "Acessa o banco")
+
+
+def _frase(texto: str) -> str:
+    """1ª frase do docstring: nome de atividade BPMN é frase curta, não parágrafo."""
+    texto = " ".join(str(texto).split())
+    for sep in (". ", " — ", " (", "(", ", ", ": ", ";"):
+        if sep in texto:
+            cabeca = texto.split(sep)[0].strip()
+            if len(cabeca) >= 12:
+                texto = cabeca
+                break
+    return texto
+
+
+def rotulo_desenho(no: dict) -> str:
+    """O texto que vai DENTRO da caixa: pt-BR, curto, sem estourar a forma."""
+    tipo = no["tipo"]
+    if tipo == "gateway":
+        return _curtinho(no.get("pergunta") or no["rotulo"], _TETO_CAIXA)
+    if tipo == "gateway_paralelo":
+        return "Em paralelo"
+    if tipo == "fim_erro":
+        return _curtinho("Erro: " + _so_o_nome(no["rotulo"]), _TETO_CAIXA)
+    if tipo == "fim":
+        if no["rotulo"] in ("fim", "fim do processo"):
+            return "Fim do processo"
+        return _curtinho("Retorna " + _so_o_nome(no["rotulo"]), _TETO_CAIXA)
+    if tipo == "segue":
+        return "Segue o fluxo"
+    if tipo in ("inicio", "corte"):
+        return _curtinho(no["rotulo"], _TETO_CAIXA)
+    if not no["fn"]:                      # tarefa que nasceu de chamada a lib, não a função nossa
+        if no["dados"]:
+            return _verbo_sql(no["dados"][0])
+        if no["mensagens"]:
+            return _curtinho("Chama " + no["mensagens"][0], _TETO_CAIXA)
+    return _curtinho(_frase(no["rotulo"]), _TETO_CAIXA - 2)
+
+
+def rotulo_ramo(no: dict, indice: int) -> str:
+    """No desenho o ramo é sim/não; a condição inteira fica no `bpmn.md`."""
+    if no["tipo"] != "gateway":
+        return ""
+    return "sim" if indice == 0 else "não"
+
+
+
+# --------------------------------------------- BPMN 2.0 XML (o que o bpmn-js e o Bizagi entendem)
+#
+# O gerador NAO calcula coordenadas: emite o XML semantico e o `bpmn-auto-layout` (do bpmn.io,
+# vendorizado) posiciona no navegador. Desenhar layout a mao foi o erro da 0.24.x -- tira de
+# 4.000 px, rotulo truncado, seta cruzando caixa.
+
+_NS_BPMN = ('xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" '
+            'xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" '
+            'xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" '
+            'xmlns:di="http://www.omg.org/spec/DD/20100524/DI" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"')
+
+_TAG_BPMN = {"inicio": "startEvent", "fim": "endEvent", "fim_erro": "endEvent",
+             "tarefa": "task", "subprocesso": "subProcess", "corte": "task",
+             "gateway": "exclusiveGateway", "gateway_paralelo": "parallelGateway"}
+
+
+def _atr(texto) -> str:
+    return _html.escape(str(texto), quote=True)
+
+
+def _slug(texto: str) -> str:
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", " ".join(str(texto).split())).strip("-").lower()
+    return (s or "processo")[:60]
+
+
+def grafo(nos_raiz: list) -> tuple[dict, list]:
+    """Topologia (nós + arestas) do fluxo. Reusa o percurso do posicionador, ignora coordenada.
+
+    Contrai o placeholder `segue`: em BPMN o ramo do guarda liga direto no próximo elemento,
+    não numa caixa "segue o fluxo".
+    """
+    caixas, setas, _ = _posicionar(nos_raiz)
+    nos = {c["id"]: c["no"] for c in caixas}
+    arestas = [(s["de"], s["para"], s["rotulo"]) for s in setas]
+    for cid, no in list(nos.items()):
+        if no["tipo"] != "segue":
+            continue
+        entram = [(a, b, r) for a, b, r in arestas if b == cid]
+        saem = [(a, b, r) for a, b, r in arestas if a == cid]
+        arestas = [e for e in arestas if e[0] != cid and e[1] != cid]
+        for de, _b, rot in entram:
+            for _a2, para, _r in saem:
+                arestas.append((de, para, rot))
+        nos.pop(cid)
+    return nos, arestas
+
+
+def _rotulo_da_aresta(nos: dict, de: int, rotulo_cru: str) -> str:
+    """O ramo do gateway vira sim/não; fluxo comum não leva rótulo."""
+    pai = nos.get(de)
+    if not pai or pai["tipo"] != "gateway" or not rotulo_cru:
+        return ""
+    ramos = pai.get("ramos") or []
+    for i, r in enumerate(ramos):
+        if r["rotulo"] == rotulo_cru:
+            return rotulo_ramo(pai, i)
+    return rotulo_ramo(pai, 0)
+
+
+def diagramas(processo: dict) -> list[dict]:
+    """Os NÍVEIS do processo: a rota (subprocessos colapsados) + um por subprocesso expandido.
+
+    Drill-down com menos de 2 elementos não vira diagrama — saía um círculo solto na tela.
+    """
+    saida = []
+    for nome, arquivo, nos in [(processo["nome"], processo["arquivo"], processo["nos"])] + [
+            (rotulo_desenho(n), n["arquivo"], n["filhos"])
+            for n in achatar(processo["nos"]) if n["filhos"]]:
+        pontos, arestas = grafo(nos)
+        if not pontos or (saida and len(pontos) < 2):
+            continue
+        saida.append({"nome": nome, "arquivo": arquivo, "nos": nos, "elementos": len(pontos),
+                      "fluxos": len([1 for a, b, _r in arestas if a in pontos and b in pontos]),
+                      "slug": _slug(nome) if not saida else f"{len(saida)}-{_slug(nome)}"})
+    return saida
+
+
+def render_bpmn(diagrama: dict) -> str:
+    """XML BPMN 2.0 de UM diagrama — semântico, sem coordenadas (quem posiciona é o auto-layout)."""
+    nos, arestas = grafo(diagrama["nos"])
+    validas = [(i, de, para, rot) for i, (de, para, rot) in enumerate(arestas)
+               if de in nos and para in nos]
+    # o auto-layout monta o grafo pelos <incoming>/<outgoing> do NÓ: sem eles, o DI sai com
+    # shapes e ZERO edges e as setas não aparecem (achado no spike).
+    entra: dict = {}
+    sai: dict = {}
+    for i, de, para, _r in validas:
+        sai.setdefault(de, []).append(f"f{i}")
+        entra.setdefault(para, []).append(f"f{i}")
+
+    corpo = []
+    for cid, no in nos.items():
+        eid = f"n{cid}"
+        nome = _atr(rotulo_desenho(no))
+        liga = "".join(f"<bpmn:incoming>{x}</bpmn:incoming>" for x in entra.get(cid, [])) + \
+               "".join(f"<bpmn:outgoing>{x}</bpmn:outgoing>" for x in sai.get(cid, []))
+        if no["tipo"] == "fim_erro":
+            corpo.append(f'    <bpmn:endEvent id="{eid}" name="{nome}">{liga}'
+                         f'<bpmn:errorEventDefinition id="{eid}_d"/></bpmn:endEvent>')
+        else:
+            tag = _TAG_BPMN[no["tipo"]]
+            if tag == "subProcess" and len(grafo(no["filhos"])[0]) < 2:
+                tag = "task"          # o "+" prometia drill-down que não existe
+            corpo.append(f'    <bpmn:{tag} id="{eid}" name="{nome}">{liga}</bpmn:{tag}>')
+        if no["borda"] and no["tipo"] in ("tarefa", "subprocesso"):
+            bid = f"{eid}_b"
+            # só a exceção: `mssc_service.ValidacaoError` estourava a marca do evento
+            primeira = _so_o_nome(no["borda"]).split(" ")[0].split("·")[0].strip()
+            erro = _atr(_curtinho(primeira.split(".")[-1], 24))
+            corpo.append(f'    <bpmn:boundaryEvent id="{bid}" name="{erro}" '
+                         f'attachedToRef="{eid}">'
+                         f'<bpmn:errorEventDefinition id="{bid}_d"/></bpmn:boundaryEvent>')
+    for i, de, para, rot in validas:
+        rotulo = _rotulo_da_aresta(nos, de, rot)
+        atr = f' name="{_atr(rotulo)}"' if rotulo else ""
+        corpo.append(f'    <bpmn:sequenceFlow id="f{i}"{atr} sourceRef="n{de}" '
+                     f'targetRef="n{para}"/>')
+
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            f'<bpmn:definitions {_NS_BPMN} id="Definitions_1" '
+            'targetNamespace="http://bpmn.io/schema/bpmn">\n'
+            f'  <bpmn:process id="Process_1" isExecutable="false" '
+            f'name="{_atr(diagrama["nome"])}">\n'
+            + "\n".join(corpo) + "\n  </bpmn:process>\n</bpmn:definitions>\n")
 
 
 # ------------------------------------------------------------ render de TEXTO (o assistente lê esta)
@@ -828,183 +1068,6 @@ def render_texto(modelo: dict) -> str:
     return "\n".join(out)
 
 
-# --------------------------------------------------------------- render do DESENHO (o humano olha)
-
-_W, _H = 178, 62          # tarefa / subprocesso
-_GWL = 48                 # lado do losango do gateway
-_EV = 19                  # raio do evento (início/fim)
-_COL = 236                # passo horizontal de uma coluna
-_ROW = 104                # altura de uma linha dentro da raia
-_LBL = 132                # faixa do rótulo da raia
-_PAD = 28
-_PISCINA_H = 118
-
-LEGENDA = [
-    ("inicio", "1 · evento de início", "onde o processo começa (rota ou main)"),
-    ("fim", "3 · evento de fim", "return — onde o processo termina"),
-    ("fim_erro", "3 · fim de erro", "raise — termina em exceção"),
-    ("tarefa", "4 · tarefa", "chamada a uma função do projeto"),
-    ("subprocesso", "5 · subprocesso", "a função tem decisão/chamadas por dentro (+)"),
-    ("gateway", "6 · gateway exclusivo", "if/elif/else — escolhe um caminho"),
-    ("gateway_paralelo", "7 · gateway paralelo", "asyncio.gather / pool de threads"),
-    ("dados", "16 · armazenamento de dados", "cursor.execute, SQLAlchemy, pyodbc"),
-    ("borda", "19 · evento de borda", "try/except em volta da tarefa"),
-    ("msg", "11 · fluxo de mensagem", "requests/httpx para piscina externa (13)"),
-    ("reuso", "20 · chamada de atividade", "a mesma função usada por 2+ fluxos"),
-]
-
-_CSS = """
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1b2430;--mut:#5b6674;--line:#e3e7ec;
---inicio:#0e9f6e;--fim:#1b2430;--erro:#b91c1c;--tarefa:#2563eb;--tarefa-bg:#f4f8ff;
---sub:#7c3aed;--sub-bg:#f7f2ff;--gw:#d97706;--gw-bg:#fffaf0;--dados:#0f766e;--msg:#0369a1;
---raia:#eef1f5;--piscina:#fdf4ff}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-font:15px/1.55 "Segoe UI",system-ui,sans-serif;padding-bottom:50px}
-header{background:var(--card);border-bottom:1px solid var(--line);padding:24px 4vw 18px}
-h1{margin:0 0 4px;font-size:22px}
-h1 small{color:var(--mut);font-weight:400;font-size:14px}
-.sub{color:var(--mut);margin:6px 0 0;max-width:88ch;font-size:14px}
-main{padding:0 4vw}
-nav{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 6px}
-nav a{font:inherit;font-size:13px;cursor:pointer;background:var(--card);color:var(--ink);
-border:1px solid var(--line);border-radius:999px;padding:7px 14px;text-decoration:none}
-nav a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.processo{background:var(--card);border:1px solid var(--line);
-border-radius:12px;padding:16px 18px 20px;margin:10px 0 22px}
-/* Esconder é ENRIQUECIMENTO do JS, nunca o estado inicial: o owner abriu um HTML e viu só a
-   legenda porque as seções nasciam display:none e o script não rodou. Sem JS, tudo aparece e o
-   índice vira âncora; com JS, `body.js` liga o seletor de um processo por vez. */
-body.js .processo{display:none}
-body.js .processo.on{display:block}
-.processo h2{margin:0 0 2px;font-size:18px}
-.meta{color:var(--mut);font-size:13px;margin:0 0 12px}
-.meta code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
-.tela{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fcfdfe;
-cursor:grab;max-height:78vh}
-.tela.pegando{cursor:grabbing}
-.zoom{display:flex;gap:6px;justify-content:flex-end;margin:8px 0 0}
-.zoom button{font:inherit;font-size:12px;cursor:pointer;background:var(--card);
-border:1px solid var(--line);border-radius:6px;padding:4px 10px}
-.expansao{margin:18px 0 0;font-size:14px;color:var(--mut)}
-.legenda{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px 18px;
-background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
-.legenda h3{grid-column:1/-1;margin:0 0 2px;font-size:15px}
-.lg{display:flex;gap:9px;align-items:flex-start;font-size:13px}
-.lg b{font-weight:600}.lg span{color:var(--mut)}
-.lg i{flex:0 0 22px;height:22px;display:inline-block;margin-top:1px}
-.aviso{background:#fffaf0;border:1px solid #f4d9a6;border-radius:12px;padding:14px 18px;
-margin:16px 0;font-size:14px}
-.aviso h3{margin:0 0 6px;font-size:15px}
-.aviso ul{margin:6px 0 0;padding-left:20px}
-.fonte{color:var(--mut);font-size:12.5px;margin:26px 0 0;max-width:96ch}
-text{font:12px "Segoe UI",system-ui,sans-serif;fill:var(--ink)}
-.rotulo-raia{font-size:12px;font-weight:600;fill:var(--mut);letter-spacing:.02em}
-.faixa{fill:var(--raia)}.faixa-alt{fill:#f8fafc}
-.e-tarefa rect{fill:var(--tarefa-bg);stroke:var(--tarefa);stroke-width:1.6}
-.e-subprocesso rect{fill:var(--sub-bg);stroke:var(--sub);stroke-width:1.6}
-.e-inicio circle{fill:#fff;stroke:var(--inicio);stroke-width:2}
-.e-fim circle{fill:#fff;stroke:var(--fim);stroke-width:4}
-.e-fim_erro circle{fill:#fff;stroke:var(--erro);stroke-width:4}
-.e-gateway polygon,.e-gateway_paralelo polygon{fill:var(--gw-bg);stroke:var(--gw);stroke-width:1.6}
-.e-corte rect{fill:none;stroke:var(--mut);stroke-width:1.4;stroke-dasharray:5 4}
-.e-segue rect{fill:none;stroke:var(--line);stroke-width:1.4}
-.e-dados path,.e-dados ellipse{fill:#effaf8;stroke:var(--dados);stroke-width:1.4}
-.e-borda circle{fill:#fff;stroke:var(--gw);stroke-width:1.6}
-.seta{fill:none;stroke:#8a95a3;stroke-width:1.5}
-.msg{fill:none;stroke:var(--msg);stroke-width:1.4;stroke-dasharray:7 5}
-.assoc{fill:none;stroke:var(--dados);stroke-width:1.2;stroke-dasharray:2 3}
-.rot-seta{font-size:11px;fill:var(--mut)}
-.caixa-piscina{fill:var(--piscina);stroke:#c084fc;stroke-width:1.4}
-"""
-
-_JS = """
-function mostra(i){
-  var secs=document.querySelectorAll('.processo'), bts=document.querySelectorAll('nav a');
-  for(var k=0;k<secs.length;k++) secs[k].className='processo'+(k===i?' on':'');
-  for(var k=0;k<bts.length;k++) bts[k].className=(k===i?'on':'');
-}
-document.addEventListener('click',function(ev){
-  var b=ev.target.closest('nav a');
-  if(b){ev.preventDefault();mostra(parseInt(b.getAttribute('data-alvo'),10));}
-  var z=ev.target.closest('.zoom button');
-  if(z){
-    var tela=document.getElementById(z.getAttribute('data-tela'));
-    var svg=tela.querySelector('svg');
-    var atual=parseFloat(svg.getAttribute('data-escala')||'1');
-    var passo=z.getAttribute('data-passo');
-    var nova=passo==='0'?1:Math.min(2.2,Math.max(0.35,atual+parseFloat(passo)));
-    svg.setAttribute('data-escala',nova);
-    svg.style.width=(parseFloat(svg.getAttribute('data-w'))*nova)+'px';
-    svg.style.height=(parseFloat(svg.getAttribute('data-h'))*nova)+'px';
-  }
-});
-var telas=document.querySelectorAll('.tela');
-for(var i=0;i<telas.length;i++){
-  (function(el){
-    var arrastando=false,x0=0,y0=0,l0=0,t0=0;
-    el.addEventListener('mousedown',function(e){
-      arrastando=true;x0=e.clientX;y0=e.clientY;l0=el.scrollLeft;t0=el.scrollTop;
-      el.className='tela pegando';e.preventDefault();
-    });
-    window.addEventListener('mouseup',function(){arrastando=false;el.className='tela';});
-    el.addEventListener('mousemove',function(e){
-      if(!arrastando) return;
-      el.scrollLeft=l0-(e.clientX-x0);el.scrollTop=t0-(e.clientY-y0);
-    });
-  })(telas[i]);
-}
-// só AQUI o seletor entra em cena: se este script não rodar, o HTML já mostra todos os desenhos
-document.body.className='js';
-mostra(0);
-"""
-
-
-def _esc(t) -> str:
-    return _html.escape(str(t), quote=True)
-
-
-def _quebrar(t: str, largura: int = 24, maximo: int = 3) -> list:
-    palavras = str(t).split()
-    linhas, atual = [], ""
-    for p in palavras:
-        if atual and len(atual) + 1 + len(p) > largura:
-            linhas.append(atual)
-            atual = p
-        else:
-            atual = (atual + " " + p).strip()
-        if len(linhas) == maximo:
-            break
-    if atual and len(linhas) < maximo:
-        linhas.append(atual)
-    if not linhas:
-        return [""]
-    resto = len(palavras) - sum(len(x.split()) for x in linhas)
-    if resto > 0:
-        linhas[-1] = _curto(linhas[-1], largura - 1) + "…"
-    return linhas
-
-
-def _largura(tipo: str) -> int:
-    if tipo in ("inicio", "fim", "fim_erro"):
-        return _EV * 2
-    if tipo in ("gateway", "gateway_paralelo"):
-        return _GWL
-    if tipo == "segue":
-        return 96
-    return _W
-
-
-def _altura(tipo: str) -> int:
-    if tipo in ("inicio", "fim", "fim_erro"):
-        return _EV * 2
-    if tipo in ("gateway", "gateway_paralelo"):
-        return _GWL
-    if tipo == "segue":
-        return 30
-    return _H
-
-
 def _posicionar(nos: list):
     """Coloca cada nó numa (coluna, linha): coluna = ordem do fluxo, linha = ramo do gateway.
 
@@ -1045,300 +1108,166 @@ def _posicionar(nos: list):
     colunas, _ = coloca(nos, 0, 0, [])
     return caixas, setas, max(colunas, 1)
 
+# ------------------------------- render do DESENHO (bpmn.io vendorizado — o humano olha este)
+#
+# Quem desenha NAO e este arquivo: e o `bpmn-js` (o motor do bpmn.io/Camunda) sobre coordenadas
+# calculadas pelo `bpmn-auto-layout`, os dois vendorizados em templates/vendor/ igual ao
+# vis-network do mapa-neural. A 0.24.x tentou layout SVG a mao e entregou tira de 4.000 px com
+# rotulo truncado: layout de processo e problema resolvido, nao problema pra resolver aqui.
 
-def _forma(n: dict, x: float, y: float) -> str:
-    """SVG de um elemento, centrado em (x, y). Só formas — o BPMN do print, sem biblioteca."""
-    tipo = n["tipo"]
-    g = ['<g class="e-' + tipo + '">', "<title>" + _esc(n["anotacao"] or n["rotulo"]) + "</title>"]
+_VENDOR = Path(__file__).resolve().parent / "vendor"
+_ATIVOS = ("bpmn-navigated-viewer.min.js", "bpmn-auto-layout.min.js", "bpmn-js.css")
 
-    if tipo in ("inicio", "fim", "fim_erro"):
-        g.append('<circle cx="%s" cy="%s" r="%s"/>' % (x, y, _EV))
-        if tipo == "fim_erro":
-            g.append('<path d="M%s %s L%s %s L%s %s L%s %s" fill="none" stroke="var(--erro)" '
-                     'stroke-width="1.8"/>' % (x - 7, y + 5, x - 1, y - 5, x + 1, y + 2,
-                                               x + 7, y - 6))
-        for i, linha in enumerate(_quebrar(n["rotulo"], 26, 2)):
-            g.append('<text x="%s" y="%s" text-anchor="middle">%s</text>'
-                     % (x, y + _EV + 15 + i * 14, _esc(linha)))
-
-    elif tipo in ("gateway", "gateway_paralelo"):
-        m = _GWL / 2
-        g.append('<polygon points="%s,%s %s,%s %s,%s %s,%s"/>'
-                 % (x, y - m, x + m, y, x, y + m, x - m, y))
-        marca = "+" if tipo == "gateway_paralelo" else "×"
-        g.append('<text x="%s" y="%s" text-anchor="middle" font-size="17" fill="var(--gw)">%s</text>'
-                 % (x, y + 5, marca))
-        for i, linha in enumerate(_quebrar(n["rotulo"], 24, 2)):
-            g.append('<text x="%s" y="%s" text-anchor="middle">%s</text>'
-                     % (x, y + m + 15 + i * 14, _esc(linha)))
-
-    elif tipo == "segue":
-        w, h = _largura(tipo), _altura(tipo)
-        g.append('<rect x="%s" y="%s" width="%s" height="%s" rx="6"/>'
-                 % (x - w / 2, y - h / 2, w, h))
-        g.append('<text x="%s" y="%s" text-anchor="middle" fill="var(--mut)">%s</text>'
-                 % (x, y + 4, _esc(n["rotulo"])))
-
-    else:                                   # tarefa · subprocesso · corte
-        w, h = _largura(tipo), _altura(tipo)
-        x0, y0 = x - w / 2, y - h / 2
-        g.append('<rect x="%s" y="%s" width="%s" height="%s" rx="9"/>' % (x0, y0, w, h))
-        linhas = _quebrar(n["rotulo"], 25, 3)
-        base = y - (len(linhas) - 1) * 7 + 4
-        for i, linha in enumerate(linhas):
-            g.append('<text x="%s" y="%s" text-anchor="middle">%s</text>'
-                     % (x, base + i * 14, _esc(linha)))
-        if tipo == "subprocesso":           # marca do subprocesso colapsado (o "+" do elemento 5)
-            g.append('<rect x="%s" y="%s" width="14" height="14" rx="2" fill="#fff" '
-                     'stroke="var(--sub)" stroke-width="1.2"/>' % (x - 7, y0 + h - 15))
-            g.append('<text x="%s" y="%s" text-anchor="middle" font-size="12" '
-                     'fill="var(--sub)">+</text>' % (x, y0 + h - 4))
-        if n["reuso"]:                      # elemento 20 — chamada de atividade
-            g.append('<rect x="%s" y="%s" width="16" height="12" rx="2" fill="#fff" '
-                     'stroke="var(--tarefa)" stroke-width="1.2"/>' % (x0 + 6, y0 + h - 15))
-            g.append('<path d="M%s %s v8 M%s %s v8" stroke="var(--tarefa)" stroke-width="1.2"/>'
-                     % (x0 + 11, y0 + h - 13, x0 + 17, y0 + h - 13))
-        if n["borda"]:                      # elemento 19 — evento de borda na quina da tarefa
-            g.append('<g class="e-borda"><title>%s</title>'
-                     '<circle cx="%s" cy="%s" r="9"/><circle cx="%s" cy="%s" r="6"/></g>'
-                     % (_esc(n["borda"]), x0 + w, y0 + h, x0 + w, y0 + h))
-            g.append('<text x="%s" y="%s" font-size="11" fill="var(--gw)">%s</text>'
-                     % (x0 + w + 12, y0 + h + 15, _esc(_curto(n["borda"], 26))))
-        if n["dados"]:                      # elemento 16 — armazenamento + associação (12)
-            dx, dy = x0 + w - 26, y0 - 34
-            g.append('<g class="e-dados"><title>%s</title>'
-                     '<path d="M%s %s v16 a11 5 0 0 0 22 0 v-16"/>'
-                     '<ellipse cx="%s" cy="%s" rx="11" ry="5"/></g>'
-                     % (_esc(" · ".join(n["dados"])), dx, dy + 6, dx + 11, dy + 6))
-            g.append('<path class="assoc" d="M%s %s V%s"/>' % (dx + 11, dy + 28, y0))
-            g.append('<text x="%s" y="%s" font-size="11" fill="var(--dados)">%s</text>'
-                     % (dx + 26, dy + 16, _esc(_curto(n["dados"][0], 24))))
-    g.append("</g>")
-    return "".join(g)
+# o auto-layout do bpmn.io declara o que NAO posiciona — vai escrito na pagina, nunca implicito
+NAO_POSICIONADOS = [
+    ("14. raia e 13. piscina", "o auto-layout posiciona só o primeiro participante e não desenha "
+                               "raia; elas ficam no `bpmn.md` e na ficha de cada diagrama"),
+    ("11. fluxo de mensagem", "a chamada a serviço externo (banco, Gemini, HTTP) aparece na ficha "
+                              "do diagrama e no `bpmn.md`, não como seta"),
+    ("17. anotação e 12. associação", "o docstring completo e o dado tocado ficam no `bpmn.md`"),
+]
 
 
-def _seta(x1, y1, x2, y2, rotulo="", classe="seta") -> str:
-    if abs(y1 - y2) < 1:
-        d = "M%s %s H%s" % (x1, y1, x2)
-        rx, ry = (x1 + x2) / 2, y1 - 6
-    else:
-        mx = (x1 + x2) / 2
-        d = "M%s %s H%s V%s H%s" % (x1, y1, mx, y2, x2)
-        rx, ry = mx + 6, (y1 + y2) / 2
-    s = ['<path class="%s" d="%s" marker-end="url(#ponta)"/>' % (classe, d)]
-    if rotulo:
-        for i, linha in enumerate(_quebrar(rotulo, 22, 2)):
-            s.append('<text class="rot-seta" x="%s" y="%s">%s</text>' % (rx, ry + i * 12,
-                                                                        _esc(linha)))
-    return "".join(s)
+def _ativos_vendor() -> dict:
+    """Lê as libs vendorizadas. Falta de arquivo é erro claro, não página quebrada em silêncio."""
+    faltando = [n for n in _ATIVOS if not (_VENDOR / n).exists()]
+    if faltando:
+        raise FileNotFoundError(
+            "faltam ativos vendorizados em templates/vendor/: " + ", ".join(faltando))
+    return {n: (_VENDOR / n).read_text(encoding="utf-8") for n in _ATIVOS}
 
 
-def _piscinas_de(nos: list) -> list:
-    """As piscinas que ESTES nós de fato referenciam — cada SVG só desenha a piscina que ele usa."""
-    return list(dict.fromkeys(x for n in achatar(nos) for x in n["mensagens"]))
+_CSS_PAGINA = """
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b2430;--mut:#5b6674;--line:#e3e7ec;--aviso:#f4d9a6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:15px/1.55 "Segoe UI",system-ui,sans-serif;padding-bottom:40px}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:24px 4vw 18px}
+h1{margin:0 0 4px;font-size:21px}
+h1 small{color:var(--mut);font-weight:400;font-size:14px}
+.sub{color:var(--mut);margin:6px 0 0;max-width:92ch;font-size:14px}
+main{padding:0 4vw}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px}
+nav a{font-size:13px;background:var(--card);color:var(--ink);border:1px solid var(--line);
+border-radius:999px;padding:7px 14px;text-decoration:none}
+nav a.filho{background:var(--bg);font-size:12.5px}
+.diagrama{background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:14px 16px 18px;margin:0 0 20px}
+.diagrama h2{margin:0 0 2px;font-size:17px}
+.meta{color:var(--mut);font-size:13px;margin:0 0 10px}
+.meta code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.tela{height:58vh;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.espera{padding:16px;color:var(--mut);font-size:13.5px;margin:0}
+.espera.erro{color:#b91c1c}
+.aviso{background:#fffaf0;border:1px solid var(--aviso);border-radius:12px;padding:14px 18px;
+margin:16px 0;font-size:14px}
+.aviso h3{margin:0 0 6px;font-size:15px} .aviso ul{margin:6px 0 0;padding-left:20px}
+.fonte{color:var(--mut);font-size:12.5px;margin:24px 0 0;max-width:96ch}
+"""
 
-
-def _svg(nos: list, piscinas: list) -> str:
-    caixas, setas, colunas = _posicionar(nos)
-    if not caixas:
-        return ('<svg xmlns="http://www.w3.org/2000/svg" width="420" height="60" data-w="420" '
-                'data-h="60" data-escala="1"><text x="16" y="34">processo sem nós desenháveis'
-                '</text></svg>')
-
-    # raias (elemento 14): ordem de aparição; cada raia compacta suas próprias linhas
-    ordem, linhas_por_raia = [], {}
-    for c in caixas:
-        raia = c["no"]["raia"] or "raiz"
-        if raia not in ordem:
-            ordem.append(raia)
-            linhas_por_raia[raia] = []
-        if c["linha"] not in linhas_por_raia[raia]:
-            linhas_por_raia[raia].append(c["linha"])
-    topo, altura_raia = {}, {}
-    y = _PAD
-    for raia in ordem:
-        linhas_por_raia[raia].sort()
-        h = max(1, len(linhas_por_raia[raia])) * _ROW
-        topo[raia], altura_raia[raia] = y, h
-        y += h
-    fim_raias = y
-    largura = _LBL + _PAD + colunas * _COL + _PAD
-    altura = fim_raias + (_PISCINA_H if piscinas else 0) + _PAD
-
-    def centro(c):
-        raia = c["no"]["raia"] or "raiz"
-        local = linhas_por_raia[raia].index(c["linha"])
-        return (_LBL + _PAD + c["col"] * _COL + _COL / 2,
-                topo[raia] + local * _ROW + _ROW / 2)
-
-    partes = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s" width="%s" height="%s" '
-        'data-w="%s" data-h="%s" data-escala="1">' % (largura, altura, largura, altura,
-                                                      largura, altura),
-        '<defs><marker id="ponta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
-        'markerHeight="7" orient="auto-start-reverse">'
-        '<path d="M0 0 L10 5 L0 10 z" fill="#8a95a3"/></marker></defs>',
-        # piscina do sistema (elemento 13), com as raias dentro
-        '<rect x="%s" y="%s" width="%s" height="%s" rx="6" fill="none" stroke="#cfd6de"/>'
-        % (_PAD / 2, _PAD / 2, largura - _PAD, fim_raias - _PAD / 2 + 6),
-    ]
-    for i, raia in enumerate(ordem):
-        partes.append('<rect class="%s" x="%s" y="%s" width="%s" height="%s" opacity=".55"/>'
-                      % ("faixa" if i % 2 == 0 else "faixa-alt", _PAD / 2, topo[raia],
-                         largura - _PAD, altura_raia[raia]))
-        partes.append('<line x1="%s" y1="%s" x2="%s" y2="%s" stroke="#dde3ea"/>'
-                      % (_PAD / 2 + _LBL, topo[raia], largura - _PAD / 2, topo[raia]))
-        partes.append('<text class="rotulo-raia" transform="translate(%s,%s) rotate(-90)" '
-                      'text-anchor="middle">raia %s</text>'
-                      % (_PAD / 2 + 20, topo[raia] + altura_raia[raia] / 2, _esc(raia)))
-
-    for s in setas:
-        de, para = caixas[s["de"]], caixas[s["para"]]
-        x1, y1 = centro(de)
-        x2, y2 = centro(para)
-        partes.append(_seta(x1 + _largura(de["no"]["tipo"]) / 2, y1,
-                            x2 - _largura(para["no"]["tipo"]) / 2, y2, s["rotulo"]))
-
-    for c in caixas:
-        x, yy = centro(c)
-        partes.append(_forma(c["no"], x, yy))
-
-    if piscinas:                            # piscina externa (13) + fluxo de mensagem (11)
-        py = fim_raias + 26
-        partes.append('<rect x="%s" y="%s" width="%s" height="72" rx="6" fill="none" '
-                      'stroke="#c084fc" stroke-dasharray="4 3"/>' % (_PAD / 2, py, largura - _PAD))
-        partes.append('<text class="rotulo-raia" transform="translate(%s,%s) rotate(-90)" '
-                      'text-anchor="middle">piscinas externas</text>' % (_PAD / 2 + 20, py + 36))
-        pos = {}
-        for i, nome in enumerate(piscinas):
-            cx = _LBL + _PAD + i * (_W + 40) + _W / 2
-            pos[nome] = (cx, py + 36)
-            partes.append('<g class="e-piscina"><rect class="caixa-piscina" x="%s" y="%s" '
-                          'width="%s" height="52" rx="9"/>' % (cx - _W / 2, py + 10, _W))
-            for k, linha in enumerate(_quebrar(nome, 24, 2)):
-                partes.append('<text x="%s" y="%s" text-anchor="middle">%s</text>'
-                              % (cx, py + 34 + k * 14, _esc(linha)))
-            partes.append("</g>")
-        for c in caixas:
-            for nome in c["no"]["mensagens"]:
-                if nome in pos:
-                    x, yy = centro(c)
-                    partes.append(_seta(x, yy + _altura(c["no"]["tipo"]) / 2,
-                                        pos[nome][0], pos[nome][1] - 26, "", "msg"))
-    partes.append("</svg>")
-    return "".join(partes)
-
-
-_ICONES = {
-    "inicio": '<circle cx="11" cy="11" r="9" fill="#fff" stroke="var(--inicio)" stroke-width="2"/>',
-    "fim": '<circle cx="11" cy="11" r="8" fill="#fff" stroke="var(--fim)" stroke-width="3.5"/>',
-    "fim_erro": '<circle cx="11" cy="11" r="8" fill="#fff" stroke="var(--erro)" '
-                'stroke-width="3.5"/>',
-    "tarefa": '<rect x="1" y="4" width="20" height="14" rx="3" fill="var(--tarefa-bg)" '
-              'stroke="var(--tarefa)" stroke-width="1.5"/>',
-    "subprocesso": '<rect x="1" y="4" width="20" height="14" rx="3" fill="var(--sub-bg)" '
-                   'stroke="var(--sub)" stroke-width="1.5"/><text x="11" y="16" '
-                   'text-anchor="middle" font-size="11" fill="var(--sub)">+</text>',
-    "gateway": '<polygon points="11,1 21,11 11,21 1,11" fill="var(--gw-bg)" stroke="var(--gw)" '
-               'stroke-width="1.5"/><text x="11" y="15" text-anchor="middle" font-size="10" '
-               'fill="var(--gw)">×</text>',
-    "gateway_paralelo": '<polygon points="11,1 21,11 11,21 1,11" fill="var(--gw-bg)" '
-                        'stroke="var(--gw)" stroke-width="1.5"/><text x="11" y="15" '
-                        'text-anchor="middle" font-size="10" fill="var(--gw)">+</text>',
-    "dados": '<path d="M3 6 v10 a8 4 0 0 0 16 0 V6" fill="#effaf8" stroke="var(--dados)" '
-             'stroke-width="1.4"/><ellipse cx="11" cy="6" rx="8" ry="4" fill="#effaf8" '
-             'stroke="var(--dados)" stroke-width="1.4"/>',
-    "borda": '<circle cx="11" cy="11" r="9" fill="#fff" stroke="var(--gw)" stroke-width="1.5"/>'
-             '<circle cx="11" cy="11" r="6" fill="none" stroke="var(--gw)" stroke-width="1.5"/>',
-    "msg": '<path d="M1 11 H21" stroke="var(--msg)" stroke-width="1.6" stroke-dasharray="5 3"/>'
-           '<circle cx="19" cy="11" r="2.5" fill="none" stroke="var(--msg)"/>',
-    "reuso": '<rect x="1" y="5" width="20" height="12" rx="2" fill="#fff" stroke="var(--tarefa)" '
-             'stroke-width="1.4"/><path d="M8 7 v8 M14 7 v8" stroke="var(--tarefa)" '
-             'stroke-width="1.3"/>',
-}
-
-
-def _icone_legenda(tipo: str) -> str:
-    return ('<svg viewBox="0 0 22 22" width="22" height="22" xmlns="http://www.w3.org/2000/svg">'
-            + _ICONES.get(tipo, "") + "</svg>")
+_JS_PAGINA = """
+// o XML embutido vem SEM coordenadas: o auto-layout calcula aqui e o bpmn-js desenha.
+document.querySelectorAll('.tela').forEach(function(el){
+  var dados = document.getElementById('xml-' + el.getAttribute('data-slug'));
+  if(!dados) return;
+  BpmnAutoLayout.layoutProcess(dados.textContent).then(function(comDI){
+    el.innerHTML = '';
+    var visor = new BpmnJS({ container: el });
+    return visor.importXML(comDI).then(function(){
+      var tela = visor.get('canvas');
+      tela.zoom('fit-viewport');
+      // altura pelo CONTEUDO: moldura fixa deixava meia pagina em branco num diagrama de 4 caixas
+      var vb = tela.viewbox();
+      el.style.height = Math.min(Math.round(window.innerHeight * 0.74),
+        Math.max(240, Math.round(vb.inner.height * vb.scale) + 90)) + 'px';
+      tela.resized();
+      tela.zoom('fit-viewport');
+    });
+  }).catch(function(e){
+    el.innerHTML = '<p class="espera erro">Nao foi possivel montar este desenho (' +
+      (e && e.message ? e.message : e) + '). Use o arquivo .bpmn ao lado (abre no Bizagi) ' +
+      'ou o bpmn.md.</p>';
+  });
+});
+"""
 
 
 def render_html(modelo: dict, gerado_em: str = "") -> str:
-    """Desenho BPMN self-contained (SVG + JS vanilla, zero CDN — proxy MSIG derruba externo)."""
-    processos = modelo["processos"]
-    # âncora, não botão: sem JS o índice ainda leva ao processo (com JS, troca o painel)
-    nav = "".join('<a href="#p%d" data-alvo="%d">%s</a>' % (i, i, _esc(p["nome"]))
-                  for i, p in enumerate(processos))
+    """Página self-contained: XML embutido + auto-layout + bpmn-js, tudo vendorizado (zero CDN)."""
+    ativos = _ativos_vendor()
+    abas, secoes, total = [], [], 0
 
-    secoes = []
-    for i, p in enumerate(processos):
-        meta = ["<code>" + _esc(p["arquivo"]) + "</code>",
-                "função <code>" + _esc(p["funcao"]) + "</code>",
-                "raias: " + ", ".join("<code>" + _esc(r) + "</code>" for r in p["raias"])]
-        if p["piscinas"]:
-            meta.append("piscinas: " + ", ".join("<code>" + _esc(x) + "</code>"
-                                                 for x in p["piscinas"]))
-        if p["cortados"]:
-            meta.append("<b>cortado no teto: +%d nó(s)</b>" % p["cortados"])
-        tela = "tela%d" % i
-        corpo = ['<section class="processo" id="p%d"><h2>%s</h2>' % (i, _esc(p["nome"])),
-                 '<p class="meta">' + " · ".join(meta) + "</p>",
-                 '<div class="tela" id="%s">%s</div>' % (tela, _svg(p["nos"], p["piscinas"])),
-                 '<div class="zoom"><button data-tela="%s" data-passo="-0.15">−</button>'
-                 '<button data-tela="%s" data-passo="0">100%%</button>'
-                 '<button data-tela="%s" data-passo="0.15">+</button></div>' % (tela, tela, tela)]
-        for n in achatar(p["nos"]):
-            if n["filhos"]:
-                corpo.append('<p class="expansao"><b>Expansão do subprocesso</b> “%s” '
-                             '— <code>%s</code></p>' % (_esc(n["rotulo"]), _esc(n["arquivo"])))
-                corpo.append('<div class="tela">%s</div>'
-                             % _svg(n["filhos"], _piscinas_de(n["filhos"])))
-        corpo.append("</section>")
-        secoes.append("".join(corpo))
+    for proc in modelo["processos"]:
+        for k, d in enumerate(diagramas(proc)):
+            total += 1
+            if not k:      # índice com 36 pílulas comia a 1ª tela antes de qualquer desenho
+                abas.append('<a href="#%s">%s</a>' % (d["slug"], _atr(d["nome"])))
+            ficha = [f'<code>{_atr(d["arquivo"])}</code>',
+                     f'{d["elementos"]} elementos', f'{d["fluxos"]} fluxos']
+            if not k:
+                if proc["raias"]:
+                    ficha.append("raias: " + ", ".join(f"<code>{_atr(r)}</code>"
+                                                       for r in proc["raias"]))
+                if proc["piscinas"]:
+                    ficha.append("fala com: " + ", ".join(f"<code>{_atr(x)}</code>"
+                                                          for x in proc["piscinas"]))
+                if proc["cortados"]:
+                    ficha.append(f'<b>cortado no teto: +{proc["cortados"]}</b>')
+            xml = render_bpmn(d).replace("</script", "<\\/script")
+            secoes.append(
+                '<section class="diagrama" id="%s"><h2>%s</h2><p class="meta">%s</p>'
+                '<div class="tela" data-slug="%s"><p class="espera">Montando o desenho… se este '
+                'texto ficar, o visualizador não rodou: abra o <code>.bpmn</code> ao lado no '
+                'Bizagi, ou leia o <code>bpmn.md</code>.</p></div>'
+                '<script type="application/xml" id="xml-%s">%s</script></section>'
+                % (d["slug"], _atr(d["nome"]), " · ".join(ficha), d["slug"], d["slug"], xml))
 
-    legenda = ['<div class="legenda"><h3>Legenda — de onde cada elemento sai no código</h3>']
-    for tipo, nome, de_onde in LEGENDA:
-        legenda.append('<div class="lg"><i>%s</i><div><b>%s</b><br><span>%s</span></div></div>'
-                       % (_icone_legenda(tipo), _esc(nome), _esc(de_onde)))
-    legenda.append("</div>")
-
-    avisos = ['<div class="aviso"><h3>O que a leitura estática NÃO deriva</h3>'
-              "<p>Declarado em vez de sumir em silêncio — desenho que parece completo sem ser "
-              "é pior que desenho com buraco visível. Estes elementos são modelagem manual:</p><ul>"]
+    avisos = ['<div class="aviso"><h3>O que este desenho não mostra</h3>'
+              '<p>Dois tipos de buraco, os dois declarados — desenho que parece completo sem ser '
+              'é pior que buraco visível.</p><p><b>Não derivável do código</b> (leitura estática):'
+              '</p><ul>']
     for nome, porque in NAO_DERIVAVEIS:
-        avisos.append("<li><b>%s</b> — %s</li>" % (_esc(nome), _esc(porque)))
+        avisos.append(f"<li><b>{_atr(nome)}</b> — {_atr(porque)}</li>")
+    avisos.append("</ul><p><b>Não posicionado pelo auto-layout do bpmn.io</b> "
+                  "(limitação declarada pela própria lib):</p><ul>")
+    for nome, porque in NAO_POSICIONADOS:
+        avisos.append(f"<li><b>{_atr(nome)}</b> — {porque}</li>")
     avisos.append("</ul>")
     if modelo["nao_lidos"]:
         avisos.append("<p><b>Não lido</b> (a geração seguiu, falha aberta):</p><ul>")
         for x in modelo["nao_lidos"]:
-            avisos.append("<li><code>%s</code> — %s</li>" % (_esc(x["arquivo"]),
-                                                                  _esc(x["erro"])))
+            avisos.append(f'<li><code>{_atr(x["arquivo"])}</code> — {_atr(x["erro"])}</li>')
         avisos.append("</ul>")
     avisos.append("</div>")
 
-    cabecalho_extra = (" · gerado em " + _esc(gerado_em)) if gerado_em else ""
+    quando = (" · gerado em " + _atr(gerado_em)) if gerado_em else ""
     return (
         '<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n<meta charset="UTF-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-        "<title>Processos em BPMN — " + _esc(modelo["projeto"]) + "</title>\n"
-        "<style>" + _CSS + "</style>\n</head>\n<body>\n<header>\n"
-        "  <h1>Processos em BPMN — " + _esc(modelo["projeto"]) + "\n"
-        "    <small>" + str(len(processos)) + " porta(s) de entrada · "
-        + str(modelo["arquivos_lidos"]) + " arquivo(s) .py lidos" + cabecalho_extra
-        + "</small></h1>\n"
-        '  <p class="sub">Desenhado a partir do <b>código</b> por leitura estática '
-        "(<code>ast</code>): cada processo é uma porta de entrada do sistema, cada raia é um "
-        "módulo/pasta. Nenhuma caixa aqui foi inventada — o que o código não diz fica "
-        "declarado como não derivável. Este desenho é <b>pro humano</b>; o assistente lê o "
-        "<code>bpmn.md</code> gerado ao lado.</p>\n</header>\n<main>\n"
-        + "".join(legenda) + "\n<nav>" + nav + "</nav>\n" + "".join(secoes) + "\n"
-        + "".join(avisos) + "\n"
+        f'<title>Processos em BPMN — {_atr(modelo["projeto"])}</title>\n'
+        f'<style>{ativos["bpmn-js.css"]}</style>\n<style>{_CSS_PAGINA}</style>\n'
+        "</head>\n<body>\n<header>\n"
+        f'  <h1>Processos em BPMN — {_atr(modelo["projeto"])} <small>'
+        f'{len(modelo["processos"])} porta(s) de entrada · {total} diagrama(s) · '
+        f'{modelo["arquivos_lidos"]} arquivo(s) .py lidos{quando}</small></h1>\n'
+        '  <p class="sub">Lido do <b>código</b> por <code>ast</code> e desenhado pelo '
+        '<b>bpmn-js</b> sobre coordenadas do <b>bpmn-auto-layout</b> (bpmn.io, embutidos aqui — '
+        'zero CDN). Um diagrama por porta de entrada, mais um por subprocesso: clique no índice. '
+        'Arraste para mover, scroll para zoom. Nenhuma caixa foi inventada. Este desenho é '
+        '<b>pro humano</b>; o assistente lê o <code>bpmn.md</code> gerado ao lado, e os '
+        '<code>.bpmn</code> abrem no Bizagi.</p>\n</header>\n'
+        '<noscript><p class="aviso">Esta página monta os desenhos por script. Sem JavaScript '
+        'ficam só as fichas — abra os arquivos <code>.bpmn</code> no Bizagi ou leia o '
+        '<code>bpmn.md</code>.</p></noscript>\n<main>\n'
+        f'<nav>{"".join(abas)}</nav>\n{"".join(secoes)}\n{"".join(avisos)}\n'
         '<p class="fonte">Gerado por <code>templates/bpmn.py</code> '
-        "(<code>/mss-spec:bpmn</code>) a partir dos arquivos <code>.py</code> do projeto — "
-        "decorators de rota, chamadas a funções do próprio projeto, <code>if/else</code>, "
-        "<code>try/except</code>, chamadas a banco e a serviço externo. Saída derivada e "
-        "regenerável: fora do git de propósito. Arraste para navegar; use −/+ para o zoom.</p>\n"
-        "</main>\n<script>" + _JS + "</script>\n</body>\n</html>\n"
+        '(<code>/mss-spec:bpmn</code>): decorators de rota, chamadas a funções do próprio projeto, '
+        '<code>if/else</code>, <code>try/except</code>, banco e serviço externo. Desenho por '
+        'bpmn-js + bpmn-auto-layout (bpmn.io), vendorizados em <code>templates/vendor/</code>. '
+        'Saída derivada e regenerável: fora do git de propósito.</p>\n'
+        f'</main>\n<script>{ativos["bpmn-navigated-viewer.min.js"]}</script>\n'
+        f'<script>{ativos["bpmn-auto-layout.min.js"]}</script>\n'
+        f'<script>{_JS_PAGINA}</script>\n</body>\n</html>\n'
     )
 
 
@@ -1356,6 +1285,18 @@ def _gerar(proj_dir=None, out_dir=None, profundidade: int = _PROFUNDIDADE,
                      entradas_extra=entradas_extra)
     md = out / "bpmn.md"
     html = out / "bpmn.html"
+
+    # um .bpmn por diagrama: é o arquivo que abre no Bizagi, onde raia e piscina ganham a
+    # posição que o auto-layout do bpmn.io não dá.
+    pasta = out / "bpmn"
+    pasta.mkdir(parents=True, exist_ok=True)
+    for antigo in pasta.glob("*.bpmn"):
+        antigo.unlink()
+    for proc in modelo["processos"]:
+        for d in diagramas(proc):
+            (pasta / f"{d['slug']}.bpmn").write_text(render_bpmn(d), encoding="utf-8",
+                                                     newline="\n")
+
     md.write_text(render_texto(modelo), encoding="utf-8", newline="\n")
     html.write_text(render_html(modelo, datetime.now().strftime("%Y-%m-%d %H:%M")),
                     encoding="utf-8", newline="\n")
