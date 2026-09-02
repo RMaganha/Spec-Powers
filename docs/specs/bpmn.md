@@ -5,7 +5,11 @@ O `/mss-spec:bpmn` (`commands/bpmn.md`) roda o gerador determinístico `template
 `mapa_neural.py` e do `anatomia.py`) e produz **duas saídas do mesmo modelo**, ambas em `docs/` e
 **fora do git**: `docs/bpmn.md` (índice em texto — é o que o **assistente** lê) e `docs/bpmn.html`
 (desenho BPMN em SVG, self-contained, zero CDN — é o que o **humano** vê). A extração é **estática,
-via `ast` da stdlib**, e **nunca inventa caixa que não está no código**.
+via `ast` da stdlib**, e **nunca inventa caixa que não está no código**. Os processos saem
+**ordenados do mais rico pro mais pobre** (nº de nós desc, nome asc) — a ordem alfabética abria a
+página num processo de 2 nós e lia como "não achou nada". No HTML, **esconder é enriquecimento do
+JS**: sem script, os 24 desenhos aparecem empilhados e o índice do topo é âncora; com script,
+`body.js` liga o seletor de um processo por vez.
 
 **Um processo por porta de entrada**, descobertas em **cascata**: rota Flask/FastAPI
 (`POST /cotacao`) → `main()` de arquivo da raiz → `main()` em qualquer módulo (o 3º degrau nasceu do
@@ -26,7 +30,7 @@ notação BPMN (numeração do infográfico do Bizagi que o owner usou como mode
 | 3. evento de fim | `return` (rótulo = o que retorna) · `raise` → fim de **erro** |
 | 19. evento de borda | `try/except` em volta da tarefa |
 | 16. armazenamento de dados | `cursor.execute`, SQLAlchemy, `pyodbc` |
-| 11. fluxo de mensagem + 13. piscina | `requests`/`httpx`/cliente de API → piscina externa |
+| 11. fluxo de mensagem + 13. piscina | `requests`/`httpx` → piscina pelo host · e **SDK de LLM** (`google.generativeai`, `google.genai`, `openai`, `anthropic`, `vertexai`, `cohere`, wrappers langchain) → piscina pelo SDK: o sinal é o **import no arquivo**, mesmo tardio dentro do método, porque a chamada de verdade é método de instância (`self.model.generate_content`). Sem import, nenhuma piscina — não se adivinha integração. A mensagem de um filho **sobe** para o subprocesso colapsado, que é a caixa visível no nível de cima |
 | 14. raia | módulo/pasta da função (`apis/`, `services/`, `persistencia/`) |
 | 17. anotação | docstring da função |
 | 20. chamada de atividade | subprocesso que aparece em **2+ processos** (reuso de verdade) |
@@ -39,9 +43,11 @@ do código é **escapado** (docstring com `<script>` quebraria o SVG); a linha d
 **globalmente por processo**, senão o ramo de um gateway aninhado cai sobre a linha de um ramo irmão
 e duas caixas se empilham. O desenho é **pro humano**; o assistente lê o `.md`.
 
-Saídas do dogfood neste repo (que não tem rota): **5 processos** (os `main()` de `hooks/` e
+Rodado no **MSS-SSC** (FastAPI real): 24 processos, 19 arquivos `.py`, 0 não lido, 307
+caixas, piscina `Gemini` com 4 fluxos de mensagem. Saídas do dogfood neste repo (que não tem rota):
+**5 processos** (os `main()` de `hooks/` e
 `templates/`), 7 arquivos `.py` lidos, 1 não lido (`templates/get_connection.py` é molde com
-placeholder — reportado, não escondido). Testes: `tests/test_bpmn.py` (33) + `test_bpmn_wiring`.
+placeholder — reportado, não escondido). Testes: `tests/test_bpmn.py` (40) + `test_bpmn_wiring`.
 
 Fora de escopo: `.bpmn` XML 2.0 importável no Bizagi/Camunda (v1 é só visual — palavra do owner) ·
 elementos não deriváveis do código (gateway inclusivo 8, por evento 9, objeto de dados 15, grupo 18) ·
@@ -54,3 +60,10 @@ do assistente · análise semântica profunda de tipos/chamada dinâmica (mesma 
   desenho **A** (fluxo por porta de entrada, raias por camada) aprovado contra B (diagrama único do
   sistema — seria o mapa-neural de novo) e C (sem gerador, o assistente desenha a cada pedido — o custo
   que a decisão de 2026-08-25 já havia rejeitado na `anatomia`).
+- 2026-09-02 — 0.24.1, cinco consertos vindos de rodar no MSS-SSC (o owner abriu o HTML e não viu
+  desenho): o esconder das seções passou a depender do JS (era `display:none` puro, e script que
+  não roda apagava tudo) · ordem por riqueza (abria em `GET /` com 2 nós) · **SDK de LLM vira
+  piscina** (Gemini/OpenAI/Anthropic; 24 rotas saíam com zero fluxo de mensagem) · a mensagem do
+  filho **sobe** pro subprocesso colapsado (a piscina era desenhada sem seta apontando pra ela) ·
+  e `return servico(x)` — o padrão do router fino — passou a virar tarefa, não só evento de fim
+  (motivo: o statement caía no ramo do `ast.Return` e o processo saía início → fim). Caso F-017.
