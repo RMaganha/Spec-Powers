@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 **Responda sempre em português (pt-BR).**
 
-Gate de **pré-publicação**: reúne num passo só o "antes de entregar" que hoje está espalhado e reporta **✓/✗**. **Só reporta** — não bumpa versão, não edita CHANGELOG, não faz merge/PR e não conserta nada; aponta o que falta pra você resolver. É o gate MSIG "está pronto pra sair?"; **vem ANTES** do `finishing-a-development-branch` do superpowers (que cuida de merge/PR) — quando o veredito ficar verde, aí sim você segue pro finishing.
+Gate de **pré-publicação**: reúne num passo só o "antes de entregar" que hoje está espalhado e reporta **✓/✗**. **Só reporta** — não bumpa versão, não edita CHANGELOG, não faz merge/PR e não conserta nada; aponta o que falta pra você resolver. É o gate MSIG "está pronto pra sair?"; **vem ANTES** do `finishing-a-development-branch` do superpowers (que cuida de merge/PR) — quando o veredito ficar verde, apresente as opções do finishing e **peça**: merge, PR e `git push` são **ato do owner**, do terminal dele — o hook `git_publicacao.py` nega esses comandos ao assistente (caso **F-022**: pushes disparados pelo assistente = deploy automático quebrado).
 
 Rode **só os checks que se aplicam** (detecte pelos arquivos presentes); check inaplicável é **pulado**, não vira ✗.
 

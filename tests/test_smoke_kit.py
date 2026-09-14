@@ -167,7 +167,9 @@ def test_release_wiring():
 def test_regras_branch_e_escopo_wiring():
     """Duas regras montadas como convenção (doc/comandos, sem hook):
     (1) branch nasce SEMPRE da principal, nunca de outra branch;
-    (2) um assunto por janela — ao surgir 2º assunto, ALERTA (não trava) e empurra pro to-dolist."""
+    (2) um assunto por janela — ao surgir 2º assunto, NÃO age sobre ele e empurra pro to-dolist
+    (desde a 0.26.0 é trava: hook `um_item_por_janela.py` + passo 0 do nova-feature; ver
+    tests/test_hook_um_item_por_janela.py)."""
     claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
     nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
     todo = (REPO / "commands" / "to-dolist.md").read_text(encoding="utf-8")
@@ -1005,6 +1007,10 @@ def test_diagnostico_wiring():
     assert "não se re-litiga" in low, "diagnostico.md não protege o fato afirmado pelo owner"
     assert "condição real" in low and "cwd" in low,         "diagnostico.md não exige reproduzir a condição REAL do ambiente (CWD/envs) — 'passou local' não prova"
     assert "um teste que discrimina" in low,         "diagnostico.md não impõe a economia de rodadas (1 pedido de evidência = 1 teste que discrimina)"
+    # F-023 — "mandei o payload certo, voltou 200, API saudável" é UMA variante: exige a matriz do chamador
+    assert "matriz de variantes" in low and "content-type" in low, \
+        "diagnostico.md não exige a matriz de variantes que o chamador externo pode produzir (F-023)"
+    assert "deploy inteiro" in low, "diagnostico.md não manda o diff cobrir o deploy inteiro, não só um arquivo (F-023)"
     # âncora no ponto de contágio: o diff abre outro projeto → read-only, reporte
     assert "somente-leitura" in low and "âncora" in low and "não conserte" in low,         "diagnostico.md manda abrir o precedente sem a fronteira da âncora (read-only; reporte)"
     assert "docs/EVALS.md" in diag, "diagnostico.md não fecha registrando o caso no corpus"

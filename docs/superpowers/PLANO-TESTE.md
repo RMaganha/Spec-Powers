@@ -108,7 +108,25 @@
 - `test_sonda_de_worktree_falha_FECHADA` — a única exceção ao fail-open: git inconsultável → nega (senão a cerca sumiria só por o git faltar no PATH)
 - `test_processo_nega_com_json_e_stderr` / `test_processo_libera_silencioso` / `test_processo_falha_aberta_com_stdin_invalido` — contrato do processo: deny pelos dois protocolos (JSON `permissionDecision` + exit 2 com motivo no stderr), liberação calada, stdin inválido sai 0
 
-**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`).
+`tests/test_hook_git_publicacao.py` — comportamento da cerca de publicação (hook `git_publicacao.py`, F-022):
+- `test_nega_publicacao_e_integracao` (×20) — `git push` (todas as formas: `-u`, `--force*`, `-C <dir>`, encadeado `;`/`&&`/`|`, prefixo `VAR=x`, tab, multilinha), `git merge`, `git rebase`, `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update` → negados, com motivo que cita o owner e o `/mss-spec:release`
+- `test_nega_tambem_no_powershell` / `test_comando_em_varias_linhas_e_pego` — mesma cerca no tool PowerShell e em comando de várias linhas
+- `test_libera_o_resto` (×22) — status/log/diff/fetch/add/commit/checkout/switch/branch/stash/`merge --abort`/`rebase --abort`, pytest, `docker build`, `az account show`, `az webapp log tail`, `echo pushing`, `grep 'git push'` → passam
+- `test_outro_tool_nao_e_avaliado` — Write com "git push" no conteúdo não é comando
+- `test_escape_do_owner` — `MSS_PUBLICACAO_OFF=1` libera; em branco não conta
+- `test_evento_sem_comando_libera_calado` / `test_bug_na_avaliacao_falha_fechada` — sem comando libera; avaliação que estoura NEGA (falha fechada)
+- `test_processo_*` (×3) — via subprocess: deny pelos dois protocolos (JSON + exit 2 + stderr), libera calado, entrada não-JSON libera
+- `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json` (matcher Bash|PowerShell, âncora segue 1º grupo), README (escape, falha fechada) e `CLAUDE.md`
+
+`tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022):
+- `test_lista_abertas_ignora_fechada_e_pausada` / `test_em_andamento_conta_como_aberta` / `test_indice_vazio_nao_tem_aberta` — parser do INDEX: `aberta` e `em andamento` contam; `fechada`/`pausada` não
+- `test_sem_aberta_passa` / `test_outra_aberta_bloqueia_e_lista` / `test_mesma_feature_retoma` / `test_sem_argumento_com_aberta_bloqueia` — a decisão: bloqueia listando as abertas e ensinando `pausada`; retomar a mesma (nome, slug, grafia) passa
+- `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem INDEX passa
+- `test_escape_do_owner` / `test_entrada_malformada_libera` — `MSS_UM_ITEM_OFF=1`; evento sem cwd/prompt libera (falha aberta)
+- `test_processo_*` (×3) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; libera calado; não-JSON libera
+- `test_hook_registrado_no_user_prompt_submit` / `test_segunda_camada_em_prosa` — `hooks.json` (UserPromptSubmit), passo 0 do `nova-feature.md`, `CLAUDE.md` sem "alerta, não trava", README
+
+**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`). Mesmo canário pras cercas da 0.26.0: `git push --dry-run` pedido ao assistente tem que vir `[mss-spec] BLOQUEADO`, e `/mss-spec:nova-feature outra-coisa` com feature `aberta` no INDEX tem que ser bloqueado com a lista.
 
 - `test_infra_pergunta_no_kickoff` — CA1: o kickoff pergunta MSIG × própria e grava na linha `Infra:` do `CLAUDE.md`
 - `test_infra_declarada_no_molde_do_claude_md` — CA2: a linha viaja no molde, nomeando o que MSIG implica e o que não se aplica
@@ -116,4 +134,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-07-31 · branch feature/infra-msig-ou-propria (o kit pergunta a infra em vez de assumir MSIG) · 116 passed
+**Último 100% verde:** 2026-09-14 · branch feature/travas-publicacao-e-um-item-por-janela (cercas: publicar é ato do owner · um item por janela) · 289 passed

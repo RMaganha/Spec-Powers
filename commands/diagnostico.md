@@ -36,6 +36,12 @@ O precedente é **SOMENTE-LEITURA** (a âncora não migra): bug visto lá, repor
 condições do ambiente que falha: **CWD** do processo, variáveis ausentes/vazias, usuário, rede,
 comando de subida exato. Antes de declarar "o problema não está no código", **nomeie por escrito**
 cada diferença entre o seu teste e o ambiente real — cada uma é uma hipótese viva.
+**Chamador externo recebendo 4xx/5xx?** "Mandei o payload certo e voltou 200" prova só o payload
+certo. Saúde de endpoint se prova com a **matriz de variantes que o chamador pode produzir**
+(Content-Type ausente ou `text/plain`, charset/BOM, corpo vazio, form-encoded): a variante que
+reproduz o erro **igualzinho** diz o que ele está mandando — sem pedir log a ninguém. E o diff do
+passo 2 cobre o **deploy inteiro** (requirements/versão do framework, Dockerfile, App Settings,
+imagem), não só o arquivo onde o erro "acontece". Caso **F-023**.
 
 **4. Economia de rodadas.** Cada "me manda o log/print" custa uma ida do owner ao Portal/terminal —
 é o recurso mais caro do diagnóstico. Antes de pedir qualquer evidência: (a) liste o que você ainda

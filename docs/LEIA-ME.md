@@ -109,8 +109,18 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Quatro redes prontas para quando algo dá errado — nenhuma é comando novo:
-- **Âncora do projeto ativo** — a única rede que **bloqueia**: o hook `hooks/projeto_ativo.py` (ligado
+Seis redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Publicar/integrar é ato do owner** — o hook `hooks/git_publicacao.py` (ligado por padrão) **nega**
+  ao assistente `git push`, `git merge`, `git rebase`, `gh pr merge` e comandos de deploy (`docker push`,
+  `az acr build`, `az webapp`, `az containerapp`). Nasceu de acidente real (caso F-022): o assistente
+  disparou vários pushes numa janela de feature e o push era o deploy automático — homologação quebrou
+  inteira. Ele roda `/mss-spec:release` e **pede**; você publica do seu terminal. Falha **fechada**;
+  escape consciente `MSS_PUBLICACAO_OFF=1`.
+- **Um item por janela** — o hook `hooks/um_item_por_janela.py` (ligado por padrão) **bloqueia**
+  `/mss-spec:nova-feature` enquanto o `docs/superpowers/INDEX.md` tiver feature `aberta`/`em andamento`
+  de outro assunto (retomar a mesma passa; `pausada: <motivo>` marcado por você à mão não conta).
+  Mesmo acidente: a janela de uma feature virou três assuntos. Falha aberta; escape `MSS_UM_ITEM_OFF=1`.
+- **Âncora do projeto ativo** — a rede que **bloqueia** escrita fora: o hook `hooks/projeto_ativo.py` (ligado
   por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
   referência **somente-leitura** — você lê o código dele pelo `precedentes` e traz o padrão pra cá.
   Nasceu de acidente real: um *"olha como o projeto B fez isso"* virou o assistente adotando o B como

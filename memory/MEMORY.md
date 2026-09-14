@@ -48,6 +48,7 @@
 
 ## Ao versionar, publicar e fechar
 - **quando abrir branch de feature ou fix** → [Feature sempre a partir da `main`](feedback_feature_a_partir_da_master.md) — nunca ramificar de outra branch
+- **quando for publicar/integrar/fazer deploy (push, merge, rebase, docker/az) ou surgir 2º assunto na janela** → [Publicar é ato do owner; um item por janela é trava](feedback_publicacao_e_ato_do_owner.md) — hooks negam; `release` + pedir; feature nova só sem aberta (F-022)
 - **quando bumpar a versão do kit** → [Versão vive em dois manifestos](project_versao_em_dois_manifestos.md) — `plugin.json` + `marketplace.json`, e re-rode a suíte
 - **quando fechar mudança em gerador ou CLI** → [Dogfood com diff antes × depois](project_dogfood_gerador_diff_antes_depois.md) — fixture não vê o que só o projeto real tem
 - **quando publicar ou instalar o kit por marketplace** → [relative-path serve git E local](project_marketplace_relative_path_serve_git_e_local.md) — o mesmo `marketplace.json` resolve os dois
