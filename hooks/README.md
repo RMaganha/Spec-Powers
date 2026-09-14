@@ -1,9 +1,11 @@
-Dois hooks, com filosofias **opostas** — de propósito:
+Quatro hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
 
-| Hook | Estado | Bloqueia? | Papel |
-|---|---|---|---|
-| `projeto_ativo.py` | **ligado por padrão** (registrado no `plugin.json`) | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `capturar_nudge.py` | opt-in, off | não | rede: lembra de capturar memória |
+| Hook | Evento | Estado | Bloqueia? | Papel |
+|---|---|---|---|---|
+| `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega) | cerca: publicar/integrar/deploy é ato do owner |
+| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
+| `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 
 ---
 
@@ -58,11 +60,85 @@ a mensagem `[mss-spec] BLOQUEADO`. Se passar (não bloqueou), registre à mão n
   "hooks": {
     "PreToolUse": [
       { "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/projeto_ativo.py\"" } ] }
+        "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/projeto_ativo.py\"" } ] },
+      { "matcher": "Bash|PowerShell",
+        "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/git_publicacao.py\"" } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/um_item_por_janela.py\"" } ] }
     ]
   }
 }
 ```
+
+Mesmo canário pras outras duas cercas: peça um `git push --dry-run` (tem que vir `[mss-spec] BLOQUEADO`) e,
+com uma feature `aberta` no INDEX, digite `/mss-spec:nova-feature outra-coisa` (o prompt tem que ser
+bloqueado com a lista das abertas).
+
+---
+
+# Hook ligado — publicar e integrar é ato do owner (`git_publicacao.py`)
+
+**Por que existe (acidente real, caso F-022, 2026-09):** numa janela aberta pra **uma** feature, o
+assistente absorveu um 2º e um 3º assunto, mesclou branches e **disparou `git push`** — e o push é o
+gatilho do deploy automático em homologação. Quando o owner viu, vários já tinham ido. A homologação
+quebrou inteira e custou centenas de testes pra entender o quê. A frase *"`git push` só quando eu
+pedir"* **já estava** no `CLAUDE.md` e foi ignorada: prosa não segura na hora 2 de uma sessão longa.
+
+Evento `PreToolUse`, matcher `Bash|PowerShell`, lê `tool_input.command` e **nega** o que:
+- **publica**: `git push` (qualquer forma: `-u`, `--force*`, `-C <dir>`, encadeado com `;`/`&&`/`|`,
+  prefixo `VAR=x`, PowerShell);
+- **integra**: `git merge`, `git rebase` (menos `--abort`, que desfaz), `gh pr merge`;
+- **faz deploy**: `docker push`, `az acr build`, `az webapp <escrita>` (`log`/`show`/`list` passam),
+  `az containerapp update|create|revision`.
+
+Casa o **verbo no início de um comando simples**, não a palavra solta — `grep -rn 'git push' docs/`
+e `echo pushing` passam. **Libera o resto do git**: status, log, diff, fetch, add, commit,
+checkout/switch/branch (abrir a branch da feature continua livre), stash.
+
+**O que o assistente faz no lugar:** roda `/mss-spec:release` (gate de pré-publicação), cola o
+veredito e **pede** — o owner publica/integra do terminal dele (hook não roda no terminal humano).
+
+## Garantias
+
+- **Falha FECHADA** onde importa: há comando e a avaliação estourou → **nega** com o motivo
+  "cerca com defeito". É o oposto da cerca da âncora, de propósito: uma escrita barrada por engano
+  custa um `MSS_ANCORA_OFF=1`; um push que passa por engano custa um ambiente. Evento **sem
+  comando** (malformado) libera calado — não existe push num evento vazio.
+- **Calado quando libera**; ao negar, os dois protocolos (`permissionDecision: "deny"` no stdout +
+  exit 2 com motivo no stderr).
+- **Escape consciente só do owner:** `MSS_PUBLICACAO_OFF=1` (no `settings.json`, bloco `env`). Não há
+  escape por argumento do assistente.
+
+---
+
+# Hook ligado — um item por janela (`um_item_por_janela.py`)
+
+**Por que existe:** mesmo acidente do F-022. A regra "um assunto por janela" existia como **alerta**
+("é alerta, não trava") e ficou muda enquanto a janela de uma feature virava três assuntos. Agora é
+trava mecânica no ponto onde dá: **abrir feature nova**.
+
+Evento `UserPromptSubmit`: só age quando o prompt é `/mss-spec:nova-feature <nome>` (ou
+`/nova-feature <nome>`) — qualquer outro texto passa calado. Lê `<cwd>/docs/superpowers/INDEX.md`
+e considera **aberta** a linha de item com status `aberta` ou `em andamento` (`fechada` e
+`pausada: <motivo>` não contam; a seção "Fora de escopo" é ignorada).
+
+- **outra aberta** → **bloqueia o prompt** (apaga e mostra o motivo) listando as abertas e as três
+  saídas honestas: terminar a aberta, o owner marcar `pausada: <motivo>` à mão, ou mandar o assunto
+  novo pro `/mss-spec:to-dolist adicionar`;
+- **a mesma** (por nome ou pelo slug da spec, sem acento/caixa) → passa — retomar não é misturar;
+- **nenhuma aberta**, ou projeto **sem INDEX** → passa.
+
+2ª camada: o **passo 0** do `commands/nova-feature.md` faz o mesmo check em prosa, pra quando o hook
+não disparar.
+
+## Garantias
+
+- **Falha ABERTA**: entrada malformada ou bug → libera e sai 0. Apagar o prompt do owner por defeito
+  do hook seria pior que a regra não disparar uma vez (e o passo 0 cobre).
+- **Calado quando libera**; ao bloquear, `{"decision": "block", "reason": …}` no stdout + exit 2 com o
+  motivo no stderr (é o que o owner vê no terminal).
+- **Escape consciente só do owner:** `MSS_UM_ITEM_OFF=1`.
 
 ---
 

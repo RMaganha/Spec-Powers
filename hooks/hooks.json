@@ -9,6 +9,25 @@
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/projeto_ativo.py\""
           }
         ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/git_publicacao.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/um_item_por_janela.py\""
+          }
+        ]
       }
     ]
   }

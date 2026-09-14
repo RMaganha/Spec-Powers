@@ -3,6 +3,7 @@
 
 # Índice de tarefas — histórico (fechadas)
 ## Feito
+00000. [travas: publicar é ato do owner + um item por janela](../specs/travas-um-item-por-janela.md) — hooks ligados `git_publicacao.py` (nega push/merge/rebase/deploy ao assistente, falha fechada) + `um_item_por_janela.py` (bloqueia `nova-feature` com feature aberta no INDEX); prosa do `CLAUDE.md`/`nova-feature`/`diagnostico` vira trava (F-022, F-023) — fechada (0.26.0; integração pelo owner)
 0000. [bpmn](../specs/bpmn.md) — desenha os processos do projeto em BPMN lendo o código (`/mss-spec:bpmn` + `templates/bpmn.py`; um processo por porta de entrada, raias por pasta; `bpmn.html` pro humano + `bpmn.md` pro assistente, fora do git) — fechada (0.24.0, bbce108)
 000. [diagnóstico disciplinado](../specs/diagnostico.md) — trilho anti-loop de hipóteses em 4 camadas (regra crítica 11 · `/mss-spec:diagnostico` · memória+F-015 · propagação via upgrade) — fechada (0.23.0, 076d1e1)
 00. [anatomia](../specs/anatomia.md) — painel de runtime do kit (disparo por regime · lê×escreve · riscos · fila), gerador determinístico — fechada (0.22.0, cc92023)
