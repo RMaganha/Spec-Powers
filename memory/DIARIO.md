@@ -4,6 +4,7 @@
 # Diário de sessão — mss-spec
 
 ## 2026-09-02
+- [orcamento-de-partida-e-recall] hook mandou podar índice de 25 KB; era 12% de 214 KB de partida → índice em dois níveis + recall por hook + rodízio MAPA/INDEX (0.27.0), Whats 190 → 108 KB → sessions/2026-09-15-orcamento-de-partida-e-recall.md
 - [bpmn] o infográfico "Elementos do Bizagi" virou a 0.24.0: `/mss-spec:bpmn` + gerador determinístico que lê o código por `ast` e desenha um processo por porta de entrada (`bpmn.md` pro assistente + `bpmn.html` pro humano, fora do git); pivôs: a premissa que decidia tudo (processo = **execução do código**, não processo de negócio) foi declarada `sem fonte` e aprovada direto · gate do `divergir` aplicado e **negado** de novo (precedente do mapa-neural/anatomia decide a forma; a altitude é barata de reverter) · o **dogfood achou 3 bugs com a suíte verde**, o pior deles `gerar` homônimo fazendo um processo desenhar as caixas internas do outro → caso **F-016** · e a guarda determinística de layout (duas caixas na mesma coluna/linha) pegou colisão de gateway aninhado sem dirigir browser → sessions/2026-09-02-bpmn.md
 
 ## 2026-08-25

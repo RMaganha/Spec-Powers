@@ -1,6 +1,6 @@
 # Orçamento de partida e recall determinístico — design
 
-**Data:** 2026-09-15 · **Versão alvo do kit:** 0.27.0 · **Status:** em revisão pelo owner
+**Data:** 2026-09-15 · **Versão alvo do kit:** 0.27.0 · **Status:** implementada em 0.27.0 (2026-09-15); aplicada no Whats em 2026-09-15
 
 ## 1. Problema (medido, não suposto)
 
@@ -235,3 +235,10 @@ Ordem, cada passo com dry-run mostrado e OK do owner antes do `--aplicar`, e com
   "premissa não verificada" — guardrail: 3.5 + `test_orcamento_contexto`.
 - `hooks/README.md`: 5ª linha da tabela (`recall_memoria.py` · `UserPromptSubmit` · ligado · não
   bloqueia · rede: aponta memória que casou com o prompt).
+
+## Histórico
+
+- 2026-09-14 — pedido inicial era "podar o índice do Whats" (o hook mandou). O owner interrompeu antes da 1ª edição: podar era o sintoma, não o conserto.
+- 2026-09-14 — simulação a seco sobre o índice real (tabela de bytes + recall por palavra) antes de qualquer código. Ela expôs dois defeitos de estrutura: famílias por assunto, não por gatilho; palavras raspadas do texto viram lixo. Daí o topo usa frases do `gatilho:`.
+- 2026-09-15 — medir a partida inteira mostrou que o índice era 12% (214 KB); a spec cresceu para três mecanismos numa causa raiz só. Rejeitados: teto de 60 KB; índice gerado só do frontmatter.
+- 2026-09-15 — aplicada no Whats em janela própria, 3 commits, tudo por script: partida 190.311 → 107.733 bytes (47,6 mil → 26,9 mil tokens); índice 25.549 → 1.436; MAPA 89.651 → 24.430; INDEX 61.399 → 44.042. Hooks confirmados carregando pela junction (canário do recall). Fila de conteúdo: 77 `gatilho:`, `CLAUDE.md` 27 KB, 39 itens abertos.

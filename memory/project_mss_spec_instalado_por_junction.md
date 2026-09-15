@@ -29,5 +29,9 @@ Confirmado (2026-07-22): **não** aparece em `~/.claude/plugins/installed_plugin
 - O `git push` pro GitHub serve só pra **backup / outras máquinas / o check de versão do doctor** — não
   pro uso do owner na própria máquina.
 
+**Hooks carregam pela junction (confirmado 2026-09-15):** o `hooks/hooks.json` apontado pelo `plugin.json`
+é carregado neste modo — canário no projeto Whats: o `recall_memoria.py` (UserPromptSubmit) disparou numa
+janela nova **sem nada em `settings.json`** (global ou do projeto). Não é preciso registrar hook à mão.
+
 Relacionado: [[project_plugin_load_cross_marketplace]] (por que o load é via skills-dir/symlink, não
 dependência declarada), [[project_marketplace_relative_path_serve_git_e_local]].

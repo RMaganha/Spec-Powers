@@ -52,7 +52,7 @@ mas cerca **não instalada** não cerca nada. O custo de o hook não disparar é
 ## Se não disparar (fallback)
 
 O kit costuma estar instalado como **skills-dir plugin** (junction em `~/.claude/skills/mss-spec`), e
-nesse modo o carregamento de hooks pelo `plugin.json` **precisa ser confirmado na prática**. Teste
+nesse modo o carregamento de hooks pelo `plugin.json` **precisa ser confirmado na prática** — **confirmado em 2026-09-15** no projeto Whats: o `recall_memoria.py` disparou numa janela nova sem nada em `settings.json`. Teste
 depois de recarregar a sessão: peça uma escrita num caminho de outro projeto — tem que ser negada com
 a mensagem `[mss-spec] BLOQUEADO`. Se passar (não bloqueou), registre à mão no seu `settings.json`:
 
