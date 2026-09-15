@@ -1,4 +1,4 @@
-Quatro hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
+Cinco hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -6,6 +6,7 @@ Quatro hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqu
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega) | cerca: publicar/integrar/deploy é ato do owner |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
+| `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão/diário que casou com o prompt |
 
 ---
 
@@ -179,3 +180,23 @@ Exemplo (registre o que quiser — só `Stop`, só `PreCompact`, ou os dois):
 - **Não grava** memória/diário/decisão — só imprime o lembrete (o `stdout` entra no contexto do assistente).
 - **Não bloqueia** — sai sempre com código 0.
 - **Throttle** — respeita `MSS_CAPTURA_INTERVALO_S` (padrão 1800s) via um timestamp em `%TEMP%`, pra não cutucar a cada mensagem.
+
+---
+
+# Hook ligado — recall determinístico
+
+`recall_memoria.py` casa cada prompt do owner com os `gatilho:` das memórias, as linhas de
+`memory/indice/*.md` (ou do `MEMORY.md` plano), o gist do `DIARIO.md`, as `docs/decisoes.md` e a coluna
+gatilho do `docs/EVALS.md`, e injeta **só os 3 melhores ponteiros** (≤ 600 bytes) como
+`additionalContext`. Nada casou → silêncio. Motor: `templates/memoria_indice.py` (o mesmo do
+`/mss-spec:memory buscar`).
+
+**Por que existe:** num projeto com 93 memórias o índice de 25 KB estava na janela e mesmo assim o owner
+voltava às conversas antigas pra re-explicar onde o assunto tinha sido tratado. Recall que depende de o
+modelo lembrar de abrir o arquivo não é recall.
+
+**Por que vem ligado e não bloqueia:** custo de disparar = ~80 tokens quando casa, zero quando não; custo
+de não existir = o owner virar índice humano. Ignora `/comando` e prompt com < 4 tokens úteis.
+
+**Falha ABERTA:** exceção → exit 0 calado (`MSS_RECALL_DEBUG=1` mostra o traceback). Escape consciente,
+só do owner: `MSS_RECALL_OFF=1`.

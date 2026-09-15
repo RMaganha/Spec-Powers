@@ -1087,3 +1087,12 @@ def test_suposicao_do_owner_nao_e_requisito():
     vendor = REPO / "templates" / "vendor"
     for ativo in ("bpmn-navigated-viewer.min.js", "bpmn-auto-layout.min.js", "bpmn-js.css"):
         assert (vendor / ativo).exists(), f"falta templates/vendor/{ativo}"
+
+
+def test_recall_hook_documentado_e_registrado():
+    """Recall determinístico: 5º hook, ligado, NÃO bloqueia, falha aberta, com escape — e no README."""
+    assert (REPO / "hooks" / "recall_memoria.py").exists(), "falta hooks/recall_memoria.py"
+    doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
+    assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
+    assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
+    assert "Cinco hooks" in doc, "a contagem do README ficou velha"
