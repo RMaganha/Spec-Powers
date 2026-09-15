@@ -1,14 +1,15 @@
 ---
-description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário
-argument-hint: "resgatar | capturar (sem argumento: pergunto qual)"
+description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário · `buscar` um termo
+argument-hint: "resgatar | capturar | buscar <termo> (sem argumento: pergunto qual)"
 disable-model-invocation: true
 ---
 
 **Responda sempre em português (pt-BR).**
 
-Comando de **memória do projeto**, com dois modos. **Sem argumento, pergunte qual** antes de agir:
+Comando de **memória do projeto**, com três modos. **Sem argumento, pergunte qual** antes de agir:
 - **`resgatar`** — traz pro repo a memória que ficou na pasta nativa (volátil) do Claude.
 - **`capturar`** — destila **esta sessão** em decisões (inclusive as negativas) + **diário de sessão**, roteando pros lares duráveis certos.
+- **`buscar <termo>`** — aponta `arquivo:linha` onde o termo aparece em memórias, subíndices, diário, decisões e EVALS, sem abrir nada.
 
 ---
 
@@ -52,13 +53,26 @@ Você vai **destilar esta sessão** e gravar o que é durável, pra parar de dep
    - **narrativa do assunto** ("tentou-se A, virou B") → **Histórico** da spec viva em `docs/superpowers/specs/`;
    - **falha que já aconteceu** (premissa **derrubada** pelo owner nesta sessão, reincidência de um erro antigo, bug silencioso que só apareceu no projeto real) → 1 caso em **`docs/EVALS.md`**: `id · data · gatilho · classe · guardrail · status`. **Sem guardrail, o caso entra `aberto`** — e aí ele ganha um bloco curto (`Falhou · Verdade · Guardrail · Teste`). Com guardrail **e teste**, entra `fechado` e vive só na linha da tabela. Nunca cite teste que não existe;
    - **o que DEU CERTO** (abordagem, ordem de ataque ou jeito de perguntar que o owner confirmou — não só correção) → mesma prateleira do aprendizado durável, abaixo. O acervo de acertos é metade do valor: sem ele, só sobra a lista do que evitar;
-   - **aprendizado durável atemporal** (regra/gotcha que vale além deste assunto) → arquivo em **`memory/`** (schema de frontmatter: `user`|`feedback`|`project`|`reference`) + 1 linha no índice **`memory/MEMORY.md`**. **Todo arquivo leva `gatilho:` no frontmatter** — a condição observável em que ele deve ser aberto ("quando editar HTML de aplicação") — e a linha do índice **começa pelo gatilho**, no grupo certo. Gatilho que é **arquivo** merece virar também regra path-scoped em `.claude/rules/` (ver `templates/rules/`), que o Claude Code carrega sozinho;
+   - **aprendizado durável atemporal** (regra/gotcha que vale além deste assunto) → arquivo em **`memory/`** (schema de frontmatter: `user`|`feedback`|`project`|`reference`) + 1 linha no **subíndice da família** (`memory/indice/<familia>.md`; o topo `memory/MEMORY.md` só ganha linha quando nasce família nova) — depois rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" verificar --aplicar`, que confere ponteiros e corrige o N do topo. **Todo arquivo leva `gatilho:` no frontmatter** — a condição observável em que ele deve ser aberto ("quando editar HTML de aplicação") — e a linha do índice **começa pelo gatilho**, no grupo certo. Gatilho que é **arquivo** merece virar também regra path-scoped em `.claude/rules/` (ver `templates/rules/`), que o Claude Code carrega sozinho;
    - **resumo compacto da sessão** → **`memory/sessions/<data>-<assunto>.md`** + 1 linha no índice **`memory/DIARIO.md`** (data + assunto + gist → aponta o arquivo). Estrutura do resumo (curto): **Conversamos · Pivôs · Rejeitado · Fizemos · Próximo** — os **Pivôs** são o coração.
 
-3. **Não duplicar — e podar.** Antes de escrever, consulte os índices (`MEMORY.md` / `DIARIO.md` / `docs/EVALS.md` / seções do INDEX) — se o fato/entrada já está coberto, **atualize** o existente em vez de criar duplicata. E olhe o que ficou para trás: memória **superada** por esta sessão ganha `obsoleta: <data> — superada por [[slug]]` no frontmatter e **sai do índice** (o arquivo fica, pra não perder a narrativa). O índice tem teto de **200 linhas e 25 KB** — é o mesmo limite que o Claude Code aplica ao índice de auto-memory, e acima dele **o excedente nem carrega**. Estourou: funda linhas parecidas antes de acrescentar.
+3. **Não duplicar — e podar.** Antes de escrever, consulte os índices (`MEMORY.md` / `DIARIO.md` / `docs/EVALS.md` / seções do INDEX) — se o fato/entrada já está coberto, **atualize** o existente em vez de criar duplicata. E olhe o que ficou para trás: memória **superada** por esta sessão ganha `obsoleta: <data> — superada por [[slug]]` no frontmatter e **sai do índice** (o arquivo fica, pra não perder a narrativa). O **topo** do índice (`memory/MEMORY.md`) tem teto de **6 KB** porque entra em toda janela (orçamento de partida); os subíndices não têm teto de carga. Estourou: **não pode** — é sinal de família demais ou de linha de família gorda; mova para `memory/indice/` (a divisão mecânica é `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" dividir`, dry-run por padrão). Se o projeto ainda tem índice plano, ofereça a divisão antes de acrescentar.
 
 4. **Mostre TODOS os rascunhos pro meu OK** (o que vai pra cada lar) e **não grave nada antes de gravar** sem meu "ok". Aplicado o OK, grave com stage **nominal** (`git add memory/ docs/` — nunca `git add .`/`-A`), confira `git status` (nada sensível) e commit local (sem `git push`).
 
 5. **Delegue o MAPA.** Ao final, **rode `/mss-spec:mapa`** pra reconciliar *Onde estamos* / *Próximo passo* — **não reimplemente** o MAPA aqui (é dono do outro comando).
 
 6. **Reporte** o que foi gravado e onde. Se a sessão não produziu nada durável, diga isso — captura vazia é resposta válida, não force memória.
+
+---
+
+## Modo: buscar
+
+Você vai **apontar onde um assunto já foi tratado** — sem abrir arquivo, sem reler conversa. É o mesmo motor
+do hook `recall_memoria.py`, sem o teto de 3 resultados.
+
+1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" buscar "<termo>" --limite 10` (se a
+   variável não resolveu, ache o script no clone do kit como o `doctor` faz no check 1).
+2. Reporte os ponteiros **como vieram** (`arquivo:linha — gancho`), em ordem de score. **Não abra** os
+   arquivos, salvo pedido: o objetivo é o owner ver onde está, não pagar a leitura de tudo.
+3. Nada casou → diga isso e sugira 1 termo alternativo (sinônimo/identificador), sem inventar resultado.

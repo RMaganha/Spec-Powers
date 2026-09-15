@@ -20,12 +20,13 @@ import json
 import re
 from pathlib import Path
 
-# tetos do orçamento de contexto (os mesmos travados em tests/test_orcamento_contexto.py)
+# tetos do orçamento de contexto (os mesmos de tests/test_orcamento_contexto.py; MEMORY.md = só o TOPO,
+# os subíndices em memory/indice/ carregam sob demanda)
 TETOS = {
     "CLAUDE.md": 8000,
     "docs/superpowers/MAPA.md": 6000,
     "docs/superpowers/INDEX.md": 7000,
-    "memory/MEMORY.md": 25 * 1024,
+    "memory/MEMORY.md": 6000,
 }
 
 
