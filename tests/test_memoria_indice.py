@@ -142,3 +142,167 @@ def test_dividir_preserva_crlf(tmp_path):
     mod.dividir(raiz / "memory", aplicar=True)
     assert b"\r\n" in p.read_bytes()
     assert b"\r\n" in (raiz / "memory" / "indice" / "integracoes.md").read_bytes()
+
+
+# --- verificar / fila ------------------------------------------------------------------
+
+def _dividido(tmp_path):
+    mod = _mod()
+    raiz = _projeto_whats(tmp_path)
+    assert mod.dividir(raiz / "memory", aplicar=True).ok
+    return mod, raiz
+
+
+def test_verificar_limpo_depois_de_dividir(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    assert mod.verificar(raiz / "memory") == []
+
+
+def test_verificar_acusa_memoria_sem_linha_e_ponteiro_quebrado(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    (raiz / "memory" / "nova-memoria.md").write_text(FRONT_SEM_GATILHO.format(name="nova-memoria", desc="x"), encoding="utf-8")
+    (raiz / "memory" / "crm-www4-dois-nomes.md").unlink()
+    probs = mod.verificar(raiz / "memory")
+    assert any("nova-memoria.md" in p and "sem linha" in p for p in probs)
+    assert any("crm-www4-dois-nomes.md" in p and "quebrado" in p for p in probs)
+
+
+def test_verificar_ignora_obsoleta(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    (raiz / "memory" / "velha.md").write_text(
+        "---\nname: velha\ndescription: x\nobsoleta: 2026-09-01 — superada por [[nova]]\n---\n", encoding="utf-8")
+    assert mod.verificar(raiz / "memory") == []
+
+
+def test_verificar_corrige_n_do_topo_com_aplicar(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    sub = raiz / "memory" / "indice" / "integracoes.md"
+    sub.write_text(sub.read_text(encoding="utf-8") + "- [Extra](../crm-www4-dois-nomes.md) — dup de teste\n", encoding="utf-8")
+    probs = mod.verificar(raiz / "memory")
+    assert any("N do topo" in p and "integracoes" in p for p in probs)
+    assert any("mais de uma linha" in p for p in probs)
+    mod.verificar(raiz / "memory", aplicar=True)
+    assert "— 27 memórias" in (raiz / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+
+
+def test_verificar_acusa_topo_acima_do_teto(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    p = raiz / "memory" / "MEMORY.md"
+    p.write_text(p.read_text(encoding="utf-8") + "x" * 6000, encoding="utf-8")
+    assert any("teto" in pr for pr in mod.verificar(raiz / "memory"))
+
+
+def test_fila_lista_memorias_sem_gatilho(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    fila = mod.fila(raiz / "memory")
+    assert len(fila["sem_gatilho"]) == 91          # 93 stubs − 2 com gatilho
+    assert "padroes-e-ferramentas" in fila["familias_sem_frase"]
+    assert "ambiente-e-build" not in fila["familias_sem_frase"]
+
+
+# --- casar / buscar --------------------------------------------------------------------
+
+def _projeto_recall(tmp_path):
+    """Projeto pequeno com as 5 fontes do recall."""
+    raiz = tmp_path / "proj"
+    mem = raiz / "memory"
+    (mem / "indice").mkdir(parents=True)
+    (mem / "sessions").mkdir()
+    (raiz / "docs").mkdir()
+    (mem / "resolvedor-de-token-prefere-processo-ao-header.md").write_text(
+        "---\nname: resolvedor-de-token-prefere-processo-ao-header\n"
+        "description: validar_corretor resolve a credencial pelo cache de processo antes do header\n"
+        "gatilho: quando chamar `validar_corretor` numa rota que atende mais de um corretor\n"
+        "metadata:\n  type: project\n---\n", encoding="utf-8")
+    (mem / "dns-search-inerte-sem-ndots.md").write_text(
+        "---\nname: dns-search-inerte-sem-ndots\ndescription: nome curto resolve no host e falha no contêiner\n"
+        "gatilho: quando nome curto resolve no host e falha só no contêiner (Docker injeta ndots:0)\n---\n", encoding="utf-8")
+    (mem / "sem-gatilho.md").write_text("---\nname: sem-gatilho\ndescription: proxy do Docker em minúsculas\n---\n", encoding="utf-8")
+    (mem / "MEMORY.md").write_text("# topo\n- **Integrações** → [subíndice](indice/integracoes.md) — 2 memórias\n", encoding="utf-8")
+    (mem / "indice" / "integracoes.md").write_text(
+        "# Integrações\n"
+        "- **quando chamar `validar_corretor` com 2 corretores** → [Resolvedor de token prefere processo ao header](../resolvedor-de-token-prefere-processo-ao-header.md) — passe token= explícito\n"
+        "- **quando o nome curto falha no contêiner** → [dns_search inerte sem ndots](../dns-search-inerte-sem-ndots.md) — dns_opt ndots:1\n",
+        encoding="utf-8")
+    (mem / "DIARIO.md").write_text(
+        "# Diário\n- [handoff-chatwoot] handoff pro Chatwoot: contato deduplicado por telefone, e-mail não vai → sessions/2026-07-30-handoff-chatwoot.md\n",
+        encoding="utf-8")
+    (raiz / "docs" / "decisoes.md").write_text(
+        "# Decisões\n- 2026-09-11 — **token explícito por corretor** em vez de cache de processo no validar_corretor\n",
+        encoding="utf-8")
+    (raiz / "docs" / "EVALS.md").write_text(
+        "| id | data | gatilho | classe | guardrail | status |\n|---|---|---|---|---|---|\n"
+        "| F-005 | 2026-09-14 | quando confiar que a memória do repo já está no contexto | memória não carregou | ponteiro | fechado |\n",
+        encoding="utf-8")
+    return raiz
+
+
+def test_tokens_normaliza_e_marca_identificadores():
+    mod = _mod()
+    t, ids = mod.tokens("O `validar_corretor` do corretor B saiu com o COD_CORR do A, não é?")
+    assert "validar_corretor" in t and "cod_corr" in t and "corretor" in t
+    assert "validar_corretor" in ids and "cod_corr" in ids
+    assert "não" not in t and "com" not in t          # curtas/stopwords fora
+
+
+def test_casar_acha_memoria_por_gatilho_e_prefere_o_arquivo_a_linha_do_indice(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    r = mod.casar(raiz, "o corretor B saiu validado com o token do A na rota que chama validar_corretor")
+    assert r, "nada casou"
+    assert r[0].ponteiro.startswith("memory/resolvedor-de-token-prefere-processo-ao-header.md")
+    assert sum("resolvedor-de-token" in x.ponteiro for x in r) == 1, "arquivo e linha do índice não podem sair em dobro"
+    assert any(x.ponteiro.startswith("docs/decisoes.md:2") for x in r)
+
+
+def test_casar_exige_dois_tokens_distintos(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    assert mod.casar(raiz, "fala sobre corretor") == []
+
+
+def test_casar_sem_acento_e_caixa(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    r = mod.casar(raiz, "NOME CURTO resolve no host mas falha no CONTEINER")
+    assert r and "dns-search-inerte-sem-ndots.md" in r[0].ponteiro
+
+
+def test_casar_le_diario_e_evals(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    r = mod.casar(raiz, "o contato do Chatwoot está sendo deduplicado pelo telefone?", limite=5)
+    assert any(x.ponteiro.startswith("memory/sessions/2026-07-30-handoff-chatwoot.md") for x in r)
+    r2 = mod.casar(raiz, "confiar que a memória do repo já está no contexto", limite=5)
+    assert any("docs/EVALS.md — F-005" in x.ponteiro for x in r2)
+
+
+def test_casar_funciona_com_indice_plano_antes_da_divisao(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    shutil.rmtree(raiz / "memory" / "indice")
+    (raiz / "memory" / "MEMORY.md").write_text(
+        "## Integrações\n- [dns_search inerte sem ndots](dns-search-inerte-sem-ndots.md) — nome curto falha no contêiner\n",
+        encoding="utf-8")
+    for p in ("resolvedor-de-token-prefere-processo-ao-header.md", "dns-search-inerte-sem-ndots.md"):
+        (raiz / "memory" / p).write_text("---\nname: x\n---\n", encoding="utf-8")   # sem gatilho: só a linha do índice casa
+    r = mod.casar(raiz, "nome curto falha no contêiner e no host resolve")
+    assert r and "memory/MEMORY.md:2" in r[0].ponteiro
+
+
+def test_formatar_injecao_respeita_600_bytes_sem_cortar_linha(tmp_path):
+    mod = _mod()
+    # cada linha ≈ 259 B: cabeçalho (64 B) + 2 linhas = 582 ≤ 600; a 3ª estouraria e fica fora inteira
+    ponteiros = [mod.Ponteiro(9, 0, "memory/" + "a" * 240 + ".md — g"), mod.Ponteiro(8, 0, "memory/" + "b" * 240 + ".md — g"),
+                 mod.Ponteiro(7, 0, "memory/" + "c" * 240 + ".md — g")]
+    txt = mod.formatar_injecao(ponteiros)
+    assert len(txt.encode("utf-8")) <= 600
+    assert txt.count("\n- ") == 2 and "ccc" not in txt
+
+
+def test_buscar_cli_lista_ponteiros(tmp_path, capsys):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    assert mod.main(["buscar", "validar_corretor corretor", "--proj", str(raiz)]) == 0
+    out = capsys.readouterr().out
+    assert "memory/resolvedor-de-token-prefere-processo-ao-header.md" in out
