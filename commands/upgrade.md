@@ -29,6 +29,7 @@ Três categorias:
    - `docs/FRONTEND.md` ← `templates/FRONTEND.md` (só se o projeto tem UI web)
    - `docker-compose.yml` · `docker-compose.office.yml` · `Dockerfile` · `.dockerignore` ← `templates/docker/` (só se o projeto usa Docker)
    - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou)
+   - **Índice de memória plano** (`memory/MEMORY.md` com linhas `- [Título](arquivo.md)` e sem `memory/indice/`): **não sobrescreva**; mostre `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" dividir` em dry-run (tabela família × bytes) e peça OK antes do `--aplicar` — move, não apaga
 
    **Freio da infra própria — o que é MSIG não entra em projeto que não é MSIG.** Leia a linha `**Infra:**` do Contexto do `CLAUDE.md` antes desta categoria. Se for **infra própria**, os arquivos da infra corporativa **não são criados nem atualizados**: `docker-compose.office.yml`, `certs/corp-ca.pem` e o proxy no `.env`; e o `docker-compose.yml` base, se existir, **não** ganha a rede externa `mitiai_network`. Sem esse freio o upgrade **reintroduz** sozinho, a cada rodada, exatamente o que o `kickoff` deixou de fora (a categoria 1 sobrescreve sem perguntar).
 
