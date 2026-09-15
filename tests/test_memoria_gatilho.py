@@ -9,11 +9,17 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-# tetos que o próprio Claude Code aplica ao índice de auto-memory (docs: Memory)
-TETO_LINHAS = 200
-TETO_BYTES = 25 * 1024
+# teto do TOPO do índice (famílias) — orçamento de partida; os subíndices carregam sob demanda.
+# (200 linhas / 25 KB é o limite da pasta NATIVA do Claude Code — foi copiado por engano pro repo.)
+TETO_TOPO_BYTES = 6000
 
 INDICES = {"MEMORY.md", "DIARIO.md"}
+
+
+def _linhas_dos_subindices() -> list:
+    subs = sorted((REPO / "memory" / "indice").glob("*.md"))
+    assert subs, "memory/indice/ vazio — rode `python templates/memoria_indice.py dividir --aplicar`"
+    return [l for p in subs for l in p.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
 
 
 def _memorias():
@@ -45,37 +51,33 @@ def test_gatilho_e_condicao_observavel():
 
 
 def test_indice_memoria_dentro_do_teto():
-    """CA6 — acima de 200 linhas / 25 KB o excedente nem carrega."""
+    """CA6 — o topo entra em toda janela: 6 KB. (O teto de 25 KB era o da pasta NATIVA, copiado por engano.)"""
     idx = REPO / "memory" / "MEMORY.md"
-    txt = idx.read_text(encoding="utf-8")
-    linhas = len(txt.splitlines())
-    tamanho = len(txt.encode("utf-8"))
-    assert linhas <= TETO_LINHAS, f"memory/MEMORY.md tem {linhas} linhas (teto {TETO_LINHAS})"
-    assert tamanho <= TETO_BYTES, f"memory/MEMORY.md tem {tamanho} bytes (teto {TETO_BYTES})"
+    tamanho = len(idx.read_text(encoding="utf-8").encode("utf-8"))
+    assert tamanho <= TETO_TOPO_BYTES, f"memory/MEMORY.md tem {tamanho} bytes (teto {TETO_TOPO_BYTES})"
 
 
 def test_indice_agrupado_por_gatilho():
-    """CA6 — o índice é agrupado por família de gatilho e cada linha começa pelo gatilho."""
-    txt = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
-    assert re.search(r"^## ", txt, re.M), "memory/MEMORY.md não tem grupos (## <família de gatilho>)"
-    ruins = [l for l in txt.splitlines()
-             if l.startswith("- ") and not l.lower().startswith("- **quando ")]
-    assert not ruins, "linhas do índice que não começam pelo gatilho:\n" + "\n".join(ruins)
+    """CA6 — topo aponta subíndices por família; cada linha de subíndice começa pelo gatilho."""
+    topo = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "→ [subíndice](indice/" in topo, "memory/MEMORY.md não é o topo por família"
+    ruins = [l for l in _linhas_dos_subindices() if not l.lower().startswith("- **quando ")]
+    assert not ruins, "linhas de subíndice que não começam pelo gatilho:\n" + "\n".join(ruins)
 
 
 def test_toda_memoria_esta_no_indice():
-    """Memória fora do índice é memória invisível — exceto a marcada `obsoleta:` (podada de propósito)."""
-    txt = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    """Memória fora dos subíndices é memória invisível — exceto a marcada `obsoleta:`."""
+    txt = "\n".join(_linhas_dos_subindices())
     faltando = [md.name for md in _memorias()
                 if md.name not in txt and not re.search(r"^obsoleta:", _frontmatter(md), re.M)]
-    assert not faltando, "memórias fora do índice:\n" + "\n".join(faltando)
+    assert not faltando, "memórias fora dos subíndices:\n" + "\n".join(faltando)
 
 
 def test_template_memory_documenta_gatilho_e_teto():
     """O molde que vai pros outros projetos carrega a mesma regra."""
     txt = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
     assert "gatilho:" in txt, "templates/MEMORY.md não documenta o campo gatilho:"
-    assert "200" in txt and "25" in txt, "templates/MEMORY.md não documenta o teto (200 linhas / 25 KB)"
+    assert "6 KB" in txt, "templates/MEMORY.md não documenta o teto do topo (6 KB)"
 
 
 # ---------------------------------------------------------------- corpus de falhas (docs/EVALS.md)

@@ -21,6 +21,7 @@ TETO_CLAUDE_MD = 8000       # bytes — o molde que entra em toda sessão
 TETO_LINHA = 600            # bytes — linha gigante é procedimento disfarçado de regra
 TETO_MAPA = 6000            # bytes — mapa é 1 tela, não arquivo morto
 TETO_INDEX = 7000           # bytes — índice de tarefas ABERTAS
+TETO_MEMORY_TOPO = 6000     # bytes — o TOPO do índice de memória (famílias); os subíndices carregam sob demanda
 
 
 def _b(p: Path) -> int:
@@ -127,3 +128,40 @@ def test_higiene_de_janela():
     low = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
     assert "/clear" in low, "CLAUDE.md não manda /clear entre assuntos (janela-cesto-de-lixo)"
     assert "subagente" in low, "CLAUDE.md não manda investigação ampla ir por subagente"
+
+
+def test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega():
+    """L — 'acima de 25 KB o excedente não carrega' vale só pra pasta NATIVA do Claude Code. O índice do repo
+    entra pelo Read (2.000 linhas). Copiar o teto da nativa pro repo mandou PODAR um índice de 93 memórias."""
+    for rel in ("templates/MEMORY.md", "commands/memory.md", "commands/doctor.md"):
+        low = (REPO / rel).read_text(encoding="utf-8").lower()
+        for frase in ("excedente nem carrega", "excedente não carrega", "200 linhas / 25 kb", "200 linhas e 25 kb"):
+            assert frase not in low, f"{rel} ainda repete a premissa falsa: {frase!r}"
+        assert "orçamento" in low, f"{rel} não explica que o teto é orçamento de partida"
+
+
+def test_molde_de_memoria_ensina_o_topo_e_o_subindice():
+    txt = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "indice/" in txt and "subíndice" in txt.lower(), "templates/MEMORY.md não ensina os dois níveis"
+    assert "6 KB" in txt, "templates/MEMORY.md não documenta o teto do topo"
+    assert "memoria_indice.py" in txt, "templates/MEMORY.md não aponta o script que divide/verifica"
+
+
+def test_claude_md_manda_abrir_o_subindice_quando_a_familia_bate():
+    low = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
+    assert "memory/indice/" in low, "CLAUDE.md não diz onde estão os subíndices"
+    assert "antes de agir" in low, "CLAUDE.md não manda abrir o subíndice ANTES de agir"
+
+
+def test_anatomia_usa_o_teto_do_topo():
+    src = (REPO / "templates" / "anatomia.py").read_text(encoding="utf-8")
+    assert '"memory/MEMORY.md": 6000' in src, "anatomia.py ainda mede o índice contra 25 KB"
+
+
+def test_doctor_aponta_o_conserto_mecanico():
+    """G — o doctor só reporta, mas agora o conserto é UMA linha que o owner manda rodar."""
+    txt = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    for script, modo in (("rodizio_partida", "mapa"), ("rodizio_partida", "index"),
+                         ("memoria_indice", "dividir"), ("memoria_indice", "verificar")):
+        # aceita `…/rodizio_partida.py" mapa` (caminho entre aspas) e `rodizio_partida.py mapa`
+        assert re.search(rf'{script}\.py"?\s+{modo}\b', txt), f"doctor não aponta `{script}.py {modo}` como conserto"
