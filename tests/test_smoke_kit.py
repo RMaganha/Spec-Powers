@@ -817,7 +817,7 @@ def test_capturar_alimenta_corpus_e_poda():
     assert "deu certo" in low, "capturar não colhe o que DEU CERTO (abordagem confirmada)"
     assert "gatilho" in low, "capturar não exige o gatilho: na memória nova"
     assert "obsoleta" in low, "capturar não marca memória superada como obsoleta (poda)"
-    assert "200" in mem and "25" in mem, "capturar não zela pelo teto do índice (200 linhas / 25 KB)"
+    assert "6 KB" in mem and "indice/" in mem, "capturar não zela pelo teto do TOPO (6 KB) nem grava no subíndice"
 
 
 def _rules_do_molde():
@@ -917,6 +917,13 @@ def test_pedido_com_mais_de_um_assunto():
         "nova-feature não exige dizer qual peça serve cada assunto (e qual ficou sem)"
 
 
+def _indice_memoria_completo() -> str:
+    """Topo + subíndices: desde o índice em dois níveis, a linha de cada memória mora em memory/indice/."""
+    partes = [(REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")]
+    partes += [p.read_text(encoding="utf-8") for p in sorted((REPO / "memory" / "indice").glob("*.md"))]
+    return "\n".join(partes)
+
+
 def test_divergir_wiring():
     """Anti-ancoragem no design (ideia do repo `adhd`; stack npm rejeitado — ver decisoes.md),
     montada em 3 camadas: (1) piso SEMPRE-ATIVO no brainstorm do nova-feature — as 2-3 abordagens
@@ -946,7 +953,7 @@ def test_divergir_wiring():
     # (3) a memória com gatilho existe e está no índice (formato validado pelo test_memoria_gatilho)
     assert (REPO / "memory" / "feedback_divergir_antes_de_convergir.md").exists(), \
         "falta memory/feedback_divergir_antes_de_convergir.md (a rede fora do nova-feature)"
-    idx = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    idx = _indice_memoria_completo()
     assert "feedback_divergir_antes_de_convergir.md" in idx, "a memória do divergir está fora do índice"
 
 
@@ -1026,7 +1033,7 @@ def test_diagnostico_wiring():
     assert "/mss-spec:diagnostico" in leiame, "LEIA-ME não lista o /mss-spec:diagnostico"
     # memória com gatilho + caso no corpus (as camadas de registro)
     assert (REPO / "memory" / "feedback_diagnostico_disciplinado.md").exists(),         "falta memory/feedback_diagnostico_disciplinado.md"
-    mem_idx = (REPO / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    mem_idx = _indice_memoria_completo()
     assert "feedback_diagnostico_disciplinado.md" in mem_idx, "MEMORY.md não indexa a memória do diagnóstico"
     evals = (REPO / "docs" / "EVALS.md").read_text(encoding="utf-8")
     assert "F-015" in evals, "docs/EVALS.md não registra o caso F-015"

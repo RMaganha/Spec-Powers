@@ -17,7 +17,7 @@
 - **Git — branch da principal; publicar é MEU ato**: toda tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca na principal e **nunca a partir de outra branch**. Stage **nominal** (jamais `git add .`/`-A`). **`git push`/`merge`/`rebase`/deploy: nunca você** (o hook nega) — pronto? `/mss-spec:release` e me peça.
 
 ## Contexto de janela (o recurso mais caro)
-- **Na partida, leia nesta ordem**: `docs/superpowers/MAPA.md` (onde estamos) → `memory/MEMORY.md` (famílias; bateu → `memory/indice/<f>.md` antes de agir) → `docs/superpowers/INDEX.md` (tarefas abertas) → `docs/EVALS.md` (falhas que custaram caro). São **índices**: abra o arquivo só quando apontarem relevância, nunca a pasta inteira.
+- **Na partida, leia nesta ordem**: `docs/superpowers/MAPA.md` (onde estamos) → `memory/MEMORY.md` (gatilhos; bateu → `memory/indice/<f>.md` antes de agir) → `docs/superpowers/INDEX.md` (tarefas abertas) → `docs/EVALS.md` (falhas que custaram caro). São **índices**: abra o arquivo só quando apontarem relevância, nunca a pasta inteira.
 - **Ao reabrir um assunto**, abra antes a spec viva (`docs/specs/<assunto>.md`): "Estado atual" diz como está HOJE.
 - **`.claude/rules/`**: regra com `paths:` que carrega sozinha quando você toca um arquivo que casa. É onde mora a regra por tipo de arquivo (front, banco, rota) — **não repita esse conteúdo aqui**.
 - **Sob demanda, nunca na partida**: `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md` · `docs/superpowers/MAPA-historico.md` e `INDEX-historico.md` (estado velho, fechadas).
