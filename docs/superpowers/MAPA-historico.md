@@ -4,6 +4,17 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-15 — saiu do rodízio do MAPA (v0.25.0)
+
+### Onde estávamos
+
+`main` — **v0.25.0** (merges `--no-ff` de `feature/bpmn`, `fix/bpmn-desenho-invisivel` e `feature/bpmn-bpmnio`; **9 commits à frente do `origin` — `git push` pendente**). Suíte **215 verde** (era 160). **`/mss-spec:bpmn`** lê o código por `ast` e emite **BPMN 2.0 XML**; quem posiciona e desenha é o **bpmn-auto-layout + bpmn-js** (bpmn.io) **vendorizados** em `templates/vendor/` — o bundle do layout roda no navegador (esbuild, 83 KB) pra o comando seguir Python puro. 3 saídas fora do git: `bpmn.html` (desenho) · `bpmn/<slug>.bpmn` (abre no **Bizagi**) · `bpmn.md` (texto pro assistente). **O caro desta feature foi o meio, não o fim:** a 0.24.x tentou layout SVG à mão e o owner não conseguiu ler nada (3.964 px, 222 rótulos truncados) — o precedente do `vis-network` estava na mesma pasta desde a 0.11.0. Casos **F-018** (reinventei layout) e **F-019** (tratei *"acho que html funcionaria"* como requisito em vez de aconselhar), com regra no `nova-feature`. Spec: `docs/specs/bpmn.md`.
+
+### Próximo passo de então
+
+**Sentir a 0.19.0 em uso, em sessão nova** — é o único teste que importa aqui: numa janela recarregada, o índice do repo tem que entrar sozinho (pelo ponteiro da nativa) e as regras de `.claude/rules/` têm que acender quando eu tocar um `.html`/`.sql`/`routes/`. Se o owner ainda precisar lembrar de algo que está na memória, isso vira caso novo em `docs/EVALS.md`. Depois: **1 caso aberto** (F-010, jargão inventado ao explicar desenho) e o **item 5 do to-dolist** (garantir COMO-FUNCIONA/MAPA/mapa-neural no fecho), em janela própria. `git push` só quando o owner pedir.
+
+
 ## Estados anteriores
 <!-- histórico do estado anterior -->
 `main` — **v0.21.0 publicada no GitHub** (`c56e452..9587413`, em sincronia com o `origin`; merge `--no-ff` de `feature/divergir`; suíte **149 verde**). **Anti-ancoragem no design**, ideia do repo `adhd` em prosa (stack npm rejeitado — 3º ideia-vs-stack): piso sempre-ativo no brainstorm do `nova-feature` (frames distintos + armadilha sedutora) · `/mss-spec:divergir` (subagentes isolados, **auto-proposto** quando a decisão é aberta E cara de reverter; caso **F-014**, corpus **14/14 fechados**) · memória com `gatilho:`. Spec: `docs/specs/divergir.md`.
