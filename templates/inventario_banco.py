@@ -333,6 +333,23 @@ def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=Non
     return Conexao(conn, f"{origem} → servidor {servidor}, base {nome_base}", avisos)
 
 
+# --------------------------------------------------------------------------------------- erro
+def explicar_erro(exc):
+    """Traduz a falha de conexão pro owner. Ordem importa: o 4060 também diz 'login failed'."""
+    msg = str(exc)
+    baixo = msg.lower()
+    if "4060" in msg or "cannot open database" in baixo:
+        return ("PERMISSÃO: o login entrou no servidor mas não abre esta base — falta acesso do login à "
+                "base (usuário/GRANT). Conserto do owner, não do kit.")
+    if "18456" in msg or "login failed" in baixo:
+        return "CREDENCIAL: o servidor recusou o login (usuário/senha). Confira o par ou a variável usada."
+    if any(s in baixo for s in ("08001", "hyt00", "timeout", "timed out", "[53]", "(53)",
+                                "network-related", "tcp provider")):
+        return ("REDE: o servidor não respondeu (erro 53/timeout). Fora da rede corporativa nada responde; "
+                "confira host e porta (--porta). Isso não é credencial.")
+    return f"falha de conexão não classificada ({type(exc).__name__}): {mask_password(msg)[:200]}"
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

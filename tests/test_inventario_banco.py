@@ -246,3 +246,16 @@ def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
     p.write_bytes(b"DEV_X_KEY = b'a'\n\xff\xfe")
     with pytest.raises(inv.ErroCredencial, match="não consegui ler"):
         inv.resolver_conn({}, p)
+
+
+@pytest.mark.parametrize("mensagem, esperado", [
+    ('[42000] [SQL Server]Cannot open database "LegadoCS" requested by the login. The login failed. (4060)',
+     "PERMISSÃO"),
+    ("[28000] [SQL Server]Login failed for user 'leitor'. (18456)", "CREDENCIAL"),
+    ("[08001] [Microsoft][ODBC Driver 17 for SQL Server]Named Pipes Provider: Could not open a connection [53].",
+     "REDE"),
+    ("[HYT00] [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired", "REDE"),
+    ("algo que ninguém previu", "não classificada"),
+])
+def test_explicar_erro(inv, mensagem, esperado):
+    assert esperado in inv.explicar_erro(RuntimeError(mensagem))
