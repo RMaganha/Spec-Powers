@@ -1157,6 +1157,8 @@ def test_como_funciona_lista_todos_os_comandos():
     novo em 20 × 24. Todo arquivo de commands/ tem card id="c-<nome>" (hífen ignorado: to-dolist ↔
     c-todolist), o número em 'Os N atalhos' bate com a pasta e a numeração C1..CN é contínua."""
     html = (REPO / "docs" / "COMO-FUNCIONA.html").read_text(encoding="utf-8")
+    # Depende da marcação atual (`class` antes de `id` no card; nome de comando sem dígito). Se o HTML
+    # mudar de forma, este teste FALHA alto — nunca passa calado. Ajuste o regex junto com o HTML.
     comandos = {p.stem.replace("-", "") for p in _command_files()}
     cards = {c.replace("-", "") for c in re.findall(r'<div class="node" id="c-([a-z-]+)"', html)}
     assert not comandos - cards, f"comando sem card no COMO-FUNCIONA.html: {sorted(comandos - cards)}"

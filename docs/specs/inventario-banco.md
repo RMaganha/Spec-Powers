@@ -21,9 +21,13 @@ Entra o **4º gerador determinístico**, no padrão já provado três vezes (`ma
 O owner não deve precisar saber o nome do comando (*"eu não vou saber quando usar... o analise vai
 ter que ser inteligente o suficiente"*). O passo dispara por **evidência lida no código**:
 
-- `web.config`/`app.config` com `<connectionStrings>`, `SqlConnection`/`SqlCommand`/`SqlDataAdapter`
-  nos `.cs`, `.edmx`, Dapper, EF
-- `utils/get_connection.py`, `pyodbc`, `psycopg`, SQLAlchemy, `.sql` no repo (o que a fase 2 já vê)
+- `web.config`/`app.config` com `<connectionStrings>` (provider SqlClient), `SqlConnection`/`SqlCommand`/
+  `SqlDataAdapter` nos `.cs`, `.edmx` com provider SqlClient, Dapper/EF sobre SqlClient
+- `utils/get_connection.py`, `pyodbc` com driver `SQL Server`, `mssql+pyodbc`
+
+O gerador é **só SQL Server**: evidência de outro motor (Postgres/`psycopg`, Oracle, MySQL) vira linha
+em *Lacunas* ("inventário vivo cobre só SQL Server"), sem rodar nada. E a `<connectionStrings>` nunca é
+aberta inteira — a leitura é por Grep `-o` que devolve só servidor, base e provider.
 
 Achou → **anuncia e age**, sem menu: diz qual evidência achou e pergunta só **qual base** e **como
 chegar na credencial**. Essa pergunta é o próprio portão da conexão — não existe um "posso conectar?"
@@ -118,14 +122,23 @@ nome). Procura nos arquivos de **código** do projeto (`.md` fica fora: doc não
 `node_modules` — **e menos a própria saída em `docs/banco/`**: sem essa exclusão o inventário se
 autoconfirma, porque os `.sql` que ele acabou de gravar contêm todos os nomes.
 
-Três classificações, não duas — e uma quarta, de honestidade:
+Três classificações, não duas — mais uma pra trigger e uma de honestidade:
 
 - **citado no código** — com `arquivo:linha` das 3 primeiras ocorrências
 - **citado só no banco** — chamado por outra procedure, trigger ou job (`sys.sql_expression_dependencies`,
   `sysjobs`), mas não pelo C#. Não é morto; é chamado por dentro
 - **sem citação** — não apareceu em lugar nenhum
+- **dispara com a tabela** — trigger: ninguém a "chama", ela roda com a tabela-pai
+  (`OBJECT_NAME(parent_object_id)`). Sem essa classe, toda trigger cairia em *sem citação* — justo onde
+  legado esconde regra de negócio
 - **não cruzado** — nome fora do padrão de identificador (`[Minha Proc]`, com espaço ou acento): a
   busca por token não o enxerga, e isso é dito em vez de virar *sem citação*
+
+Leitura: UTF-16 com BOM (o "Unicode" do *Generate Scripts* do SSMS) é detectado; o resto é UTF-8 com
+troca de caractere inválido (cp1252 legado vira só fronteira de token, identificador é ASCII). O índice
+guarda só os nomes do inventário, até 3 ocorrências cada — nunca todo token do repo. A busca não olha
+esquema nem base: `dbo.X` e `hist.X` recebem a mesma classe, e referência entre bases conta — as duas
+coisas erram pro lado seguro (citar demais).
 
 Os dois erros do método, declarados na saída: *falso positivo* de nome genérico (`Cliente`, `Status`,
 `Log`, `Usuario`) casando com variável ou classe C# sem relação → sai marcado **casamento fraco,
@@ -174,7 +187,12 @@ rollback (mesma regra da `analise`).
 **Brownfield — só mexe no que é seu.** Todo `.sql` gerado começa com a marca
 `-- [inventario-banco]` e o `banco.md` com `<!-- [inventario-banco] ... -->`. Só arquivo com a marca é
 sobrescrito ou removido: um `docs/banco.md` que o time já tinha faz o script **parar sem gravar**
-(use `--out`), e `.sql` alheio em `docs/banco/` fica intocado e listado no relatório.
+(use `--out`); `.sql` alheio em `docs/banco/` fica intocado e listado; e se ele tem o **mesmo nome** de
+um objeto, o corpo daquele objeto **não é gravado** (vai pra *conflitos* no relatório e o `banco.md` diz
+"não gravado"). Só se remove `.sql` nosso de objeto que **sumiu do catálogo** — objeto que existe mas
+veio sem corpo nesta rodada (login sem `VIEW DEFINITION`, virou `WITH ENCRYPTION`) mantém o arquivo
+anterior, que pode ser a única cópia. Nomes comparados sem caixa (NTFS): renomear só na caixa troca o
+arquivo, não o apaga.
 
 **O que o script não faz:** `git add`/commit (ato do owner; `hooks/git_publicacao.py` já barra push) e
 editar o `.gitignore` sozinho — ele imprime a linha e a `analise` pergunta uma vez antes de
@@ -252,3 +270,10 @@ do INDEX**, esta feature só traz a detecção mínima pro gatilho.
   dogfood** no projeto C# contra o D0: conferir o regex do par (`<DEV|HML|PROD>_<BASE>_<KEY|CIPHERTEXT>`,
   tirado do molde do kit) e valor montado com `+`/`.encode()` no `get_connection.py` real (hoje some
   em silêncio), e se o cursor do pyodbc segue usável depois de falta de permissão no `msdb`.
+- 2026-09-22 — revisão final antes do release (Tasks 9–15 foram implementadas sem revisão por tarefa,
+  por decisão do owner pra ganhar tempo; um revisor único passou no fim): **1 crítico + 11 importantes**,
+  quase todos reproduzidos por script. Os mais graves eram 3 jeitos de o gerador destruir os próprios
+  `.sql` versionados (sobrescrever arquivo do time, apagar tudo numa rodada com login mais fraco, perder
+  o arquivo num rename só de caixa). Consertados, junto com: trigger ganhou classe própria, UTF-16,
+  índice filtrado, CLI sem traceback, e 3 contradições no `analise.md` (motor ≠ SQL Server disparava o
+  gerador; o `web.config` seria aberto inteiro; a escrita da fase 2 não estava declarada no passo 4).

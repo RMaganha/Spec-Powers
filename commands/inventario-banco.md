@@ -20,7 +20,7 @@ Regenera o **inventário do banco vivo** deste projeto. Na primeira vez quem dis
 3. **Saídas:**
    - `docs/banco.md` — retrato em texto, **pro assistente**; **fora do git** (linha ancorada `/docs/banco.md`). O script avisa se ela falta no `.gitignore`: **pergunte** antes de acrescentar (em projeto que já existia o `.gitignore` é do projeto).
    - `docs/banco/<esquema>.<objeto>.sql` — corpo de cada objeto, **versionado**, UTF-8 com BOM, segredo mascarado antes de gravar. É documentação, não script executável.
-   - O script só sobrescreve ou remove arquivo com a marca `[inventario-banco]`: um `docs/banco.md` do time faz ele parar; `.sql` alheio em `docs/banco/` fica e é listado.
+   - O script só sobrescreve ou remove arquivo com a marca `[inventario-banco]`: um `docs/banco.md` do time faz ele parar; `.sql` alheio em `docs/banco/` fica e é listado; se um objeto tem o mesmo nome de um `.sql` do time, o corpo dele **não é gravado** (sai em *NÃO documentados* — avise o owner); e objeto que existe mas veio sem corpo nesta rodada (login sem `VIEW DEFINITION`) **mantém** o `.sql` anterior. Só SQL Server.
 
 4. **Reporte** o que o script imprimiu: objetos, segredos mascarados (objeto + tipo — **nunca o valor**), lacunas (corpo criptografado, falta de `VIEW DEFINITION`, `msdb`), arquivos removidos. Atualize as contagens na seção *Dados* do `docs/ARQUITETURA.md`.
 
