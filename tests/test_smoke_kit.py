@@ -1126,3 +1126,20 @@ def test_inventario_banco_wiring():
         assert "/docs/banco/" not in linhas, f"{gi_path}: os .sql são versionados — não ignore docs/banco/"
     leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
     assert "/mss-spec:inventario-banco" in leiame, "LEIA-ME não lista o comando"
+
+
+def test_analise_dispara_inventario_do_banco():
+    """O owner não sabe o nome do comando ('eu vou usar o analise, ele vai ter que ser inteligente o
+    suficiente') — a analise dispara o inventário por EVIDÊNCIA no código, pergunta só a credencial, e a
+    regra dura abre exceção pros .sql gerados (senão proibiria a própria saída do inventário)."""
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    low = an.lower()
+    assert "templates/inventario_banco.py" in an, "analise.md não roda o gerador do inventário"
+    for evidencia in ("connectionStrings", "SqlConnection", "get_connection.py"):
+        assert evidencia in an, f"analise.md não dispara o inventário pela evidência {evidencia}"
+    assert "MSS_INVENTARIO_CONN" in an
+    assert "nunca peça senha digitada" in low
+    assert "pode apagar" in low
+    assert "docs/banco/" in an, "analise.md não abre a exceção dos .sql gerados pelo inventário"
+    tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
+    assert "Banco vivo (inventário)" in tpl, "ARQUITETURA.md não tem onde destilar o inventário"

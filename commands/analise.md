@@ -15,7 +15,7 @@ O kit nasceu greenfield: sem esta etapa, o assistente entra num projeto pronto s
 Você escreve **somente** artefatos de documentação/memória do kit (lista no passo 4). **Nunca** crie, edite ou sobrescreva:
 
 - **infra**: `docker-compose.yml`, `Dockerfile`, `.dockerignore`, arquivos de deploy/pipeline;
-- **código**: qualquer `.py`/`.ts`/`.tsx`/`.js`/`.sql`, `config/logging.py`, `utils/get_connection.py`, `requirements.txt`/`package.json`;
+- **código**: qualquer `.py`/`.ts`/`.tsx`/`.js`/`.sql`, `config/logging.py`, `utils/get_connection.py`, `requirements.txt`/`package.json` — **exceção única:** os `docs/banco/*.sql` que o inventário do banco grava são documentação (corpo extraído do catálogo, com marca `[inventario-banco]`), não código do projeto;
 - **UI própria**: HTML/CSS/JS/templates do projeto. Se o projeto tem **UI própria** (ex.: `.html` com layout e UX feitos à mão), ela é **intocável** — o design system do kit (`docs/FRONTEND.md`, Tailwind, React+Mantine) **não é aplicado, nem sugerido como conserto**. Registre "UI própria — design system do kit não aplicado" e siga.
 - **segredo**: nunca abra/copie/imprima `.env` (leia só o `.env.example`, ou os **nomes** das chaves que o código lê).
 
@@ -39,6 +39,11 @@ Abra **de fato** (não por amostragem):
 - **Entrypoint(s)**: `main.py`/`app.py`/`manage.py`/`index.ts`/`server.*` — o que levanta, em que porta, o que registra.
 - **Rotas/endpoints**: todo decorator/registro de rota (`@app.*`, `@router.*`, `APIRouter`, Express/Next handlers). Marque quais são de **integração** (outro sistema chama) — insumo do `/mss-spec:seguranca` e das Conexões do MAPA.
 - **Dados**: `.sql` (DDL, migrations), models/ORM, módulo de conexão. Registre tabelas, como o esquema é criado e como a credencial chega (env × outro).
+- **Dados — banco vivo** (disparo automático, não é menu). Achou evidência de banco — `<connectionStrings>` em `web.config`/`app.config`, `SqlConnection`/`SqlCommand`/`SqlDataAdapter`/`.edmx`/Dapper/EF nos `.cs`, `utils/get_connection.py`, `pyodbc`, `psycopg`, SQLAlchemy — **diga a evidência e inventarie**: o `.sql` do repo não traz a regra de negócio que mora em procedure, trigger e job.
+  - Pergunte **só** qual base e de onde vem a credencial — é o portão da conexão. **Nunca peça senha digitada**: reuse o `get_connection.py` de um projeto MSIG que alcança o servidor, ou a variável `MSS_INVENTARIO_CONN`. Detectar ≠ usar: da `<connectionStrings>` leia só `Server=`/`Initial Catalog=`, nunca a senha.
+  - Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/inventario_banco.py" --proj . --fonte <get_connection.py> --ambiente D0 --base <base>` (`--par <BASE>` quando a fonte tem mais de uma base). Erro vem classificado em REDE/TLS/CREDENCIAL/PERMISSÃO — repasse ao owner como veio.
+  - Destile o `docs/banco.md` na seção *Dados* do dossiê (contagens, modelo, e o **ponteiro**: servidor, base, ambiente, qual projeto emprestou o par — caminho, nunca valor) e os linked servers/jobs nas *Conexões* do MAPA, levando junto a frase **"sem citação" não significa "pode apagar"**.
+  - O script avisa se falta `/docs/banco.md` no `.gitignore`: **pergunte** antes de acrescentar. Owner disse "pula" → linha em *Lacunas*. Regenerar depois: `/mss-spec:inventario-banco`.
 - **Config**: `config/`, `settings.*`, `.env.example` — **quais chaves o código realmente lê**.
 - **Integrações**: clientes HTTP pra outros serviços, filas, storage, banco compartilhado.
 - **UI**: se há `.html`/`.tsx`, identifique o padrão real (Jinja? SPA? qual lib? CSS próprio?) — **para descrever**, não para trocar.
