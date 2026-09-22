@@ -715,8 +715,107 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None):
-    raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
+# ---------------------------------------------------------------------------------- orquestração
+class ErroSaida(Exception):
+    """Arquivo de saída existe e não é nosso (brownfield) — para sem gravar."""
+
+
+@dataclass
+class Relatorio:
+    md: Path
+    pasta_sql: Path
+    total_objetos: int
+    gravados: list
+    removidos: list
+    preservados: list
+    segredos: list
+    lacunas: list
+    linha_gitignore: str  # "" quando já está ancorada ou a saída não é a padrão
+
+
+def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=None):
+    proj = Path(proj).resolve()
+    destino = Path(out).resolve() if out else proj / "docs"
+    md = destino / "banco.md"
+    if md.exists() and not md.read_text(encoding="utf-8-sig", errors="replace").startswith(MARCA_MD):
+        raise ErroSaida(f"{md} já existe e não foi gerado pelo inventário — não sobrescrevo. "
+                        "Renomeie o arquivo do projeto ou use --out.")
+    catalogo = coletar(cursor, max_objetos)  # o teto estoura aqui, antes de gravar qualquer coisa
+    citacoes = cruzar(catalogo, indexar_codigo(proj, excluir=destino / "banco"))
+    gravados, removidos, preservados, segredos = gravar_corpos(catalogo, destino / "banco")
+    md.write_text(renderizar_md(proj.name, origem, hoje or dt.date.today().isoformat(),
+                                catalogo, citacoes, segredos), encoding="utf-8")
+    linha = ""
+    if out is None:
+        gi = proj / ".gitignore"
+        ancoradas = {l.strip() for l in gi.read_text(encoding="utf-8-sig").splitlines()} if gi.exists() else set()
+        linha = "" if "/docs/banco.md" in ancoradas else "/docs/banco.md"
+    return Relatorio(md, destino / "banco", len(objetos(catalogo)), gravados, removidos, preservados,
+                     segredos, catalogo.lacunas, linha)
+
+
+def relatorio_texto(rel):
+    out = [f"inventário gerado: {rel.md}",
+           f"objetos: {rel.total_objetos} · corpos gravados: {len(rel.gravados)} em {rel.pasta_sql}"]
+    if rel.removidos:
+        out.append("removidos (sumiram do banco): " + ", ".join(rel.removidos))
+    if rel.preservados:
+        out.append("em docs/banco/ mas NÃO são do inventário (não mexi): " + ", ".join(rel.preservados))
+    if rel.segredos:
+        out.append("segredos mascarados (valor nunca exibido): "
+                   + "; ".join(f"{o} linha {n} ({t})" for o, n, t in rel.segredos))
+    out.append(f"lacunas: {len(rel.lacunas)} (seção Lacunas do banco.md)")
+    if rel.linha_gitignore:
+        out.append(f"falta no .gitignore (pergunte ao owner antes de acrescentar): {rel.linha_gitignore}")
+    return "\n".join(out)
+
+
+def conectar(conn_str):
+    import pyodbc  # import tardio: o módulo (e os testes) não precisam do driver ODBC
+    return pyodbc.connect(conn_str, timeout=30, autocommit=True)
+
+
+def main(argv=None, env=None, conectar_fn=None):
+    for fluxo in (sys.stdout, sys.stderr):  # console Windows em cp1252 embaralha acento (padrão do kit)
+        try:
+            fluxo.reconfigure(encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+    ap = argparse.ArgumentParser(description="Inventário somente-leitura do banco vivo (SQL Server).")
+    ap.add_argument("--proj", help="diretório do projeto (default: diretório atual)")
+    ap.add_argument("--out", help="pasta de saída (default: <proj>/docs)")
+    ap.add_argument("--fonte", help="get_connection.py de um projeto MSIG que alcança o servidor (lido por ast)")
+    ap.add_argument("--ambiente", default="D0", help="D0 | HML | PRD (default: D0)")
+    ap.add_argument("--par", help="base da fonte cujo par reaproveitar, quando a fonte tem mais de uma")
+    ap.add_argument("--base", help="base a inventariar (sobrescreve o Database= da conn string)")
+    ap.add_argument("--porta", help="sobrescreve a porta do servidor")
+    ap.add_argument("--max-objetos", type=int, default=MAX_OBJETOS_PADRAO)
+    args = ap.parse_args(argv)
+    env = os.environ if env is None else env
+    conectar_fn = conectar_fn or conectar
+    try:
+        conexao = resolver_conn(env, args.fonte, args.ambiente, args.par, args.base, args.porta)
+    except ErroCredencial as e:
+        print(f"[inventario-banco] {e}", file=sys.stderr)
+        return 2
+    for aviso in conexao.avisos:
+        print(f"[inventario-banco] aviso: {aviso}")
+    print(f"[inventario-banco] conectando: {conexao.origem}")
+    try:
+        conn = conectar_fn(conexao.conn_str)
+    except Exception as e:
+        print(f"[inventario-banco] {explicar_erro(e)}", file=sys.stderr)
+        return 3
+    try:
+        rel = gerar(args.proj or Path.cwd(), conn.cursor(), conexao.origem,
+                    out=args.out, max_objetos=args.max_objetos)
+    except (ErroTeto, ErroSaida) as e:
+        print(f"[inventario-banco] {e}", file=sys.stderr)
+        return 4
+    finally:
+        conn.close()
+    print(relatorio_texto(rel))
+    return 0
 
 
 if __name__ == "__main__":

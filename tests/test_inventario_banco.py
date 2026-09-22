@@ -568,3 +568,80 @@ def test_md_sem_linhas_quando_opcional_falhou(inv, tmp_path):
     cat = inv.coletar(CursorFalso(inv, respostas_base(), falhas=("linhas",)))
     md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
     assert "`dbo.Apolice` — — linhas" in md
+
+
+class ConexaoFalsa:
+    def __init__(self, cursor):
+        self._cursor = cursor
+        self.fechada = False
+
+    def cursor(self):
+        return self._cursor
+
+    def close(self):
+        self.fechada = True
+
+
+ENV_OK = {"MSS_INVENTARIO_CONN": "Server=srv;Database=x;UID=u;PWD=segredo123"}
+
+
+def test_main_ponta_a_ponta(inv, tmp_path, capsys):
+    proj = _projeto(tmp_path / "LegadoCS", {"src/Repo.cs": 'cmd.CommandText = "dbo.ConsultaApolice";'})
+    conn = ConexaoFalsa(CursorFalso(inv, respostas_base()))
+    vistas = []
+    rc = inv.main(["--proj", str(proj), "--base", "Legado"], env=ENV_OK,
+                  conectar_fn=lambda s: vistas.append(s) or conn)
+    assert rc == 0 and conn.fechada
+    assert "Database=Legado" in vistas[0]
+    saida = capsys.readouterr()
+    assert "segredo123" not in saida.out + saida.err
+    assert (proj / "docs" / "banco.md").read_text(encoding="utf-8").startswith(inv.MARCA_MD)
+    assert (proj / "docs" / "banco" / "dbo.ConsultaApolice.sql").exists()
+    assert "/docs/banco.md" in saida.out  # sugere a linha do .gitignore (não edita)
+    assert not (proj / ".gitignore").exists()
+
+
+def test_proj_ponto_da_nome_ao_titulo(inv, tmp_path, monkeypatch):
+    """Caso F-016: Path('.').name é vazio."""
+    proj = tmp_path / "LegadoCS"
+    proj.mkdir()
+    monkeypatch.chdir(proj)
+    assert inv.main(["--proj", "."], env=ENV_OK,
+                    conectar_fn=lambda s: ConexaoFalsa(CursorFalso(inv, respostas_base()))) == 0
+    assert "# Banco do projeto LegadoCS" in (proj / "docs" / "banco.md").read_text(encoding="utf-8")
+
+
+def test_nao_sobrescreve_banco_md_do_projeto(inv, tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "banco.md").write_text("# Anotações do time\n", encoding="utf-8")
+    with pytest.raises(inv.ErroSaida, match="não sobrescrevo"):
+        inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
+    assert (tmp_path / "docs" / "banco.md").read_text(encoding="utf-8") == "# Anotações do time\n"
+    assert not (tmp_path / "docs" / "banco").exists()
+
+
+def test_teto_nao_grava_nada(inv, tmp_path):
+    with pytest.raises(inv.ErroTeto):
+        inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o", max_objetos=1)
+    assert not (tmp_path / "docs").exists()
+
+
+def test_regeneracao_e_gitignore_ja_ancorado(inv, tmp_path):
+    (tmp_path / ".gitignore").write_text("/docs/banco.md\n", encoding="utf-8")
+    inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
+    rel = inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")  # 2ª rodada sobrescreve o nosso
+    assert rel.linha_gitignore == ""
+    assert rel.total_objetos == 6 and len(rel.gravados) == 3
+
+
+def test_main_sem_credencial(inv, tmp_path, capsys):
+    assert inv.main(["--proj", str(tmp_path)], env={}, conectar_fn=lambda s: pytest.fail("conectou")) == 2
+    assert "--fonte" in capsys.readouterr().err
+
+
+def test_main_conexao_recusada(inv, tmp_path, capsys):
+    def recusa(_):
+        raise RuntimeError("[28000] Login failed for user 'u'. (18456)")
+    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=recusa) == 3
+    err = capsys.readouterr().err
+    assert "CREDENCIAL" in err and "segredo123" not in err
