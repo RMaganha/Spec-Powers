@@ -1145,6 +1145,11 @@ def test_analise_dispara_inventario_do_banco():
     assert "docs/banco/" in an, "analise.md não abre a exceção dos .sql gerados pelo inventário"
     tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
     assert "Banco vivo (inventário)" in tpl, "ARQUITETURA.md não tem onde destilar o inventário"
+    # revisão final: só SQL Server dispara (I9) · nunca abrir o config inteiro (I11) · a escrita da fase 2
+    # está declarada no passo 4 (I10), senão o assistente literal pula o inventário ou quebra a regra
+    assert "cobre **só SQL Server**" in an, "analise.md dispararia o gerador (SQL Server) em outro motor"
+    assert "nunca abra o `web.config`/`app.config` inteiro" in low, "analise.md deixaria a senha entrar na conversa"
+    assert "`docs/banco.md` e `docs/banco/*.sql`" in an, "passo 4 não declara a escrita do inventário na fase 2"
 
 
 def test_como_funciona_lista_todos_os_comandos():
