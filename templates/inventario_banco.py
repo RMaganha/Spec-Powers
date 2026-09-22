@@ -80,7 +80,7 @@ JOIN sys.tables t ON t.object_id = i.object_id
 JOIN sys.schemas s ON s.schema_id = t.schema_id
 JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
 JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
-WHERE i.name IS NOT NULL
+WHERE i.name IS NOT NULL AND ic.is_included_column = 0
 ORDER BY s.name, t.name, i.name, ic.key_ordinal""",
     "linhas": """
 SELECT s.name AS esquema, t.name AS tabela, SUM(p.row_count) AS linhas
@@ -108,13 +108,13 @@ JOIN sys.types ty ON ty.user_type_id = p.user_type_id
 WHERE o.is_ms_shipped = 0 AND p.parameter_id > 0
 ORDER BY s.name, o.name, p.parameter_id""",
     "dependencias": """
-SELECT sr.name AS esquema, o.name AS objeto, d.referenced_schema_name AS esquema_ref,
+SELECT DISTINCT sr.name AS esquema, o.name AS objeto, d.referenced_schema_name AS esquema_ref,
        d.referenced_entity_name AS referencia
 FROM sys.sql_expression_dependencies d
 JOIN sys.objects o ON o.object_id = d.referencing_id
 JOIN sys.schemas sr ON sr.schema_id = o.schema_id
 WHERE d.referenced_entity_name IS NOT NULL
-ORDER BY sr.name, o.name""",
+ORDER BY esquema, objeto""",
     "servidores": """
 SELECT name AS nome, product AS produto, provider AS provedor, data_source AS origem
 FROM sys.servers WHERE is_linked = 1""",

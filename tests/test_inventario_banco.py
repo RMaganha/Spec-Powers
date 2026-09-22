@@ -40,8 +40,9 @@ def test_importavel_sem_pyodbc_nem_cryptography(monkeypatch):
 
 
 PROIBIDAS = re.compile(
-    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|EXEC|EXECUTE|GRANT|DENY|REVOKE)\b", re.I)
-ALVO = re.compile(r"\b(?:FROM|JOIN)\s+([\w.\[\]]+)", re.I)
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|EXEC|EXECUTE|SP_EXECUTESQL|GRANT|DENY|REVOKE)\b",
+    re.I)
+ALVO = re.compile(r"\b(?:FROM|JOIN|APPLY)\s+([\w.\[\]]+)", re.I)
 
 
 def test_queries_sao_somente_leitura(inv):
