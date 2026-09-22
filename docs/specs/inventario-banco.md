@@ -1,6 +1,6 @@
 # inventário do banco vivo — o que a `analise` não alcança
 
-## Estado alvo (desenho aprovado em 2026-09-22 — **ainda não implementado**)
+## Estado atual (implementado na 0.28.0 — **não validado contra banco real**; ver Histórico)
 
 O `/mss-spec:analise` sabe ler `.sql` **que está no repositório**. Num sistema legado, a regra de
 negócio não está lá: está **dentro do banco**, em procedure, function, trigger e job do Agent. O kit
@@ -70,7 +70,10 @@ Três mecânicas:
 
 Premissa do owner que o kit não verifica: "as credenciais são as mesmas" pressupõe que o login tem
 leitura **na base nova**. Se não tiver, o erro é de **permissão** do SQL Server (não de rede, não de
-credencial) e o script diz isso em pt-BR; o conserto é do owner.
+credencial) e o script diz isso em pt-BR; o conserto é do owner. O erro de conexão sai em quatro
+classes: **REDE**, **TLS** (SQL Server antigo sem TLS 1.2, ou certificado — o script sempre pede
+`Encrypt=yes`), **CREDENCIAL** e **PERMISSÃO**; par Fernet que não decripta e `--fonte` ilegível
+viram mensagem clara, nunca traceback.
 
 ### 3. Coleta: só catálogo
 
@@ -150,9 +153,14 @@ Existe porque o próximo leitor desse arquivo provavelmente é um assistente, e 
 visual; aqui o visual é do `/mss-spec:documentacao`, alimentado pelo `banco.md`.
 
 **Varredura de segredo antes de gravar cada `.sql`** — não é opcional, porque corpo versionado que
-leva segredo fica no histórico pra sempre. Procura `PWD=`/`Password=`, `CREATE LOGIN ... WITH
-PASSWORD`, `sp_addlinkedsrvlogin`, `IDENTITY=`/`SECRET=` de external data source, e
-`OPENROWSET(`/`OPENQUERY(` com credencial embutida. Achou → grava o corpo **com o valor mascarado**
+leva segredo fica no histórico pra sempre. Varre o **corpo inteiro** (não linha a linha: `EXEC
+sp_addlinkedsrvlogin` com os argumentos na linha de baixo é estilo comum) e cobre: `PWD=`/`Password=`
+em conn string, qualquer `PASSWORD = '...'` (`WITH PASSWORD`, `ENCRYPTION BY PASSWORD`,
+`OLD_PASSWORD`), variáveis `@senha`/`@pwd`/`@password` recebendo literal, `sp_addlinkedsrvlogin`
+(nomeado e posicional, com argumentos estruturados pra não invadir a instrução seguinte),
+`sp_addlogin`, `sp_password`, `IDENTITY=`/`SECRET=`, senha no provider string do `OPENROWSET`, e
+`-P senha` quando há `bcp`/`sqlcmd`/`osql`/`isql`/`xp_cmdshell` por perto. Falso positivo é aceitável;
+falso negativo vai pro git. Achou → grava o corpo **com o valor mascarado**
 (`PWD=***REMOVIDO PELO INVENTARIO***`), põe comentário de cabeçalho dizendo que houve remoção e em
 que linha, e **lista no relatório** o objeto e o tipo — nunca o valor. Mascarar em vez de pular
 porque a regra de negócio é o que se quer preservar; mascarar em vez de gravar cru porque o arquivo
@@ -235,3 +243,12 @@ do INDEX**, esta feature só traz a detecção mínima pro gatilho.
   fechou 7 detalhes que o desenho deixou abertos: `--par`, precedência flag > variável (o § 6 dizia
   o contrário do § 2), linhas como opcional, `.md` fora do cruzamento, classe *não cruzado*,
   criptografado × falta de `VIEW DEFINITION`, marca de autoria nos arquivos gerados (brownfield).
+- 2026-09-22 — implementado (0.28.0): `templates/inventario_banco.py` + `tests/test_inventario_banco.py`
+  (91 testes, cursor falso), `/mss-spec:inventario-banco`, passo *Dados — banco vivo* na `analise`,
+  `COMO-FUNCIONA.html` com os 5 cards que faltavam e contagem travada nos 3 lugares onde aparece. A
+  revisão por tarefa mudou o gerador em relação ao plano: `mask_password` respeita valor entre
+  `{chaves}` (vazava o fim da senha), erro de conexão ganhou a classe **TLS**, e a varredura de segredo
+  foi refeita pra varrer o corpo inteiro — 5 formas de segredo vazavam, provadas por teste. **Falta o
+  dogfood** no projeto C# contra o D0: conferir o regex do par (`<DEV|HML|PROD>_<BASE>_<KEY|CIPHERTEXT>`,
+  tirado do molde do kit) e valor montado com `+`/`.encode()` no `get_connection.py` real (hoje some
+  em silêncio), e se o cursor do pyodbc segue usável depois de falta de permissão no `msdb`.

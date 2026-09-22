@@ -4,6 +4,16 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-22 — saiu do rodízio do MAPA (v0.26.0)
+
+### Onde estávamos
+
+`main` — **v0.26.0** (merge `--no-ff` de `feature/travas-publicacao-e-um-item-por-janela`, `58ec5b4`; **14 commits à frente do `origin` — `git push` pendente, ato do owner**). Suíte **289 verde**. Duas cercas mecânicas nascidas da sessão "lixo" do MITI (caso **F-022**: a janela de uma feature virou três assuntos, mesclou branches e o assistente disparou `git push` = deploy automático; homologação quebrou inteira). `hooks/git_publicacao.py` (PreToolUse Bash/PowerShell nega push/merge/rebase/deploy, falha fechada) + `hooks/um_item_por_janela.py` (UserPromptSubmit bloqueia `nova-feature` com feature aberta no INDEX) + prosa que virou trava (`CLAUDE.md` em 7.991/8.000 bytes, passo 0 do `nova-feature`, F-023 no `diagnostico`). Spec: `docs/specs/travas-um-item-por-janela.md`.
+
+### Próximo passo de então
+
+**0.26.0 já está na `main`** (merge feito sob ordem explícita do owner nesta sessão; `git push` quando ele quiser, do terminal dele) — falta o **canário numa sessão nova** (hooks carregam na partida): pedir `git push --dry-run` ao assistente tem que vir `[mss-spec] BLOQUEADO`; `/mss-spec:nova-feature outra-coisa` com item aberto no INDEX tem que ser bloqueado. Atenção: o item 5 (`upgrade — em andamento`) **conta como aberto** — a próxima `nova-feature` neste repo será bloqueada até ele virar `fechada` ou `pausada: <motivo>` (marcado à mão). Depois, **podar os comandos**: **109.560 bytes em 24 comandos** (remedido em 2026-09-02, depois do `bpmn`; eram 103.815 em 22 na 0.22.0). Leitura certa: a soma é tendência, **não** taxa por sessão (comando `disable-model-invocation` só custa quando invocado) — o alvo real são os **5 grandes** (`nova-feature` 11,8 KB · `analise` 9,3 · `kickoff` 8,3 · `upgrade` 7,8 · `memory` 7,7 ≈ 45 KB), onde instrução demais vira instrução ignorada. Mesmo tratamento do `CLAUDE.md`: teto por bytes travado por teste, mover nunca apagar. Depois, na ordem: fecho com os 3 artefatos garantidos + `git push` de fato (o item 4 do to-dolist; nesta janela a contagem do `COMO-FUNCIONA.html` estava defasada em 4 comandos e foi consertada **à mão**, que é exatamente o sintoma) · consolidar os 68 KB dos arquivos de memória · validar o kit com o modelo Fable.
+
 ## 2026-09-15 — saiu do rodízio do MAPA (v0.25.0)
 
 ### Onde estávamos

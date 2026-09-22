@@ -1126,6 +1126,8 @@ def test_inventario_banco_wiring():
         assert "/docs/banco/" not in linhas, f"{gi_path}: os .sql são versionados — não ignore docs/banco/"
     leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
     assert "/mss-spec:inventario-banco" in leiame, "LEIA-ME não lista o comando"
+    spec = (REPO / "docs" / "specs" / "inventario-banco.md").read_text(encoding="utf-8")
+    assert "## Estado atual" in spec and "## Histórico" in spec, "spec viva sem as seções fixas"
 
 
 def test_analise_dispara_inventario_do_banco():
