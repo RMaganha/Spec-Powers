@@ -662,6 +662,20 @@ def _fmt(v):
     return str(v).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
 
 
+def _cod(v):
+    """Nome como código dentro de célula de tabela GFM: `|` escapado (vale até dentro de crase), crase
+    trocada e quebra de linha achatada — nome entre colchetes pode ter qualquer um dos três."""
+    return "`" + _fmt(v).replace("`", "'") + "`"
+
+
+def _tipo_coluna(c):
+    """Tipo com tamanho: varchar(20), nvarchar(100) (max_length é em bytes: nchar/nvarchar dividem por 2), (max)."""
+    tipo, n = c["tipo"], c.get("tamanho")
+    if tipo in ("varchar", "char", "varbinary", "binary", "nvarchar", "nchar") and isinstance(n, int):
+        return f"{tipo}(max)" if n == -1 else f"{tipo}({n // 2 if tipo.startswith('n') else n})"
+    return _fmt(tipo)
+
+
 def _agrupar(linhas, *chaves):
     grupos = {}
     for l in linhas:
@@ -691,8 +705,8 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
             "| objeto | classificação | onde |", "|---|---|---|"]
     for chave, c in citacoes.items():
         rotulo = c.classe + (" · casamento fraco, conferir" if c.fraco and c.classe == CITADO_CODIGO else "")
-        onde = ", ".join(f"`{o}`" for o in c.ocorrencias) or "—"
-        out.append(f"| `{chave}` | {rotulo} | {onde} |")
+        onde = ", ".join(_cod(o) for o in c.ocorrencias) or "—"
+        out.append(f"| {_cod(chave)} | {rotulo} | {onde} |")
     out.append("")
 
     linhas_tab = {(l["esquema"], l["tabela"]): l["linhas"] for l in d.get("linhas", [])}
@@ -703,21 +717,22 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
     out += ["## Tabelas", ""]
     for t in d["tabelas"]:
         k = (t["esquema"], t["nome"])
-        out += [f"### `{t['esquema']}.{t['nome']}` — {_fmt(linhas_tab.get(k))} linhas (estimativa) · "
+        out += [f"### {_cod(t['esquema'] + '.' + t['nome'])} — {_fmt(linhas_tab.get(k))} linhas (estimativa) · "
                 f"criada {_fmt(t['criado'])} · modificada {_fmt(t['modificado'])}", "",
                 "| coluna | tipo | nulo | identidade | padrão |", "|---|---|---|---|---|"]
         for c in cols.get(k, []):
-            out.append(f"| {_fmt(c['coluna'])} | {_fmt(c['tipo'])} | {_fmt(c['nulo'])} | "
+            out.append(f"| {_fmt(c['coluna'])} | {_tipo_coluna(c)} | {_fmt(c['nulo'])} | "
                        f"{_fmt(c['identidade'])} | {_fmt(c['padrao'])} |")
         for (nome_k,), g in _agrupar(chaves.get(k, []), "chave").items():
-            out.append(f"- **{_fmt(g[0]['tipo'])}** `{nome_k}` ({', '.join(x['coluna'] for x in g)})")
+            out.append(f"- **{_fmt(g[0]['tipo'])}** {_cod(nome_k)} ({', '.join(_fmt(x['coluna']) for x in g)})")
         for (nome_fk,), g in _agrupar(fks.get(k, []), "fk").items():
-            out.append(f"- **FK** `{nome_fk}`: ({', '.join(x['coluna'] for x in g)}) → "
-                       f"`{g[0]['esquema_ref']}.{g[0]['tabela_ref']}` ({', '.join(x['coluna_ref'] for x in g)})")
+            out.append(f"- **FK** {_cod(nome_fk)}: ({', '.join(_fmt(x['coluna']) for x in g)}) → "
+                       f"{_cod(g[0]['esquema_ref'] + '.' + g[0]['tabela_ref'])} "
+                       f"({', '.join(_fmt(x['coluna_ref']) for x in g)})")
         for (nome_i,), g in _agrupar(idx.get(k, []), "indice").items():
             unico = " único" if g[0]["unico"] else ""
-            out.append(f"- índice{unico} `{nome_i}` {_fmt(g[0]['tipo']).lower()} "
-                       f"({', '.join(x['coluna'] for x in g)})")
+            out.append(f"- índice{unico} {_cod(nome_i)} {_fmt(g[0]['tipo']).lower()} "
+                       f"({', '.join(_fmt(x['coluna']) for x in g)})")
         out.append("")
 
     params = _agrupar(d.get("parametros", []), "esquema", "objeto")
@@ -727,9 +742,9 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
             "|---|---|---|---|---|---|---|"]
     for m in mods:
         k = (m["esquema"], m["nome"])
-        ps = ", ".join(f"{p['parametro']} {p['tipo']}" + (" OUTPUT" if p["saida"] else "")
+        ps = ", ".join(f"{_fmt(p['parametro'])} {_fmt(p['tipo'])}" + (" OUTPUT" if p["saida"] else "")
                        for p in params.get(k, [])) or "—"
-        rs = ", ".join(sorted({f"{x['esquema_ref'] or m['esquema']}.{x['referencia']}"
+        rs = ", ".join(sorted({_fmt(f"{x['esquema_ref'] or m['esquema']}.{x['referencia']}")
                                for x in deps.get(k, [])})) or "—"
         arq = nome_arquivo(m["esquema"], m["nome"])
         if m["corpo"] is None:
@@ -737,8 +752,8 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
         elif arq.casefold() in em_conflito:
             corpo = "não gravado (já há arquivo do time com o mesmo nome)"
         else:
-            corpo = f"`banco/{arq}`"
-        out.append(f"| `{m['esquema']}.{m['nome']}` | {_fmt(m['tipo']).lower()} | {ps} | {rs} | "
+            corpo = _cod(f"banco/{arq}")
+        out.append(f"| {_cod(m['esquema'] + '.' + m['nome'])} | {_fmt(m['tipo']).lower()} | {ps} | {rs} | "
                    f"{_fmt(m['criado'])} | {_fmt(m['modificado'])} | {corpo} |")
     out.append("")
 
@@ -760,7 +775,7 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
             chamados = sorted({nomes_inv[t.lower()] for t in _RE_IDENT.findall(j["comando"] or "")
                                if t.lower() in nomes_inv})
             out.append(f"| `{_fmt(j['job'])}` | {_fmt(j['ativo'])} | {_fmt(j['passo'])} | "
-                       f"{', '.join(f'`{c}`' for c in chamados) or '—'} |")
+                       f"{', '.join(_cod(c) for c in chamados) or '—'} |")
     else:
         out.append("Nenhum job visível para esta base (ou sem permissão em `msdb` — ver Lacunas).")
     out.append("")
@@ -769,7 +784,7 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
             f"Valor nunca exibido nem gravado — o `.sql` versionado leva `{MASCARA}` no lugar.", ""]
     if segredos:
         out += ["| objeto | linha do corpo original | tipo |", "|---|---|---|"]
-        out += [f"| `{o}` | {n} | {t} |" for o, n, t in segredos]
+        out += [f"| {_cod(o)} | {n} | {t} |" for o, n, t in segredos]
     else:
         out.append("Nenhum encontrado pelos padrões da varredura (PWD=/Password=, WITH PASSWORD, "
                    "sp_addlinkedsrvlogin, SECRET=/IDENTITY=, OPENROWSET).")

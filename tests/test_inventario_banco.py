@@ -766,3 +766,24 @@ def test_sem_cryptography_nao_culpa_o_par(inv, fonte):
 def test_permissao_negada_no_catalogo_e_permissao(inv):
     msg = inv.explicar_erro(RuntimeError("[42000] The SELECT permission was denied on the object 'sysjobs'"))
     assert msg.startswith("PERMISSÃO")
+
+
+def test_nome_com_barra_vertical_nao_quebra_a_tabela(inv, tmp_path):
+    """Revisão final M1: nome entre colchetes pode ter `|` (justo o caso 'não cruzado') e quebrava a tabela."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "Proc|Velha", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
+    cat = inv.coletar(CursorFalso(inv, r))
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
+    linhas = [l for l in md.splitlines() if "Proc" in l and l.startswith("|")]
+    assert linhas and all("Proc\|Velha" in l for l in linhas)
+
+
+def test_tipo_da_coluna_traz_o_tamanho(inv, tmp_path):
+    """Revisão final M6: varchar(20) aparecia como varchar; nvarchar guarda bytes (divide por 2)."""
+    r = respostas_base()
+    r["colunas"] = (r["colunas"][0], [("dbo", "Apolice", "Numero", "varchar", 20, False, False, None),
+                                      ("dbo", "Apolice", "Nome", "nvarchar", 200, True, False, None),
+                                      ("dbo", "Apolice", "Obs", "varchar", -1, True, False, None)])
+    cat = inv.coletar(CursorFalso(inv, r))
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
+    assert "varchar(20)" in md and "nvarchar(100)" in md and "varchar(max)" in md
