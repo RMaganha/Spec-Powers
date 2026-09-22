@@ -82,8 +82,8 @@ travada por teste.
   (`sys.key_constraints`) e FK (`sys.foreign_keys`), que é o que reconstrói o modelo de dados de um
   sistema sem documentação · índices (nome, colunas, único/clustered) · **contagem de linhas** por
   `sys.dm_db_partition_stats` (estimativa de partição, custo ~zero — não `COUNT(*)`; exige `VIEW
-  DATABASE STATE` e, sem ela, degrada pra lacuna), que responde "o
-  que era usado × o que nasceu morto".
+  DATABASE STATE` e, sem ela, degrada pra lacuna), que responde "o que era usado × o que nasceu
+  morto".
 - **Código dentro do banco** — procedures, functions, views e **triggers**: nome, parâmetros
   (`sys.parameters`) e **corpo** (`sys.sql_modules.definition`) · dependências
   (`sys.sql_expression_dependencies`: proc→tabela, proc→proc) · `create_date`/`modify_date` de
@@ -108,14 +108,14 @@ tabelas, nunca corpo. `--max-objetos` (default 2000) **para e diz** em vez de de
 Busca textual do nome de cada objeto nos arquivos do projeto — **funciona em qualquer linguagem**, que
 é o que faz isso servir pro C# antes da feature de C#.
 
-Casa sem diferenciar caixa, com fronteira de palavra, nas três formas da vida real:
-`ConsultaApolice`, `dbo.ConsultaApolice`, `[dbo].[ConsultaApolice]` (a busca é por **token**, então as
-três caem no mesmo nome). Procura nos arquivos de **código** do projeto (`.md` fica fora: doc não é
-código, e `ARQUITETURA.md`/`banco.md` repetem os nomes), menos `bin`, `obj`, `packages`, `.vs`, `.git`, `node_modules` — **e menos a própria saída
-em `docs/banco/`**: sem essa exclusão o inventário se autoconfirma, porque os `.sql` que ele acabou de
-gravar contêm todos os nomes.
+Casa sem diferenciar caixa, com fronteira de palavra, nas três formas da vida real: `ConsultaApolice`,
+`dbo.ConsultaApolice`, `[dbo].[ConsultaApolice]` (a busca é por **token**, então as três caem no mesmo
+nome). Procura nos arquivos de **código** do projeto (`.md` fica fora: doc não é código, e
+`ARQUITETURA.md`/`banco.md` repetem os nomes), menos `bin`, `obj`, `packages`, `.vs`, `.git`,
+`node_modules` — **e menos a própria saída em `docs/banco/`**: sem essa exclusão o inventário se
+autoconfirma, porque os `.sql` que ele acabou de gravar contêm todos os nomes.
 
-Três classificações, não duas:
+Três classificações, não duas — e uma quarta, de honestidade:
 
 - **citado no código** — com `arquivo:linha` das 3 primeiras ocorrências
 - **citado só no banco** — chamado por outra procedure, trigger ou job (`sys.sql_expression_dependencies`,
@@ -193,11 +193,12 @@ estoura no Python 3.14 (memória `project_importlib_dataclass_precisa_de_sys_mod
 - **cruzamento**: citado no `.cs` → *citado no código* com `arquivo:linha` · chamado só por outra
   procedure → *citado só no banco* · nenhuma citação → *sem citação* · **anti-autoconfirmação** —
   fixture cuja única ocorrência está no próprio `docs/banco/*.sql` gerado tem que sair *sem citação* ·
-  nome genérico → *casamento fraco*
-- **honestidade travada**: `definition` nulo vira lacuna nomeada · erro de permissão em `msdb` degrada
-  e vira lacuna (falha **aberta**, como o `bpmn` faz com arquivo que não parseia) · presença da frase
-  *"sem citação não significa pode apagar"* no `banco.md` (mecanismo do
-  `test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega`)
+  nome genérico → *casamento fraco* · nome fora do padrão de identificador → *não cruzado*
+- **honestidade travada**: `definition` nulo vira lacuna nomeada, e o rótulo separa criptografado de
+  falta de `VIEW DEFINITION` · contagem de linhas sem `VIEW DATABASE STATE` degrada pra lacuna ·
+  erro de permissão em `msdb` degrada e vira lacuna (falha **aberta**, como o `bpmn` faz com arquivo
+  que não parseia) · presença da frase *"sem citação não significa pode apagar"* no `banco.md`
+  (mecanismo do `test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega`)
 - **teto e regeneração**: acima de `--max-objetos` para sem gravar nada · objeto sumido tem o `.sql`
   removido e reportado
 - **marca de autoria**: `banco.md` alheio → para sem gravar · `.sql` alheio preservado e listado ·
