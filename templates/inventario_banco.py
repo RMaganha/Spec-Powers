@@ -389,6 +389,46 @@ def coletar(cursor, max_objetos=MAX_OBJETOS_PADRAO):
     return Catalogo(dados, lacunas)
 
 
+# ------------------------------------------------------------------------------------- segredo
+# Ordem importa: as formas entre aspas vêm antes da genérica; a genérica recusa valor que começa com
+# aspas (senão mascararia só o "N" de N'...'). Grupo 1 = prefixo mantido; grupo 2 = valor mascarado.
+_PADROES_SEGREDO = (
+    (re.compile(r"(?i)(\bwith\s+password\s*=\s*)(N?'[^']*')"), "senha de LOGIN"),
+    (re.compile(r"(?i)(@rmtpassword\s*=\s*)(N?'[^']*')"), "senha de linked server (sp_addlinkedsrvlogin)"),
+    (re.compile(r"(?i)(\bsp_addlinkedsrvlogin\b[^;\n]*?,[^,\n]*,[^,\n]*,[^,\n]*,\s*)(N?'[^']*')"),
+     "senha de linked server (sp_addlinkedsrvlogin)"),
+    (re.compile(r"(?i)(\bsecret\s*=\s*)(N?'[^']*')"), "SECRET de credencial"),
+    (re.compile(r"(?i)(\bidentity\s*=\s*)(N?'[^']*')"), "IDENTITY de credencial"),
+    (re.compile(r"(?i)(\bopenrowset\s*\(\s*N?'[^']*'\s*,\s*N?'[^']*'\s*;\s*N?'[^']*'\s*;\s*)(N?'[^']*')"),
+     "senha em OPENROWSET"),
+    (re.compile(r"(?i)(\b(?:pwd|password)\s*=\s*)(?!N?')([^;'\"\s]+)"), "senha em conn string"),
+)
+
+
+def _substituto(m):
+    valor = m.group(2)
+    return m.group(1) + (f"'{MASCARA}'" if valor.lstrip("Nn").startswith("'") else MASCARA)
+
+
+def mascarar_segredos(corpo):
+    """(corpo com segredo mascarado, [(linha do corpo original, tipo)]). Nunca devolve o valor."""
+    achados = []
+    linhas = corpo.split("\n")
+    for i, linha in enumerate(linhas, 1):
+        for regex, tipo in _PADROES_SEGREDO:
+            linha, n = regex.subn(_substituto, linha)
+            if n:
+                achados.append((i, tipo))
+        linhas[i - 1] = linha
+    return "\n".join(linhas), achados
+
+
+def cabecalho_segredo(achados, nl):
+    detalhes = "; ".join(f"linha {n} do corpo original ({tipo})" for n, tipo in achados)
+    return (f"-- [inventario-banco] Segredo removido antes de versionar: {detalhes}.{nl}"
+            f"-- Este arquivo é DOCUMENTAÇÃO do objeto, não script executável.{nl}")
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

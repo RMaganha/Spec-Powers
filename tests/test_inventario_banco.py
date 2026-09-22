@@ -363,3 +363,35 @@ def test_corpo_nulo_sem_criptografia_e_falta_de_view_definition(inv):
     r["modulos"] = (COLS_MODULOS, [("dbo", "Escondida", "SQL_STORED_PROCEDURE", D1, D1, 0, None)])
     cat = inv.coletar(CursorFalso(inv, r))
     assert any("`dbo.Escondida`" in l and "VIEW DEFINITION" in l for l in cat.lacunas)
+
+
+@pytest.mark.parametrize("linha, tipo", [
+    ("SELECT a FROM OPENROWSET('SQLNCLI', 'Server=x;UID=u;PWD=Abc123;', 'SELECT 1')", "senha em conn string"),
+    ("CREATE LOGIN app WITH PASSWORD = 'Abc123'", "senha de LOGIN"),
+    ("ALTER LOGIN app WITH PASSWORD = N'Abc123'", "senha de LOGIN"),
+    ("EXEC sp_addlinkedsrvlogin @rmtsrvname='SRV', @useself='false', @rmtuser='u', @rmtpassword='Abc123'",
+     "senha de linked server (sp_addlinkedsrvlogin)"),
+    ("EXEC sp_addlinkedsrvlogin 'SRV', 'false', NULL, 'u', 'Abc123'", "senha de linked server (sp_addlinkedsrvlogin)"),
+    ("CREATE DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'u', SECRET = 'Abc123'", "SECRET de credencial"),
+    ("SELECT a FROM OPENROWSET('Microsoft.Jet.OLEDB.4.0', 'C:\\x.mdb';'admin';'Abc123', 'SELECT 1')",
+     "senha em OPENROWSET"),
+])
+def test_mascara_segredo(inv, linha, tipo):
+    corpo, achados = inv.mascarar_segredos(linha)
+    assert "Abc123" not in corpo
+    assert inv.MASCARA in corpo
+    assert tipo in [t for _, t in achados]
+
+
+def test_corpo_sem_segredo_intacto_e_linha_do_original(inv):
+    limpo = "CREATE PROCEDURE p AS\r\nSELECT 1"
+    assert inv.mascarar_segredos(limpo) == (limpo, [])
+    corpo, achados = inv.mascarar_segredos("a\r\nconn = 'PWD=x9;'\r\nc")
+    assert achados == [(2, "senha em conn string")]
+    assert corpo.count("\r\n") == 2 and "x9" not in corpo
+
+
+def test_cabecalho_de_segredo(inv):
+    cab = inv.cabecalho_segredo([(12, "senha de LOGIN")], "\n")
+    assert "linha 12 do corpo original (senha de LOGIN)" in cab
+    assert "não script executável" in cab
