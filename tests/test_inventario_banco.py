@@ -80,10 +80,17 @@ def test_mask_password(inv):
     assert "x9" not in inv.mask_password("Data Source=a;User ID=u;Password=x9;")
 
 
+def test_mask_password_respeita_chaves(inv):
+    assert (inv.mask_password("Server=a;UID=u;PWD={s3n;ha};Database=x")
+            == "Server=a;UID=u;PWD=***HIDDEN***;Database=x")
+
+
 @pytest.mark.parametrize("antes, depois", [
     ("Server=a;Database=Velha;UID=u", "Server=a;Database=Nova;UID=u"),
     ("Data Source=a;Initial Catalog=Velha;", "Data Source=a;Initial Catalog=Nova;"),
     ("Server=a;UID=u", "Server=a;UID=u;Database=Nova"),
+    ("Server=a;Database=Old1;Initial Catalog=Old2;UID=u",
+     "Server=a;Database=Nova;Initial Catalog=Nova;UID=u"),
 ])
 def test_trocar_base(inv, antes, depois):
     assert inv.trocar_base(antes, "Nova") == depois
@@ -92,6 +99,7 @@ def test_trocar_base(inv, antes, depois):
 @pytest.mark.parametrize("antes, depois", [
     ("Server=h,1435;Database=x", "Server=h,1500;Database=x"),
     ("Server=h;Database=x", "Server=h,1500;Database=x"),
+    ("Server = h,1435;Database=x", "Server = h,1500;Database=x"),
 ])
 def test_trocar_porta(inv, antes, depois):
     assert inv.trocar_porta(antes, "1500") == depois

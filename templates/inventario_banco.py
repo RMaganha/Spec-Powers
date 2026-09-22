@@ -143,11 +143,32 @@ def _executar(cursor, sql):
 
 
 # --------------------------------------------------------------------------------- conn string
+def _partes_conn(conn_str):
+    """Divide a conn string em ';', mas ignora ';' dentro de chaves `{...}` (valor ODBC quotado)."""
+    partes = []
+    atual = []
+    profundidade = 0
+    for ch in conn_str:
+        if ch == "{":
+            profundidade += 1
+            atual.append(ch)
+        elif ch == "}":
+            profundidade = max(0, profundidade - 1)
+            atual.append(ch)
+        elif ch == ";" and profundidade == 0:
+            partes.append("".join(atual))
+            atual = []
+        else:
+            atual.append(ch)
+    partes.append("".join(atual))
+    return partes
+
+
 def mask_password(conn_str):
     """Mascara a senha na conn string. Cópia do templates/get_connection.py — aquele arquivo é MOLDE
     com placeholders (`DEV_<BASE>_KEY`), não é Python importável."""
     partes = []
-    for parte in conn_str.split(";"):
+    for parte in _partes_conn(conn_str):
         if "=" in parte:
             chave, _ = parte.split("=", 1)
             if chave.strip().lower() in ("pwd", "password"):
@@ -165,13 +186,13 @@ _RE_BASE = re.compile(r"(?i)\b(Database|Initial Catalog)\s*=\s*[^;]*")
 def trocar_base(conn_str, base):
     """Troca a base (Database= ou Initial Catalog=); acrescenta Database= se não houver."""
     if _RE_BASE.search(conn_str):
-        return _RE_BASE.sub(lambda m: f"{m.group(1)}={base}", conn_str, count=1)
+        return _RE_BASE.sub(lambda m: f"{m.group(1)}={base}", conn_str)
     return conn_str.rstrip(";") + f";Database={base}"
 
 
 def trocar_porta(conn_str, porta):
     """Sobrescreve a porta do servidor (host,porta), mantendo o host — mesma regra do molde."""
-    return re.sub(r"(?i)((?:Server|Data Source)=[^;,]+)(?:,\d+)?", rf"\g<1>,{porta}", conn_str, count=1)
+    return re.sub(r"(?i)((?:Server|Data Source)\s*=\s*[^;,]+)(?:,\d+)?", rf"\g<1>,{porta}", conn_str, count=1)
 
 
 def servidor_da_conn(conn_str):
