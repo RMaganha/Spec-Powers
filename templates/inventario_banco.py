@@ -592,6 +592,129 @@ def gravar_corpos(catalogo, pasta):
     return gravados, removidos, preservados, segredos
 
 
+# ---------------------------------------------------------------------------------------- render
+def _fmt(v):
+    if v is None:
+        return "—"
+    if isinstance(v, bool):
+        return "sim" if v else "não"
+    if isinstance(v, (dt.date, dt.datetime)):
+        return v.strftime("%Y-%m-%d")
+    return str(v).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def _agrupar(linhas, *chaves):
+    grupos = {}
+    for l in linhas:
+        grupos.setdefault(tuple(l[k] for k in chaves), []).append(l)
+    return grupos
+
+
+def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos):
+    """Retrato em texto pro assistente. NUNCA corpo de objeto, nunca valor de segredo, nunca texto de job."""
+    d = catalogo.dados
+    mods = d["modulos"]
+    por_tipo = {}
+    for m in mods:
+        por_tipo[m["tipo"]] = por_tipo.get(m["tipo"], 0) + 1
+    sem = sum(1 for c in citacoes.values() if c.classe == SEM_CITACAO)
+    nao_extraidos = sum(1 for m in mods if m["corpo"] is None)
+    out = [MARCA_MD, "", f"# Banco do projeto {projeto}", "",
+           f"Gerado em {hoje} por `templates/inventario_banco.py` · {origem} · "
+           "**só catálogo — nenhum dado de negócio foi lido.**", "",
+           "## Resumo", "", "| o quê | quantos |", "|---|---|", f"| tabelas | {len(d['tabelas'])} |"]
+    out += [f"| {tipo.lower()} | {n} |" for tipo, n in sorted(por_tipo.items())]
+    out += [f"| sem citação no código | {sem} |", f"| corpo não extraído | {nao_extraidos} |",
+            f"| segredos mascarados | {len(segredos)} |", f"| lacunas | {len(catalogo.lacunas)} |", ""]
+
+    out += ["## Cruzamento com o código", "", f"> {FRASE_GUARDA}", "",
+            "| objeto | classificação | onde |", "|---|---|---|"]
+    for chave, c in citacoes.items():
+        rotulo = c.classe + (" · casamento fraco, conferir" if c.fraco and c.classe == CITADO_CODIGO else "")
+        onde = ", ".join(f"`{o}`" for o in c.ocorrencias) or "—"
+        out.append(f"| `{chave}` | {rotulo} | {onde} |")
+    out.append("")
+
+    linhas_tab = {(l["esquema"], l["tabela"]): l["linhas"] for l in d.get("linhas", [])}
+    cols = _agrupar(d.get("colunas", []), "esquema", "tabela")
+    chaves = _agrupar(d.get("chaves", []), "esquema", "tabela")
+    fks = _agrupar(d.get("fks", []), "esquema", "tabela")
+    idx = _agrupar(d.get("indices", []), "esquema", "tabela")
+    out += ["## Tabelas", ""]
+    for t in d["tabelas"]:
+        k = (t["esquema"], t["nome"])
+        out += [f"### `{t['esquema']}.{t['nome']}` — {_fmt(linhas_tab.get(k))} linhas (estimativa) · "
+                f"criada {_fmt(t['criado'])} · modificada {_fmt(t['modificado'])}", "",
+                "| coluna | tipo | nulo | identidade | padrão |", "|---|---|---|---|---|"]
+        for c in cols.get(k, []):
+            out.append(f"| {_fmt(c['coluna'])} | {_fmt(c['tipo'])} | {_fmt(c['nulo'])} | "
+                       f"{_fmt(c['identidade'])} | {_fmt(c['padrao'])} |")
+        for (nome_k,), g in _agrupar(chaves.get(k, []), "chave").items():
+            out.append(f"- **{_fmt(g[0]['tipo'])}** `{nome_k}` ({', '.join(x['coluna'] for x in g)})")
+        for (nome_fk,), g in _agrupar(fks.get(k, []), "fk").items():
+            out.append(f"- **FK** `{nome_fk}`: ({', '.join(x['coluna'] for x in g)}) → "
+                       f"`{g[0]['esquema_ref']}.{g[0]['tabela_ref']}` ({', '.join(x['coluna_ref'] for x in g)})")
+        for (nome_i,), g in _agrupar(idx.get(k, []), "indice").items():
+            unico = " único" if g[0]["unico"] else ""
+            out.append(f"- índice{unico} `{nome_i}` {_fmt(g[0]['tipo']).lower()} "
+                       f"({', '.join(x['coluna'] for x in g)})")
+        out.append("")
+
+    params = _agrupar(d.get("parametros", []), "esquema", "objeto")
+    deps = _agrupar(d.get("dependencias", []), "esquema", "objeto")
+    out += ["## Procedures, functions, views e triggers", "",
+            "| objeto | tipo | parâmetros | referencia | criado | modificado | corpo |",
+            "|---|---|---|---|---|---|---|"]
+    for m in mods:
+        k = (m["esquema"], m["nome"])
+        ps = ", ".join(f"{p['parametro']} {p['tipo']}" + (" OUTPUT" if p["saida"] else "")
+                       for p in params.get(k, [])) or "—"
+        rs = ", ".join(sorted({f"{x['esquema_ref'] or m['esquema']}.{x['referencia']}"
+                               for x in deps.get(k, [])})) or "—"
+        corpo = (f"`banco/{nome_arquivo(m['esquema'], m['nome'])}`" if m["corpo"] is not None
+                 else "não extraído (ver Lacunas)")
+        out.append(f"| `{m['esquema']}.{m['nome']}` | {_fmt(m['tipo']).lower()} | {ps} | {rs} | "
+                   f"{_fmt(m['criado'])} | {_fmt(m['modificado'])} | {corpo} |")
+    out.append("")
+
+    nomes_inv = {nome.lower(): f"{esq}.{nome}" for esq, nome, _ in objetos(catalogo)}
+    out += ["## Fronteira do sistema", "", "### Linked servers", ""]
+    servidores = d.get("servidores", [])
+    if servidores:
+        out += ["| nome | provedor | origem |", "|---|---|---|"]
+        out += [f"| `{_fmt(s['nome'])}` | {_fmt(s['provedor'])} | {mask_password(_fmt(s['origem']))} |"
+                for s in servidores]
+    else:
+        out.append("Nenhum linked server visível (ou sem permissão — ver Lacunas).")
+    out += ["", "### Jobs do SQL Agent que tocam esta base", "",
+            "O texto do passo não é transcrito (pode ter segredo): só o job, o passo e os objetos do inventário que ele chama.", ""]
+    jobs = d.get("jobs", [])
+    if jobs:
+        out += ["| job | ativo | passo | chama |", "|---|---|---|---|"]
+        for j in jobs:
+            chamados = sorted({nomes_inv[t.lower()] for t in _RE_IDENT.findall(j["comando"] or "")
+                               if t.lower() in nomes_inv})
+            out.append(f"| `{_fmt(j['job'])}` | {_fmt(j['ativo'])} | {_fmt(j['passo'])} | "
+                       f"{', '.join(f'`{c}`' for c in chamados) or '—'} |")
+    else:
+        out.append("Nenhum job visível para esta base (ou sem permissão em `msdb` — ver Lacunas).")
+    out.append("")
+
+    out += ["## Segredos mascarados", "",
+            f"Valor nunca exibido nem gravado — o `.sql` versionado leva `{MASCARA}` no lugar.", ""]
+    if segredos:
+        out += ["| objeto | linha do corpo original | tipo |", "|---|---|---|"]
+        out += [f"| `{o}` | {n} | {t} |" for o, n, t in segredos]
+    else:
+        out.append("Nenhum encontrado pelos padrões da varredura (PWD=/Password=, WITH PASSWORD, "
+                   "sp_addlinkedsrvlogin, SECRET=/IDENTITY=, OPENROWSET).")
+    out += ["", "## Lacunas", ""]
+    out += [f"- {l}" for l in catalogo.lacunas]
+    out.append("- **Não coberto por desenho:** triggers de DDL do banco (não pertencem a esquema) · SQL montado "
+               "em runtime (ver o aviso do cruzamento) · dado de negócio (o inventário não lê linha de tabela).")
+    return "\n".join(out) + "\n"
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

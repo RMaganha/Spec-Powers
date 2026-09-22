@@ -528,3 +528,43 @@ def test_remove_so_o_que_e_do_inventario(inv, tmp_path):
 
 def test_nome_de_arquivo_seguro(inv):
     assert inv.nome_arquivo("dbo", "a/b c") == "dbo.a_b_c.sql"
+
+
+def _md(inv, tmp_path, respostas=None, segredos=()):
+    cat = inv.coletar(CursorFalso(inv, respostas or respostas_base()))
+    proj = _projeto(tmp_path, {"src/Repo.cs": 'Exec("dbo.ConsultaApolice");'})
+    cit = inv.cruzar(cat, inv.indexar_codigo(proj))
+    return inv.renderizar_md("LegadoCS", "variável MSS_INVENTARIO_CONN → servidor srv, base Legado",
+                             "2026-09-22", cat, cit, list(segredos))
+
+
+def test_md_marca_e_frase_de_guarda_no_topo_do_cruzamento(inv, tmp_path):
+    md = _md(inv, tmp_path)
+    assert md.startswith(inv.MARCA_MD)
+    secao = md.split("## Cruzamento com o código", 1)[1]
+    assert secao.lstrip().startswith(f"> {inv.FRASE_GUARDA}")
+    assert '"pode apagar"' in md
+
+
+def test_md_nunca_traz_corpo_nem_segredo(inv, tmp_path):
+    md = _md(inv, tmp_path, segredos=[("dbo.Importa", 2, "senha em conn string")])
+    assert "WHERE Numero = @Numero" not in md          # corpo fica só no .sql
+    assert "zzz-linked" not in md and "zzz-job" not in md  # origem do linked server e texto do job
+    assert "`dbo.Importa` | 2 | senha em conn string" in md
+
+
+def test_md_conteudo(inv, tmp_path):
+    md = _md(inv, tmp_path)
+    assert "# Banco do projeto LegadoCS" in md
+    assert "18.234" in md or "18234" in md
+    assert "`dbo.ConsultaApolice` | citado no código | `src/Repo.cs:1`" in md
+    assert "Fechamento" in md and "`dbo.FechamentoMensal`" in md  # job → objeto que ele chama
+    assert "`dbo.Cifrada` — corpo criptografado" in md
+    assert "Não coberto por desenho" in md
+    assert "`banco/dbo.ConsultaApolice.sql`" in md
+
+
+def test_md_sem_linhas_quando_opcional_falhou(inv, tmp_path):
+    cat = inv.coletar(CursorFalso(inv, respostas_base(), falhas=("linhas",)))
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
+    assert "`dbo.Apolice` — — linhas" in md
