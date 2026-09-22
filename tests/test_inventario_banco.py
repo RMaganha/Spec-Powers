@@ -110,3 +110,51 @@ def test_le_servidor_e_base(inv):
     assert inv.servidor_da_conn(conn) == "srv,1435"
     assert inv.base_da_conn(conn) == "Legado"
     assert inv.base_da_conn("Server=srv") is None
+
+
+FONTE = '''
+raise SystemExit("importou o get_connection.py do outro projeto!")
+DEV_SSC_KEY = b"chave-ssc-dev"
+DEV_SSC_CIPHERTEXT = b"cifra-ssc-dev"
+DEV_MS10_KEY = b"chave-ms10-dev"
+DEV_MS10_CIPHERTEXT = b"cifra-ms10-dev"
+PROD_SSC_KEY: bytes = b"chave-ssc-prd"
+PROD_SSC_CIPHERTEXT: bytes = b"cifra-ssc-prd"
+DEV_SOZINHA_KEY = b"sem-par"
+OUTRA_COISA = 42
+'''
+
+
+@pytest.fixture
+def fonte(tmp_path):
+    p = tmp_path / "get_connection.py"
+    p.write_text(FONTE, encoding="utf-8")
+    return p
+
+
+def test_le_pares_por_ast_sem_importar(inv, fonte):
+    """O `raise` no topo prova: se o módulo fosse importado, o teste explodiria."""
+    pares = inv.ler_pares_fernet(fonte)
+    assert pares[("DEV", "SSC")] == {"KEY": b"chave-ssc-dev", "CIPHERTEXT": b"cifra-ssc-dev"}
+    assert set(pares) == {("DEV", "SSC"), ("DEV", "MS10"), ("PROD", "SSC")}  # SOZINHA sem par sai
+
+
+def test_escolhe_sozinho_quando_so_ha_um(inv, fonte):
+    assert inv.escolher_par(inv.ler_pares_fernet(fonte), "PRD") == (b"chave-ssc-prd", b"cifra-ssc-prd")
+
+
+def test_mais_de_um_par_para_e_lista_nomes_sem_valores(inv, fonte):
+    with pytest.raises(inv.ErroCredencial) as e:
+        inv.escolher_par(inv.ler_pares_fernet(fonte), "D0")
+    msg = str(e.value)
+    assert "MS10" in msg and "SSC" in msg and "--par" in msg
+    assert "chave-" not in msg and "cifra-" not in msg
+
+
+def test_par_ignora_caixa_e_recusa_inexistente(inv, fonte):
+    pares = inv.ler_pares_fernet(fonte)
+    assert inv.escolher_par(pares, "d0", par="ms10") == (b"chave-ms10-dev", b"cifra-ms10-dev")
+    with pytest.raises(inv.ErroCredencial, match="TRP"):
+        inv.escolher_par(pares, "D0", par="TRP")
+    with pytest.raises(inv.ErroCredencial, match="D0, HML ou PRD"):
+        inv.escolher_par(pares, "XPTO")

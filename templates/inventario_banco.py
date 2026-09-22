@@ -215,6 +215,67 @@ def _completar(conn_str):
     return conn_str
 
 
+# ---------------------------------------------------------------------------------- credencial
+class ErroCredencial(Exception):
+    """Credencial não resolvida — a mensagem diz o que faltou, nunca contém segredo."""
+
+
+# Convenção do molde templates/get_connection.py: <DEV|HML|PROD>_<BASE>_<KEY|CIPHERTEXT>.
+_RE_PAR = re.compile(r"^(DEV|HML|PROD)_(\w+?)_(KEY|CIPHERTEXT)$")
+
+
+def ler_pares_fernet(fonte):
+    """{(PREFIXO, BASE): {"KEY": b"..", "CIPHERTEXT": b".."}} lidos por `ast`.
+
+    O arquivo é PARSEADO, nunca importado: o get_connection.py de outro projeto não roda aqui. Só
+    atribuições de topo com literal str/bytes entram; par incompleto (sem KEY ou sem CIPHERTEXT) sai."""
+    arvore = ast.parse(Path(fonte).read_text(encoding="utf-8-sig"))
+    pares = {}
+    for no in arvore.body:
+        if isinstance(no, ast.Assign) and len(no.targets) == 1:
+            alvo, valor_no = no.targets[0], no.value
+        elif isinstance(no, ast.AnnAssign) and no.value is not None:
+            alvo, valor_no = no.target, no.value
+        else:
+            continue
+        if not isinstance(alvo, ast.Name):
+            continue
+        m = _RE_PAR.match(alvo.id)
+        if not m:
+            continue
+        try:
+            valor = ast.literal_eval(valor_no)
+        except (ValueError, SyntaxError):
+            continue
+        if isinstance(valor, str):
+            valor = valor.encode()
+        if isinstance(valor, bytes):
+            pares.setdefault((m.group(1), m.group(2)), {})[m.group(3)] = valor
+    return {k: v for k, v in pares.items() if "KEY" in v and "CIPHERTEXT" in v}
+
+
+def escolher_par(pares, ambiente, par=None):
+    """(KEY, CIPHERTEXT) do ambiente. Mais de uma base e sem --par → para e lista os NOMES."""
+    prefixo = AMBIENTES.get(ambiente.strip().upper())
+    if prefixo is None:
+        raise ErroCredencial(f"--ambiente inválido: {ambiente!r} — use D0, HML ou PRD.")
+    bases = sorted(b for (p, b) in pares if p == prefixo)
+    if not bases:
+        raise ErroCredencial(f"a fonte não tem par {prefixo}_<BASE>_KEY/CIPHERTEXT para o ambiente {ambiente}.")
+    if par is None:
+        if len(bases) > 1:
+            raise ErroCredencial(
+                f"a fonte tem mais de um par para {ambiente}: {', '.join(bases)} — diga qual com "
+                "--par <BASE> (a base nova está no mesmo servidor de qual delas?).")
+        escolhida = bases[0]
+    else:
+        escolhida = {b.upper(): b for b in bases}.get(par.strip().upper())
+        if escolhida is None:
+            raise ErroCredencial(f"--par {par!r} não existe na fonte para {ambiente}; disponíveis: {', '.join(bases)}.")
+    entrada = pares[(prefixo, escolhida)]
+    return entrada["KEY"], entrada["CIPHERTEXT"]
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 
