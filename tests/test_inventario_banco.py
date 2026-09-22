@@ -418,3 +418,19 @@ def test_variavel_recebendo_variavel_nao_e_segredo(inv):
 def test_linha_reportada_quando_o_segredo_quebra_linha(inv):
     _, achados = inv.mascarar_segredos("a\nEXEC sp_addlinkedsrvlogin\n 'S', 'false', NULL, 'u', 'Abc123'")
     assert achados == [(3, "senha de linked server (sp_addlinkedsrvlogin)")]
+
+
+def test_linked_server_posicional_nao_invade_a_instrucao_seguinte(inv):
+    corpo = "EXEC sp_addlinkedsrvlogin 'SRV', 'false', NULL\nINSERT INTO t VALUES ('a','b','c','d')"
+    assert inv.mascarar_segredos(corpo) == (corpo, [])
+
+
+@pytest.mark.parametrize("corpo", ["SELECT 'Relatorio -Produto Especial' AS titulo",
+                                   "PRINT 'Consulta -Padrao nao encontrada'"])
+def test_menos_p_fora_de_linha_de_comando_nao_e_segredo(inv, corpo):
+    assert inv.mascarar_segredos(corpo) == (corpo, [])
+
+
+def test_menos_p_com_bcp_montado_em_duas_linhas(inv):
+    corpo, achados = inv.mascarar_segredos("SET @cmd = 'bcp db..t out x.txt -S srv -U u ' +\n'-P Abc123'")
+    assert "Abc123" not in corpo and achados == [(2, "senha em linha de comando (-P)")]

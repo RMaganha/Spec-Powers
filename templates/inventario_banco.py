@@ -15,6 +15,7 @@ Só mexe em arquivo com a marca do inventário (brownfield). Spec: docs/specs/in
 """
 import argparse
 import ast
+import bisect
 import datetime as dt
 import os
 import re
@@ -394,22 +395,27 @@ def coletar(cursor, max_objetos=MAX_OBJETOS_PADRAO):
 # e os argumentos embaixo). O VALOR nunca atravessa linha, então mascarar não muda a contagem de
 # linhas. Ordem importa: os padrões específicos vêm primeiro (dão o tipo certo); os genéricos pulam
 # valor já mascarado. Falso positivo é aceitável; falso negativo vai pro git pra sempre.
+# Os genéricos têm que ficar DEPOIS dos específicos: a checagem de "já mascarado" depende dessa ordem.
 _V = r"N?'[^'\n]*'"
+_ARG = r"(?:N?'[^'\n]*'|NULL|\w+)"  # argumento posicional: literal, NULL ou identificador
+_RE_LINHA_DE_COMANDO = re.compile(r"(?i)\b(?:bcp|sqlcmd|osql|isql|xp_cmdshell)\b")
+_JANELA_CONTEXTO = 400  # chars antes do -P onde o comando tem que aparecer (comando montado em 2+ linhas)
 _PADROES_SEGREDO = (
-    (re.compile(rf"(?i)(\bwith\s+password\s*=\s*)({_V})"), "senha de LOGIN"),
-    (re.compile(rf"(?i)(@rmtpassword\s*=\s*)({_V})"), "senha de linked server (sp_addlinkedsrvlogin)"),
-    (re.compile(rf"(?i)(\bsp_addlinkedsrvlogin\b[^;@]*?,[^,;@]*,[^,;@]*,[^,;@]*,\s*)({_V})"),
-     "senha de linked server (sp_addlinkedsrvlogin)"),
-    (re.compile(rf"(?i)(\bsp_addlogin\b\s*{_V}\s*,\s*)({_V})"), "senha de sp_addlogin"),
-    (re.compile(rf"(?i)(\bsp_password\b\s*)({_V})"), "senha de sp_password"),
-    (re.compile(rf"(?i)(\bsp_password\b\s*(?:{_V}|NULL)\s*,\s*)({_V})"), "senha de sp_password"),
-    (re.compile(rf"(?i)(\bsecret\s*=\s*)({_V})"), "SECRET de credencial"),
-    (re.compile(rf"(?i)(\bidentity\s*=\s*)({_V})"), "IDENTITY de credencial"),
-    (re.compile(rf"(?i)(\bopenrowset\s*\(\s*{_V}\s*,\s*{_V}\s*;\s*{_V}\s*;\s*)({_V})"), "senha em OPENROWSET"),
-    (re.compile(rf"(?i)(@(?:senha|pwd|passwd|password|psw)\w*[^=\n']*=\s*)({_V})"), "senha em variável"),
-    (re.compile(rf"(?i)(password\s*=\s*)({_V})"), "senha (PASSWORD = '...')"),
-    (re.compile(r"""(?im)((?:^|[\s'"])-P\s*)("[^"\n]*"|[^\s'";]+)"""), "senha em linha de comando (-P)"),
-    (re.compile(r"(?i)(\b(?:pwd|password)\s*=\s*)(?!N?'|@)([^;'\"\s]+)"), "senha em conn string"),
+    (re.compile(rf"(?i)(\bwith\s+password\s*=\s*)({_V})"), "senha de LOGIN", None),
+    (re.compile(rf"(?i)(@rmtpassword\s*=\s*)({_V})"), "senha de linked server (sp_addlinkedsrvlogin)", None),
+    (re.compile(rf"(?i)(\bsp_addlinkedsrvlogin\s+(?:{_ARG}\s*,\s*){{4}})({_V})"),
+     "senha de linked server (sp_addlinkedsrvlogin)", None),
+    (re.compile(rf"(?i)(\bsp_addlogin\b\s*{_V}\s*,\s*)({_V})"), "senha de sp_addlogin", None),
+    (re.compile(rf"(?i)(\bsp_password\b\s*)({_V})"), "senha de sp_password", None),
+    (re.compile(rf"(?i)(\bsp_password\b\s*(?:{_V}|NULL)\s*,\s*)({_V})"), "senha de sp_password", None),
+    (re.compile(rf"(?i)(\bsecret\s*=\s*)({_V})"), "SECRET de credencial", None),
+    (re.compile(rf"(?i)(\bidentity\s*=\s*)({_V})"), "IDENTITY de credencial", None),
+    (re.compile(rf"(?i)(\bopenrowset\s*\(\s*{_V}\s*,\s*{_V}\s*;\s*{_V}\s*;\s*)({_V})"), "senha em OPENROWSET", None),
+    (re.compile(rf"(?i)(@(?:senha|pwd|passwd|password|psw)\w*[^=\n']*=\s*)({_V})"), "senha em variável", None),
+    (re.compile(rf"(?i)(password\s*=\s*)({_V})"), "senha (PASSWORD = '...')", None),
+    (re.compile(r"""(?m)((?:^|[\s'"])-P\s*)("[^"\n]*"|[^\s'";]+)"""),
+     "senha em linha de comando (-P)", _RE_LINHA_DE_COMANDO),
+    (re.compile(r"(?i)(\b(?:pwd|password)\s*=\s*)(?!N?'|@)([^;'\"\s]+)"), "senha em conn string", None),
 )
 
 
@@ -426,11 +432,18 @@ def mascarar_segredos(corpo):
     """(corpo com segredo mascarado, [(linha do corpo original, tipo)]) — nunca devolve o valor."""
     achados = []
     texto = corpo
-    for regex, tipo in _PADROES_SEGREDO:
-        def troca(m, texto=texto, tipo=tipo):
+    for regex, tipo, contexto in _PADROES_SEGREDO:
+        # Índice das quebras de linha calculado 1x por padrão (não por match): achar a linha de um
+        # match por contagem ingênua (`texto.count("\n", 0, pos)`) é O(posição) — com muitos matches
+        # num corpo grande isso vira O(n²). Com `bisect` sobre a lista pré-calculada fica O(log n).
+        quebras = [q.start() for q in re.finditer("\n", texto)]
+
+        def troca(m, texto=texto, tipo=tipo, contexto=contexto, quebras=quebras):
             if "***REMOVIDO" in m.group(2):  # já mascarado por um padrão mais específico
                 return m.group(0)
-            achados.append((texto.count("\n", 0, m.start(2)) + 1, tipo))
+            if contexto is not None and not contexto.search(texto, max(0, m.start() - _JANELA_CONTEXTO), m.start()):
+                return m.group(0)
+            achados.append((bisect.bisect_left(quebras, m.start(2)) + 1, tipo))
             return m.group(1) + _mascarado(m.group(2))
         texto = regex.sub(troca, texto)
     return texto, sorted(achados, key=lambda a: a[0])
