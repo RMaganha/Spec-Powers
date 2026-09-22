@@ -42,10 +42,12 @@ controllers, `.csproj`, rotas) é item separado do INDEX.
 Regra que vem da memória `credencial-reusar-env-precedente`: **nunca pedir credencial digitada;
 reusar o que já conecta** (origem: *"Lá já tem tudo!!!"*, 2026-07-08).
 
-Cadeia de resolução, para no primeiro caminho que resolver:
+Cadeia de resolução, para no primeiro caminho que resolver (`--fonte` passado **ganha** da variável — a
+flag é a intenção mais específica; a variável ignorada é avisada):
 
 1. **Par Fernet reaproveitado** (padrão) — `--fonte <get_connection.py de um projeto MSIG que alcança
-   o servidor>` + `--ambiente D0|HML|PRD` + `--base <nome>` + `--porta` (opcional). O caso que
+   o servidor>` + `--ambiente D0|HML|PRD` + `--base <nome>` + `--porta` (opcional) + `--par <BASE>` quando a fonte
+   tem mais de uma base (sem ele, o script **para e lista os nomes** — nunca escolhe sozinho). O caso que
    motivou: base **nova**, **não mapeada** em `get_connection.py` nenhum, mas no **mesmo servidor com
    o mesmo login** — o que já está mapeado. O `--base` sobrescreve `Database=`/`Initial Catalog=` da
    conn string decriptada (acrescenta se não houver); sem `--base`, usa a que veio e **diz qual**
@@ -79,7 +81,8 @@ travada por teste.
 - **Estrutura** — `sys.tables` + `sys.columns` (tipo, nullability, identity, default) · PK/unique
   (`sys.key_constraints`) e FK (`sys.foreign_keys`), que é o que reconstrói o modelo de dados de um
   sistema sem documentação · índices (nome, colunas, único/clustered) · **contagem de linhas** por
-  `sys.dm_db_partition_stats` (estimativa de partição, custo ~zero — não `COUNT(*)`), que responde "o
+  `sys.dm_db_partition_stats` (estimativa de partição, custo ~zero — não `COUNT(*)`; exige `VIEW
+  DATABASE STATE` e, sem ela, degrada pra lacuna), que responde "o
   que era usado × o que nasceu morto".
 - **Código dentro do banco** — procedures, functions, views e **triggers**: nome, parâmetros
   (`sys.parameters`) e **corpo** (`sys.sql_modules.definition`) · dependências
@@ -88,11 +91,13 @@ travada por teste.
   último.
 - **Fronteira do sistema**, degradando com elegância se faltar permissão — `sys.servers` (**linked
   servers** revelam integração, e alimentam as *Conexões* do `MAPA.md`) · `msdb.dbo.sysjobs` (**jobs
-  do Agent**; em legado, metade do sistema costuma ser job agendado que ninguém lembra).
+  do Agent**; em legado, metade do sistema costuma ser job agendado que ninguém lembra — o texto do
+  passo **não** vai pra saída, pode ter segredo: só job, passo e objetos do inventário que ele chama).
 
 Honestidades obrigatórias: procedure `WITH ENCRYPTION` devolve `definition` **NULL** e vai listada
-como lacuna nomeada (`<objeto> — corpo criptografado, não extraído`); objeto invisível por permissão
-idem. Silêncio lido como "cobri tudo" é o pior resultado — mesma regra que a `analise` já aplica ao
+como lacuna nomeada (`<objeto> — corpo criptografado, não extraído`); corpo `NULL` **sem** criptografia
+é falta de `VIEW DEFINITION` e vira lacuna com esse nome (`OBJECTPROPERTY(..., 'IsEncrypted')` separa
+os dois casos). Silêncio lido como "cobri tudo" é o pior resultado — mesma regra que a `analise` já aplica ao
 código.
 
 Teto: corpo vai **inteiro** pros `.sql` (é a fonte, não se trunca); o `banco.md` é só listas e
@@ -104,8 +109,9 @@ Busca textual do nome de cada objeto nos arquivos do projeto — **funciona em q
 é o que faz isso servir pro C# antes da feature de C#.
 
 Casa sem diferenciar caixa, com fronteira de palavra, nas três formas da vida real:
-`ConsultaApolice`, `dbo.ConsultaApolice`, `[dbo].[ConsultaApolice]`. Procura em todo arquivo de texto
-do projeto, menos `bin`, `obj`, `packages`, `.vs`, `.git`, `node_modules` — **e menos a própria saída
+`ConsultaApolice`, `dbo.ConsultaApolice`, `[dbo].[ConsultaApolice]` (a busca é por **token**, então as
+três caem no mesmo nome). Procura nos arquivos de **código** do projeto (`.md` fica fora: doc não é
+código, e `ARQUITETURA.md`/`banco.md` repetem os nomes), menos `bin`, `obj`, `packages`, `.vs`, `.git`, `node_modules` — **e menos a própria saída
 em `docs/banco/`**: sem essa exclusão o inventário se autoconfirma, porque os `.sql` que ele acabou de
 gravar contêm todos os nomes.
 
@@ -115,6 +121,8 @@ Três classificações, não duas:
 - **citado só no banco** — chamado por outra procedure, trigger ou job (`sys.sql_expression_dependencies`,
   `sysjobs`), mas não pelo C#. Não é morto; é chamado por dentro
 - **sem citação** — não apareceu em lugar nenhum
+- **não cruzado** — nome fora do padrão de identificador (`[Minha Proc]`, com espaço ou acento): a
+  busca por token não o enxerga, e isso é dito em vez de virar *sem citação*
 
 Os dois erros do método, declarados na saída: *falso positivo* de nome genérico (`Cliente`, `Status`,
 `Log`, `Usuario`) casando com variável ou classe C# sem relação → sai marcado **casamento fraco,
@@ -155,6 +163,11 @@ passa a mostrar **o que mudou no banco** entre duas rodadas. Objeto que sumiu do
 `.sql` removido e o fato reportado — arquivo velho que fica pra trás mente, e o histórico do git é o
 rollback (mesma regra da `analise`).
 
+**Brownfield — só mexe no que é seu.** Todo `.sql` gerado começa com a marca
+`-- [inventario-banco]` e o `banco.md` com `<!-- [inventario-banco] ... -->`. Só arquivo com a marca é
+sobrescrito ou removido: um `docs/banco.md` que o time já tinha faz o script **parar sem gravar**
+(use `--out`), e `.sql` alheio em `docs/banco/` fica intocado e listado no relatório.
+
 **O que o script não faz:** `git add`/commit (ato do owner; `hooks/git_publicacao.py` já barra push) e
 editar o `.gitignore` sozinho — ele imprime a linha e a `analise` pergunta uma vez antes de
 acrescentar, porque em brownfield o `.gitignore` é arquivo pré-existente do projeto.
@@ -170,7 +183,7 @@ estoura no Python 3.14 (memória `project_importlib_dataclass_precisa_de_sys_mod
 - **somente-leitura travado**: nenhuma constante de query contém `INSERT`, `UPDATE`, `DELETE`, `DROP`,
   `ALTER`, `CREATE`, `TRUNCATE`, `MERGE` ou `EXEC`
 - **nenhum dado de negócio**: toda query referencia só `sys.*`, `INFORMATION_SCHEMA.*`, `msdb.dbo.sys*`
-- **credencial**: variável ganha da fonte quando as duas existem · `--fonte` + `--base` troca o
+- **credencial**: `--fonte` ganha da variável quando os dois existem, com aviso · `--fonte` + `--base` troca o
   `Database=` (e acrescenta quando não havia) · **leitura estática provada** — fixture de
   `get_connection.py` com `raise` no topo é lida normalmente (se importasse, quebraria) · nada
   resolvido → erro nomeia o que faltou e **não contém** host/porta/base inventados · senha da fixture
@@ -187,6 +200,8 @@ estoura no Python 3.14 (memória `project_importlib_dataclass_precisa_de_sys_mod
   `test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega`)
 - **teto e regeneração**: acima de `--max-objetos` para sem gravar nada · objeto sumido tem o `.sql`
   removido e reportado
+- **marca de autoria**: `banco.md` alheio → para sem gravar · `.sql` alheio preservado e listado ·
+  `--proj .` sai com o nome do projeto no título (`Path(".").name` é vazio — caso F-016)
 - **wiring**: o comando novo entra no `test_smoke_kit.py` como os outros; a `analise` tem teste de que
   o passo *Dados (banco vivo)* cita o gerador e a pergunta de credencial
 - **contagem de comandos travada** (pedido do owner nesta sessão): teste novo prende o número escrito
@@ -215,3 +230,7 @@ do INDEX**, esta feature só traz a detecção mínima pro gatilho.
   com descritivo). Escopo dividido a pedido da regra "um assunto por janela": banco vivo primeiro, C#
   completo depois. Decisão de credencial fechada pela memória `credencial-reusar-env-precedente`
   quando o owner respondeu "não sei" — base nova **não mapeada**, mesmo servidor e mesmo login.
+- 2026-09-22 — plano de implementação (`docs/superpowers/plans/2026-09-22-inventario-banco.md`)
+  fechou 7 detalhes que o desenho deixou abertos: `--par`, precedência flag > variável (o § 6 dizia
+  o contrário do § 2), linhas como opcional, `.md` fora do cruzamento, classe *não cruzado*,
+  criptografado × falta de `VIEW DEFINITION`, marca de autoria nos arquivos gerados (brownfield).
