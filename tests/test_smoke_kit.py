@@ -1103,3 +1103,26 @@ def test_recall_hook_documentado_e_registrado():
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
     assert "Cinco hooks" in doc, "a contagem do README ficou velha"
+
+
+def test_inventario_banco_wiring():
+    """4º gerador determinístico: script testável + comando fino + retrato fora do git ANCORADO em
+    /docs/ — 'banco.md' SOLTO no .gitignore ignoraria o commands/banco.md que já existe (mesma armadilha
+    do bpmn). Os corpos .sql são versionados de propósito: docs/banco/ NÃO entra no .gitignore.
+    O comportamento do gerador vive em tests/test_inventario_banco.py."""
+    assert (REPO / "templates" / "inventario_banco.py").exists(), "falta templates/inventario_banco.py"
+    cmd = (REPO / "commands" / "inventario-banco.md").read_text(encoding="utf-8")
+    low = cmd.lower()
+    assert "templates/inventario_banco.py" in cmd, "comando não aponta o gerador"
+    assert "fora do git" in low and "versionado" in low, "comando não declara o que vai e o que não vai pro git"
+    assert "pro assistente" in low, "comando não carrega 'visual é pro humano; dados pro assistente'"
+    assert "nunca peça senha digitada" in low, "comando não carrega 'reusar o que já conecta'"
+    assert "pode apagar" in low, "comando não carrega a frase de guarda contra DROP"
+    assert "nunca o valor" in low, "comando não proíbe exibir o valor do segredo"
+    for gi_path in ("templates/gitignore", ".gitignore"):
+        linhas = [l.strip() for l in (REPO / gi_path).read_text(encoding="utf-8").splitlines()]
+        assert "/docs/banco.md" in linhas, f"{gi_path} não ancora /docs/banco.md"
+        assert "banco.md" not in linhas, f"{gi_path}: 'banco.md' solto ignoraria commands/banco.md"
+        assert "/docs/banco/" not in linhas, f"{gi_path}: os .sql são versionados — não ignore docs/banco/"
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:inventario-banco" in leiame, "LEIA-ME não lista o comando"

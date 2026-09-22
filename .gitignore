@@ -51,3 +51,7 @@ Thumbs.db
 /docs/bpmn.html
 /docs/bpmn.md
 /docs/bpmn/
+# Inventario do banco vivo (/mss-spec:inventario-banco) - o RETRATO docs/banco.md e derivado e fica
+# fora do git, ANCORADO em /docs/ (solto, 'banco.md' ignoraria o commands/banco.md). Os corpos
+# docs/banco/*.sql sao VERSIONADOS de proposito: unica copia da regra de negocio fora do servidor.
+/docs/banco.md
