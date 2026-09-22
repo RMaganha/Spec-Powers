@@ -93,7 +93,8 @@ GROUP BY s.name, t.name""",
     "modulos": """
 SELECT s.name AS esquema, o.name AS nome, o.type_desc AS tipo,
        o.create_date AS criado, o.modify_date AS modificado,
-       OBJECTPROPERTY(o.object_id, 'IsEncrypted') AS criptografado, m.definition AS corpo
+       OBJECTPROPERTY(o.object_id, 'IsEncrypted') AS criptografado, m.definition AS corpo,
+       OBJECT_NAME(o.parent_object_id) AS pai
 FROM sys.objects o
 JOIN sys.schemas s ON s.schema_id = o.schema_id
 LEFT JOIN sys.sql_modules m ON m.object_id = o.object_id
@@ -456,7 +457,12 @@ def cabecalho_segredo(achados, nl):
 
 
 # ---------------------------------------------------------------------------------- cruzamento
-DIRS_IGNORADOS = {"bin", "obj", "packages", ".vs", ".git", "node_modules", ".venv", "__pycache__"}
+# Comparadas em minúsculas: projeto .NET antigo tem `Bin`/`Obj`.
+DIRS_IGNORADOS = {"bin", "obj", "packages", ".vs", ".git", ".svn", "$tf", ".idea", "node_modules", ".venv",
+                  "venv", "__pycache__", "dist", "build", "testresults"}
+# Saídas dos outros geradores do kit: repetem nomes e, ordenadas antes de src/, roubariam o "onde".
+SAIDAS_DO_KIT = {"docs/bpmn.html", "docs/mapa-neural.html", "docs/anatomia.html"}
+PASTAS_SAIDA_DO_KIT = ("docs/bpmn/",)
 # Código, de qualquer linguagem. `.md` fica FORA: doc não é código, e ARQUITETURA.md/banco.md repetem os nomes.
 EXT_CODIGO = {".cs", ".vb", ".aspx", ".ascx", ".asmx", ".ashx", ".master", ".cshtml", ".vbhtml",
               ".config", ".xml", ".xsd", ".edmx", ".dbml", ".resx", ".settings", ".json", ".sql",
@@ -470,6 +476,8 @@ CITADO_CODIGO = "citado no código"
 CITADO_BANCO = "citado só no banco"
 SEM_CITACAO = "sem citação"
 NAO_CRUZADO = "não cruzado (nome fora do padrão de identificador)"
+DISPARA_COM_TABELA = "dispara com a tabela (trigger)"
+MAX_OCORRENCIAS = 3
 _RE_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _RE_NOME_CRUZAVEL = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -481,27 +489,42 @@ class Citacao:
     fraco: bool = False
 
 
-def indexar_codigo(proj, excluir=None):
-    """{token minúsculo: ["arquivo:linha", ...]} dos arquivos de código. Busca por TOKEN: `Nome`,
-    `dbo.Nome` e `[dbo].[Nome]` caem no mesmo token. `excluir` é a pasta de saída (anti-autoconfirmação)."""
-    proj = Path(proj)
+def _ler_texto(arq):
+    """UTF-16 com BOM (o "Unicode" do Generate Scripts do SSMS) ou UTF-8; cp1252 cai no replace — os
+    identificadores são ASCII, então o caractere trocado só vira fronteira de token."""
+    bruto = arq.read_bytes()
+    codificacao = "utf-16" if bruto[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
+    return bruto.decode(codificacao, errors="replace")
+
+
+def indexar_codigo(proj, excluir=None, nomes=None):
+    """{token minúsculo: ["arquivo:linha", ...]} (no máximo MAX_OCORRENCIAS por token) dos arquivos de
+    código. Busca por TOKEN: `Nome`, `dbo.Nome` e `[dbo].[Nome]` caem no mesmo token. `excluir` é a pasta
+    de saída (anti-autoconfirmação); `nomes` (minúsculos) limita o índice aos objetos do inventário —
+    sem isso, um monólito de 2M linhas guardaria todo token do repo."""
+    proj = Path(proj).resolve()
     excluir = Path(excluir).resolve() if excluir else None
     indice = {}
     for raiz, dirs, arquivos in os.walk(proj):
-        dirs[:] = sorted(d for d in dirs
-                         if d not in DIRS_IGNORADOS and (excluir is None or Path(raiz, d).resolve() != excluir))
+        raiz = Path(raiz)
+        dirs[:] = sorted(d for d in dirs if d.lower() not in DIRS_IGNORADOS and raiz / d != excluir)
         for nome in sorted(arquivos):
-            arq = Path(raiz, nome)
-            if arq.suffix.lower() not in EXT_CODIGO:
+            arq = raiz / nome
+            rel = arq.relative_to(proj).as_posix()
+            if (arq.suffix.lower() not in EXT_CODIGO or rel in SAIDAS_DO_KIT
+                    or rel.startswith(PASTAS_SAIDA_DO_KIT)):
                 continue
             try:
-                texto = arq.read_text(encoding="utf-8-sig", errors="replace")
+                texto = _ler_texto(arq)
             except OSError:
                 continue
-            rel = arq.relative_to(proj).as_posix()
             for n, linha in enumerate(texto.splitlines(), 1):
                 for tok in {t.lower() for t in _RE_IDENT.findall(linha)}:
-                    indice.setdefault(tok, []).append(f"{rel}:{n}")
+                    if nomes is not None and tok not in nomes:
+                        continue
+                    lugares = indice.setdefault(tok, [])
+                    if len(lugares) < MAX_OCORRENCIAS:
+                        lugares.append(f"{rel}:{n}")
     return indice
 
 
@@ -525,9 +548,14 @@ def chamados_no_banco(catalogo):
 
 def cruzar(catalogo, indice):
     no_banco = chamados_no_banco(catalogo)
+    pais = {(m["esquema"], m["nome"]): m.get("pai") for m in catalogo.dados["modulos"]
+            if m["tipo"] == "SQL_TRIGGER" and m.get("pai")}
     citacoes = {}
     for esquema, nome, _tipo in objetos(catalogo):
         chave = f"{esquema}.{nome}"
+        if (esquema, nome) in pais:  # trigger não é chamada: dispara com a tabela
+            citacoes[chave] = Citacao(DISPARA_COM_TABELA, [f"{esquema}.{pais[(esquema, nome)]}"])
+            continue
         if not _RE_NOME_CRUZAVEL.match(nome):
             citacoes[chave] = Citacao(NAO_CRUZADO, [])
             continue
@@ -774,7 +802,8 @@ def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=N
         raise ErroSaida(f"{md} já existe e não foi gerado pelo inventário — não sobrescrevo. "
                         "Renomeie o arquivo do projeto ou use --out.")
     catalogo = coletar(cursor, max_objetos)  # o teto estoura aqui, antes de gravar qualquer coisa
-    citacoes = cruzar(catalogo, indexar_codigo(proj, excluir=destino / "banco"))
+    nomes = {nome.lower() for _, nome, _ in objetos(catalogo)}
+    citacoes = cruzar(catalogo, indexar_codigo(proj, excluir=destino / "banco", nomes=nomes))
     g = gravar_corpos(catalogo, destino / "banco")
     md.write_text(renderizar_md(proj.name, origem, hoje or dt.date.today().isoformat(),
                                 catalogo, citacoes, g.segredos, g.conflitos), encoding="utf-8")

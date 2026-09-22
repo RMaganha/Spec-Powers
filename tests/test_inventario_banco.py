@@ -695,3 +695,40 @@ def test_gitignore_em_cp1252_nao_derruba_depois_de_gravar(inv, tmp_path):
 def test_gitignore_sem_barra_inicial_tambem_ancora(inv, tmp_path):
     (tmp_path / ".gitignore").write_text("docs/banco.md\n", encoding="utf-8")
     assert inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o").linha_gitignore == ""
+
+
+def test_trigger_dispara_com_a_tabela_nao_vira_sem_citacao(inv, tmp_path):
+    """Revisão final I3: ninguém 'chama' trigger — ela dispara com a tabela. Sem isso, toda trigger caía
+    em 'sem citação', justo onde legado esconde regra de negócio."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS + ["pai"], [("dbo", "TR_Apolice_Audit", "SQL_TRIGGER", D1, D1, 0,
+                                             "CREATE TRIGGER dbo.TR_Apolice_Audit ON dbo.Apolice ...", "Apolice")])
+    c = _cruzar(inv, tmp_path, r)["dbo.TR_Apolice_Audit"]
+    assert c.classe == inv.DISPARA_COM_TABELA and c.ocorrencias == ["dbo.Apolice"]
+
+
+def test_arquivo_utf16_do_ssms_e_lido(inv, tmp_path):
+    """Revisão final I4: 'Generate Scripts' do SSMS salva em UTF-16; lido como UTF-8 vira ruído e o objeto
+    sai 'sem citação' — a direção perigosa."""
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "rotina.sql").write_text("EXEC dbo.Cifrada\r\n", encoding="utf-16")
+    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.CITADO_CODIGO
+
+
+def test_indice_guarda_so_os_nomes_pedidos_e_no_maximo_tres(inv, tmp_path):
+    """Revisão final I5: o índice guardava todo token do repo (~1,2 GB num monólito de 2M linhas)."""
+    _projeto(tmp_path, {f"src/A{i}.cs": "Cifrada(); outraCoisa();" for i in range(5)})
+    indice = inv.indexar_codigo(tmp_path, nomes={"cifrada"})
+    assert set(indice) == {"cifrada"} and len(indice["cifrada"]) == 3
+
+
+@pytest.mark.parametrize("pasta", ["Bin/Debug", "OBJ", "venv/lib", "TestResults"])
+def test_pastas_geradas_ignoradas_sem_diferenciar_caixa(inv, tmp_path, pasta):
+    _projeto(tmp_path, {f"{pasta}/x.config": "Cifrada"})
+    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.SEM_CITACAO
+
+
+def test_saidas_de_outros_geradores_do_kit_nao_contam(inv, tmp_path):
+    _projeto(tmp_path, {"docs/bpmn.html": "Cifrada", "docs/mapa-neural.html": "Cifrada",
+                        "docs/anatomia.html": "Cifrada", "docs/bpmn/p.bpmn": "Cifrada"})
+    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.SEM_CITACAO
