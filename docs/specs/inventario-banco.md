@@ -262,7 +262,7 @@ do INDEX**, esta feature só traz a detecção mínima pro gatilho.
   o contrário do § 2), linhas como opcional, `.md` fora do cruzamento, classe *não cruzado*,
   criptografado × falta de `VIEW DEFINITION`, marca de autoria nos arquivos gerados (brownfield).
 - 2026-09-22 — implementado (0.28.0): `templates/inventario_banco.py` + `tests/test_inventario_banco.py`
-  (91 testes, cursor falso), `/mss-spec:inventario-banco`, passo *Dados — banco vivo* na `analise`,
+  (113 testes, cursor falso), `/mss-spec:inventario-banco`, passo *Dados — banco vivo* na `analise`,
   `COMO-FUNCIONA.html` com os 5 cards que faltavam e contagem travada nos 3 lugares onde aparece. A
   revisão por tarefa mudou o gerador em relação ao plano: `mask_password` respeita valor entre
   `{chaves}` (vazava o fim da senha), erro de conexão ganhou a classe **TLS**, e a varredura de segredo
