@@ -542,6 +542,56 @@ def cruzar(catalogo, indice):
     return citacoes
 
 
+# -------------------------------------------------------------------------------------- escrita
+_RE_ARQ_INSEGURO = re.compile(r"[^\w.-]")
+
+
+def nome_arquivo(esquema, nome):
+    return _RE_ARQ_INSEGURO.sub("_", f"{esquema}.{nome}") + ".sql"
+
+
+def _e_do_inventario(arq):
+    """Brownfield: só arquivo que começa com a marca é nosso pra sobrescrever/remover."""
+    try:
+        with open(arq, encoding="utf-8-sig", errors="replace") as f:
+            return f.readline().startswith(MARCA_SQL)
+    except OSError:
+        return False
+
+
+def gravar_corpos(catalogo, pasta):
+    """1 .sql por módulo com corpo (UTF-8 com BOM, marca na 1ª linha, segredo mascarado). Remove o
+    .sql NOSSO de objeto que sumiu do catálogo; .sql alheio fica e é listado.
+    Devolve (gravados, removidos, preservados, segredos[(objeto, linha, tipo)])."""
+    pasta = Path(pasta)
+    pasta.mkdir(parents=True, exist_ok=True)
+    gravados, segredos = [], []
+    for m in catalogo.dados["modulos"]:
+        if m["corpo"] is None:
+            continue
+        objeto = f"{m['esquema']}.{m['nome']}"
+        nl = "\r\n" if "\r\n" in m["corpo"] else "\n"
+        corpo, achados = mascarar_segredos(m["corpo"])
+        cabecalho = MARCA_SQL + nl
+        if achados:
+            cabecalho += cabecalho_segredo(achados, nl)
+            segredos.extend((objeto, n, tipo) for n, tipo in achados)
+        arq = nome_arquivo(m["esquema"], m["nome"])
+        (pasta / arq).write_text(cabecalho + corpo, encoding="utf-8-sig", newline="")
+        gravados.append(arq)
+    atuais = set(gravados)
+    removidos, preservados = [], []
+    for velho in sorted(pasta.glob("*.sql")):
+        if velho.name in atuais:
+            continue
+        if _e_do_inventario(velho):
+            velho.unlink()
+            removidos.append(velho.name)
+        else:
+            preservados.append(velho.name)
+    return gravados, removidos, preservados, segredos
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

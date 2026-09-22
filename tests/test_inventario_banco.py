@@ -489,3 +489,42 @@ def test_nome_fora_do_padrao_nao_e_cruzado(inv, tmp_path):
     r = respostas_base()
     r["modulos"] = (COLS_MODULOS, [("dbo", "Minha Proc", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
     assert _cruzar(inv, tmp_path, r)["dbo.Minha Proc"].classe == inv.NAO_CRUZADO
+
+
+def _gravar(inv, pasta, respostas=None):
+    return inv.gravar_corpos(inv.coletar(CursorFalso(inv, respostas or respostas_base())), pasta)
+
+
+def test_corpos_utf8_bom_com_marca(inv, tmp_path):
+    gravados, removidos, preservados, segredos = _gravar(inv, tmp_path / "banco")
+    arq = tmp_path / "banco" / "dbo.ConsultaApolice.sql"
+    assert "dbo.ConsultaApolice.sql" in gravados and "dbo.Cifrada.sql" not in gravados
+    assert arq.read_bytes().startswith(b"\xef\xbb\xbf")
+    texto = arq.read_text(encoding="utf-8-sig")
+    assert texto.startswith(inv.MARCA_SQL)
+    assert "WHERE Numero = @Numero" in texto
+    assert b"AS\r\nSELECT" in arq.read_bytes()  # CRLF do SQL Server preservado
+
+
+def test_segredo_mascarado_no_arquivo(inv, tmp_path):
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "Importa", "SQL_STORED_PROCEDURE", D1, D1, 0,
+                                    "CREATE PROCEDURE dbo.Importa AS\nSELECT * FROM OPENROWSET('SQLNCLI','Server=x;PWD=Abc123;','SELECT 1')")])
+    _, _, _, segredos = _gravar(inv, tmp_path / "banco", r)
+    texto = (tmp_path / "banco" / "dbo.Importa.sql").read_text(encoding="utf-8-sig")
+    assert "Abc123" not in texto and inv.MASCARA in texto and "Segredo removido" in texto
+    assert segredos == [("dbo.Importa", 2, "senha em conn string")]
+
+
+def test_remove_so_o_que_e_do_inventario(inv, tmp_path):
+    pasta = tmp_path / "banco"
+    pasta.mkdir()
+    (pasta / "dbo.Sumiu.sql").write_text(inv.MARCA_SQL + "\nSELECT 1", encoding="utf-8-sig")
+    (pasta / "script_do_time.sql").write_text("-- script nosso\nSELECT 1", encoding="utf-8")
+    _, removidos, preservados, _ = _gravar(inv, pasta)
+    assert removidos == ["dbo.Sumiu.sql"] and not (pasta / "dbo.Sumiu.sql").exists()
+    assert preservados == ["script_do_time.sql"] and (pasta / "script_do_time.sql").exists()
+
+
+def test_nome_de_arquivo_seguro(inv):
+    assert inv.nome_arquivo("dbo", "a/b c") == "dbo.a_b_c.sql"
