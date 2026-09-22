@@ -1143,3 +1143,27 @@ def test_analise_dispara_inventario_do_banco():
     assert "docs/banco/" in an, "analise.md não abre a exceção dos .sql gerados pelo inventário"
     tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
     assert "Banco vivo (inventário)" in tpl, "ARQUITETURA.md não tem onde destilar o inventário"
+
+
+def test_como_funciona_lista_todos_os_comandos():
+    """Contagem travada: o COMO-FUNCIONA.html já ficou 4 comandos defasado (consertado à mão) e estava de
+    novo em 20 × 24. Todo arquivo de commands/ tem card id="c-<nome>" (hífen ignorado: to-dolist ↔
+    c-todolist), o número em 'Os N atalhos' bate com a pasta e a numeração C1..CN é contínua."""
+    html = (REPO / "docs" / "COMO-FUNCIONA.html").read_text(encoding="utf-8")
+    comandos = {p.stem.replace("-", "") for p in _command_files()}
+    cards = {c.replace("-", "") for c in re.findall(r'<div class="node" id="c-([a-z-]+)"', html)}
+    assert not comandos - cards, f"comando sem card no COMO-FUNCIONA.html: {sorted(comandos - cards)}"
+    assert not cards - comandos, f"card sem comando: {sorted(cards - comandos)}"
+    # a contagem aparece em 3 lugares (cabeçalho, tabela, título da seção) — todos em algarismo
+    numeros = [int(n) for n in re.findall(r"(\d+)\s+(?:<em>)?atalhos", html)]
+    assert len(numeros) >= 3, f"COMO-FUNCIONA.html perdeu alguma contagem 'N atalhos' (achei {numeros})"
+    assert set(numeros) == {len(comandos)}, f"contagens {numeros}, mas há {len(comandos)} comandos"
+    assert not re.search(r"(?i)\b(?:dez|quinze|vinte|trinta)\b[^<]{0,20}(?:<em>)?atalhos", html), \
+        "contagem por extenso escapa deste teste — escreva em algarismo"
+    idx = [int(n) for n in re.findall(r'<span class="node-idx">C(\d+)</span>', html)]
+    assert idx == list(range(1, len(comandos) + 1)), "numeração C1..CN dos cards fora de ordem"
+    # a nav lateral tem 1 link por card, na mesma ordem e com a mesma numeração
+    nav = re.findall(r'<a href="#c-([a-z-]+)"><span class="nav-num">C(\d+)</span>', html)
+    ordem_cards = re.findall(r'<div class="node" id="c-([a-z-]+)"', html)
+    assert [c for c, _ in nav] == ordem_cards, "nav lateral fora da ordem dos cards (ou card sem link)"
+    assert [int(n) for _, n in nav] == list(range(1, len(comandos) + 1)), "numeração C1..CN da nav lateral"
