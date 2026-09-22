@@ -354,6 +354,41 @@ def explicar_erro(exc):
     return f"falha de conexão não classificada ({type(exc).__name__}): {mask_password(msg)[:200]}"
 
 
+# -------------------------------------------------------------------------------------- coleta
+class ErroTeto(Exception):
+    """Catálogo acima de --max-objetos: para antes de ler corpo e antes de gravar qualquer coisa."""
+
+
+@dataclass
+class Catalogo:
+    dados: dict  # nome da query -> list[dict]
+    lacunas: list
+
+
+def coletar(cursor, max_objetos=MAX_OBJETOS_PADRAO):
+    total = _executar(cursor, QUERIES["contagem"])[0]["total"]
+    if total > max_objetos:
+        raise ErroTeto(f"a base tem {total} objetos (teto --max-objetos {max_objetos}). Nada foi gravado. "
+                       "Se é isso mesmo, rode de novo com --max-objetos maior.")
+    dados, lacunas = {}, []
+    for nome, sql in QUERIES.items():
+        if nome == "contagem":
+            continue
+        try:
+            dados[nome] = _executar(cursor, sql)
+        except Exception as e:
+            if nome not in OPCIONAIS:
+                raise
+            dados[nome] = []
+            lacunas.append(f"{DESCRICAO_OPCIONAL[nome]} — não lido ({type(e).__name__}: sem permissão ou indisponível)")
+    for m in dados["modulos"]:
+        if m["corpo"] is None:
+            motivo = ("corpo criptografado (WITH ENCRYPTION), não extraído" if m["criptografado"]
+                      else "corpo invisível ao login (falta VIEW DEFINITION), não extraído")
+            lacunas.append(f"`{m['esquema']}.{m['nome']}` — {motivo}")
+    return Catalogo(dados, lacunas)
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

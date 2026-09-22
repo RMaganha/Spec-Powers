@@ -263,3 +263,103 @@ def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
 ])
 def test_explicar_erro(inv, mensagem, esperado):
     assert esperado in inv.explicar_erro(RuntimeError(mensagem))
+
+
+D1, D2 = dt.datetime(2014, 3, 1), dt.datetime(2019, 11, 20)
+
+
+class CursorFalso:
+    """Cursor pyodbc de mentira: responde cada QUERIES[nome] com (colunas, linhas). Nome em `falhas`
+    levanta — simula falta de permissão. Query sem resposta devolve vazio."""
+
+    def __init__(self, mod, respostas, falhas=()):
+        self._por_sql = {mod.QUERIES[n]: r for n, r in respostas.items()}
+        self._falhas = {mod.QUERIES[n] for n in falhas}
+        self.executadas = []
+        self.description = None
+        self._linhas = []
+
+    def execute(self, sql):
+        self.executadas.append(sql)
+        if sql in self._falhas:
+            raise RuntimeError("[42000] The SELECT permission was denied")
+        colunas, linhas = self._por_sql.get(sql, (["vazio"], []))
+        self.description = [(c,) for c in colunas]
+        self._linhas = list(linhas)
+        return self
+
+    def fetchall(self):
+        return self._linhas
+
+
+COLS_MODULOS = ["esquema", "nome", "tipo", "criado", "modificado", "criptografado", "corpo"]
+
+
+def respostas_base():
+    """2 tabelas + 4 módulos: um citado no código (quando o teste cria o .cs), um chamado só por outra
+    procedure, um chamado só por job, um criptografado."""
+    return {
+        "contagem": (["total"], [(6,)]),
+        "tabelas": (["esquema", "nome", "criado", "modificado"],
+                    [("dbo", "Apolice", D1, D2), ("dbo", "Log", D1, D1)]),
+        "colunas": (["esquema", "tabela", "coluna", "tipo", "tamanho", "nulo", "identidade", "padrao"],
+                    [("dbo", "Apolice", "Id", "int", 4, False, True, None),
+                     ("dbo", "Apolice", "Numero", "varchar", 20, False, False, None),
+                     ("dbo", "Log", "Id", "int", 4, False, True, None)]),
+        "chaves": (["esquema", "tabela", "chave", "tipo", "coluna"],
+                   [("dbo", "Apolice", "PK_Apolice", "PRIMARY_KEY_CONSTRAINT", "Id")]),
+        "fks": (["fk", "esquema", "tabela", "coluna", "esquema_ref", "tabela_ref", "coluna_ref"], []),
+        "indices": (["esquema", "tabela", "indice", "tipo", "unico", "coluna"],
+                    [("dbo", "Apolice", "IX_Apolice_Numero", "NONCLUSTERED", True, "Numero")]),
+        "linhas": (["esquema", "tabela", "linhas"], [("dbo", "Apolice", 18234), ("dbo", "Log", 0)]),
+        "modulos": (COLS_MODULOS, [
+            ("dbo", "ConsultaApolice", "SQL_STORED_PROCEDURE", D1, D2, 0,
+             "CREATE PROCEDURE dbo.ConsultaApolice @Numero varchar(20) AS\r\n"
+             "SELECT Id FROM dbo.Apolice WHERE Numero = @Numero"),
+            ("dbo", "FechamentoMensal", "SQL_STORED_PROCEDURE", D1, D2, 0,
+             "CREATE PROCEDURE dbo.FechamentoMensal AS EXEC dbo.RecalculaPremio"),
+            ("dbo", "RecalculaPremio", "SQL_STORED_PROCEDURE", D1, D1, 0,
+             "CREATE PROCEDURE dbo.RecalculaPremio AS SELECT 1"),
+            ("dbo", "Cifrada", "SQL_STORED_PROCEDURE", D1, D1, 1, None)]),
+        "parametros": (["esquema", "objeto", "parametro", "tipo", "saida"],
+                       [("dbo", "ConsultaApolice", "@Numero", "varchar", False)]),
+        "dependencias": (["esquema", "objeto", "esquema_ref", "referencia"],
+                         [("dbo", "ConsultaApolice", "dbo", "Apolice"),
+                          ("dbo", "FechamentoMensal", "dbo", "RecalculaPremio")]),
+        "servidores": (["nome", "produto", "provedor", "origem"],
+                       [("SRV_SINISTRO", "", "SQLNCLI", "Server=sin;UID=u;PWD=zzz-linked")]),
+        "jobs": (["job", "ativo", "passo", "comando"],
+                 [("Fechamento", True, "roda", "EXEC dbo.FechamentoMensal -- PWD=zzz-job")]),
+    }
+
+
+def test_coleta_base(inv):
+    cat = inv.coletar(CursorFalso(inv, respostas_base()))
+    assert [t["nome"] for t in cat.dados["tabelas"]] == ["Apolice", "Log"]
+    assert any("`dbo.Cifrada` — corpo criptografado" in l for l in cat.lacunas)
+
+
+def test_teto_para_antes_de_ler_qualquer_coisa(inv):
+    cur = CursorFalso(inv, respostas_base())
+    with pytest.raises(inv.ErroTeto, match="6 objetos"):
+        inv.coletar(cur, max_objetos=5)
+    assert cur.executadas == [inv.QUERIES["contagem"]]
+
+
+def test_opcional_sem_permissao_vira_lacuna(inv):
+    cat = inv.coletar(CursorFalso(inv, respostas_base(), falhas=("jobs", "linhas")))
+    assert cat.dados["jobs"] == [] and cat.dados["linhas"] == []
+    texto = " ".join(cat.lacunas)
+    assert "jobs do SQL Agent" in texto and "VIEW DATABASE STATE" in texto
+
+
+def test_obrigatoria_sem_permissao_derruba(inv):
+    with pytest.raises(RuntimeError):
+        inv.coletar(CursorFalso(inv, respostas_base(), falhas=("modulos",)))
+
+
+def test_corpo_nulo_sem_criptografia_e_falta_de_view_definition(inv):
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "Escondida", "SQL_STORED_PROCEDURE", D1, D1, 0, None)])
+    cat = inv.coletar(CursorFalso(inv, r))
+    assert any("`dbo.Escondida`" in l and "VIEW DEFINITION" in l for l in cat.lacunas)
