@@ -228,3 +228,21 @@ def test_fernet_de_verdade(inv, tmp_path):
     p.write_text(f"DEV_SSC_KEY = {chave!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n", encoding="utf-8")
     c = inv.resolver_conn({}, p, "D0", None, "LegadoCS")
     assert "Database=LegadoCS" in c.conn_str and "PWD=s3nh4" in c.conn_str
+
+
+def test_par_fernet_errado_da_erro_claro(inv, tmp_path):
+    fernet = pytest.importorskip("cryptography.fernet")
+    chave_certa = fernet.Fernet.generate_key()
+    chave_errada = fernet.Fernet.generate_key()
+    cifra = fernet.Fernet(chave_errada).encrypt(CONN_SSC.encode())
+    p = tmp_path / "get_connection.py"
+    p.write_text(f"DEV_SSC_KEY = {chave_certa!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n", encoding="utf-8")
+    with pytest.raises(inv.ErroCredencial, match="não consegui decriptar"):
+        inv.resolver_conn({}, p)
+
+
+def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
+    p = tmp_path / "get_connection.py"
+    p.write_bytes(b"DEV_X_KEY = b'a'\n\xff\xfe")
+    with pytest.raises(inv.ErroCredencial, match="não consegui ler"):
+        inv.resolver_conn({}, p)

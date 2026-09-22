@@ -303,10 +303,17 @@ def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=Non
             raise ErroCredencial(
                 f"não consegui ler {caminho} como Python ({e.msg}, linha {e.lineno}) — aponte o "
                 "get_connection.py de um projeto que conecta de verdade, não o molde do kit.") from None
+        except (UnicodeDecodeError, OSError) as e:
+            raise ErroCredencial(f"não consegui ler {caminho} como Python ({type(e).__name__}) — aponte o "
+                                  "get_connection.py de um projeto que conecta de verdade.") from None
         chave, cifra = escolher_par(pares, ambiente, par)
         if b"<" in chave or b"<" in cifra:
             raise ErroCredencial(f"o par em {caminho} ainda é placeholder — aponte um projeto que conecta de verdade.")
-        conn = decriptar(chave, cifra)
+        try:
+            conn = decriptar(chave, cifra)
+        except Exception:
+            raise ErroCredencial(f"não consegui decriptar o par em {caminho} — chave e cifra não conferem "
+                                  "(par copiado pela metade ou de ambientes diferentes?).") from None
         origem = f"par Fernet {AMBIENTES[ambiente.strip().upper()]} de {caminho}"
     elif env.get(VARIAVEL_CONN):
         conn = env[VARIAVEL_CONN]
