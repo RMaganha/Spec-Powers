@@ -434,3 +434,58 @@ def test_menos_p_fora_de_linha_de_comando_nao_e_segredo(inv, corpo):
 def test_menos_p_com_bcp_montado_em_duas_linhas(inv):
     corpo, achados = inv.mascarar_segredos("SET @cmd = 'bcp db..t out x.txt -S srv -U u ' +\n'-P Abc123'")
     assert "Abc123" not in corpo and achados == [(2, "senha em linha de comando (-P)")]
+
+
+def _projeto(raiz, arquivos):
+    for rel, texto in arquivos.items():
+        p = raiz / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(texto, encoding="utf-8")
+    return raiz
+
+
+def _cruzar(inv, proj, respostas=None):
+    cat = inv.coletar(CursorFalso(inv, respostas or respostas_base()))
+    return inv.cruzar(cat, inv.indexar_codigo(proj, excluir=proj / "docs" / "banco"))
+
+
+def test_tres_classes(inv, tmp_path):
+    proj = _projeto(tmp_path, {"src/ApoliceRepo.cs": 'var cmd = new SqlCommand("[dbo].[ConsultaApolice]", conn);'})
+    c = _cruzar(inv, proj)
+    assert c["dbo.ConsultaApolice"].classe == inv.CITADO_CODIGO
+    assert c["dbo.ConsultaApolice"].ocorrencias == ["src/ApoliceRepo.cs:1"]
+    assert c["dbo.RecalculaPremio"].classe == inv.CITADO_BANCO   # só FechamentoMensal chama
+    assert c["dbo.FechamentoMensal"].classe == inv.CITADO_BANCO  # só o job chama
+    assert c["dbo.Apolice"].classe == inv.CITADO_BANCO           # só a procedure lê
+    assert c["dbo.Cifrada"].classe == inv.SEM_CITACAO
+
+
+@pytest.mark.parametrize("forma", ["ConsultaApolice", "dbo.ConsultaApolice", "[dbo].[ConsultaApolice]",
+                                   "exec DBO.CONSULTAAPOLICE"])
+def test_formas_do_nome(inv, tmp_path, forma):
+    proj = _projeto(tmp_path, {"Dados.vb": f'cmd.CommandText = "{forma}"'})
+    assert _cruzar(inv, proj)["dbo.ConsultaApolice"].classe == inv.CITADO_CODIGO
+
+
+def test_saida_do_inventario_nao_autoconfirma(inv, tmp_path):
+    """Os .sql gerados e o banco.md contêm todos os nomes — sem exclusão, tudo pareceria usado."""
+    proj = _projeto(tmp_path, {"docs/banco/dbo.Cifrada.sql": "CREATE PROCEDURE dbo.Cifrada AS SELECT 1",
+                               "docs/banco.md": "`dbo.Cifrada`", "README.md": "dbo.Cifrada"})
+    assert _cruzar(inv, proj)["dbo.Cifrada"].classe == inv.SEM_CITACAO
+
+
+def test_bin_obj_ignorados(inv, tmp_path):
+    proj = _projeto(tmp_path, {"bin/Debug/App.exe.config": "Cifrada", "obj/x.cs": "Cifrada"})
+    assert _cruzar(inv, proj)["dbo.Cifrada"].classe == inv.SEM_CITACAO
+
+
+def test_nome_generico_e_casamento_fraco(inv, tmp_path):
+    proj = _projeto(tmp_path, {"Util.cs": "Log.Write(x);"})
+    c = _cruzar(inv, proj)["dbo.Log"]
+    assert c.classe == inv.CITADO_CODIGO and c.fraco
+
+
+def test_nome_fora_do_padrao_nao_e_cruzado(inv, tmp_path):
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "Minha Proc", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
+    assert _cruzar(inv, tmp_path, r)["dbo.Minha Proc"].classe == inv.NAO_CRUZADO

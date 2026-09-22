@@ -455,6 +455,93 @@ def cabecalho_segredo(achados, nl):
             f"-- Este arquivo é DOCUMENTAÇÃO do objeto, não script executável.{nl}")
 
 
+# ---------------------------------------------------------------------------------- cruzamento
+DIRS_IGNORADOS = {"bin", "obj", "packages", ".vs", ".git", "node_modules", ".venv", "__pycache__"}
+# Código, de qualquer linguagem. `.md` fica FORA: doc não é código, e ARQUITETURA.md/banco.md repetem os nomes.
+EXT_CODIGO = {".cs", ".vb", ".aspx", ".ascx", ".asmx", ".ashx", ".master", ".cshtml", ".vbhtml",
+              ".config", ".xml", ".xsd", ".edmx", ".dbml", ".resx", ".settings", ".json", ".sql",
+              ".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".htm", ".ini", ".yml", ".yaml", ".txt",
+              ".csproj", ".vbproj", ".ps1", ".bat", ".cmd"}
+GENERICOS = {"cliente", "clientes", "status", "log", "logs", "usuario", "usuarios", "user", "users",
+             "config", "parametro", "parametros", "tipo", "tipos", "dados", "data", "item", "itens",
+             "nome", "valor", "produto", "produtos", "pessoa", "pessoas", "endereco", "historico",
+             "arquivo", "arquivos", "erro", "erros", "evento", "eventos", "sessao", "perfil", "menu", "teste"}
+CITADO_CODIGO = "citado no código"
+CITADO_BANCO = "citado só no banco"
+SEM_CITACAO = "sem citação"
+NAO_CRUZADO = "não cruzado (nome fora do padrão de identificador)"
+_RE_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_RE_NOME_CRUZAVEL = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+@dataclass
+class Citacao:
+    classe: str
+    ocorrencias: list
+    fraco: bool = False
+
+
+def indexar_codigo(proj, excluir=None):
+    """{token minúsculo: ["arquivo:linha", ...]} dos arquivos de código. Busca por TOKEN: `Nome`,
+    `dbo.Nome` e `[dbo].[Nome]` caem no mesmo token. `excluir` é a pasta de saída (anti-autoconfirmação)."""
+    proj = Path(proj)
+    excluir = Path(excluir).resolve() if excluir else None
+    indice = {}
+    for raiz, dirs, arquivos in os.walk(proj):
+        dirs[:] = sorted(d for d in dirs
+                         if d not in DIRS_IGNORADOS and (excluir is None or Path(raiz, d).resolve() != excluir))
+        for nome in sorted(arquivos):
+            arq = Path(raiz, nome)
+            if arq.suffix.lower() not in EXT_CODIGO:
+                continue
+            try:
+                texto = arq.read_text(encoding="utf-8-sig", errors="replace")
+            except OSError:
+                continue
+            rel = arq.relative_to(proj).as_posix()
+            for n, linha in enumerate(texto.splitlines(), 1):
+                for tok in {t.lower() for t in _RE_IDENT.findall(linha)}:
+                    indice.setdefault(tok, []).append(f"{rel}:{n}")
+    return indice
+
+
+def objetos(catalogo):
+    """[(esquema, nome, tipo)] de tabelas + módulos, na ordem do catálogo."""
+    tabs = [(t["esquema"], t["nome"], "USER_TABLE") for t in catalogo.dados["tabelas"]]
+    mods = [(m["esquema"], m["nome"], m["tipo"]) for m in catalogo.dados["modulos"]]
+    return tabs + mods
+
+
+def chamados_no_banco(catalogo):
+    """Nomes (minúsculos) que outro objeto do banco ou um passo de job referencia."""
+    nomes = set()
+    for d in catalogo.dados.get("dependencias", []):
+        if d["referencia"] and d["referencia"].lower() != d["objeto"].lower():
+            nomes.add(d["referencia"].lower())
+    for j in catalogo.dados.get("jobs", []):
+        nomes.update(t.lower() for t in _RE_IDENT.findall(j["comando"] or ""))
+    return nomes
+
+
+def cruzar(catalogo, indice):
+    no_banco = chamados_no_banco(catalogo)
+    citacoes = {}
+    for esquema, nome, _tipo in objetos(catalogo):
+        chave = f"{esquema}.{nome}"
+        if not _RE_NOME_CRUZAVEL.match(nome):
+            citacoes[chave] = Citacao(NAO_CRUZADO, [])
+            continue
+        baixo = nome.lower()
+        fraco = baixo in GENERICOS or len(nome) <= 4
+        if baixo in indice:
+            citacoes[chave] = Citacao(CITADO_CODIGO, indice[baixo][:3], fraco)
+        elif baixo in no_banco:
+            citacoes[chave] = Citacao(CITADO_BANCO, [], fraco)
+        else:
+            citacoes[chave] = Citacao(SEM_CITACAO, [], fraco)
+    return citacoes
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 
