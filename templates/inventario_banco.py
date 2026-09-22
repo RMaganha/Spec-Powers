@@ -343,6 +343,10 @@ def explicar_erro(exc):
                 "base (usuário/GRANT). Conserto do owner, não do kit.")
     if "18456" in msg or "login failed" in baixo:
         return "CREDENCIAL: o servidor recusou o login (usuário/senha). Confira o par ou a variável usada."
+    if "ssl provider" in baixo or "certificate" in baixo or "certificado" in baixo:
+        return ("TLS: o servidor respondeu, mas a negociação de criptografia falhou (SQL Server antigo sem "
+                "TLS 1.2, ou certificado não confiável). Não é host/porta nem senha — é a criptografia da "
+                "conexão (Encrypt/TrustServerCertificate, ou o TLS do servidor).")
     if any(s in baixo for s in ("08001", "hyt00", "timeout", "timed out", "[53]", "(53)",
                                 "network-related", "tcp provider")):
         return ("REDE: o servidor não respondeu (erro 53/timeout). Fora da rede corporativa nada responde; "

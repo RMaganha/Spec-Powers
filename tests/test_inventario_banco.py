@@ -255,6 +255,10 @@ def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
     ("[08001] [Microsoft][ODBC Driver 17 for SQL Server]Named Pipes Provider: Could not open a connection [53].",
      "REDE"),
     ("[HYT00] [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired", "REDE"),
+    ("[08001] [Microsoft][ODBC Driver 17 for SQL Server]SSL Provider: The client and server cannot communicate, "
+     "because they do not possess a common algorithm.", "TLS"),
+    ("[08001] [Microsoft][ODBC Driver 18 for SQL Server]SSL Provider: [error:0A000086:SSL routines::certificate "
+     "verify failed]", "TLS"),
     ("algo que ninguém previu", "não classificada"),
 ])
 def test_explicar_erro(inv, mensagem, esperado):
