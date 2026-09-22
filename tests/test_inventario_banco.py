@@ -732,3 +732,37 @@ def test_saidas_de_outros_geradores_do_kit_nao_contam(inv, tmp_path):
     _projeto(tmp_path, {"docs/bpmn.html": "Cifrada", "docs/mapa-neural.html": "Cifrada",
                         "docs/anatomia.html": "Cifrada", "docs/bpmn/p.bpmn": "Cifrada"})
     assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.SEM_CITACAO
+
+
+def test_main_query_obrigatoria_negada_sai_limpo(inv, tmp_path, capsys):
+    """Revisão final I6: falha fora de ErroTeto/ErroSaida escapava como traceback."""
+    conn = ConexaoFalsa(CursorFalso(inv, respostas_base(), falhas=("modulos",)))
+    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=lambda s: conn) == 5
+    err = capsys.readouterr().err
+    assert "PERMISSÃO" in err and "Traceback" not in err and conn.fechada
+
+
+def test_main_proj_inexistente_nao_cria_pasta(inv, tmp_path, capsys):
+    """Revisão final I8: --proj digitado errado criava a árvore e saía 0."""
+    alvo = tmp_path / "typo" / "proj"
+    assert inv.main(["--proj", str(alvo)], env=ENV_OK, conectar_fn=lambda s: pytest.fail("conectou")) == 2
+    assert not alvo.exists() and "--proj" in capsys.readouterr().err
+
+
+def test_porta_nao_numerica_e_recusada(inv, tmp_path):
+    with pytest.raises(SystemExit):
+        inv.main(["--proj", str(tmp_path), "--porta", "abc"], env=ENV_OK,
+                 conectar_fn=lambda s: pytest.fail("conectou"))
+
+
+def test_sem_cryptography_nao_culpa_o_par(inv, fonte):
+    """Revisão final M4: ImportError virava 'chave e cifra não conferem'."""
+    def sem_lib(chave, cifra):
+        raise ImportError("No module named 'cryptography'")
+    with pytest.raises(inv.ErroCredencial, match="cryptography"):
+        inv.resolver_conn({}, fonte, "D0", "SSC", decriptar=sem_lib)
+
+
+def test_permissao_negada_no_catalogo_e_permissao(inv):
+    msg = inv.explicar_erro(RuntimeError("[42000] The SELECT permission was denied on the object 'sysjobs'"))
+    assert msg.startswith("PERMISSÃO")

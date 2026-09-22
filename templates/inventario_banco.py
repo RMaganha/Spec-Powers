@@ -313,6 +313,9 @@ def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=Non
             raise ErroCredencial(f"o par em {caminho} ainda é placeholder — aponte um projeto que conecta de verdade.")
         try:
             conn = decriptar(chave, cifra)
+        except ImportError:
+            raise ErroCredencial("falta o pacote `cryptography` pra decriptar o par "
+                                 "(pip install cryptography) — o par em si não foi testado.") from None
         except Exception:
             raise ErroCredencial(f"não consegui decriptar o par em {caminho} — chave e cifra não conferem "
                                   "(par copiado pela metade ou de ambientes diferentes?).") from None
@@ -345,6 +348,9 @@ def explicar_erro(exc):
                 "base (usuário/GRANT). Conserto do owner, não do kit.")
     if "18456" in msg or "login failed" in baixo:
         return "CREDENCIAL: o servidor recusou o login (usuário/senha). Confira o par ou a variável usada."
+    if "permission" in baixo and "denied" in baixo:
+        return ("PERMISSÃO: o login não pode ler parte do catálogo desta base (falta VIEW DEFINITION ou "
+                "leitura nas views de sistema). Peça a permissão ou use outro login — conserto do owner.")
     if "ssl provider" in baixo or "certificate" in baixo or "certificado" in baixo:
         return ("TLS: o servidor respondeu, mas a negociação de criptografia falhou (SQL Server antigo sem "
                 "TLS 1.2, ou certificado não confiável). Não é host/porta nem senha — é a criptografia da "
@@ -353,7 +359,7 @@ def explicar_erro(exc):
                                 "network-related", "tcp provider")):
         return ("REDE: o servidor não respondeu (erro 53/timeout). Fora da rede corporativa nada responde; "
                 "confira host e porta (--porta). Isso não é credencial.")
-    return f"falha de conexão não classificada ({type(exc).__name__}): {mask_password(msg)[:200]}"
+    return f"falha não classificada ({type(exc).__name__}): {mask_password(msg)[:200]}"
 
 
 # -------------------------------------------------------------------------------------- coleta
@@ -857,11 +863,15 @@ def main(argv=None, env=None, conectar_fn=None):
     ap.add_argument("--ambiente", default="D0", help="D0 | HML | PRD (default: D0)")
     ap.add_argument("--par", help="base da fonte cujo par reaproveitar, quando a fonte tem mais de uma")
     ap.add_argument("--base", help="base a inventariar (sobrescreve o Database= da conn string)")
-    ap.add_argument("--porta", help="sobrescreve a porta do servidor")
+    ap.add_argument("--porta", type=int, help="sobrescreve a porta do servidor")
     ap.add_argument("--max-objetos", type=int, default=MAX_OBJETOS_PADRAO)
     args = ap.parse_args(argv)
     env = os.environ if env is None else env
     conectar_fn = conectar_fn or conectar
+    proj = Path(args.proj) if args.proj else Path.cwd()
+    if not proj.is_dir():
+        print(f"[inventario-banco] --proj não é uma pasta existente: {proj}", file=sys.stderr)
+        return 2
     try:
         conexao = resolver_conn(env, args.fonte, args.ambiente, args.par, args.base, args.porta)
     except ErroCredencial as e:
@@ -876,11 +886,13 @@ def main(argv=None, env=None, conectar_fn=None):
         print(f"[inventario-banco] {explicar_erro(e)}", file=sys.stderr)
         return 3
     try:
-        rel = gerar(args.proj or Path.cwd(), conn.cursor(), conexao.origem,
-                    out=args.out, max_objetos=args.max_objetos)
+        rel = gerar(proj, conn.cursor(), conexao.origem, out=args.out, max_objetos=args.max_objetos)
     except (ErroTeto, ErroSaida) as e:
         print(f"[inventario-banco] {e}", file=sys.stderr)
         return 4
+    except Exception as e:  # noqa: BLE001 — query negada, queda de rede no meio, disco: mensagem, nunca traceback
+        print(f"[inventario-banco] {explicar_erro(e)}", file=sys.stderr)
+        return 5
     finally:
         conn.close()
     print(relatorio_texto(rel))
