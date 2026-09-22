@@ -32,6 +32,116 @@ FRASE_GUARDA = ('**"Sem citação" não significa "pode apagar"** — significa 
                 'textual". Nome montado em runtime não aparece nesta busca.')
 
 
+# ------------------------------------------------------------------------------------ queries
+# SOMENTE catálogo. Testes travam: nenhuma escrita, nenhum FROM fora de sys./msdb.dbo.sys/INFORMATION_SCHEMA.
+QUERIES = {
+    "contagem": """
+SELECT COUNT(*) AS total FROM sys.objects
+WHERE type IN ('U', 'V', 'P', 'FN', 'IF', 'TF', 'TR') AND is_ms_shipped = 0""",
+    "tabelas": """
+SELECT s.name AS esquema, t.name AS nome, t.create_date AS criado, t.modify_date AS modificado
+FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id
+ORDER BY s.name, t.name""",
+    "colunas": """
+SELECT s.name AS esquema, t.name AS tabela, c.name AS coluna, ty.name AS tipo,
+       c.max_length AS tamanho, c.is_nullable AS nulo, c.is_identity AS identidade,
+       dc.definition AS padrao
+FROM sys.columns c
+JOIN sys.tables t ON t.object_id = c.object_id
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+JOIN sys.types ty ON ty.user_type_id = c.user_type_id
+LEFT JOIN sys.default_constraints dc ON dc.object_id = c.default_object_id
+ORDER BY s.name, t.name, c.column_id""",
+    "chaves": """
+SELECT s.name AS esquema, t.name AS tabela, k.name AS chave, k.type_desc AS tipo, c.name AS coluna
+FROM sys.key_constraints k
+JOIN sys.tables t ON t.object_id = k.parent_object_id
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+JOIN sys.index_columns ic ON ic.object_id = k.parent_object_id AND ic.index_id = k.unique_index_id
+JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+ORDER BY s.name, t.name, k.name, ic.key_ordinal""",
+    "fks": """
+SELECT fk.name AS fk, sp.name AS esquema, tp.name AS tabela, cp.name AS coluna,
+       sr.name AS esquema_ref, tr.name AS tabela_ref, cr.name AS coluna_ref
+FROM sys.foreign_keys fk
+JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+JOIN sys.tables tp ON tp.object_id = fk.parent_object_id
+JOIN sys.schemas sp ON sp.schema_id = tp.schema_id
+JOIN sys.columns cp ON cp.object_id = fkc.parent_object_id AND cp.column_id = fkc.parent_column_id
+JOIN sys.tables tr ON tr.object_id = fk.referenced_object_id
+JOIN sys.schemas sr ON sr.schema_id = tr.schema_id
+JOIN sys.columns cr ON cr.object_id = fkc.referenced_object_id AND cr.column_id = fkc.referenced_column_id
+ORDER BY sp.name, tp.name, fk.name""",
+    "indices": """
+SELECT s.name AS esquema, t.name AS tabela, i.name AS indice, i.type_desc AS tipo,
+       i.is_unique AS unico, c.name AS coluna
+FROM sys.indexes i
+JOIN sys.tables t ON t.object_id = i.object_id
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+WHERE i.name IS NOT NULL
+ORDER BY s.name, t.name, i.name, ic.key_ordinal""",
+    "linhas": """
+SELECT s.name AS esquema, t.name AS tabela, SUM(p.row_count) AS linhas
+FROM sys.dm_db_partition_stats p
+JOIN sys.tables t ON t.object_id = p.object_id
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+WHERE p.index_id IN (0, 1)
+GROUP BY s.name, t.name""",
+    "modulos": """
+SELECT s.name AS esquema, o.name AS nome, o.type_desc AS tipo,
+       o.create_date AS criado, o.modify_date AS modificado,
+       OBJECTPROPERTY(o.object_id, 'IsEncrypted') AS criptografado, m.definition AS corpo
+FROM sys.objects o
+JOIN sys.schemas s ON s.schema_id = o.schema_id
+LEFT JOIN sys.sql_modules m ON m.object_id = o.object_id
+WHERE o.type IN ('P', 'FN', 'IF', 'TF', 'V', 'TR') AND o.is_ms_shipped = 0
+ORDER BY o.type_desc, s.name, o.name""",
+    "parametros": """
+SELECT s.name AS esquema, o.name AS objeto, p.name AS parametro, ty.name AS tipo,
+       p.is_output AS saida
+FROM sys.parameters p
+JOIN sys.objects o ON o.object_id = p.object_id
+JOIN sys.schemas s ON s.schema_id = o.schema_id
+JOIN sys.types ty ON ty.user_type_id = p.user_type_id
+WHERE o.is_ms_shipped = 0 AND p.parameter_id > 0
+ORDER BY s.name, o.name, p.parameter_id""",
+    "dependencias": """
+SELECT sr.name AS esquema, o.name AS objeto, d.referenced_schema_name AS esquema_ref,
+       d.referenced_entity_name AS referencia
+FROM sys.sql_expression_dependencies d
+JOIN sys.objects o ON o.object_id = d.referencing_id
+JOIN sys.schemas sr ON sr.schema_id = o.schema_id
+WHERE d.referenced_entity_name IS NOT NULL
+ORDER BY sr.name, o.name""",
+    "servidores": """
+SELECT name AS nome, product AS produto, provider AS provedor, data_source AS origem
+FROM sys.servers WHERE is_linked = 1""",
+    "jobs": """
+SELECT j.name AS job, j.enabled AS ativo, st.step_name AS passo, st.command AS comando
+FROM msdb.dbo.sysjobs j
+JOIN msdb.dbo.sysjobsteps st ON st.job_id = j.job_id
+WHERE st.database_name = DB_NAME()
+ORDER BY j.name, st.step_id""",
+}
+
+# Falha nestas (permissão) vira LACUNA nomeada, não derruba a geração (falha aberta).
+OPCIONAIS = ("linhas", "servidores", "jobs")
+DESCRICAO_OPCIONAL = {
+    "linhas": "contagem de linhas (sys.dm_db_partition_stats exige VIEW DATABASE STATE)",
+    "servidores": "linked servers (sys.servers)",
+    "jobs": "jobs do SQL Agent (msdb)",
+}
+
+
+def _executar(cursor, sql):
+    """Único ponto que executa SQL no módulo (teste trava) — devolve list[dict] pelos aliases."""
+    cursor.execute(sql)
+    nomes = [d[0] for d in cursor.description]
+    return [dict(zip(nomes, linha)) for linha in cursor.fetchall()]
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 

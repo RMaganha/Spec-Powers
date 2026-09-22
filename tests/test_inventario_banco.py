@@ -37,3 +37,38 @@ def test_importavel_sem_pyodbc_nem_cryptography(monkeypatch):
     monkeypatch.setitem(sys.modules, "cryptography.fernet", None)
     mod = _carregar()
     assert callable(mod.main)
+
+
+PROIBIDAS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|EXEC|EXECUTE|GRANT|DENY|REVOKE)\b", re.I)
+ALVO = re.compile(r"\b(?:FROM|JOIN)\s+([\w.\[\]]+)", re.I)
+
+
+def test_queries_sao_somente_leitura(inv):
+    """'O script não escreve' é fato verificável, não promessa de prosa."""
+    sujas = {n: PROIBIDAS.findall(q) for n, q in inv.QUERIES.items() if PROIBIDAS.search(q)}
+    assert not sujas, f"query com verbo de escrita: {sujas}"
+    for nome, q in inv.QUERIES.items():
+        assert q.lstrip().upper().startswith("SELECT"), f"{nome} não começa com SELECT"
+
+
+def test_queries_so_leem_catalogo(inv):
+    """Nenhum dado de negócio: todo FROM/JOIN é sys.*, INFORMATION_SCHEMA.* ou msdb.dbo.sys*."""
+    fora = []
+    for nome, q in inv.QUERIES.items():
+        for alvo in ALVO.findall(q):
+            a = alvo.lower()
+            if not a.startswith(("sys.", "msdb.dbo.sys", "information_schema.")):
+                fora.append(f"{nome}: {alvo}")
+    assert not fora, f"query fora do catálogo: {fora}"
+    assert "SELECT *" not in " ".join(inv.QUERIES.values()).upper()
+
+
+def test_so_existe_um_execute_no_modulo():
+    """Guarda do guarda: SQL executado fora de QUERIES escaparia dos dois testes acima."""
+    assert SCRIPT.read_text(encoding="utf-8").count(".execute(") == 1
+
+
+def test_opcionais_sao_queries_conhecidas(inv):
+    assert set(inv.OPCIONAIS) <= set(inv.QUERIES)
+    assert set(inv.OPCIONAIS) == set(inv.DESCRICAO_OPCIONAL)
