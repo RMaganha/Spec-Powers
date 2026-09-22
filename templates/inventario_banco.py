@@ -601,6 +601,7 @@ class Gravacao:
     mantidos: list     # .sql nossos de objeto que existe mas veio sem corpo nesta rodada
     conflitos: list    # corpo NÃO gravado: arquivo do time com o mesmo nome, ou nome que só difere na caixa
     segredos: list     # [(objeto, linha, tipo)] — nunca o valor
+    objetos_em_conflito: list = field(default_factory=list)  # "esquema.nome" de quem ficou sem corpo gravado
 
 
 def gravar_corpos(catalogo, pasta):
@@ -622,18 +623,19 @@ def gravar_corpos(catalogo, pasta):
         arq = nome_arquivo(m["esquema"], m["nome"])
         chave = arq.casefold()
         alvo = existentes.get(chave)
+        objeto = f"{m['esquema']}.{m['nome']}"
         if chave in usados or (alvo is not None and not _e_do_inventario(alvo)):
             g.conflitos.append(arq)
+            g.objetos_em_conflito.append(objeto)
             continue
-        objeto = f"{m['esquema']}.{m['nome']}"
         nl = "\r\n" if "\r\n" in m["corpo"] else "\n"
         corpo, achados = mascarar_segredos(m["corpo"])
         cabecalho = MARCA_SQL + nl
         if achados:
             cabecalho += cabecalho_segredo(achados, nl)
             g.segredos.extend((objeto, n, tipo) for n, tipo in achados)
-        if alvo is not None and alvo.name != arq:  # objeto renomeado só na caixa: o arquivo acompanha
-            alvo.unlink()
+        if alvo is not None and alvo.name != arq:  # renomeado só na caixa: renomeia (sem janela sem cópia)
+            alvo.rename(pasta / arq)
         (pasta / arq).write_text(cabecalho + corpo, encoding="utf-8-sig", newline="")
         usados.add(chave)
         g.gravados.append(arq)
@@ -683,9 +685,9 @@ def _agrupar(linhas, *chaves):
     return grupos
 
 
-def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos=()):
+def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, objetos_em_conflito=()):
     """Retrato em texto pro assistente. NUNCA corpo de objeto, nunca valor de segredo, nunca texto de job."""
-    em_conflito = {c.casefold() for c in conflitos}
+    em_conflito = set(objetos_em_conflito)
     d = catalogo.dados
     mods = d["modulos"]
     por_tipo = {}
@@ -749,8 +751,8 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos
         arq = nome_arquivo(m["esquema"], m["nome"])
         if m["corpo"] is None:
             corpo = "não extraído (ver Lacunas)"
-        elif arq.casefold() in em_conflito:
-            corpo = "não gravado (já há arquivo do time com o mesmo nome)"
+        elif f"{m['esquema']}.{m['nome']}" in em_conflito:
+            corpo = "não gravado (conflito de nome de arquivo — ver o relatório)"
         else:
             corpo = _cod(f"banco/{arq}")
         out.append(f"| {_cod(m['esquema'] + '.' + m['nome'])} | {_fmt(m['tipo']).lower()} | {ps} | {rs} | "
@@ -827,7 +829,7 @@ def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=N
     citacoes = cruzar(catalogo, indexar_codigo(proj, excluir=destino / "banco", nomes=nomes))
     g = gravar_corpos(catalogo, destino / "banco")
     md.write_text(renderizar_md(proj.name, origem, hoje or dt.date.today().isoformat(),
-                                catalogo, citacoes, g.segredos, g.conflitos), encoding="utf-8")
+                                catalogo, citacoes, g.segredos, g.objetos_em_conflito), encoding="utf-8")
     linha = ""
     if out is None:
         gi = proj / ".gitignore"
@@ -905,6 +907,10 @@ def main(argv=None, env=None, conectar_fn=None):
     except (ErroTeto, ErroSaida) as e:
         print(f"[inventario-banco] {e}", file=sys.stderr)
         return 4
+    except OSError as e:  # disco — antes do genérico: "Permission denied" do Windows não é permissão do banco
+        print(f"[inventario-banco] DISCO: não consegui gravar {e.filename or ''} ({e.strerror or e}) — arquivo "
+              "aberto/bloqueado ou pasta sem permissão. Não é o banco.", file=sys.stderr)
+        return 5
     except Exception as e:  # noqa: BLE001 — query negada, queda de rede no meio, disco: mensagem, nunca traceback
         print(f"[inventario-banco] {explicar_erro(e)}", file=sys.stderr)
         return 5

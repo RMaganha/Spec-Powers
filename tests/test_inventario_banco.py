@@ -292,7 +292,7 @@ class CursorFalso:
         return self._linhas
 
 
-COLS_MODULOS = ["esquema", "nome", "tipo", "criado", "modificado", "criptografado", "corpo"]
+COLS_MODULOS = ["esquema", "nome", "tipo", "criado", "modificado", "criptografado", "corpo", "pai"]
 
 
 def respostas_base():
@@ -315,12 +315,12 @@ def respostas_base():
         "modulos": (COLS_MODULOS, [
             ("dbo", "ConsultaApolice", "SQL_STORED_PROCEDURE", D1, D2, 0,
              "CREATE PROCEDURE dbo.ConsultaApolice @Numero varchar(20) AS\r\n"
-             "SELECT Id FROM dbo.Apolice WHERE Numero = @Numero"),
+             "SELECT Id FROM dbo.Apolice WHERE Numero = @Numero", None),
             ("dbo", "FechamentoMensal", "SQL_STORED_PROCEDURE", D1, D2, 0,
-             "CREATE PROCEDURE dbo.FechamentoMensal AS EXEC dbo.RecalculaPremio"),
+             "CREATE PROCEDURE dbo.FechamentoMensal AS EXEC dbo.RecalculaPremio", None),
             ("dbo", "RecalculaPremio", "SQL_STORED_PROCEDURE", D1, D1, 0,
-             "CREATE PROCEDURE dbo.RecalculaPremio AS SELECT 1"),
-            ("dbo", "Cifrada", "SQL_STORED_PROCEDURE", D1, D1, 1, None)]),
+             "CREATE PROCEDURE dbo.RecalculaPremio AS SELECT 1", None),
+            ("dbo", "Cifrada", "SQL_STORED_PROCEDURE", D1, D1, 1, None, None)]),
         "parametros": (["esquema", "objeto", "parametro", "tipo", "saida"],
                        [("dbo", "ConsultaApolice", "@Numero", "varchar", False)]),
         "dependencias": (["esquema", "objeto", "esquema_ref", "referencia"],
@@ -543,7 +543,7 @@ def test_rodada_sem_view_definition_nao_apaga_os_corpos_versionados(inv, tmp_pat
     _gravar(inv, pasta)
     r = respostas_base()
     colunas, linhas = r["modulos"]
-    r["modulos"] = (colunas, [l[:6] + (None,) for l in linhas])  # login mais fraco: todo corpo NULL
+    r["modulos"] = (colunas, [l[:6] + (None,) + l[7:] for l in linhas])  # login mais fraco: todo corpo NULL
     g = _gravar(inv, pasta, r)
     assert g.removidos == []
     assert (pasta / "dbo.ConsultaApolice.sql").exists()
@@ -701,7 +701,7 @@ def test_trigger_dispara_com_a_tabela_nao_vira_sem_citacao(inv, tmp_path):
     """Revisão final I3: ninguém 'chama' trigger — ela dispara com a tabela. Sem isso, toda trigger caía
     em 'sem citação', justo onde legado esconde regra de negócio."""
     r = respostas_base()
-    r["modulos"] = (COLS_MODULOS + ["pai"], [("dbo", "TR_Apolice_Audit", "SQL_TRIGGER", D1, D1, 0,
+    r["modulos"] = (COLS_MODULOS, [("dbo", "TR_Apolice_Audit", "SQL_TRIGGER", D1, D1, 0,
                                              "CREATE TRIGGER dbo.TR_Apolice_Audit ON dbo.Apolice ...", "Apolice")])
     c = _cruzar(inv, tmp_path, r)["dbo.TR_Apolice_Audit"]
     assert c.classe == inv.DISPARA_COM_TABELA and c.ocorrencias == ["dbo.Apolice"]
@@ -775,7 +775,7 @@ def test_nome_com_barra_vertical_nao_quebra_a_tabela(inv, tmp_path):
     cat = inv.coletar(CursorFalso(inv, r))
     md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
     linhas = [l for l in md.splitlines() if "Proc" in l and l.startswith("|")]
-    assert linhas and all("Proc\|Velha" in l for l in linhas)
+    assert linhas and all(r"Proc\|Velha" in l for l in linhas)
 
 
 def test_tipo_da_coluna_traz_o_tamanho(inv, tmp_path):
@@ -787,3 +787,28 @@ def test_tipo_da_coluna_traz_o_tamanho(inv, tmp_path):
     cat = inv.coletar(CursorFalso(inv, r))
     md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
     assert "varchar(20)" in md and "nvarchar(100)" in md and "varchar(max)" in md
+
+
+def test_erro_de_disco_nao_vira_permissao_do_banco(inv, tmp_path, monkeypatch, capsys):
+    """Re-revisão N1: PermissionError do disco ('Permission denied') caía no ramo de permissão do banco e
+    mandava o owner pedir VIEW DEFINITION — ação errada."""
+    def disco_bloqueado(*a, **k):
+        raise PermissionError(13, "Permission denied", str(tmp_path / "docs" / "banco.md"))
+    monkeypatch.setattr(inv, "gerar", disco_bloqueado)
+    conn = ConexaoFalsa(CursorFalso(inv, respostas_base()))
+    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=lambda s: conn) == 5
+    err = capsys.readouterr().err
+    assert "DISCO" in err and "VIEW DEFINITION" not in err and conn.fechada
+
+
+def test_colisao_de_caixa_marca_so_o_objeto_nao_gravado(inv, tmp_path):
+    """Re-revisão N2: com dbo.X e dbo.x no catálogo, as duas linhas diziam 'não gravado'."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "ConsultaApolice", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1", None),
+                                   ("dbo", "CONSULTAAPOLICE", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 2", None)])
+    rel = inv.gerar(tmp_path, CursorFalso(inv, r), "o")
+    md = rel.md.read_text(encoding="utf-8")
+    assert "`banco/dbo.ConsultaApolice.sql`" in md
+    linha_2 = next(l for l in md.splitlines() if l.startswith("| `dbo.CONSULTAAPOLICE` | sql_stored_procedure"))
+    assert "não gravado" in linha_2 and "time" not in linha_2
+    assert rel.conflitos == ["dbo.CONSULTAAPOLICE.sql"]
