@@ -73,3 +73,32 @@ def test_so_existe_um_execute_no_modulo():
 def test_opcionais_sao_queries_conhecidas(inv):
     assert set(inv.OPCIONAIS) <= set(inv.QUERIES)
     assert set(inv.OPCIONAIS) == set(inv.DESCRICAO_OPCIONAL)
+
+
+def test_mask_password(inv):
+    assert inv.mask_password("Server=a;UID=u;PWD=s3nh4") == "Server=a;UID=u;PWD=***HIDDEN***"
+    assert "x9" not in inv.mask_password("Data Source=a;User ID=u;Password=x9;")
+
+
+@pytest.mark.parametrize("antes, depois", [
+    ("Server=a;Database=Velha;UID=u", "Server=a;Database=Nova;UID=u"),
+    ("Data Source=a;Initial Catalog=Velha;", "Data Source=a;Initial Catalog=Nova;"),
+    ("Server=a;UID=u", "Server=a;UID=u;Database=Nova"),
+])
+def test_trocar_base(inv, antes, depois):
+    assert inv.trocar_base(antes, "Nova") == depois
+
+
+@pytest.mark.parametrize("antes, depois", [
+    ("Server=h,1435;Database=x", "Server=h,1500;Database=x"),
+    ("Server=h;Database=x", "Server=h,1500;Database=x"),
+])
+def test_trocar_porta(inv, antes, depois):
+    assert inv.trocar_porta(antes, "1500") == depois
+
+
+def test_le_servidor_e_base(inv):
+    conn = "Server=srv,1435;Initial Catalog=Legado;UID=u"
+    assert inv.servidor_da_conn(conn) == "srv,1435"
+    assert inv.base_da_conn(conn) == "Legado"
+    assert inv.base_da_conn("Server=srv") is None

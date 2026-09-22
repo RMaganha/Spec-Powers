@@ -142,6 +142,58 @@ def _executar(cursor, sql):
     return [dict(zip(nomes, linha)) for linha in cursor.fetchall()]
 
 
+# --------------------------------------------------------------------------------- conn string
+def mask_password(conn_str):
+    """Mascara a senha na conn string. Cópia do templates/get_connection.py — aquele arquivo é MOLDE
+    com placeholders (`DEV_<BASE>_KEY`), não é Python importável."""
+    partes = []
+    for parte in conn_str.split(";"):
+        if "=" in parte:
+            chave, _ = parte.split("=", 1)
+            if chave.strip().lower() in ("pwd", "password"):
+                partes.append(f"{chave}=***HIDDEN***")
+            else:
+                partes.append(parte)
+        elif parte.strip():
+            partes.append(parte)
+    return ";".join(partes)
+
+
+_RE_BASE = re.compile(r"(?i)\b(Database|Initial Catalog)\s*=\s*[^;]*")
+
+
+def trocar_base(conn_str, base):
+    """Troca a base (Database= ou Initial Catalog=); acrescenta Database= se não houver."""
+    if _RE_BASE.search(conn_str):
+        return _RE_BASE.sub(lambda m: f"{m.group(1)}={base}", conn_str, count=1)
+    return conn_str.rstrip(";") + f";Database={base}"
+
+
+def trocar_porta(conn_str, porta):
+    """Sobrescreve a porta do servidor (host,porta), mantendo o host — mesma regra do molde."""
+    return re.sub(r"(?i)((?:Server|Data Source)=[^;,]+)(?:,\d+)?", rf"\g<1>,{porta}", conn_str, count=1)
+
+
+def servidor_da_conn(conn_str):
+    m = re.search(r"(?i)\b(?:Server|Data Source)\s*=\s*([^;]*)", conn_str)
+    return m.group(1).strip() if m else None
+
+
+def base_da_conn(conn_str):
+    m = re.search(r"(?i)\b(?:Database|Initial Catalog)\s*=\s*([^;]*)", conn_str)
+    return m.group(1).strip() if m else None
+
+
+def _completar(conn_str):
+    """Mesmo acabamento do _build_conn_str do molde: TLS e timeout — o que já conecta, conecta igual."""
+    conn_str = conn_str.rstrip(";")
+    if "encrypt" not in conn_str.lower():
+        conn_str += ";Encrypt=yes;TrustServerCertificate=yes"
+    if "timeout" not in conn_str.lower():
+        conn_str += ";timeout=30"
+    return conn_str
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 
