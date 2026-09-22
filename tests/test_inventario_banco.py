@@ -496,9 +496,9 @@ def _gravar(inv, pasta, respostas=None):
 
 
 def test_corpos_utf8_bom_com_marca(inv, tmp_path):
-    gravados, removidos, preservados, segredos = _gravar(inv, tmp_path / "banco")
+    g = _gravar(inv, tmp_path / "banco")
     arq = tmp_path / "banco" / "dbo.ConsultaApolice.sql"
-    assert "dbo.ConsultaApolice.sql" in gravados and "dbo.Cifrada.sql" not in gravados
+    assert "dbo.ConsultaApolice.sql" in g.gravados and "dbo.Cifrada.sql" not in g.gravados
     assert arq.read_bytes().startswith(b"\xef\xbb\xbf")
     texto = arq.read_text(encoding="utf-8-sig")
     assert texto.startswith(inv.MARCA_SQL)
@@ -510,10 +510,10 @@ def test_segredo_mascarado_no_arquivo(inv, tmp_path):
     r = respostas_base()
     r["modulos"] = (COLS_MODULOS, [("dbo", "Importa", "SQL_STORED_PROCEDURE", D1, D1, 0,
                                     "CREATE PROCEDURE dbo.Importa AS\nSELECT * FROM OPENROWSET('SQLNCLI','Server=x;PWD=Abc123;','SELECT 1')")])
-    _, _, _, segredos = _gravar(inv, tmp_path / "banco", r)
+    g = _gravar(inv, tmp_path / "banco", r)
     texto = (tmp_path / "banco" / "dbo.Importa.sql").read_text(encoding="utf-8-sig")
     assert "Abc123" not in texto and inv.MASCARA in texto and "Segredo removido" in texto
-    assert segredos == [("dbo.Importa", 2, "senha em conn string")]
+    assert g.segredos == [("dbo.Importa", 2, "senha em conn string")]
 
 
 def test_remove_so_o_que_e_do_inventario(inv, tmp_path):
@@ -521,9 +521,47 @@ def test_remove_so_o_que_e_do_inventario(inv, tmp_path):
     pasta.mkdir()
     (pasta / "dbo.Sumiu.sql").write_text(inv.MARCA_SQL + "\nSELECT 1", encoding="utf-8-sig")
     (pasta / "script_do_time.sql").write_text("-- script nosso\nSELECT 1", encoding="utf-8")
-    _, removidos, preservados, _ = _gravar(inv, pasta)
-    assert removidos == ["dbo.Sumiu.sql"] and not (pasta / "dbo.Sumiu.sql").exists()
-    assert preservados == ["script_do_time.sql"] and (pasta / "script_do_time.sql").exists()
+    g = _gravar(inv, pasta)
+    assert g.removidos == ["dbo.Sumiu.sql"] and not (pasta / "dbo.Sumiu.sql").exists()
+    assert g.preservados == ["script_do_time.sql"] and (pasta / "script_do_time.sql").exists()
+
+
+def test_nao_escreve_por_cima_de_sql_do_time_com_o_mesmo_nome(inv, tmp_path):
+    """Revisão final C1: a marca guardava só a remoção; a escrita passava por cima."""
+    pasta = tmp_path / "banco"
+    pasta.mkdir()
+    (pasta / "dbo.ConsultaApolice.sql").write_text("-- script do time\nSELECT 1", encoding="utf-8")
+    g = _gravar(inv, pasta)
+    assert (pasta / "dbo.ConsultaApolice.sql").read_text(encoding="utf-8") == "-- script do time\nSELECT 1"
+    assert g.conflitos == ["dbo.ConsultaApolice.sql"] and "dbo.ConsultaApolice.sql" not in g.gravados
+    assert "dbo.ConsultaApolice.sql" not in g.preservados  # listado uma vez só, como conflito
+
+
+def test_rodada_sem_view_definition_nao_apaga_os_corpos_versionados(inv, tmp_path):
+    """Revisão final I1: objeto que existe mas veio sem corpo nesta rodada mantém o .sql anterior."""
+    pasta = tmp_path / "banco"
+    _gravar(inv, pasta)
+    r = respostas_base()
+    colunas, linhas = r["modulos"]
+    r["modulos"] = (colunas, [l[:6] + (None,) for l in linhas])  # login mais fraco: todo corpo NULL
+    g = _gravar(inv, pasta, r)
+    assert g.removidos == []
+    assert (pasta / "dbo.ConsultaApolice.sql").exists()
+    assert "dbo.ConsultaApolice.sql" in g.mantidos
+
+
+def test_renomear_so_na_caixa_nao_perde_o_corpo(inv, tmp_path):
+    """Revisão final I2: no NTFS `dbo.X.sql` e `dbo.x.sql` são o mesmo arquivo."""
+    pasta = tmp_path / "banco"
+    _gravar(inv, pasta)
+    r = respostas_base()
+    colunas, linhas = r["modulos"]
+    r["modulos"] = (colunas, [(l[0], "CONSULTAAPOLICE") + l[2:] if l[1] == "ConsultaApolice" else l
+                              for l in linhas])
+    g = _gravar(inv, pasta, r)
+    nomes = [p.name for p in pasta.iterdir()]
+    assert [n for n in nomes if n.casefold() == "dbo.consultaapolice.sql"] == ["dbo.CONSULTAAPOLICE.sql"]
+    assert g.removidos == []
 
 
 def test_nome_de_arquivo_seguro(inv):
@@ -645,3 +683,15 @@ def test_main_conexao_recusada(inv, tmp_path, capsys):
     assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=recusa) == 3
     err = capsys.readouterr().err
     assert "CREDENCIAL" in err and "segredo123" not in err
+
+
+def test_gitignore_em_cp1252_nao_derruba_depois_de_gravar(inv, tmp_path):
+    """Revisão final I7: o .gitignore era lido sem errors= e estourava com tudo já no disco."""
+    (tmp_path / ".gitignore").write_bytes("# configuração\n/docs/banco.md\n".encode("cp1252"))
+    rel = inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
+    assert rel.linha_gitignore == ""
+
+
+def test_gitignore_sem_barra_inicial_tambem_ancora(inv, tmp_path):
+    (tmp_path / ".gitignore").write_text("docs/banco.md\n", encoding="utf-8")
+    assert inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o").linha_gitignore == ""

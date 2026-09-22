@@ -559,15 +559,37 @@ def _e_do_inventario(arq):
         return False
 
 
+@dataclass
+class Gravacao:
+    gravados: list     # .sql escritos nesta rodada
+    removidos: list    # .sql NOSSOS de objeto que sumiu do catálogo
+    preservados: list  # .sql alheios (sem a marca) que já estavam na pasta — intocados
+    mantidos: list     # .sql nossos de objeto que existe mas veio sem corpo nesta rodada
+    conflitos: list    # corpo NÃO gravado: arquivo do time com o mesmo nome, ou nome que só difere na caixa
+    segredos: list     # [(objeto, linha, tipo)] — nunca o valor
+
+
 def gravar_corpos(catalogo, pasta):
-    """1 .sql por módulo com corpo (UTF-8 com BOM, marca na 1ª linha, segredo mascarado). Remove o
-    .sql NOSSO de objeto que sumiu do catálogo; .sql alheio fica e é listado.
-    Devolve (gravados, removidos, preservados, segredos[(objeto, linha, tipo)])."""
+    """1 .sql por módulo com corpo (UTF-8 com BOM, marca na 1ª linha, segredo mascarado).
+
+    Brownfield: só escreve por cima e só remove arquivo que começa com a marca. Remove o .sql nosso
+    SÓ de objeto que sumiu do catálogo — objeto que existe mas veio sem corpo nesta rodada (login sem
+    VIEW DEFINITION, virou WITH ENCRYPTION) mantém o .sql anterior, que pode ser a única cópia. Nomes
+    comparados sem caixa: no NTFS `dbo.X.sql` e `dbo.x.sql` são o mesmo arquivo."""
     pasta = Path(pasta)
     pasta.mkdir(parents=True, exist_ok=True)
-    gravados, segredos = [], []
+    existentes = {p.name.casefold(): p for p in pasta.glob("*.sql")}
+    no_catalogo = {nome_arquivo(m["esquema"], m["nome"]).casefold() for m in catalogo.dados["modulos"]}
+    g = Gravacao([], [], [], [], [], [])
+    usados = set()
     for m in catalogo.dados["modulos"]:
         if m["corpo"] is None:
+            continue
+        arq = nome_arquivo(m["esquema"], m["nome"])
+        chave = arq.casefold()
+        alvo = existentes.get(chave)
+        if chave in usados or (alvo is not None and not _e_do_inventario(alvo)):
+            g.conflitos.append(arq)
             continue
         objeto = f"{m['esquema']}.{m['nome']}"
         nl = "\r\n" if "\r\n" in m["corpo"] else "\n"
@@ -575,21 +597,24 @@ def gravar_corpos(catalogo, pasta):
         cabecalho = MARCA_SQL + nl
         if achados:
             cabecalho += cabecalho_segredo(achados, nl)
-            segredos.extend((objeto, n, tipo) for n, tipo in achados)
-        arq = nome_arquivo(m["esquema"], m["nome"])
+            g.segredos.extend((objeto, n, tipo) for n, tipo in achados)
+        if alvo is not None and alvo.name != arq:  # objeto renomeado só na caixa: o arquivo acompanha
+            alvo.unlink()
         (pasta / arq).write_text(cabecalho + corpo, encoding="utf-8-sig", newline="")
-        gravados.append(arq)
-    atuais = set(gravados)
-    removidos, preservados = [], []
-    for velho in sorted(pasta.glob("*.sql")):
-        if velho.name in atuais:
+        usados.add(chave)
+        g.gravados.append(arq)
+    em_conflito = {c.casefold() for c in g.conflitos}
+    for chave, velho in sorted(existentes.items()):
+        if chave in usados or chave in em_conflito:
             continue
-        if _e_do_inventario(velho):
-            velho.unlink()
-            removidos.append(velho.name)
+        if not _e_do_inventario(velho):
+            g.preservados.append(velho.name)
+        elif chave in no_catalogo:
+            g.mantidos.append(velho.name)
         else:
-            preservados.append(velho.name)
-    return gravados, removidos, preservados, segredos
+            velho.unlink()
+            g.removidos.append(velho.name)
+    return g
 
 
 # ---------------------------------------------------------------------------------------- render
@@ -610,8 +635,9 @@ def _agrupar(linhas, *chaves):
     return grupos
 
 
-def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos):
+def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos, conflitos=()):
     """Retrato em texto pro assistente. NUNCA corpo de objeto, nunca valor de segredo, nunca texto de job."""
+    em_conflito = {c.casefold() for c in conflitos}
     d = catalogo.dados
     mods = d["modulos"]
     por_tipo = {}
@@ -671,8 +697,13 @@ def renderizar_md(projeto, origem, hoje, catalogo, citacoes, segredos):
                        for p in params.get(k, [])) or "—"
         rs = ", ".join(sorted({f"{x['esquema_ref'] or m['esquema']}.{x['referencia']}"
                                for x in deps.get(k, [])})) or "—"
-        corpo = (f"`banco/{nome_arquivo(m['esquema'], m['nome'])}`" if m["corpo"] is not None
-                 else "não extraído (ver Lacunas)")
+        arq = nome_arquivo(m["esquema"], m["nome"])
+        if m["corpo"] is None:
+            corpo = "não extraído (ver Lacunas)"
+        elif arq.casefold() in em_conflito:
+            corpo = "não gravado (já há arquivo do time com o mesmo nome)"
+        else:
+            corpo = f"`banco/{arq}`"
         out.append(f"| `{m['esquema']}.{m['nome']}` | {_fmt(m['tipo']).lower()} | {ps} | {rs} | "
                    f"{_fmt(m['criado'])} | {_fmt(m['modificado'])} | {corpo} |")
     out.append("")
@@ -728,6 +759,8 @@ class Relatorio:
     gravados: list
     removidos: list
     preservados: list
+    mantidos: list
+    conflitos: list
     segredos: list
     lacunas: list
     linha_gitignore: str  # "" quando já está ancorada ou a saída não é a padrão
@@ -742,16 +775,17 @@ def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=N
                         "Renomeie o arquivo do projeto ou use --out.")
     catalogo = coletar(cursor, max_objetos)  # o teto estoura aqui, antes de gravar qualquer coisa
     citacoes = cruzar(catalogo, indexar_codigo(proj, excluir=destino / "banco"))
-    gravados, removidos, preservados, segredos = gravar_corpos(catalogo, destino / "banco")
+    g = gravar_corpos(catalogo, destino / "banco")
     md.write_text(renderizar_md(proj.name, origem, hoje or dt.date.today().isoformat(),
-                                catalogo, citacoes, segredos), encoding="utf-8")
+                                catalogo, citacoes, g.segredos, g.conflitos), encoding="utf-8")
     linha = ""
     if out is None:
         gi = proj / ".gitignore"
-        ancoradas = {l.strip() for l in gi.read_text(encoding="utf-8-sig").splitlines()} if gi.exists() else set()
-        linha = "" if "/docs/banco.md" in ancoradas else "/docs/banco.md"
-    return Relatorio(md, destino / "banco", len(objetos(catalogo)), gravados, removidos, preservados,
-                     segredos, catalogo.lacunas, linha)
+        ancoradas = ({l.strip() for l in gi.read_text(encoding="utf-8-sig", errors="replace").splitlines()}
+                     if gi.exists() else set())
+        linha = "" if ancoradas & {"/docs/banco.md", "docs/banco.md"} else "/docs/banco.md"
+    return Relatorio(md, destino / "banco", len(objetos(catalogo)), g.gravados, g.removidos, g.preservados,
+                     g.mantidos, g.conflitos, g.segredos, catalogo.lacunas, linha)
 
 
 def relatorio_texto(rel):
@@ -759,8 +793,14 @@ def relatorio_texto(rel):
            f"objetos: {rel.total_objetos} · corpos gravados: {len(rel.gravados)} em {rel.pasta_sql}"]
     if rel.removidos:
         out.append("removidos (sumiram do banco): " + ", ".join(rel.removidos))
+    if rel.mantidos:
+        out.append("mantidos (o objeto existe, mas o corpo não veio nesta rodada — login sem VIEW DEFINITION?): "
+                   + ", ".join(rel.mantidos))
+    if rel.conflitos:
+        out.append(f"NÃO documentados (já há arquivo do time com o mesmo nome em {rel.pasta_sql}, ou dois objetos "
+                   "que só diferem na caixa): " + ", ".join(rel.conflitos))
     if rel.preservados:
-        out.append("em docs/banco/ mas NÃO são do inventário (não mexi): " + ", ".join(rel.preservados))
+        out.append(f"em {rel.pasta_sql} mas NÃO são do inventário (não mexi): " + ", ".join(rel.preservados))
     if rel.segredos:
         out.append("segredos mascarados (valor nunca exibido): "
                    + "; ".join(f"{o} linha {n} ({t})" for o, n, t in rel.segredos))
