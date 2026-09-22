@@ -158,3 +158,73 @@ def test_par_ignora_caixa_e_recusa_inexistente(inv, fonte):
         inv.escolher_par(pares, "D0", par="TRP")
     with pytest.raises(inv.ErroCredencial, match="D0, HML ou PRD"):
         inv.escolher_par(pares, "XPTO")
+
+
+CONN_SSC = "Server=srv-ssc,1435;Database=SSC;UID=leitor;PWD=s3nh4"
+
+
+def _decriptar_falso(chave, cifra):
+    return {b"chave-ssc-dev": CONN_SSC}[chave]
+
+
+def test_fonte_com_base_nova(inv, fonte):
+    c = inv.resolver_conn({}, fonte, "D0", "SSC", "LegadoCS", None, decriptar=_decriptar_falso)
+    assert "Database=LegadoCS" in c.conn_str and "Server=srv-ssc,1435" in c.conn_str
+    assert "Encrypt=yes" in c.conn_str and "timeout=30" in c.conn_str
+    assert "srv-ssc,1435" in c.origem and "LegadoCS" in c.origem
+    assert "s3nh4" not in c.origem
+
+
+def test_fonte_ganha_da_variavel_e_avisa(inv, fonte):
+    env = {"MSS_INVENTARIO_CONN": "Server=outro;PWD=x"}
+    c = inv.resolver_conn(env, fonte, "D0", "SSC", None, None, decriptar=_decriptar_falso)
+    assert "srv-ssc" in c.conn_str
+    assert any("MSS_INVENTARIO_CONN ignorada" in a for a in c.avisos)
+
+
+def test_variavel_quando_sem_fonte(inv):
+    c = inv.resolver_conn({"MSS_INVENTARIO_CONN": "Server=h;Trusted_Connection=yes"}, base="Legado")
+    assert "Database=Legado" in c.conn_str and "variável MSS_INVENTARIO_CONN" in c.origem
+
+
+def test_sem_nada_para_sem_inventar(inv):
+    with pytest.raises(inv.ErroCredencial) as e:
+        inv.resolver_conn({})
+    msg = str(e.value)
+    assert "--fonte" in msg and "MSS_INVENTARIO_CONN" in msg
+    assert not re.search(r"\d+\.\d+\.\d+\.\d+", msg), "erro sugeriu um IP"
+    assert "MSSQLD0" not in msg and "1433" not in msg
+
+
+def test_porta(inv, fonte):
+    c = inv.resolver_conn({}, fonte, "D0", "SSC", None, "1500", decriptar=_decriptar_falso)
+    assert "Server=srv-ssc,1500" in c.conn_str
+
+
+def test_fonte_placeholder(inv, tmp_path):
+    p = tmp_path / "get_connection.py"
+    p.write_text('DEV_X_KEY = b"<par gerado/copiado>"\nDEV_X_CIPHERTEXT = b"<par gerado/copiado>"\n',
+                 encoding="utf-8")
+    with pytest.raises(inv.ErroCredencial, match="placeholder"):
+        inv.resolver_conn({}, p)
+
+
+def test_molde_do_kit_nao_e_python_e_erro_e_claro(inv):
+    """O próprio templates/get_connection.py tem `DEV_<BASE>_KEY` — não parseia."""
+    with pytest.raises(inv.ErroCredencial, match="não consegui ler"):
+        inv.resolver_conn({}, REPO / "templates" / "get_connection.py")
+
+
+def test_fonte_inexistente(inv, tmp_path):
+    with pytest.raises(inv.ErroCredencial, match="não encontrado"):
+        inv.resolver_conn({}, tmp_path / "nao_existe.py")
+
+
+def test_fernet_de_verdade(inv, tmp_path):
+    fernet = pytest.importorskip("cryptography.fernet")
+    chave = fernet.Fernet.generate_key()
+    cifra = fernet.Fernet(chave).encrypt(CONN_SSC.encode())
+    p = tmp_path / "get_connection.py"
+    p.write_text(f"DEV_SSC_KEY = {chave!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n", encoding="utf-8")
+    c = inv.resolver_conn({}, p, "D0", None, "LegadoCS")
+    assert "Database=LegadoCS" in c.conn_str and "PWD=s3nh4" in c.conn_str

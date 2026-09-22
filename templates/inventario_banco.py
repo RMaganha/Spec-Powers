@@ -276,6 +276,56 @@ def escolher_par(pares, ambiente, par=None):
     return entrada["KEY"], entrada["CIPHERTEXT"]
 
 
+@dataclass
+class Conexao:
+    conn_str: str
+    origem: str  # pro relatório: de onde veio + servidor + base — NUNCA senha
+    avisos: list = field(default_factory=list)
+
+
+def decriptar_fernet(chave, cifra):
+    from cryptography.fernet import Fernet  # import tardio: o módulo carrega sem cryptography
+    return Fernet(chave).decrypt(cifra).decode()
+
+
+def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=None, decriptar=decriptar_fernet):
+    """--fonte (par Fernet reaproveitado) > MSS_INVENTARIO_CONN > erro que diz o que faltou."""
+    avisos = []
+    if fonte:
+        caminho = Path(fonte)
+        if env.get(VARIAVEL_CONN):
+            avisos.append(f"{VARIAVEL_CONN} ignorada: --fonte foi passado (a flag é a intenção mais específica).")
+        if not caminho.is_file():
+            raise ErroCredencial(f"--fonte não encontrado: {caminho}")
+        try:
+            pares = ler_pares_fernet(caminho)
+        except SyntaxError as e:
+            raise ErroCredencial(
+                f"não consegui ler {caminho} como Python ({e.msg}, linha {e.lineno}) — aponte o "
+                "get_connection.py de um projeto que conecta de verdade, não o molde do kit.") from None
+        chave, cifra = escolher_par(pares, ambiente, par)
+        if b"<" in chave or b"<" in cifra:
+            raise ErroCredencial(f"o par em {caminho} ainda é placeholder — aponte um projeto que conecta de verdade.")
+        conn = decriptar(chave, cifra)
+        origem = f"par Fernet {AMBIENTES[ambiente.strip().upper()]} de {caminho}"
+    elif env.get(VARIAVEL_CONN):
+        conn = env[VARIAVEL_CONN]
+        origem = f"variável {VARIAVEL_CONN}"
+    else:
+        raise ErroCredencial(
+            "sem credencial. Passe --fonte <get_connection.py de um projeto MSIG que alcança o servidor> "
+            f"--ambiente D0 --base <nome da base>, ou defina {VARIAVEL_CONN} com a conn string. "
+            "O inventário não chuta host, porta nem base.")
+    if base:
+        conn = trocar_base(conn, base)
+    if porta:
+        conn = trocar_porta(conn, porta)
+    conn = _completar(conn)
+    servidor = servidor_da_conn(conn) or "(servidor não declarado na conn string)"
+    nome_base = base_da_conn(conn) or "(base padrão do login)"
+    return Conexao(conn, f"{origem} → servidor {servidor}, base {nome_base}", avisos)
+
+
 def main(argv=None):
     raise SystemExit("inventario_banco: em construção (docs/superpowers/plans/2026-09-22-inventario-banco.md)")
 
