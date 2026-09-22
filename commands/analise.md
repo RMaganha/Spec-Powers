@@ -15,7 +15,7 @@ O kit nasceu greenfield: sem esta etapa, o assistente entra num projeto pronto s
 Você escreve **somente** artefatos de documentação/memória do kit (lista no passo 4). **Nunca** crie, edite ou sobrescreva:
 
 - **infra**: `docker-compose.yml`, `Dockerfile`, `.dockerignore`, arquivos de deploy/pipeline;
-- **código**: qualquer `.py`/`.ts`/`.tsx`/`.js`/`.sql`, `config/logging.py`, `utils/get_connection.py`, `requirements.txt`/`package.json`;
+- **código**: qualquer `.py`/`.ts`/`.tsx`/`.js`/`.sql`, `config/logging.py`, `utils/get_connection.py`, `requirements.txt`/`package.json` — **exceção única:** os `docs/banco/*.sql` que o inventário do banco grava são documentação (corpo extraído do catálogo, com marca `[inventario-banco]`), não código do projeto;
 - **UI própria**: HTML/CSS/JS/templates do projeto. Se o projeto tem **UI própria** (ex.: `.html` com layout e UX feitos à mão), ela é **intocável** — o design system do kit (`docs/FRONTEND.md`, Tailwind, React+Mantine) **não é aplicado, nem sugerido como conserto**. Registre "UI própria — design system do kit não aplicado" e siga.
 - **segredo**: nunca abra/copie/imprima `.env` (leia só o `.env.example`, ou os **nomes** das chaves que o código lê).
 
@@ -39,6 +39,11 @@ Abra **de fato** (não por amostragem):
 - **Entrypoint(s)**: `main.py`/`app.py`/`manage.py`/`index.ts`/`server.*` — o que levanta, em que porta, o que registra.
 - **Rotas/endpoints**: todo decorator/registro de rota (`@app.*`, `@router.*`, `APIRouter`, Express/Next handlers). Marque quais são de **integração** (outro sistema chama) — insumo do `/mss-spec:seguranca` e das Conexões do MAPA.
 - **Dados**: `.sql` (DDL, migrations), models/ORM, módulo de conexão. Registre tabelas, como o esquema é criado e como a credencial chega (env × outro).
+- **Dados — banco vivo** (disparo automático, não é menu). Achou evidência de **SQL Server** — `<connectionStrings>` em `web.config`/`app.config` (provider `System.Data.SqlClient`/`Microsoft.Data.SqlClient`), `SqlConnection`/`SqlCommand`/`SqlDataAdapter`, `.edmx` com provider SqlClient, Dapper/EF sobre SqlClient, `utils/get_connection.py`, `pyodbc` com driver `SQL Server`, `mssql+pyodbc` — **diga a evidência e inventarie**: o `.sql` do repo não traz a regra de negócio que mora em procedure, trigger e job. O inventário vivo cobre **só SQL Server**: banco de outro motor (Postgres/`psycopg`, Oracle, MySQL) → linha em *Lacunas* ("inventário vivo cobre só SQL Server"), sem rodar o gerador.
+  - Pergunte **só** qual base e de onde vem a credencial — é o portão da conexão. **Nunca peça senha digitada**: reuse o `get_connection.py` de um projeto MSIG que alcança o servidor, ou a variável `MSS_INVENTARIO_CONN`. Detectar ≠ usar: **nunca abra o `web.config`/`app.config` inteiro** (a senha da `<connectionStrings>` entraria na conversa) — extraia só o necessário com Grep em modo `-o` e o padrão `(?i)(Server|Data Source|Initial Catalog|Database|providerName)\s*=\s*"?[^;"]*`.
+  - Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/inventario_banco.py" --proj . --fonte <get_connection.py> --ambiente D0 --base <base>` (`--par <BASE>` quando a fonte tem mais de uma base). Erro vem classificado em REDE/TLS/CREDENCIAL/PERMISSÃO — repasse ao owner como veio.
+  - Destile o `docs/banco.md` na seção *Dados* do dossiê (contagens, modelo, e o **ponteiro**: servidor, base, ambiente, qual projeto emprestou o par — caminho, nunca valor) e os linked servers/jobs nas *Conexões* do MAPA, levando junto a frase **"sem citação" não significa "pode apagar"**.
+  - O script avisa se falta `/docs/banco.md` no `.gitignore`: **pergunte** antes de acrescentar. Owner disse "pula" → linha em *Lacunas*. Regenerar depois: `/mss-spec:inventario-banco`.
 - **Config**: `config/`, `settings.*`, `.env.example` — **quais chaves o código realmente lê**.
 - **Integrações**: clientes HTTP pra outros serviços, filas, storage, banco compartilhado.
 - **UI**: se há `.html`/`.tsx`, identifique o padrão real (Jinja? SPA? qual lib? CSS próprio?) — **para descrever**, não para trocar.
@@ -54,7 +59,9 @@ Não entreviste o que você já inferiu do repo (é o que o `/mss-spec:kickoff` 
 
 ## 4. Grave o resultado (o destilado)
 
-Só aqui você escreve. **Mescle, nunca sobrescreva** o que o owner escreveu — e mostre um resumo do que vai gravar **antes** de gravar.
+Só aqui você escreve — **exceção única:** o inventário do banco, que o gerador grava já na fase 2 (linha dele logo abaixo). **Mescle, nunca sobrescreva** o que o owner escreveu — e mostre um resumo do que vai gravar **antes** de gravar.
+
+- **`docs/banco.md` e `docs/banco/*.sql`** — gravados pelo gerador do inventário **na fase 2**, porque o owner respondeu à pergunta da credencial: leitura somente no banco, e só arquivo com a marca `[inventario-banco]` é escrito ou removido (arquivo do time com o mesmo nome fica intocado e sai no relatório). Aqui você só os **cita** no dossiê.
 
 - **`docs/ARQUITETURA.md`** — o dossiê. Copie o esqueleto de `${CLAUDE_PLUGIN_ROOT}/templates/ARQUITETURA.md` e preencha do código real: o que é · stack/como roda · mapa do código · rotas · dados · IA/RAG · **pré-existente (não nasceu do kit)** · **Lacunas**. (Não achou os templates via a variável? Procure em `~/.claude/plugins/cache/*/mss-spec/*/templates/` ou `~/.claude/skills/mss-spec/templates/`; não achou em nenhum → **pare com erro claro**, nunca invente caminho.)
 - **`CLAUDE.md`** (raiz) — preencha a seção **Contexto** (stack · como roda · UI · integrações · banco) e o **Mapa de arquivos** com o que foi levantado, apontando o `docs/ARQUITETURA.md`. Se o projeto já tinha um `CLAUDE.md` próprio, **preserve as regras dele** e só acrescente o que falta; conflito de regra → pergunte. Se ele não existe ainda, o `/mss-spec:kickoff` é quem o cria — aí passe a ele o contexto já levantado, em vez de reentrevistar.

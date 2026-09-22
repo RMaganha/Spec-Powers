@@ -1103,3 +1103,76 @@ def test_recall_hook_documentado_e_registrado():
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
     assert "Cinco hooks" in doc, "a contagem do README ficou velha"
+
+
+def test_inventario_banco_wiring():
+    """4º gerador determinístico: script testável + comando fino + retrato fora do git ANCORADO em
+    /docs/ — 'banco.md' SOLTO no .gitignore ignoraria o commands/banco.md que já existe (mesma armadilha
+    do bpmn). Os corpos .sql são versionados de propósito: docs/banco/ NÃO entra no .gitignore.
+    O comportamento do gerador vive em tests/test_inventario_banco.py."""
+    assert (REPO / "templates" / "inventario_banco.py").exists(), "falta templates/inventario_banco.py"
+    cmd = (REPO / "commands" / "inventario-banco.md").read_text(encoding="utf-8")
+    low = cmd.lower()
+    assert "templates/inventario_banco.py" in cmd, "comando não aponta o gerador"
+    assert "fora do git" in low and "versionado" in low, "comando não declara o que vai e o que não vai pro git"
+    assert "pro assistente" in low, "comando não carrega 'visual é pro humano; dados pro assistente'"
+    assert "nunca peça senha digitada" in low, "comando não carrega 'reusar o que já conecta'"
+    assert "pode apagar" in low, "comando não carrega a frase de guarda contra DROP"
+    assert "nunca o valor" in low, "comando não proíbe exibir o valor do segredo"
+    for gi_path in ("templates/gitignore", ".gitignore"):
+        linhas = [l.strip() for l in (REPO / gi_path).read_text(encoding="utf-8").splitlines()]
+        assert "/docs/banco.md" in linhas, f"{gi_path} não ancora /docs/banco.md"
+        assert "banco.md" not in linhas, f"{gi_path}: 'banco.md' solto ignoraria commands/banco.md"
+        assert "/docs/banco/" not in linhas, f"{gi_path}: os .sql são versionados — não ignore docs/banco/"
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:inventario-banco" in leiame, "LEIA-ME não lista o comando"
+    spec = (REPO / "docs" / "specs" / "inventario-banco.md").read_text(encoding="utf-8")
+    assert "## Estado atual" in spec and "## Histórico" in spec, "spec viva sem as seções fixas"
+
+
+def test_analise_dispara_inventario_do_banco():
+    """O owner não sabe o nome do comando ('eu vou usar o analise, ele vai ter que ser inteligente o
+    suficiente') — a analise dispara o inventário por EVIDÊNCIA no código, pergunta só a credencial, e a
+    regra dura abre exceção pros .sql gerados (senão proibiria a própria saída do inventário)."""
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    low = an.lower()
+    assert "templates/inventario_banco.py" in an, "analise.md não roda o gerador do inventário"
+    for evidencia in ("connectionStrings", "SqlConnection", "get_connection.py"):
+        assert evidencia in an, f"analise.md não dispara o inventário pela evidência {evidencia}"
+    assert "MSS_INVENTARIO_CONN" in an
+    assert "nunca peça senha digitada" in low
+    assert "pode apagar" in low
+    assert "docs/banco/" in an, "analise.md não abre a exceção dos .sql gerados pelo inventário"
+    tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
+    assert "Banco vivo (inventário)" in tpl, "ARQUITETURA.md não tem onde destilar o inventário"
+    # revisão final: só SQL Server dispara (I9) · nunca abrir o config inteiro (I11) · a escrita da fase 2
+    # está declarada no passo 4 (I10), senão o assistente literal pula o inventário ou quebra a regra
+    assert "cobre **só SQL Server**" in an, "analise.md dispararia o gerador (SQL Server) em outro motor"
+    assert "nunca abra o `web.config`/`app.config` inteiro" in low, "analise.md deixaria a senha entrar na conversa"
+    assert "`docs/banco.md` e `docs/banco/*.sql`" in an, "passo 4 não declara a escrita do inventário na fase 2"
+
+
+def test_como_funciona_lista_todos_os_comandos():
+    """Contagem travada: o COMO-FUNCIONA.html já ficou 4 comandos defasado (consertado à mão) e estava de
+    novo em 20 × 24. Todo arquivo de commands/ tem card id="c-<nome>" (hífen ignorado: to-dolist ↔
+    c-todolist), o número em 'Os N atalhos' bate com a pasta e a numeração C1..CN é contínua."""
+    html = (REPO / "docs" / "COMO-FUNCIONA.html").read_text(encoding="utf-8")
+    # Depende da marcação atual (`class` antes de `id` no card; nome de comando sem dígito). Se o HTML
+    # mudar de forma, este teste FALHA alto — nunca passa calado. Ajuste o regex junto com o HTML.
+    comandos = {p.stem.replace("-", "") for p in _command_files()}
+    cards = {c.replace("-", "") for c in re.findall(r'<div class="node" id="c-([a-z-]+)"', html)}
+    assert not comandos - cards, f"comando sem card no COMO-FUNCIONA.html: {sorted(comandos - cards)}"
+    assert not cards - comandos, f"card sem comando: {sorted(cards - comandos)}"
+    # a contagem aparece em 3 lugares (cabeçalho, tabela, título da seção) — todos em algarismo
+    numeros = [int(n) for n in re.findall(r"(\d+)\s+(?:<em>)?atalhos", html)]
+    assert len(numeros) >= 3, f"COMO-FUNCIONA.html perdeu alguma contagem 'N atalhos' (achei {numeros})"
+    assert set(numeros) == {len(comandos)}, f"contagens {numeros}, mas há {len(comandos)} comandos"
+    assert not re.search(r"(?i)\b(?:dez|quinze|vinte|trinta)\b[^<]{0,20}(?:<em>)?atalhos", html), \
+        "contagem por extenso escapa deste teste — escreva em algarismo"
+    idx = [int(n) for n in re.findall(r'<span class="node-idx">C(\d+)</span>', html)]
+    assert idx == list(range(1, len(comandos) + 1)), "numeração C1..CN dos cards fora de ordem"
+    # a nav lateral tem 1 link por card, na mesma ordem e com a mesma numeração
+    nav = re.findall(r'<a href="#c-([a-z-]+)"><span class="nav-num">C(\d+)</span>', html)
+    ordem_cards = re.findall(r'<div class="node" id="c-([a-z-]+)"', html)
+    assert [c for c, _ in nav] == ordem_cards, "nav lateral fora da ordem dos cards (ou card sem link)"
+    assert [int(n) for _, n in nav] == list(range(1, len(comandos) + 1)), "numeração C1..CN da nav lateral"

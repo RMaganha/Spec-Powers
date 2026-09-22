@@ -43,6 +43,9 @@
 - **Como conecta:** <módulo de conexão · credencial via env/outro>
 - **Tabelas/esquema:** <o que aparece em `.sql`/migrations/models>
 - **DDL versionada?** <sim (`sql/NN_*.sql`) | não — como o esquema é criado hoje>
+- **Banco vivo (inventário):** <`docs/banco.md` gerado em <data> · N tabelas · N procedures · N sem citação no código · N corpo não extraído — ou "não inventariado: <motivo>", repetido em Lacunas>
+- **Credencial do inventário:** <servidor · base · ambiente · `get_connection.py` de qual projeto (caminho, nunca valor) | variável `MSS_INVENTARIO_CONN`>
+- > "Sem citação" não significa "pode apagar" — significa "não encontrei citação textual".
 
 ## 6. IA / RAG (só se o projeto tiver)
 <!-- Apague a seção se não se aplica. Nada de valor default chutado: se o top_k/dimensão não
