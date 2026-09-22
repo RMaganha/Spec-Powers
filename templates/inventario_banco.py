@@ -390,37 +390,50 @@ def coletar(cursor, max_objetos=MAX_OBJETOS_PADRAO):
 
 
 # ------------------------------------------------------------------------------------- segredo
-# Ordem importa: as formas entre aspas vêm antes da genérica; a genérica recusa valor que começa com
-# aspas (senão mascararia só o "N" de N'...'). Grupo 1 = prefixo mantido; grupo 2 = valor mascarado.
+# Varre o corpo INTEIRO, não linha a linha: o prefixo pode quebrar linha (`EXEC sp_addlinkedsrvlogin`
+# e os argumentos embaixo). O VALOR nunca atravessa linha, então mascarar não muda a contagem de
+# linhas. Ordem importa: os padrões específicos vêm primeiro (dão o tipo certo); os genéricos pulam
+# valor já mascarado. Falso positivo é aceitável; falso negativo vai pro git pra sempre.
+_V = r"N?'[^'\n]*'"
 _PADROES_SEGREDO = (
-    (re.compile(r"(?i)(\bwith\s+password\s*=\s*)(N?'[^']*')"), "senha de LOGIN"),
-    (re.compile(r"(?i)(@rmtpassword\s*=\s*)(N?'[^']*')"), "senha de linked server (sp_addlinkedsrvlogin)"),
-    (re.compile(r"(?i)(\bsp_addlinkedsrvlogin\b[^;\n]*?,[^,\n]*,[^,\n]*,[^,\n]*,\s*)(N?'[^']*')"),
+    (re.compile(rf"(?i)(\bwith\s+password\s*=\s*)({_V})"), "senha de LOGIN"),
+    (re.compile(rf"(?i)(@rmtpassword\s*=\s*)({_V})"), "senha de linked server (sp_addlinkedsrvlogin)"),
+    (re.compile(rf"(?i)(\bsp_addlinkedsrvlogin\b[^;@]*?,[^,;@]*,[^,;@]*,[^,;@]*,\s*)({_V})"),
      "senha de linked server (sp_addlinkedsrvlogin)"),
-    (re.compile(r"(?i)(\bsecret\s*=\s*)(N?'[^']*')"), "SECRET de credencial"),
-    (re.compile(r"(?i)(\bidentity\s*=\s*)(N?'[^']*')"), "IDENTITY de credencial"),
-    (re.compile(r"(?i)(\bopenrowset\s*\(\s*N?'[^']*'\s*,\s*N?'[^']*'\s*;\s*N?'[^']*'\s*;\s*)(N?'[^']*')"),
-     "senha em OPENROWSET"),
-    (re.compile(r"(?i)(\b(?:pwd|password)\s*=\s*)(?!N?')([^;'\"\s]+)"), "senha em conn string"),
+    (re.compile(rf"(?i)(\bsp_addlogin\b\s*{_V}\s*,\s*)({_V})"), "senha de sp_addlogin"),
+    (re.compile(rf"(?i)(\bsp_password\b\s*)({_V})"), "senha de sp_password"),
+    (re.compile(rf"(?i)(\bsp_password\b\s*(?:{_V}|NULL)\s*,\s*)({_V})"), "senha de sp_password"),
+    (re.compile(rf"(?i)(\bsecret\s*=\s*)({_V})"), "SECRET de credencial"),
+    (re.compile(rf"(?i)(\bidentity\s*=\s*)({_V})"), "IDENTITY de credencial"),
+    (re.compile(rf"(?i)(\bopenrowset\s*\(\s*{_V}\s*,\s*{_V}\s*;\s*{_V}\s*;\s*)({_V})"), "senha em OPENROWSET"),
+    (re.compile(rf"(?i)(@(?:senha|pwd|passwd|password|psw)\w*[^=\n']*=\s*)({_V})"), "senha em variável"),
+    (re.compile(rf"(?i)(password\s*=\s*)({_V})"), "senha (PASSWORD = '...')"),
+    (re.compile(r"""(?im)((?:^|[\s'"])-P\s*)("[^"\n]*"|[^\s'";]+)"""), "senha em linha de comando (-P)"),
+    (re.compile(r"(?i)(\b(?:pwd|password)\s*=\s*)(?!N?'|@)([^;'\"\s]+)"), "senha em conn string"),
 )
 
 
-def _substituto(m):
-    valor = m.group(2)
-    return m.group(1) + (f"'{MASCARA}'" if valor.lstrip("Nn").startswith("'") else MASCARA)
+def _mascarado(valor):
+    v = valor.lstrip("Nn")
+    if v.startswith("'"):
+        return f"'{MASCARA}'"
+    if v.startswith('"'):
+        return f'"{MASCARA}"'
+    return MASCARA
 
 
 def mascarar_segredos(corpo):
-    """(corpo com segredo mascarado, [(linha do corpo original, tipo)]). Nunca devolve o valor."""
+    """(corpo com segredo mascarado, [(linha do corpo original, tipo)]) — nunca devolve o valor."""
     achados = []
-    linhas = corpo.split("\n")
-    for i, linha in enumerate(linhas, 1):
-        for regex, tipo in _PADROES_SEGREDO:
-            linha, n = regex.subn(_substituto, linha)
-            if n:
-                achados.append((i, tipo))
-        linhas[i - 1] = linha
-    return "\n".join(linhas), achados
+    texto = corpo
+    for regex, tipo in _PADROES_SEGREDO:
+        def troca(m, texto=texto, tipo=tipo):
+            if "***REMOVIDO" in m.group(2):  # já mascarado por um padrão mais específico
+                return m.group(0)
+            achados.append((texto.count("\n", 0, m.start(2)) + 1, tipo))
+            return m.group(1) + _mascarado(m.group(2))
+        texto = regex.sub(troca, texto)
+    return texto, sorted(achados, key=lambda a: a[0])
 
 
 def cabecalho_segredo(achados, nl):

@@ -375,6 +375,15 @@ def test_corpo_nulo_sem_criptografia_e_falta_de_view_definition(inv):
     ("CREATE DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'u', SECRET = 'Abc123'", "SECRET de credencial"),
     ("SELECT a FROM OPENROWSET('Microsoft.Jet.OLEDB.4.0', 'C:\\x.mdb';'admin';'Abc123', 'SELECT 1')",
      "senha em OPENROWSET"),
+    ("EXEC sp_addlinkedsrvlogin\n    'SRV', 'false', NULL, 'user', 'Abc123'", "senha de linked server (sp_addlinkedsrvlogin)"),
+    ("CREATE LOGIN app WITH\nPASSWORD = 'Abc123'", "senha de LOGIN"),
+    ("CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Abc123'", "senha (PASSWORD = '...')"),
+    ("ALTER LOGIN app WITH PASSWORD = 'New123' OLD_PASSWORD = 'Abc123'", "senha (PASSWORD = '...')"),
+    ("DECLARE @pwd varchar(20) = 'Abc123'", "senha em variável"),
+    ("SET @senha = N'Abc123'", "senha em variável"),
+    ("EXEC master..xp_cmdshell 'bcp db..t out x.txt -S srv -U u -P Abc123'", "senha em linha de comando (-P)"),
+    ("EXEC sp_addlogin 'user', 'Abc123'", "senha de sp_addlogin"),
+    ("EXEC sp_password 'Old999', 'Abc123', 'user'", "senha de sp_password"),
 ])
 def test_mascara_segredo(inv, linha, tipo):
     corpo, achados = inv.mascarar_segredos(linha)
@@ -395,3 +404,17 @@ def test_cabecalho_de_segredo(inv):
     cab = inv.cabecalho_segredo([(12, "senha de LOGIN")], "\n")
     assert "linha 12 do corpo original (senha de LOGIN)" in cab
     assert "não script executável" in cab
+
+
+def test_sp_password_mascara_as_duas_senhas(inv):
+    corpo, _ = inv.mascarar_segredos("EXEC sp_password 'Old999', 'Abc123', 'user'")
+    assert "Old999" not in corpo and "Abc123" not in corpo and "'user'" in corpo
+
+
+def test_variavel_recebendo_variavel_nao_e_segredo(inv):
+    assert inv.mascarar_segredos("SET @pwd = @parametro") == ("SET @pwd = @parametro", [])
+
+
+def test_linha_reportada_quando_o_segredo_quebra_linha(inv):
+    _, achados = inv.mascarar_segredos("a\nEXEC sp_addlinkedsrvlogin\n 'S', 'false', NULL, 'u', 'Abc123'")
+    assert achados == [(3, "senha de linked server (sp_addlinkedsrvlogin)")]
