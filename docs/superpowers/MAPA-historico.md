@@ -4,6 +4,9 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-23 — saiu do rodízio do MAPA (v0.29.1)
+`fix/alerta-contexto-janela-1m` — **v0.29.1 pronta na branch; merge/push são do owner** (0.29.0 já integrada). Fix: família 5 = janela de 1M (F-027). Suíte **472 verde**. Entregue: `hooks/alerta_contexto.py` (UserPromptSubmit + PostToolUse, avisa em 75/85/95% pela `usage` do transcript, não bloqueia) + prosa "bola de neve" (entender = subagente, mexer = to-dolist) no `CLAUDE.md`/`to-dolist`/`nova-feature`. **Não validado numa sessão nova** (recarregar e ver o aviso chegar). Spec: `docs/specs/alerta-de-contexto.md`.
+
 ## 2026-09-23 — saiu do rodízio do MAPA (v0.28.0)
 `feature/inventario-do-banco-vivo` — **v0.28.0 pronta na branch; merge/push são do owner.** Suíte **452 verde** (era 336). Entregue: `templates/inventario_banco.py` (4º gerador: somente-leitura, só catálogo, par Fernet reaproveitado lido por `ast` + `--base`/`--par`, cruzamento citado/só-no-banco/sem citação, corpos versionados com segredo mascarado no corpo inteiro, marca de autoria) · `/mss-spec:inventario-banco` · passo automático na `analise` · `COMO-FUNCIONA.html` com 25 cards e contagem travada. **Não validado contra banco real.** Spec: `docs/specs/inventario-banco.md`; plano em `plans/2026-09-22-inventario-banco.md`.
 
