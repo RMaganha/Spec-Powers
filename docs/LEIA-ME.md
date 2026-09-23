@@ -110,7 +110,11 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Seis redes prontas para quando algo dá errado — nenhuma é comando novo:
+Sete redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Alerta de contexto** — o hook `hooks/alerta_contexto.py` (ligado por padrão, **não bloqueia**) avisa
+  quando a janela passa de **75%** e manda fechar o assunto: estado no `MAPA.md`, o resto (inclusive o
+  *"pra fechar isto preciso entender aquilo"*) no `/mss-spec:to-dolist` e `/clear`. A % vem do `usage`
+  do transcript; limiar `MSS_ALERTA_CONTEXTO_PCT`, janela `MSS_JANELA_TOKENS`, escape `MSS_ALERTA_CONTEXTO_OFF=1`.
 - **Publicar/integrar é ato do owner** — o hook `hooks/git_publicacao.py` (ligado por padrão) **nega**
   ao assistente `git push`, `git merge`, `git rebase`, `gh pr merge` e comandos de deploy (`docker push`,
   `az acr build`, `az webapp`, `az containerapp`). Nasceu de acidente real (caso F-022): o assistente

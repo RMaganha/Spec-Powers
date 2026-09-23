@@ -4,6 +4,9 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-23 — saiu do rodízio do MAPA (v0.27.0)
+`main` — **v0.27.0 integrada e publicada pelo owner** (merge `8589085` de `feature/orcamento-de-partida-e-recall`; `doctor` confirma local = `origin/main`). Suíte **336 verde** (era 289). **Aplicada no Whats** em janela própria (3 commits por script, nada editado à mão): partida 190 → 108 KB; hooks confirmados carregando pela junction. Nasceu de uma sessão cara no projeto Whats: o kit mandou **podar** um índice de memória de 25 KB alegando "acima disso o excedente não carrega" — premissa da pasta **nativa**, falsa pro índice do repo (caso **F-024**); e o índice era 12% da partida (~214 KB ≈ 53 mil tokens por janela). Entregue: **índice em dois níveis** (`templates/memoria_indice.py` dividir/verificar/fila/buscar; topo 6 KB travado por teste; o kit já dividido: 8.694 → 2.976 B) · **`hooks/recall_memoria.py`** (UserPromptSubmit, injeta ≤ 600 B de ponteiros que casam com o prompt; não bloqueia; falha aberta) · **`templates/rodizio_partida.py`** mapa/index (move pro histórico, dry-run, conservação) · texto corrigido no molde, `memory`, `doctor` (aponta o comando exato), `upgrade`. Spec: `docs/superpowers/specs/2026-09-15-orcamento-de-partida-e-recall-deterministico-design.md`; plano ao lado em `plans/`.
+
 ## 2026-09-22 — saiu do rodízio do MAPA (v0.26.0)
 
 ### Onde estávamos

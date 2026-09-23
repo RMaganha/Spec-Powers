@@ -21,8 +21,8 @@
 - **Ao reabrir um assunto**, abra antes a spec viva (`docs/specs/<assunto>.md`): "Estado atual" diz como está HOJE.
 - **`.claude/rules/`**: regra com `paths:` que carrega sozinha quando você toca um arquivo que casa. É onde mora a regra por tipo de arquivo (front, banco, rota) — **não repita esse conteúdo aqui**.
 - **Sob demanda, nunca na partida**: `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md` · `docs/superpowers/MAPA-historico.md` e `INDEX-historico.md` (estado velho, fechadas).
-- **Um assunto por janela — e um projeto por janela** (regra 8). Surgiu um 2º assunto (bug em homolog incluso)? **Não aja sobre ele**: anote o estado no `MAPA.md`, ofereça `/mss-spec:to-dolist adicionar <assunto>` e mande **`/clear` + janela nova**. Feature nova só sem aberta (hook nega).
-- **Investigação ampla vai por subagente** (varrer muitos arquivos): lê em janela separada, devolve o resumo. Corrigiu 2× o mesmo ponto? `/clear` e recomece com prompt melhor.
+- **Um assunto por janela — e um projeto por janela** (regra 8). Surgiu um 2º assunto (bug em homolog incluso)? **Não aja sobre ele**: anote o estado no `MAPA.md`, ofereça `/mss-spec:to-dolist adicionar <assunto>` e mande **`/clear` + janela nova** — idem com a **janela ≥ 75%** (hook avisa). Feature nova só sem aberta (hook nega).
+- **Bola de neve** (fechar A pede entender B): entender B (ou investigar amplo) = **subagente**, que volta só o resumo; mexer em B = to-dolist, nunca aqui. Corrigiu 2× o mesmo ponto? `/clear`.
 - **Ao compactar (`/compact`), preserve**: a **branch** e o assunto · as **premissas** declaradas · os critérios de aceite abertos · o comando de teste e a última saída · os arquivos tocados.
 - **`<private>`**: trecho marcado `<private>…</private>` nunca vira memória/diário/decisão versionada.
 
