@@ -126,6 +126,19 @@
 - `test_processo_*` (×3) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; libera calado; não-JSON libera
 - `test_hook_registrado_no_user_prompt_submit` / `test_segunda_camada_em_prosa` — `hooks.json` (UserPromptSubmit), passo 0 do `nova-feature.md`, `CLAUDE.md` sem "alerta, não trava", README
 
+`tests/test_hook_pipe_teste.py` — cerca do pipe no `git_publicacao.py` (F-025):
+- `test_nega_pytest_mascarado_por_pipe_antes_do_commit` (×7) / `test_nega_tambem_no_powershell` — os comandos reais de `edc0ab9` e `f9388e5`, `py.test`, `python3`, `-C`, `python.exe`, `Select-Object`
+- `test_libera_o_resto` (×10) — `pytest && git commit`, pipe sem commit, `pipefail`, pipe sem pytest, `pytest` como texto, teste depois do commit
+- `test_escape_*` (×3) / `test_bug_na_cerca_do_pipe_*` (×2) — `MSS_PIPE_TESTE_OFF` próprio; uma cerca não liga nem desliga a outra; bug aqui libera (ABERTA) sem abrir a de publicação
+- `test_processo_nega_pelos_dois_protocolos` / `test_documentado_no_readme` — deny + exit 2 via subprocess; README
+
+`tests/test_hook_registro.py` — registro local dos hooks (`hooks/_registro.py`):
+- `test_hook_que_age_grava_uma_linha` (×7) — cada hook, quando age, grava 1 linha com hook/decisão/detalhe/sessão
+- `test_nunca_grava_o_texto_do_prompt_nem_do_comando` (×7) — segredo falso no comando, prompt e caminho não aparece
+- `test_hook_que_passa_calado_nao_grava` (×4) — passar calado não gera linha
+- `test_registro_que_nao_grava_nao_muda_a_decisao` (×7) / `test_cerca_de_publicacao_segue_negando_com_registro_quebrado` — saída byte a byte igual com o registro quebrado
+- `test_escape_do_owner_nao_grava` / `test_acima_do_teto_faz_rodizio` / `test_detalhe_curto_e_numa_linha_so` / `test_padrao_e_na_pasta_do_kit_no_home` / `test_resumo_*` (×2) / `test_documentado_no_readme`
+
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`). Mesmo canário pras cercas da 0.26.0: `git push --dry-run` pedido ao assistente tem que vir `[mss-spec] BLOQUEADO`, e `/mss-spec:nova-feature outra-coisa` com feature `aberta` no INDEX tem que ser bloqueado com a lista.
 
 - `test_infra_pergunta_no_kickoff` — CA1: o kickoff pergunta MSIG × própria e grava na linha `Infra:` do `CLAUDE.md`
@@ -134,4 +147,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-09-14 · branch feature/travas-publicacao-e-um-item-por-janela (cercas: publicar é ato do owner · um item por janela) · 289 passed
+**Último 100% verde:** 2026-09-23 · branch feature/hooks-cerca-pipe-e-registro (cerca do pipe · registro dos hooks) · 530 passed

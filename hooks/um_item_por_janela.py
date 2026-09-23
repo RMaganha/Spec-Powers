@@ -23,6 +23,25 @@ import re
 import sys
 import unicodedata
 
+
+# Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
+# ou com qualquer defeito dele, o hook segue exatamente igual.
+try:
+    _PASTA_HOOKS = os.path.dirname(os.path.abspath(__file__))
+    if _PASTA_HOOKS not in sys.path:
+        sys.path.insert(0, _PASTA_HOOKS)
+    from _registro import registrar as _registrar
+except Exception:                                    # noqa: BLE001
+    _registrar = None
+
+
+def _anotar(decisao, detalhe, evento):
+    try:
+        if _registrar is not None:
+            _registrar("um_item_por_janela", decisao, detalhe, evento)
+    except Exception:                                # noqa: BLE001
+        pass
+
 ENV_DESLIGA = "MSS_UM_ITEM_OFF"
 INDEX_REL = ("docs", "superpowers", "INDEX.md")
 
@@ -138,6 +157,7 @@ def decidir(evento, ambiente=None):
         if argumento and any(mesmo_assunto(argumento, item) for item in itens):
             return None
         lista = "\n".join(f"  - {item}" for item in itens)
+        _anotar("bloqueou", f"abertas={len(itens)}", evento)
         return MOTIVO.format(lista=lista, env=ENV_DESLIGA)
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None

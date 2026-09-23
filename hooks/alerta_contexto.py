@@ -30,6 +30,25 @@ import re
 import sys
 import tempfile
 
+
+# Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
+# ou com qualquer defeito dele, o hook segue exatamente igual.
+try:
+    _PASTA_HOOKS = os.path.dirname(os.path.abspath(__file__))
+    if _PASTA_HOOKS not in sys.path:
+        sys.path.insert(0, _PASTA_HOOKS)
+    from _registro import registrar as _registrar
+except Exception:                                    # noqa: BLE001
+    _registrar = None
+
+
+def _anotar(decisao, detalhe, evento):
+    try:
+        if _registrar is not None:
+            _registrar("alerta_contexto", decisao, detalhe, evento)
+    except Exception:                                # noqa: BLE001
+        pass
+
 ENV_DESLIGA = "MSS_ALERTA_CONTEXTO_OFF"
 ENV_PCT = "MSS_ALERTA_CONTEXTO_PCT"
 ENV_JANELA = "MSS_JANELA_TOKENS"
@@ -189,6 +208,7 @@ def responder(evento, ambiente=None):
         if anterior is not None and faixa <= anterior:
             return None                              # já avisou nesta faixa
         _gravar_faixa(estado, faixa)
+        _anotar("avisou", f"faixa={faixa} pct={pct:.0f} janela={janela} modelo={modelo}", evento)
         pro_assistente, pro_owner = mensagens(pct, tokens, janela, limiar)
         return {
             "systemMessage": pro_owner,

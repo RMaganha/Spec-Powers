@@ -34,6 +34,25 @@ import os
 import re
 import sys
 
+
+# Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
+# ou com qualquer defeito dele, o hook segue exatamente igual.
+try:
+    _PASTA_HOOKS = os.path.dirname(os.path.abspath(__file__))
+    if _PASTA_HOOKS not in sys.path:
+        sys.path.insert(0, _PASTA_HOOKS)
+    from _registro import registrar as _registrar
+except Exception:                                    # noqa: BLE001
+    _registrar = None
+
+
+def _anotar(decisao, detalhe, evento):
+    try:
+        if _registrar is not None:
+            _registrar("git_publicacao", decisao, detalhe, evento)
+    except Exception:                                # noqa: BLE001
+        pass
+
 ENV_DESLIGA = "MSS_PUBLICACAO_OFF"
 ENV_PIPE_DESLIGA = "MSS_PIPE_TESTE_OFF"
 TOOLS_DE_SHELL = ("Bash", "PowerShell")
@@ -120,26 +139,28 @@ def mascara_teste(comando):
 
 
 def _decidir_publicacao(comando, ambiente):
+    """(motivo, detalhe pro registro) ou (None, None)."""
     if _texto(ambiente.get(ENV_DESLIGA)):
-        return None
+        return None, None
     try:
         alvo = publica_ou_integra(comando)
     except Exception as erro:                        # noqa: BLE001 — falha FECHADA
-        return MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA)
+        return MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA), "defeito da cerca"
     if alvo is None:
-        return None
-    return MOTIVO.format(alvo=alvo, comando=comando[:200], env=ENV_DESLIGA)
+        return None, None
+    return MOTIVO.format(alvo=alvo, comando=comando[:200], env=ENV_DESLIGA), alvo.split(" — ")[0]
 
 
 def _decidir_pipe(comando, ambiente):
+    """(motivo, detalhe pro registro) ou (None, None)."""
     if _texto(ambiente.get(ENV_PIPE_DESLIGA)):
-        return None
+        return None, None
     try:
         if not mascara_teste(comando):
-            return None
+            return None, None
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None
-    return MOTIVO_PIPE.format(comando=comando[:200], env=ENV_PIPE_DESLIGA)
+        return None, None
+    return MOTIVO_PIPE.format(comando=comando[:200], env=ENV_PIPE_DESLIGA), "pytest em pipe antes do git commit"
 
 
 def decidir(evento, ambiente=None):
@@ -152,7 +173,12 @@ def decidir(evento, ambiente=None):
     comando = _texto(comando)
     if comando is None:
         return None                                  # nada a avaliar → nada a negar
-    return _decidir_publicacao(comando, ambiente) or _decidir_pipe(comando, ambiente)
+    motivo, detalhe = _decidir_publicacao(comando, ambiente)
+    if motivo is None:
+        motivo, detalhe = _decidir_pipe(comando, ambiente)
+    if motivo is not None:
+        _anotar("negou", detalhe, evento)
+    return motivo
 
 
 def main():

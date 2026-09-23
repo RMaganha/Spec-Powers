@@ -1,4 +1,5 @@
-Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
+Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os seis anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -259,3 +260,44 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 - **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado.
 - **Calado** abaixo do limiar e na faixa já avisada.
 - **Escape consciente só do owner:** `MSS_ALERTA_CONTEXTO_OFF=1`.
+
+---
+
+# Registro local — o que os hooks FIZERAM (`_registro.py`)
+
+**Por que existe:** os hooks decidem calados, e ninguém consegue dizer quanto eles valem — quantas
+vezes a cerca de publicação barrou um push, se o recall aponta a memória certa, se o alerta de
+contexto calcula a janela certa. O caso **F-027** (o alerta dizia 92% onde o app mostrava 18%) só
+apareceu porque o owner comparou com o print do app. Com o registro, isso vira número.
+
+Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/registro-hooks.jsonl`
+(um arquivo por máquina, fora de qualquer repo, com o nome da pasta do projeto em cada linha):
+
+| hook | decisão | detalhe gravado |
+|---|---|---|
+| `git_publicacao` | `negou` | `git push`, `git merge`… · `pytest em pipe antes do git commit` · `defeito da cerca` |
+| `projeto_ativo` | `negou` | o tool (`Write`/`Edit`) — **não** o caminho |
+| `um_item_por_janela` | `bloqueou` | `abertas=N` |
+| `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
+| `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
+| `capturar_nudge` | `lembrou` | — |
+
+Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
+
+```
+python hooks/_registro.py resumo            # tudo
+python hooks/_registro.py resumo --dias 7   # só a última semana
+```
+
+## Garantias
+
+- **Nunca grava o texto do prompt nem a linha de comando** — o detalhe é sempre um rótulo do
+  próprio hook. Travado por teste com um segredo falso no comando, no prompt e no caminho.
+- **Registro quebrado não muda decisão nenhuma** — disco cheio, pasta sem permissão, módulo
+  ausente: o hook responde byte a byte igual (travado por teste nos seis). A cerca de publicação
+  segue falhando FECHADA por conta dela, não do registro.
+- **Passar calado não grava** (o `alerta_contexto` roda em todo `PostToolUse`; só a faixa nova vira linha).
+- **Teto:** acima de 1 MB o arquivo vira `.1` (o `.1` anterior é descartado) — nunca cresce sem limite.
+- **Custo:** anexar uma linha é < 1 ms, contra os ~190–260 ms que cada hook já gasta na partida do Python.
+- **Escape consciente, só do owner:** `MSS_REGISTRO_OFF=1`. `MSS_REGISTRO_ARQUIVO` troca o caminho
+  (a suíte usa, via `tests/conftest.py`, pra nunca sujar o registro real).
