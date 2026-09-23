@@ -54,6 +54,7 @@ FRASES_CHAVE_CLAUDE_MD = (
     "o hook pede a minha aprovação",
     "Um assunto por janela",
     "Bola de neve",
+    "Comando pra eu rodar = passo a passo",
     "Pedido com várias partes",
     "Relate o que está no disco",
     "`<private>`",
