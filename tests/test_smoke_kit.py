@@ -1102,7 +1102,7 @@ def test_recall_hook_documentado_e_registrado():
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
-    assert "Sete hooks" in doc, "a contagem do README ficou velha"
+    assert "Oito hooks" in doc, "a contagem do README ficou velha"
 
 
 def test_inventario_banco_wiring():
