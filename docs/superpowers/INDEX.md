@@ -6,8 +6,8 @@
 # Índice de tarefas — mss-spec
 
 ## A fazer (ordem)
-5. upgrade — sincroniza projeto existente com a evolução dos templates — **em andamento** (sem commit)
-6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — **em andamento** (implementado na 0.28.0; falta dogfood no projeto C# real)
+5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
+6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
 7. cobertura C#/.NET na análise — `Program`/`Startup`, controllers, `.csproj`, rotas (o `bpmn` e o `mapa-neural` seguem só Python) — pausada: nasce depois do dogfood do item 6
 
 ## Fora de escopo (não fazer)
