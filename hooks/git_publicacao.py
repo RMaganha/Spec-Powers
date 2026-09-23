@@ -1,22 +1,32 @@
-"""Hook do mss-spec: PUBLICAR e INTEGRAR é ato do owner — o assistente não aperta esse botão.
+"""Hook do mss-spec: push em HOMOLOGAÇÃO/PRODUÇÃO é ato do owner — o resto do git o assistente
+roda, com a aprovação do owner.
 
 Nasceu de um acidente real (2026-09, caso F-022 em `docs/EVALS.md`): numa janela aberta pra
 UMA feature, o assistente absorveu um 2º e um 3º assunto, mesclou branches e disparou
 `git push` — e o push é o gatilho do deploy automático em homologação. Quando o owner viu,
 vários já tinham ido; o ambiente quebrou inteiro e custou centenas de testes pra entender o quê.
 
-A frase "`git push` só quando eu pedir" JÁ estava no `CLAUDE.md` e foi ignorada: prosa não
-segura na hora 2 de uma sessão longa. Este hook é a camada que não depende de o assistente se
-comportar — a mesma filosofia da cerca da âncora (`projeto_ativo.py`).
+A 1ª versão (0.26.0) negava TODO push/merge/rebase e travou o dia a dia — merge local, push de
+branch de feature, até `git merge-base`, que só lê. O dano do F-022 veio do push que faz DEPLOY:
+é isso que segue negado. O resto vira pedido de aprovação — o owner vê o comando e aprova com um
+clique (`permissionDecision: "ask"`, que aparece também no app Desktop).
 
 Contrato:
 - evento `PreToolUse`, matcher `Bash|PowerShell`; lê `tool_input.command`;
-- **nega** o que publica (`git push`), integra (`git merge`, `git rebase`, `gh pr merge`) ou
-  faz deploy (`docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update`);
-  casa o VERBO no início de um comando simples (após `;`, `&&`, `|`, `(`, quebra de linha ou
-  prefixo `VAR=x`), não a palavra solta — `grep 'git push'` e `echo pushing` passam;
-- **libera** o resto do git (status, log, diff, fetch, add, commit, checkout/switch/branch,
-  `merge --abort`, `rebase --abort`) — abrir a branch da feature continua livre;
+- **nega**:
+  - `git push` cujo destino é branch **protegida** — `main`, `master`, `dev`, `develop`,
+    `production`, `homolog*`, `hml*`, `prod*`, `release/*` — por refspec (`origin dev`,
+    `HEAD:dev`, `x:main`, `--delete main`) ou, sem refspec, pela branch atual e pelo `@{push}`
+    (a feature que rastreia `origin/dev` iria pra dev);
+  - `git push` de destino **indeterminável**: `--all`, `--mirror`, `--tags`, `:`, HEAD destacado,
+    git inconsultável;
+  - deploy e integração remota: `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`,
+    `az containerapp update|create|revision`;
+- **pede aprovação**: `git merge`, `git rebase` (menos `--abort`) e `git push` de feature/fix;
+- **libera calado** o resto do git (`merge-base`, `merge-tree`, `pull`, status, commit…);
+- casa o VERBO no início de um comando simples (após `;`, `&&`, `|`, `(`, quebra de linha ou
+  prefixo `VAR=x`), não a palavra solta — `grep 'git push'` e `echo pushing` passam; num comando
+  com várias ações, a mais grave vence (negar > perguntar);
 - **falha FECHADA**: há comando e a avaliação estourou → nega (cerca com defeito não pode abrir
   sozinha). Evento sem comando (malformado) → libera calado: não existe push num evento vazio.
 
@@ -32,6 +42,8 @@ escape próprio: `MSS_PIPE_TESTE_OFF=1`. Uma cerca não liga nem desliga a outra
 import json
 import os
 import re
+import shlex
+import subprocess
 import sys
 
 
@@ -56,19 +68,34 @@ def _anotar(decisao, detalhe, evento):
 ENV_DESLIGA = "MSS_PUBLICACAO_OFF"
 ENV_PIPE_DESLIGA = "MSS_PIPE_TESTE_OFF"
 TOOLS_DE_SHELL = ("Bash", "PowerShell")
+NEGA, PERGUNTA = "deny", "ask"
+
+# Branches de homologação/produção: push nelas dispara deploy. Uma regra só, sem configuração.
+PROTEGIDAS = ("main", "master", "dev", "develop", "production")
+PROTEGIDAS_PREFIXO = ("homolog", "hml", "prod", "release/")
+PROTEGIDAS_TEXTO = "main, master, dev, develop, production, homolog*, hml*, prod*, release/*"
 
 # Início de um comando simples: começo do texto, separador de shell, abre-parêntese ou `$(`.
 _INICIO = r"(?:^|[;&|\n(]|\$\()\s*"
 # Prefixo `VAR=valor` (um ou mais) antes do executável.
 _ENV = r"(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*"
 # `git` com opções globais antes do verbo: `-C <dir>`, `-c k=v`, `--no-pager`, `--git-dir=…`.
-_GIT = r"git(?:\s+-[cC]\s+\S+|\s+--[\w-]+(?:=\S+)?)*\s+"
+_OPCOES_GIT = r"(?:\s+-[cC]\s+\S+|\s+--[\w-]+(?:=\S+)?)*"
+_GIT = r"git" + _OPCOES_GIT + r"\s+"
+# Fim do verbo: nem letra nem hífen depois — `merge` não casa `merge-base`/`merge-tree`.
+_FIM = r"(?![\w-])"
 
-PADROES = (
-    (re.compile(_INICIO + _ENV + _GIT + r"push\b"), "git push — publica e dispara o deploy"),
-    (re.compile(_INICIO + _ENV + _GIT + r"merge\b(?!\s+--abort\b)"), "git merge — integra branches"),
-    (re.compile(_INICIO + _ENV + _GIT + r"rebase\b(?!\s+--abort\b)"), "git rebase — reescreve/integra"),
-    (re.compile(_INICIO + _ENV + r"gh\s+pr\s+merge\b"), "gh pr merge — integra o PR"),
+_PUSH = re.compile(_INICIO + _ENV + r"git(?P<opcoes>" + _OPCOES_GIT + r")\s+push" + _FIM
+                   + r"(?P<args>[^;&|\n)]*)")
+_CD = re.compile(r"(?:^|[;&|\n(])\s*cd\s+(\"[^\"]+\"|'[^']+'|[^\s;&|]+)")
+
+INTEGRACAO = (
+    (re.compile(_INICIO + _ENV + _GIT + r"merge" + _FIM + r"(?!\s+--abort\b)"), "git merge"),
+    (re.compile(_INICIO + _ENV + _GIT + r"rebase" + _FIM + r"(?!\s+--abort\b)"), "git rebase"),
+)
+
+DEPLOY = (
+    (re.compile(_INICIO + _ENV + r"gh\s+pr\s+merge\b"), "gh pr merge — integra o PR no remoto"),
     (re.compile(_INICIO + _ENV + r"docker\s+push\b"), "docker push — publica imagem"),
     (re.compile(_INICIO + _ENV + r"az\s+acr\s+build\b"), "az acr build — constrói e publica imagem"),
     (re.compile(_INICIO + _ENV + r"az\s+webapp\s+(?!(?:log|show|list)\b)\S"),
@@ -77,20 +104,43 @@ PADROES = (
      "az containerapp — altera o Container App"),
 )
 
+# opções do `git push` que consomem o argumento seguinte
+_PUSH_COM_VALOR = ("-o", "--push-option", "--repo", "--receive-pack", "--exec")
+_PUSH_ABRANGENTE = ("--all", "--mirror", "--tags", "--branches")
+
 # pytest como COMANDO (não a palavra solta): `pytest`, `py.test`, `<python> -m pytest`.
 _PYTEST = re.compile(_INICIO + _ENV + r"(?:\S*python[\d.]*(?:\.exe)?\s+(?:-\S+\s+)*-m\s+pytest|py\.?test)\b")
 _COMMIT = re.compile(_INICIO + _ENV + _GIT + r"commit\b")
 _PIPE_SIMPLES = re.compile(r"(?<!\|)\|(?!\|)")      # `|`, não `||`
 
-MOTIVO = (
-    "[mss-spec] BLOQUEADO — publicar/integrar é ato do OWNER, não do assistente.\n"
-    "Comando recusado ({alvo}):\n  {comando}\n\n"
-    "Por quê: `git push` dispara o deploy automático (homologação/produção) e merge/rebase "
-    "mistura branches. Em 2026-09 o assistente disparou vários pushes numa janela de feature e "
-    "quebrou a homologação inteira (caso F-022 do docs/EVALS.md). "
-    "Se a mudança está pronta: rode `/mss-spec:release` (gate de pré-publicação), cole o veredito "
-    "e PEÇA — o owner publica e integra do terminal dele. "
-    "Escape consciente (só o owner decide): {env}=1."
+_POR_QUE = ("Por quê: push nessas branches dispara o deploy automático — em 2026-09 vários pushes "
+            "numa janela de feature quebraram a homologação inteira (caso F-022 do docs/EVALS.md). ")
+_SAIDA = ("Pronto pra publicar: rode `/mss-spec:release` (gate de pré-publicação), cole o veredito e "
+          "PEÇA — o owner faz o push do terminal dele. Escape consciente (só o owner decide): {env}=1.")
+
+MOTIVO_PROTEGIDA = (
+    "[mss-spec] BLOQUEADO — push para `{destino}` é ato do OWNER: é branch de homologação/produção.\n"
+    "Comando recusado:\n  {comando}\n\n" + _POR_QUE +
+    "Push de branch de feature/fix o assistente roda, com a aprovação do owner. "
+    "Protegidas: " + PROTEGIDAS_TEXTO + ". " + _SAIDA
+)
+
+MOTIVO_INDETERMINADO = (
+    "[mss-spec] BLOQUEADO — não deu pra saber pra qual branch este push vai ({porque}), e na dúvida a "
+    "cerca nega: um push em homologação/produção é ato do OWNER.\nComando recusado:\n  {comando}\n\n"
+    "Diga o destino explicitamente — `git push origin <sua-feature>` — e o push de feature/fix roda "
+    "com a aprovação do owner. " + _SAIDA
+)
+
+MOTIVO_DEPLOY = (
+    "[mss-spec] BLOQUEADO — deploy/integração remota é ato do OWNER, não do assistente.\n"
+    "Comando recusado ({alvo}):\n  {comando}\n\n" + _POR_QUE + _SAIDA
+)
+
+MOTIVO_PERGUNTA = (
+    "[mss-spec] Aprovação do owner — {alvo}:\n  {comando}\n\n"
+    "Não atinge homologação/produção (push em " + PROTEGIDAS_TEXTO + " segue bloqueado). "
+    "Aprove se isto é da feature desta janela; recuse se misturou assunto (caso F-022)."
 )
 
 MOTIVO_DEFEITO = (
@@ -98,7 +148,6 @@ MOTIVO_DEFEITO = (
     "nega em vez de abrir. Publicar/integrar segue sendo ato do owner (rode `/mss-spec:release` "
     "e peça). Reporte o erro; escape consciente (só o owner): {env}=1."
 )
-
 
 MOTIVO_PIPE = (
     "[mss-spec] BLOQUEADO — o pipe esconde o resultado do pytest e o commit sairia mesmo com teste "
@@ -116,12 +165,113 @@ def _texto(valor):
     return valor.strip() if isinstance(valor, str) and valor.strip() else None
 
 
-def publica_ou_integra(comando):
-    """Rótulo do 1º padrão de publicação/integração que o comando contém, ou None."""
-    for padrao, rotulo in PADROES:
+def protegida(nome):
+    """True se a branch é de homologação/produção (push = deploy)."""
+    n = (nome or "").strip().lower()
+    if n.startswith("refs/heads/"):
+        n = n[len("refs/heads/"):]
+    return n in PROTEGIDAS or n.startswith(PROTEGIDAS_PREFIXO)
+
+
+def _git_destino(pasta):
+    """(branch atual — `HEAD` se destacado —, destino do `git push` sem refspec ou None).
+
+    Levanta se o git não responder: quem chama trata como destino indeterminado (nega)."""
+    def rodar(*args):
+        # bytes, não text=True: no Windows o text=True quebra a chamada ao git (memória do kit)
+        proc = subprocess.run(["git", "-C", pasta, *args], capture_output=True, timeout=10)
+        return proc.returncode, proc.stdout.decode("utf-8", "replace").strip()
+    codigo, atual = rodar("rev-parse", "--abbrev-ref", "HEAD")
+    if codigo != 0 or not atual:
+        raise OSError("git rev-parse falhou")
+    codigo, destino = rodar("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{push}")
+    destino = destino.split("/", 1)[1] if codigo == 0 and "/" in destino else None
+    return atual, destino
+
+
+def _pasta_do_push(comando, m, cwd):
+    """Onde o git vai rodar: `-C <dir>` > último `cd <dir>` antes do push > cwd do evento."""
+    c = re.search(r"-C\s+(\"[^\"]+\"|'[^']+'|\S+)", m.group("opcoes") or "")
+    alvo = c.group(1) if c else None
+    if alvo is None:
+        cds = _CD.findall(comando[:m.start() + 1])
+        alvo = cds[-1] if cds else None
+    if alvo is None:
+        return cwd
+    alvo = alvo.strip("\"'")
+    return alvo if os.path.isabs(alvo) or alvo.startswith("/") else os.path.join(cwd, alvo)
+
+
+def _refspecs(args):
+    """Destinos declarados no push: lista (vazia = implícito) ou str com o porquê de ser indeterminável."""
+    try:
+        tokens = shlex.split(args, posix=True)
+    except ValueError:
+        tokens = args.split()
+    posicionais, i = [], 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t in _PUSH_ABRANGENTE:
+            return f"`{t}` atinge várias branches"
+        if t in _PUSH_COM_VALOR:
+            i += 1
+        elif not t.startswith("-"):
+            posicionais.append(t)
+        i += 1
+    destinos = []
+    for ref in posicionais[1:]:                      # o 1º posicional é o remoto
+        ref = ref.lstrip("+")
+        if ref == ":":
+            return "refspec `:` empurra todas as branches casadas"
+        destinos.append(ref.split(":", 1)[1] or ref.split(":", 1)[0] if ":" in ref else ref)
+    return destinos
+
+
+def _avaliar_push(comando, m, cwd, git_destino):
+    """(tipo, motivo, detalhe) de UM `git push` do comando."""
+    trecho = comando[m.start():m.end()].strip(" ;&|\n(")
+    destinos = _refspecs(m.group("args"))
+    if isinstance(destinos, str):
+        return NEGA, MOTIVO_INDETERMINADO.format(porque=destinos, comando=trecho[:200], env=ENV_DESLIGA), \
+            "git push indeterminado"
+    precisa_git = not destinos or "HEAD" in destinos
+    atual = empurra = None
+    if precisa_git:
+        try:
+            atual, empurra = git_destino(_pasta_do_push(comando, m, cwd))
+        except Exception:                            # noqa: BLE001 — sem git não há como provar o destino
+            return NEGA, MOTIVO_INDETERMINADO.format(porque="o git não respondeu", comando=trecho[:200],
+                                                     env=ENV_DESLIGA), "git push indeterminado"
+        if not atual or atual == "HEAD":
+            return NEGA, MOTIVO_INDETERMINADO.format(porque="HEAD destacado, sem branch atual",
+                                                     comando=trecho[:200], env=ENV_DESLIGA), \
+                "git push indeterminado"
+    alvos = [atual if d == "HEAD" else d for d in destinos] if destinos else [atual] + ([empurra] if empurra else [])
+    for alvo in alvos:
+        if protegida(alvo):
+            return NEGA, MOTIVO_PROTEGIDA.format(destino=alvo, comando=trecho[:200], env=ENV_DESLIGA), \
+                f"git push → {alvo}"
+    return PERGUNTA, MOTIVO_PERGUNTA.format(alvo=f"git push → {', '.join(alvos)}", comando=trecho[:200]), \
+        f"git push → {alvos[0]}"
+
+
+def publica_ou_integra(comando, cwd=".", git_destino=None):
+    """(tipo, motivo, detalhe) da ação mais grave do comando — negar > perguntar — ou None."""
+    git_destino = _git_destino if git_destino is None else git_destino
+    achados = []
+    for padrao, rotulo in DEPLOY:
         if padrao.search(comando):
-            return rotulo
-    return None
+            achados.append((NEGA, MOTIVO_DEPLOY.format(alvo=rotulo, comando=comando[:200], env=ENV_DESLIGA),
+                            rotulo.split(" — ")[0]))
+    for m in _PUSH.finditer(comando):
+        achados.append(_avaliar_push(comando, m, cwd, git_destino))
+    for padrao, rotulo in INTEGRACAO:
+        if padrao.search(comando):
+            achados.append((PERGUNTA, MOTIVO_PERGUNTA.format(alvo=rotulo, comando=comando[:200]), rotulo))
+    if not achados:
+        return None
+    negados = [a for a in achados if a[0] == NEGA]
+    return negados[0] if negados else achados[0]
 
 
 def mascara_teste(comando):
@@ -138,21 +288,19 @@ def mascara_teste(comando):
     return _PIPE_SIMPLES.search(comando[teste.end():commit.start() + 1]) is not None
 
 
-def _decidir_publicacao(comando, ambiente):
-    """(motivo, detalhe pro registro) ou (None, None)."""
+def _decidir_publicacao(comando, ambiente, cwd, git_destino):
+    """(tipo, motivo, detalhe) ou (None, None, None). Falha FECHADA."""
     if _texto(ambiente.get(ENV_DESLIGA)):
-        return None, None
+        return None, None, None
     try:
-        alvo = publica_ou_integra(comando)
+        achado = publica_ou_integra(comando, cwd=cwd, git_destino=git_destino)
     except Exception as erro:                        # noqa: BLE001 — falha FECHADA
-        return MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA), "defeito da cerca"
-    if alvo is None:
-        return None, None
-    return MOTIVO.format(alvo=alvo, comando=comando[:200], env=ENV_DESLIGA), alvo.split(" — ")[0]
+        return NEGA, MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA), "defeito da cerca"
+    return achado if achado else (None, None, None)
 
 
 def _decidir_pipe(comando, ambiente):
-    """(motivo, detalhe pro registro) ou (None, None)."""
+    """(motivo, detalhe pro registro) ou (None, None). Falha ABERTA."""
     if _texto(ambiente.get(ENV_PIPE_DESLIGA)):
         return None, None
     try:
@@ -163,22 +311,29 @@ def _decidir_pipe(comando, ambiente):
     return MOTIVO_PIPE.format(comando=comando[:200], env=ENV_PIPE_DESLIGA), "pytest em pipe antes do git commit"
 
 
-def decidir(evento, ambiente=None):
-    """None = libera; str = motivo do bloqueio. A cerca de publicação é avaliada primeiro."""
+def avaliar(evento, ambiente=None, git_destino=None):
+    """(tipo, motivo): (None, None) libera · ("deny", …) nega · ("ask", …) pede aprovação do owner."""
     ambiente = os.environ if ambiente is None else ambiente
     if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_SHELL:
-        return None
+        return None, None
     entrada = evento.get("tool_input")
-    comando = entrada.get("command") if isinstance(entrada, dict) else None
-    comando = _texto(comando)
+    comando = _texto(entrada.get("command") if isinstance(entrada, dict) else None)
     if comando is None:
-        return None                                  # nada a avaliar → nada a negar
-    motivo, detalhe = _decidir_publicacao(comando, ambiente)
-    if motivo is None:
-        motivo, detalhe = _decidir_pipe(comando, ambiente)
-    if motivo is not None:
-        _anotar("negou", detalhe, evento)
-    return motivo
+        return None, None                            # nada a avaliar → nada a negar
+    cwd = _texto(evento.get("cwd")) or os.getcwd()
+    tipo, motivo, detalhe = _decidir_publicacao(comando, ambiente, cwd, git_destino)
+    if tipo != NEGA:
+        motivo_pipe, detalhe_pipe = _decidir_pipe(comando, ambiente)
+        if motivo_pipe is not None:                  # negar vence perguntar
+            tipo, motivo, detalhe = NEGA, motivo_pipe, detalhe_pipe
+    if tipo is not None:
+        _anotar("negou" if tipo == NEGA else "perguntou", detalhe, evento)
+    return tipo, motivo
+
+
+def decidir(evento, ambiente=None, git_destino=None):
+    """Compatibilidade: o motivo de qualquer ação (negar ou perguntar), ou None."""
+    return avaliar(evento, ambiente, git_destino)[1]
 
 
 def main():
@@ -186,14 +341,21 @@ def main():
         evento = json.load(sys.stdin)
     except Exception:                                # noqa: BLE001
         sys.exit(0)                                  # entrada inválida: não há comando → libera
-    motivo = decidir(evento)
-    if motivo is None:
+    tipo, motivo = avaliar(evento)
+    if tipo is None:
         sys.exit(0)                                  # libera, calado
+    for saida in (sys.stdout, sys.stderr):
+        try:
+            saida.reconfigure(encoding="utf-8")
+        except (AttributeError, OSError):
+            pass
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
+        "permissionDecision": tipo,
         "permissionDecisionReason": motivo,
     }}))
+    if tipo == PERGUNTA:
+        sys.exit(0)                                  # `ask` só vale com exit 0 (exit 2 = bloqueio)
     print(motivo, file=sys.stderr)
     sys.exit(2)
 

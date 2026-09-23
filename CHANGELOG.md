@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.31.0 — 2026-09-23 (cerca de publicação por destino)
+- **o que motivou:** *"a atualização minha no merge está impactando o dia a dia"* — a cerca negava todo push/merge/rebase, e o registro da 0.30.0 mostrou até o `git merge-base` (só leitura) sendo negado como `git merge`. O dano do F-022 foi o push que faz deploy.
+- feat(**`hooks/git_publicacao.py` por destino**): **nega** push pra `main`, `master`, `dev`, `develop`, `production`, `homolog*`, `hml*`, `prod*`, `release/*` — por refspec (`HEAD:dev`, `x:main`, `--delete`…) ou, sem refspec, pela branch atual e pelo `@{push}` do git da pasta do comando (`-C` › `cd` › cwd) —, push de destino incerto (`--all`, `--mirror`, `--tags`, `:`, HEAD destacado, git que não responde) e deploy (`gh pr merge`, `docker push`, `az …`). **Pede aprovação** (`permissionDecision: "ask"`, exit 0; aparece no Desktop) pra `git merge`, `git rebase` e push de feature/fix. Negar vence perguntar no mesmo comando; falha fechada; `MSS_PUBLICACAO_OFF=1`.
+- fix(**falso positivo `git merge-base`/`merge-tree`/`merge-file`**): o verbo passa a ser casado inteiro (`merge` não casa `merge-base`).
+- docs: `templates/CLAUDE.md` (linha Git, 7.999/8.000 bytes), `commands/nova-feature.md` (fecho e Git/branch), `hooks/README.md`, `docs/LEIA-ME.md`, memória `feedback_publicacao_e_ato_do_owner`, spec das travas, `decisoes.md`, linha do F-022.
+- test: `tests/test_hook_git_publicacao.py` reescrito pro contrato novo (os casos de negar merge/rebase/push de feature viraram "pede aprovação" — mudança intencional; deploy, push protegido e modos de falha seguem negados) + repo git real no teste de processo. Suíte **571 passed** (era 530).
+
 ## 0.30.0 — 2026-09-23 (cerca do pipe · registro dos hooks)
 - **o que motivou:** avaliação de duas análises externas do kit. Das quatro melhorias levantadas, duas se sustentaram com caso real; o "release em script" caiu porque o F-025 acontece na hora do commit, não no release, e o `divergir` em escada inverteria a lógica do comando.
 - feat(**cerca do pipe no `hooks/git_publicacao.py`**, caso **F-025** → fechado): nega o comando com pytest (como comando) com saída em pipe antes de um `git commit`, sem `pipefail` — `pytest | tail -1 && git commit` commitou com 2 vermelhos (`edc0ab9`) e reincidiu com a memória escrita (`f9388e5`). Mesmo processo da cerca de publicação (hook separado = ~190 ms a mais em todo comando de shell), com modo de falha **próprio, ABERTA**, e escape próprio `MSS_PIPE_TESTE_OFF=1`; a de publicação segue FECHADA e é avaliada primeiro.

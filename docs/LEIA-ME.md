@@ -115,12 +115,14 @@ Sete redes prontas para quando algo dá errado — nenhuma é comando novo:
   quando a janela passa de **75%** e manda fechar o assunto: estado no `MAPA.md`, o resto (inclusive o
   *"pra fechar isto preciso entender aquilo"*) no `/mss-spec:to-dolist` e `/clear`. A % vem do `usage`
   do transcript; limiar `MSS_ALERTA_CONTEXTO_PCT`, janela `MSS_JANELA_TOKENS`, escape `MSS_ALERTA_CONTEXTO_OFF=1`.
-- **Publicar/integrar é ato do owner** — o hook `hooks/git_publicacao.py` (ligado por padrão) **nega**
-  ao assistente `git push`, `git merge`, `git rebase`, `gh pr merge` e comandos de deploy (`docker push`,
-  `az acr build`, `az webapp`, `az containerapp`). Nasceu de acidente real (caso F-022): o assistente
-  disparou vários pushes numa janela de feature e o push era o deploy automático — homologação quebrou
-  inteira. Ele roda `/mss-spec:release` e **pede**; você publica do seu terminal. Falha **fechada**;
-  escape consciente `MSS_PUBLICACAO_OFF=1`.
+- **Push em homologação/produção é ato do owner** — o hook `hooks/git_publicacao.py` (ligado por padrão)
+  **nega** ao assistente `git push` pra `main`, `master`, `dev`, `develop`, `production`, `homolog*`, `hml*`,
+  `prod*`, `release/*` (e push de destino incerto: `--all`, `--tags`…), `gh pr merge` e comandos de deploy
+  (`docker push`, `az acr build`, `az webapp`, `az containerapp`); `git merge`, `git rebase` e push da
+  branch de feature ele roda **com a sua aprovação** (o app mostra o comando). Nasceu de acidente real
+  (caso F-022): o assistente disparou vários pushes numa janela de feature e o push era o deploy
+  automático — homologação quebrou inteira. Pro push protegido ele roda `/mss-spec:release` e **pede**;
+  você publica do seu terminal. Falha **fechada**; escape consciente `MSS_PUBLICACAO_OFF=1`.
 - **Um item por janela** — o hook `hooks/um_item_por_janela.py` (ligado por padrão) **bloqueia**
   `/mss-spec:nova-feature` enquanto o `docs/superpowers/INDEX.md` tiver feature `aberta`/`em andamento`
   de outro assunto (retomar a mesma passa; `pausada: <motivo>` marcado por você à mão não conta).
