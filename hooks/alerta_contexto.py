@@ -10,8 +10,10 @@ Contrato:
 - a % sai do transcript (`transcript_path`): a ÚLTIMA mensagem do assistente fora de subagente
   (`isSidechain` falso) traz `message.usage`; contexto = `input_tokens` + `cache_read_input_tokens` +
   `cache_creation_input_tokens`. Hook não recebe a % pronta — só a statusline recebe;
-- tamanho da janela: `MSS_JANELA_TOKENS` (owner) › modelo com `[1m]` → 1.000.000 › uso já acima de
-  200 mil → 1.000.000 › 200.000. O padrão erra pra CEDO, nunca pra tarde;
+- tamanho da janela (hook não o recebe): `MSS_JANELA_TOKENS` › `CLAUDE_CODE_AUTO_COMPACT_WINDOW` ›
+  `[1m]` no id ou uso acima de 200 mil → 1.000.000 › família 5 (Opus/Sonnet/Fable, id sem `[1m]`) →
+  1.000.000 › 200.000 (4.x, Haiku). O id `claude-opus-5-5` é 1M e assumir 200 mil deu 92% onde a
+  janela mostrava 18% (F-027);
 - limiar: `MSS_ALERTA_CONTEXTO_PCT` (padrão 75 — escolha do owner; a doc da Anthropic não fixa
   número). Avisa UMA vez por faixa (75 · 85 · 95) por sessão, somando os dois eventos; a % caiu
   abaixo do limiar (depois de `/compact`) → rearma;
@@ -31,6 +33,7 @@ import tempfile
 ENV_DESLIGA = "MSS_ALERTA_CONTEXTO_OFF"
 ENV_PCT = "MSS_ALERTA_CONTEXTO_PCT"
 ENV_JANELA = "MSS_JANELA_TOKENS"
+ENV_COMPACTA = "CLAUDE_CODE_AUTO_COMPACT_WINDOW"   # a janela onde a compactação mira (doc do Claude Code)
 PCT_PADRAO = 75
 JANELA_PADRAO = 200_000
 JANELA_1M = 1_000_000
@@ -85,12 +88,20 @@ def uso_atual(caminho):
     return None
 
 
+RE_FAMILIA = re.compile(r"claude-(opus|sonnet|fable)-(\d+)", re.I)
+
+
 def janela_de(tokens, modelo, ambiente):
-    override = _inteiro(ambiente.get(ENV_JANELA), 0, 1_000, 100_000_000)
-    if override:
-        return override
+    """Hook não recebe o tamanho da janela (doc do Claude Code): sai do owner ou do id do modelo."""
+    for env in (ENV_JANELA, ENV_COMPACTA):
+        override = _inteiro(ambiente.get(env), 0, 1_000, 100_000_000)
+        if override:
+            return override
     if re.search(r"\[1m\]", modelo, re.I) or tokens > JANELA_PADRAO:
         return JANELA_1M
+    familia = RE_FAMILIA.search(modelo)
+    if familia and int(familia.group(2)) >= 5:
+        return JANELA_1M             # família 5 (Opus/Sonnet/Fable): 1M, e o id vem sem `[1m]` (F-027)
     return JANELA_PADRAO
 
 

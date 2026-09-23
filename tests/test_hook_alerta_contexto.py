@@ -43,7 +43,7 @@ def _temp_isolado(tmp_path, monkeypatch):
     return pasta
 
 
-def _assistente(tokens, modelo="claude-opus-5-5", sidechain=False):
+def _assistente(tokens, modelo="claude-opus-4-6", sidechain=False):
     return {"type": "assistant", "isSidechain": sidechain,
             "message": {"model": modelo, "usage": {
                 "input_tokens": 2, "cache_read_input_tokens": tokens - 1002,
@@ -69,7 +69,7 @@ def _evento(transcript, evento="UserPromptSubmit", sessao="s1", **extra):
 def test_uso_soma_input_e_caches_da_ultima_resposta(tmp_path):
     mod = _mod()
     t = _transcript(tmp_path, _assistente(40_000), {"type": "user"}, _assistente(120_000))
-    assert mod.uso_atual(str(t)) == (120_000, "claude-opus-5-5")
+    assert mod.uso_atual(str(t)) == (120_000, "claude-opus-4-6")
 
 
 def test_uso_ignora_subagente_e_linha_quebrada(tmp_path):
@@ -99,11 +99,36 @@ def test_sem_resposta_do_assistente_e_silencio(tmp_path):
 
 def test_janela_padrao_1m_e_override():
     mod = _mod()
-    assert mod.janela_de(100_000, "claude-opus-5-5", {}) == 200_000
-    assert mod.janela_de(100_000, "claude-opus-5-5[1m]", {}) == 1_000_000
-    assert mod.janela_de(250_000, "claude-opus-5-5", {}) == 1_000_000   # 200k não comporta
-    assert mod.janela_de(100_000, "claude-opus-5-5", {"MSS_JANELA_TOKENS": "400000"}) == 400_000
+    assert mod.janela_de(100_000, "claude-opus-4-6", {}) == 200_000
+    assert mod.janela_de(100_000, "claude-opus-4-6[1m]", {}) == 1_000_000
+    assert mod.janela_de(250_000, "claude-opus-4-6", {}) == 1_000_000   # 200k não comporta
+    assert mod.janela_de(100_000, "claude-opus-4-6", {"MSS_JANELA_TOKENS": "400000"}) == 400_000
     assert mod.janela_de(100_000, "x", {"MSS_JANELA_TOKENS": "lixo"}) == 200_000
+
+
+def test_familia_5_tem_janela_de_1m():
+    """F-027 — o print do owner: `claude-opus-5-5` mostrava 184,8k / 1M (18%) e o hook calculava 92%
+    de 200 mil. O id no transcript vem sem `[1m]`; a família 5 (Opus/Sonnet/Fable) é 1M."""
+    mod = _mod()
+    for modelo in ("claude-opus-5-5", "claude-sonnet-5", "claude-fable-5-1"):
+        assert mod.janela_de(184_800, modelo, {}) == 1_000_000, modelo
+    for modelo in ("claude-haiku-4-5-20251001", "claude-opus-4-6", "claude-sonnet-4-5"):
+        assert mod.janela_de(100_000, modelo, {}) == 200_000, modelo
+
+
+def test_print_do_owner_fica_calado(tmp_path):
+    mod = _mod()
+    t = _transcript(tmp_path, _assistente(184_800, modelo="claude-opus-5-5"))
+    assert mod.responder(_evento(t), {}) is None
+
+
+def test_janela_de_compactacao_do_owner_vence_o_modelo():
+    """`CLAUDE_CODE_AUTO_COMPACT_WINDOW` (doc do Claude Code) é onde a compactação mira: o alerta mira ali."""
+    mod = _mod()
+    amb = {"CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"}
+    assert mod.janela_de(100_000, "claude-opus-5-5", amb) == 500_000
+    amb["MSS_JANELA_TOKENS"] = "300000"
+    assert mod.janela_de(100_000, "claude-opus-5-5", amb) == 300_000        # o do kit vence
 
 
 def test_faixas_escalonadas():
