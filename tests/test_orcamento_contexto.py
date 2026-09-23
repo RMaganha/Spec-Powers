@@ -54,6 +54,7 @@ FRASES_CHAVE_CLAUDE_MD = (
     "o hook pede a minha aprovação",
     "Um assunto por janela",
     "Bola de neve",
+    "Comando pra eu rodar = passo a passo",
     "Pedido com várias partes",
     "Relate o que está no disco",
     "`<private>`",
@@ -208,7 +209,8 @@ def test_anatomia_usa_o_teto_do_topo():
 def test_doctor_aponta_o_conserto_mecanico():
     """G — o doctor só reporta, mas agora o conserto é UMA linha que o owner manda rodar."""
     txt = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
-    for script, modo in (("rodizio_partida", "mapa"), ("rodizio_partida", "index"),
+    # desde a 0.33.0 o conserto do MAPA e do INDEX é um comando só: `enxugar` (roda `mapa` + `index` + a 2ª etapa)
+    for script, modo in (("rodizio_partida", "enxugar"),
                          ("memoria_indice", "dividir"), ("memoria_indice", "verificar")):
         # aceita `…/rodizio_partida.py" mapa` (caminho entre aspas) e `rodizio_partida.py mapa`
         assert re.search(rf'{script}\.py"?\s+{modo}\b', txt), f"doctor não aponta `{script}.py {modo}` como conserto"

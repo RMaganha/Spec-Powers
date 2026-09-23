@@ -191,3 +191,123 @@ def test_index_avisa_abertas_que_nao_cabem(tmp_path):
     rel = mod.rodizio_index(raiz, hoje="2026-09-15", aplicar=True)
     assert rel.ok and rel.movidas == 0
     assert any("aberta" in a and "owner" in a for a in rel.avisos)
+
+
+# --- enxugar: a 2ª etapa (F-030) — o que o owner moveu à mão no Whats, agora mecânico ----------
+
+def _index_gordo():
+    longo = "detalhe " * 120
+    return ("# Índice de tarefas\n\n"
+            "## Assuntos existentes (levantados do código)\n\n"
+            + "".join(f"- assunto-{i} — o código já faz {longo} — existente\n" for i in range(4)) +
+            "\n## Em andamento\n\n"
+            f"- [painel](../specs/painel.md) — tela {longo} — em andamento: fila construída dentro dele\n"
+            "- [curta](../specs/curta.md) — cabe — aberta\n"
+            "\n## Backlog\n\n"
+            + "".join(f"- ideia-{i} — {longo} — aberta\n" for i in range(4)) +
+            "\n### Crítico\n- identidade — global de processo — aberta\n"
+            "\n## Fora de escopo — decidido NÃO fazer\n\n"
+            + "".join(f"- **Recusado {i}** — {longo}\n" for i in range(4)))
+
+
+def _mapa_gordo():
+    longo = "contrato " * 80
+    return ("# Mapa de contexto — Proj\n\n## Onde estamos\n\n📍 estado atual curto.\n\n"
+            "## Próximo passo\n\n1. passo.\n\n## Conexões\n\n"
+            + "".join(f"- → Serviço {i} (`svc{i}`): {longo}\n  continuação da linha {i}\n" for i in range(8)))
+
+
+def _todas(raiz):
+    sp = raiz / "docs" / "superpowers"
+    return "\n".join(p.read_text(encoding="utf-8") for p in sp.glob("*.md"))
+
+
+def test_enxugar_index_move_secoes_e_fica_abaixo_do_teto(tmp_path):
+    mod = _mod()
+    original = _index_gordo()
+    raiz = _projeto(tmp_path, index=original)
+    rels = mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    assert all(r.ok for r in rels.values()), rels
+    sp = raiz / "docs" / "superpowers"
+    idx = (sp / "INDEX.md").read_text(encoding="utf-8")
+    assert len(idx.encode()) <= mod.TETO_INDEX
+    assert "[BACKLOG.md](BACKLOG.md)" in idx and "[FORA-DE-ESCOPO.md](FORA-DE-ESCOPO.md)" in idx
+    assert "ideia-0" in (sp / "BACKLOG.md").read_text(encoding="utf-8")
+    assert "### Crítico" in (sp / "BACKLOG.md").read_text(encoding="utf-8"), "subseção do backlog se perdeu"
+    todas = _todas(raiz)
+    perdidas = [l for l in original.split("\n") if l.strip() and l not in todas]
+    assert not perdidas, f"linha apagada: {perdidas[:2]}"
+
+
+def test_enxugar_linha_longa_de_em_andamento_vira_curta_com_o_status(tmp_path):
+    mod = _mod()
+    longo = "detalhe " * 120
+    so_andamento = ("# Índice de tarefas\n\n## Em andamento\n\n"
+                    f"- [painel](../specs/painel.md) — tela {longo} — em andamento: fila construída dentro dele\n"
+                    "- [curta](../specs/curta.md) — cabe — aberta\n"
+                    + "".join(f"- [outra-{i}](../specs/o{i}.md) — {longo} — pausada: espera\n" for i in range(8)))
+    raiz = _projeto(tmp_path, index=so_andamento)
+    mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    sp = raiz / "docs" / "superpowers"
+    idx = (sp / "INDEX.md").read_text(encoding="utf-8")
+    assert len(idx.encode()) <= mod.TETO_INDEX
+    curta = [l for l in idx.split("\n") if l.startswith("- [painel]")][0]
+    assert "EM-ANDAMENTO.md" in curta and curta.endswith("em andamento: fila construída dentro dele")
+    assert "- [curta](../specs/curta.md) — cabe — aberta" in idx, "mexeu em linha que já era curta"
+    assert "tela detalhe" in (sp / "EM-ANDAMENTO.md").read_text(encoding="utf-8")
+    hook = mod._hook_um_item()
+    assert len(hook.abertas(idx)) == 2, "a trava parou de enxergar as abertas"
+
+
+def test_enxugar_para_assim_que_cabe(tmp_path):
+    """Só o necessário: com o INDEX pequeno, nenhuma seção sai."""
+    mod = _mod()
+    raiz = _projeto(tmp_path)
+    mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    assert not (raiz / "docs" / "superpowers" / "BACKLOG.md").exists()
+
+
+def test_enxugar_de_novo_acrescenta_sem_sobrescrever(tmp_path):
+    """2ª vez: o BACKLOG.md já existe — o item novo entra e o antigo continua lá."""
+    mod = _mod()
+    raiz = _projeto(tmp_path, index=_index_gordo())
+    mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    sp = raiz / "docs" / "superpowers"
+    idx = (sp / "INDEX.md").read_text(encoding="utf-8")
+    novo = "- ideia-nova — " + "x " * 3000 + "— aberta"
+    idx = idx.replace("## Backlog\n", "## Backlog\n\n" + novo + "\n", 1)
+    (sp / "INDEX.md").write_text(idx, encoding="utf-8")
+    mod.enxugar(raiz, hoje="2026-09-24", aplicar=True)
+    backlog = (sp / "BACKLOG.md").read_text(encoding="utf-8")
+    assert "ideia-nova" in backlog and "ideia-0" in backlog
+    assert (sp / "INDEX.md").read_text(encoding="utf-8").count("[BACKLOG.md](BACKLOG.md)") == 1
+
+
+def test_enxugar_mapa_move_conexoes_e_deixa_os_nomes(tmp_path):
+    mod = _mod()
+    original = _mapa_gordo()
+    raiz = _projeto(tmp_path, mapa=original)
+    mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    sp = raiz / "docs" / "superpowers"
+    mapa = (sp / "MAPA.md").read_text(encoding="utf-8")
+    assert len(mapa.encode()) <= mod.TETO_MAPA
+    assert "[CONEXOES.md](CONEXOES.md)" in mapa and "→ Serviço 0" in mapa and "→ Serviço 7" in mapa
+    assert "📍 estado atual curto." in mapa
+    todas = _todas(raiz)
+    assert not [l for l in original.split("\n") if l.strip() and l not in todas]
+
+
+def test_enxugar_dry_run_nao_escreve(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path, index=_index_gordo(), mapa=_mapa_gordo())
+    antes = _todas(raiz)
+    rels = mod.enxugar(raiz, hoje="2026-09-23", aplicar=False)
+    assert _todas(raiz) == antes and not any(r.gravou for r in rels.values())
+    assert rels["index"].bytes_depois <= mod.TETO_INDEX
+
+
+def test_enxugar_nao_mexe_em_arquivo_com_conflito_de_merge(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path, index="<<<<<<< HEAD\n" + _index_gordo() + "=======\n>>>>>>> x\n")
+    rels = mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
+    assert not rels["index"].ok and not rels["index"].gravou

@@ -15,6 +15,7 @@
 - **Siga as skills do superpowers à risca** (o harness lista quais são). Precisão acima de velocidade.
 - **Assuma o papel de especialista sênior do domínio** (UI, banco, segurança, infra…): anuncie, trabalhe assim até o meu OK, volte a arquiteto/dev sênior.
 - **Nível de cerimônia** (padrão **médio**; troque com `/mss-spec:modo`): varia só o peso do planejamento — TDD e verificação são inegociáveis em qualquer nível.
+- **Comando pra eu rodar = passo a passo**: todo comando git (e qualquer outro que eu for rodar) sai num passo numerado — **título em negrito dizendo o que ele faz**, o comando **sozinho** num bloco `bash` logo abaixo (um comando por bloco) e, quando houver, o que conferir na saída ("Confira que a saída vem vazia") ou o que fazer se algo abrir.
 - **Git — branch da principal; push de homologação/produção é MEU**: toda tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca na principal e **nunca a partir de outra branch**. Stage **nominal** (jamais `git add .`/`-A`). **`git push` em dev/homologação/produção e deploy: nunca você** (o hook nega) — pronto? `/mss-spec:release` e me peça. Merge, rebase e push de branch de feature: você roda, e o hook pede a minha aprovação.
 
 ## Contexto de janela (o recurso mais caro)

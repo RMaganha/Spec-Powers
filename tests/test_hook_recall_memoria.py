@@ -136,3 +136,27 @@ def test_hook_registrado_em_user_prompt_submit():
     comandos = [h["command"] for g in grupos for h in g["hooks"]]
     assert any("recall_memoria.py" in c and "CLAUDE_PLUGIN_ROOT" in c for c in comandos), comandos
     assert any("um_item_por_janela.py" in c for c in comandos), "não pode derrubar a cerca que já existia"
+
+
+def test_recall_le_o_fora_de_escopo_que_saiu_da_partida(tmp_path):
+    """F-030: o "Fora de escopo" saiu do INDEX (não é mais lido na partida); o anti-re-litígio passa
+    a chegar pelo recall — quando o prompt propõe de novo o que já foi recusado."""
+    raiz = _projeto(tmp_path)
+    sp = raiz / "docs" / "superpowers"
+    sp.mkdir(parents=True)
+    (sp / "FORA-DE-ESCOPO.md").write_text(
+        "# Fora de escopo\n\n- **Redis para o handoff no WhatsApp** — descartado em 2026-07-30: a memória de "
+        "sessão do servidor já resolve o handoff\n", encoding="utf-8")
+    saida = _mod().responder(_evento("vamos colocar redis pra guardar o handoff do whatsapp", raiz), {})
+    assert saida and "docs/superpowers/FORA-DE-ESCOPO.md:3" in saida["hookSpecificOutput"]["additionalContext"]
+
+
+def test_recall_pula_linha_pausada_ou_obsoleta(tmp_path):
+    raiz = _projeto(tmp_path)
+    (raiz / "docs").mkdir()
+    (raiz / "docs" / "decisoes.md").write_text(
+        "# Decisões\n- 2026-07-01 — cotação via n8n com callback no whatsapp — obsoleta: n8n saiu da produção\n",
+        encoding="utf-8")
+    saida = _mod().responder(_evento("a cotação via n8n com callback no whatsapp funciona?", raiz), {})
+    ctx = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
+    assert "decisoes.md" not in ctx, "o recall injetou uma decisão marcada obsoleta"

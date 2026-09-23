@@ -110,7 +110,11 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Oito redes prontas para quando algo dá errado — nenhuma é comando novo:
+Nove redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Teto ao gravar** — o hook `hooks/teto_ao_gravar.py` (ligado, **não bloqueia**): gravou `MAPA.md`/`INDEX.md` e passou
+  do teto → o excesso sai na hora pra arquivo próprio com ponteiro (`BACKLOG.md`, `FORA-DE-ESCOPO.md`, `EM-ANDAMENTO.md`,
+  `CONEXOES.md`…), movendo e nunca apagando. E a cerca de publicação passa a **negar** gravar em OUTRO repositório
+  pelo shell, com o comando pronto pra colar na janela dele. Escapes `MSS_TETO_OFF=1` e `MSS_ANCORA_OFF=1`.
 - **Orçamento da partida** — o hook `hooks/orcamento_partida.py` (ligado por padrão, **não bloqueia**) mede, ao abrir
   a janela, `CLAUDE.md`/`MAPA.md`/`INDEX.md`/`MEMORY.md` contra o teto e, se algum estourou, diz o que ler de cada um
   e que backlog/diário não é o estado atual; o conserto (mover, nunca apagar) é `/mss-spec:doctor`. Escape `MSS_ORCAMENTO_OFF=1`.

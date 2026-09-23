@@ -1,14 +1,15 @@
-Sete hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os sete anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Oito hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os oito anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta (`## Backlog` e "Fora de escopo" não contam) |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
+| `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 
 ---
@@ -281,6 +282,46 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 
 ---
 
+# Hook ligado — teto ao gravar (`teto_ao_gravar.py`)
+
+**Por que existe (F-030):** quem escreve no MAPA/INDEX (`/mss-spec:mapa`, `nova-feature`, `memory capturar`) só
+acrescenta. O `doctor` media e o hook de abertura avisava, mas o conserto dependia de alguém rodar o rodízio — e o
+Whats chegou a 160 KB de partida. Aqui o conserto roda na própria gravação.
+
+Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo).
+Gravou `docs/superpowers/MAPA.md` ou `INDEX.md` e passou do teto → `rodizio_partida.py enxugar --aplicar`, que
+**move, nunca apaga**, confere a conservação e para assim que cabe: 1º o rodízio de sempre (blocos antigos e
+fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `## Fora de escopo` → `FORA-DE-ESCOPO.md`
+(que o recall passa a ler) · `## Assuntos existentes` → `ASSUNTOS-EXISTENTES.md` · linha longa de `## Em andamento`
+→ `EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim, que a trava lê); no MAPA, `## Conexões` →
+`CONEXOES.md` (fica a lista de nomes) e, se ainda não couber, só o bloco atual fica. Destino que já existe recebe
+prepend datado. O `additionalContext` diz o que foi pra onde e manda **reler antes do próximo Edit**; o que sobra
+acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10 KB: **só avisa** (escolher o
+destino de um bloco de regra é julgamento — F-029). Arquivo com conflito de merge não é tocado.
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**. Dentro do teto → calado.
+- **Escape consciente só do owner:** `MSS_TETO_OFF=1`.
+
+---
+
+# 3ª cerca no `git_publicacao.py` — outro projeto pelo shell (F-031)
+
+A âncora (`projeto_ativo.py`) só vigia Write/Edit. Pelo shell, a janela do kit enxugou e commitou o Whats inteiro
+(`cd <Whats> && git checkout -b … && git commit`, `--proj <Whats> --aplicar`). Agora, no mesmo processo da cerca de
+publicação: **nega** o comando que **grava** num repositório git **diferente** do da âncora — git de escrita
+(`add`, `commit`, `checkout`, `switch`, `branch <nome>`, `merge`, `rebase`, `reset`, `stash`, `tag <nome>`, `push`…)
+na pasta de `-C` › último `cd` › cwd; `--proj <dir>` junto de `--aplicar`; `>`/`>>`/`tee` pra dentro dele (corpo de
+heredoc não conta). "Outro projeto" é **identidade de repositório**, não heurística de caminho: pasta fora de repo
+(Downloads, temp) e worktree do mesmo repo passam; leitura (`status`, `log`, `diff`, `branch --show-current`,
+`tag --list`) passa. A mensagem traz a raiz do outro projeto e o **comando verbatim** pra colar numa janela aberta
+lá (decisão do owner: negar sempre e entregar o comando). Negar vence o "pedir aprovação" do merge. **Falha
+ABERTA**; escape = o da âncora, `MSS_ANCORA_OFF=1`. **Brecha declarada:** script que grava com o caminho escrito
+DENTRO dele não aparece no comando.
+
+---
+
 # Hook ligado — orçamento da partida (`orcamento_partida.py`)
 
 **Por que existe (F-030):** o Whats abria a janela com `CLAUDE.md` 28 KB + `MAPA.md` 60 KB + `INDEX.md`
@@ -321,6 +362,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
+| `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
 

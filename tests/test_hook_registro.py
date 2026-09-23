@@ -130,9 +130,21 @@ def _cenario_orcamento(tmp):
             {}, "avisou", "MAPA.md=20000")
 
 
+def _cenario_teto(tmp):
+    proj = tmp / "proj"
+    sp = proj / "docs" / "superpowers"
+    sp.mkdir(parents=True, exist_ok=True)
+    (sp / "INDEX.md").write_text("# Índice\n\n## Backlog\n\n" + "".join(
+        f"- ideia-{i} — {'x ' * 400} — aberta\n" for i in range(12)), encoding="utf-8")
+    return ("teto_ao_gravar.py",
+            {"hook_event_name": "PostToolUse", "tool_name": "Edit", "cwd": str(proj), "session_id": "abcdef123456",
+             "tool_input": {"file_path": str(sp / "INDEX.md")}},
+            {}, "moveu", "INDEX.md=")
+
+
 CENARIOS = [_cenario_publicacao, _cenario_pipe, _cenario_ancora, _cenario_um_item,
-            _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento]
-IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento"]
+            _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento, _cenario_teto]
+IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto"]
 
 
 def _preparar(cenario, tmp_path, env):

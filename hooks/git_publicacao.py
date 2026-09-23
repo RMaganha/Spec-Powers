@@ -80,7 +80,7 @@ _INICIO = r"(?:^|[;&|\n(]|\$\()\s*"
 # Prefixo `VAR=valor` (um ou mais) antes do executável.
 _ENV = r"(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*"
 # `git` com opções globais antes do verbo: `-C <dir>`, `-c k=v`, `--no-pager`, `--git-dir=…`.
-_OPCOES_GIT = r"(?:\s+-[cC]\s+\S+|\s+--[\w-]+(?:=\S+)?)*"
+_OPCOES_GIT = r"(?:\s+-[cC]\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--[\w-]+(?:=\S+)?)*"
 _GIT = r"git" + _OPCOES_GIT + r"\s+"
 # Fim do verbo: nem letra nem hífen depois — `merge` não casa `merge-base`/`merge-tree`.
 _FIM = r"(?![\w-])"
@@ -311,6 +311,137 @@ def _decidir_pipe(comando, ambiente):
     return MOTIVO_PIPE.format(comando=comando[:200], env=ENV_PIPE_DESLIGA), "pytest em pipe antes do git commit"
 
 
+# ------------------------------------------------------------------ 3ª cerca: OUTRO projeto no shell (F-031)
+# A âncora (`projeto_ativo.py`) só vigia Write/Edit; pelo shell, uma janela editou e commitou em outro
+# projeto. "Outro projeto" = repositório git DIFERENTE do da âncora — pasta fora de repo e worktree do
+# mesmo repo não contam. Falha ABERTA (heurística de shell); escape = o da âncora, `MSS_ANCORA_OFF`.
+
+ENV_ANCORA_DESLIGA = "MSS_ANCORA_OFF"
+_GIT_ESCRITA = ("add", "commit", "checkout", "switch", "merge", "rebase", "reset", "restore", "rm", "mv",
+                "cherry-pick", "revert", "tag", "apply", "am", "clean", "pull", "push", "stash", "branch")
+_GIT_VERBO = re.compile(_INICIO + _ENV + r"git(?P<opcoes>" + _OPCOES_GIT + r")\s+(?P<verbo>[\w-]+)"
+                        + r"(?P<resto>[^;&|\n)]*)")
+_BRANCH_LEITURA = re.compile(r"^\s*(?:(?:-[avlr]+|--(?:show-current|all|list|remotes|verbose|contains"
+                             r"|merged|no-merged|sort=\S+|format=\S+|color\S*))\s*)*$")
+_STASH_LEITURA = re.compile(r"^\s*(?:list|show)\b")
+_TAG_LEITURA = re.compile(r"^\s*(?:(?:-l|--list|-n\d*|--contains\s+\S+|--sort=\S+)\s*)*(?:\S*\*\S*\s*)?$")
+_PROJ = re.compile(r"--proj(?:=|\s+)(\"[^\"]+\"|'[^']+'|[^\s;&|]+)")
+_REDIRECAO = re.compile(r"(?<![<>&\d])>>?\s*(\"[^\"]+\"|'[^']+'|[^\s;&|<>]+)")
+_TEE = re.compile(r"(?:^|[|;&\n])\s*tee\s+(?:-a\s+)?(\"[^\"]+\"|'[^']+'|[^\s;&|]+)")
+_HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\2[ \t]*(?=\n|$)", re.S)
+_ALVOS_NULOS = ("/dev/null", "$null", "nul", "null")
+
+MOTIVO_OUTRO_PROJETO = (
+    "[mss-spec] BLOQUEADO — este comando grava em OUTRO projeto:\n  {raiz}\n"
+    "e esta janela é do projeto:\n  {ancora}\n\n"
+    "Um projeto por janela: pela linha de comando, uma janela editou e commitou em outro projeto (casos "
+    "F-022 e F-031 do docs/EVALS.md). Não rode daqui. Diga ao owner pra abrir uma janela na pasta do outro "
+    "projeto e colar lá, exatamente:\n\n"
+    "Rode no terminal deste projeto e me mostre a saída:\n```\n{comando}\n```\n\n"
+    "Escape consciente (só o owner decide): {env}=1."
+)
+
+
+def _sem_heredoc(comando):
+    """Corpo de heredoc é dado, não comando: `>` dentro de uma mensagem de commit não é redirecionamento."""
+    return _HEREDOC.sub("<<heredoc", comando)
+
+
+def _caminho_do_shell(bruto, base):
+    """Caminho como o shell o resolveria: sem aspas, `~` expandido, `/c/x` do Git Bash → `C:/x`, relativo à base."""
+    p = bruto.strip().strip("\"'")
+    p = os.path.expanduser(p)
+    m = re.match(r"^/([a-zA-Z])(/|$)", p)
+    if os.name == "nt" and m:
+        p = f"{m.group(1).upper()}:/" + p[3:]
+    return p if os.path.isabs(p) else os.path.join(base, p)
+
+
+def _pasta_antes(comando, posicao, cwd):
+    """A pasta em que o trecho em `posicao` roda: último `cd` antes dele, ou o cwd."""
+    cds = _CD.findall(comando[:posicao + 1])
+    return _caminho_do_shell(cds[-1], cwd) if cds else cwd
+
+
+def _alvos_de_escrita(comando, cwd):
+    """[(caminho, rótulo)] que o comando GRAVA — só as formas visíveis no texto do comando."""
+    texto = _sem_heredoc(comando)
+    alvos = []
+    for m in _GIT_VERBO.finditer(texto):
+        verbo, resto = m.group("verbo"), m.group("resto") or ""
+        if verbo not in _GIT_ESCRITA:
+            continue
+        if verbo == "branch" and _BRANCH_LEITURA.match(resto):
+            continue
+        if verbo == "stash" and _STASH_LEITURA.match(resto):
+            continue
+        if verbo == "tag" and _TAG_LEITURA.match(resto):
+            continue
+        base = _pasta_antes(texto, m.start(), cwd)
+        c = re.search(r"-C\s+(\"[^\"]+\"|'[^']+'|\S+)", m.group("opcoes") or "")
+        alvos.append((_caminho_do_shell(c.group(1), base) if c else base, f"git {verbo}"))
+    for trecho in re.split(r"[;&|\n]+", texto):
+        if "--aplicar" in trecho:
+            for p in _PROJ.findall(trecho):
+                alvos.append((_caminho_do_shell(p, cwd), "--proj … --aplicar"))
+    for rx, rotulo in ((_REDIRECAO, "redirecionamento"), (_TEE, "tee")):
+        for m in rx.finditer(texto):
+            alvo = m.group(1).strip("\"'")
+            if alvo.lower() in _ALVOS_NULOS or alvo.startswith("&"):
+                continue
+            alvos.append((_caminho_do_shell(alvo, _pasta_antes(texto, m.start(), cwd)), rotulo))
+    return alvos
+
+
+def _repo_de(caminho):
+    """(git common dir, toplevel) do repo que contém `caminho` (sobe até a pasta que existe), ou (None, None)."""
+    d = caminho
+    while d and not os.path.isdir(d):
+        pai = os.path.dirname(d)
+        if pai == d:
+            return None, None
+        d = pai
+    def _rodar(*args):
+        proc = subprocess.run(["git", "-C", d, "rev-parse", *args], capture_output=True, text=True, timeout=5)
+        return proc.stdout.strip() if proc.returncode == 0 else None
+    comum = _rodar("--path-format=absolute", "--git-common-dir")
+    if not comum:
+        return None, None
+    return os.path.normcase(os.path.realpath(comum)), _rodar("--show-toplevel")
+
+
+def _decidir_outro_projeto(evento, comando, ambiente, cwd):
+    """(motivo, detalhe) ou (None, None). Falha ABERTA."""
+    if _texto(ambiente.get(ENV_ANCORA_DESLIGA)):
+        return None, None
+    try:
+        ancora = _texto(ambiente.get("CLAUDE_PROJECT_DIR")) or _texto(evento.get("cwd"))
+        if ancora is None:
+            return None, None
+        ancora_n = os.path.normcase(os.path.realpath(ancora))
+        comum_ancora = None
+        for caminho, rotulo in _alvos_de_escrita(comando, cwd):
+            alvo_n = os.path.normcase(os.path.realpath(os.path.abspath(caminho)))
+            try:
+                if os.path.commonpath([alvo_n, ancora_n]) == ancora_n:
+                    continue                          # dentro da âncora
+            except ValueError:
+                pass                                  # drives diferentes: segue a checagem
+            comum, raiz = _repo_de(alvo_n)
+            if comum is None:
+                continue                              # fora de qualquer repo: não é "outro projeto"
+            if comum_ancora is None:
+                comum_ancora = _repo_de(ancora_n)[0] or ""
+            if comum == comum_ancora:
+                continue                              # worktree do mesmo repositório
+            return (MOTIVO_OUTRO_PROJETO.format(raiz=raiz or caminho, ancora=ancora, comando=comando.strip(),
+                                                env=ENV_ANCORA_DESLIGA),
+                    f"outro projeto ({rotulo})")
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, None
+    return None, None
+
+
 def avaliar(evento, ambiente=None, git_destino=None):
     """(tipo, motivo): (None, None) libera · ("deny", …) nega · ("ask", …) pede aprovação do owner."""
     ambiente = os.environ if ambiente is None else ambiente
@@ -322,6 +453,10 @@ def avaliar(evento, ambiente=None, git_destino=None):
         return None, None                            # nada a avaliar → nada a negar
     cwd = _texto(evento.get("cwd")) or os.getcwd()
     tipo, motivo, detalhe = _decidir_publicacao(comando, ambiente, cwd, git_destino)
+    if tipo != NEGA:
+        motivo_outro, detalhe_outro = _decidir_outro_projeto(evento, comando, ambiente, cwd)
+        if motivo_outro is not None:                 # negar vence perguntar
+            tipo, motivo, detalhe = NEGA, motivo_outro, detalhe_outro
     if tipo != NEGA:
         motivo_pipe, detalhe_pipe = _decidir_pipe(comando, ambiente)
         if motivo_pipe is not None:                  # negar vence perguntar
