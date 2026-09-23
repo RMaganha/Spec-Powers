@@ -110,7 +110,10 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Sete redes prontas para quando algo dá errado — nenhuma é comando novo:
+Oito redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Orçamento da partida** — o hook `hooks/orcamento_partida.py` (ligado por padrão, **não bloqueia**) mede, ao abrir
+  a janela, `CLAUDE.md`/`MAPA.md`/`INDEX.md`/`MEMORY.md` contra o teto e, se algum estourou, diz o que ler de cada um
+  e que backlog/diário não é o estado atual; o conserto (mover, nunca apagar) é `/mss-spec:doctor`. Escape `MSS_ORCAMENTO_OFF=1`.
 - **Alerta de contexto** — o hook `hooks/alerta_contexto.py` (ligado por padrão, **não bloqueia**) avisa
   quando a janela passa de **75%** e manda fechar o assunto: estado no `MAPA.md`, o resto (inclusive o
   *"pra fechar isto preciso entender aquilo"*) no `/mss-spec:to-dolist` e `/clear`. A % vem do `usage`

@@ -9,6 +9,7 @@
 - **Não codar antes do meu OK explícito**: diagnosticar → plano curto → OK → verificar no real.
 - **Declare as premissas antes do OK**: o que você assume **sem eu ter dito**, cada uma com a **fonte** (arquivo, ou "você disse") ou marcada **`sem fonte`** — essas primeiro. Premissa derrubada vira caso em `docs/EVALS.md`.
 - **Não inventar fatos concretos**: caminho, host, porta, nome de container — só o que está no repo ou o que eu confirmar. Na dúvida, `<a confirmar>` ou pergunte: caminho errado é pior que lacuna.
+- **Relate o que está no disco**: ferramenta recusada ou interrompida? Confira (`git status`, `ls`) antes de dizer o que existe — a gravação pode ter saído (F-030).
 - **PERGUNTE, não vasculhe**: faltou um fato que **eu** tenho na cabeça (onde vive um projeto, nome de variável, qual compose)? Pergunte **curto, na hora**; nada de varrer o disco (`find`/`Glob` repo a repo): lento e termina em chute. Busca só depois que eu não souber.
 - **Comando `/mss-spec:<x>` citado EXISTE — leia o arquivo `commands/<x>.md`** (`disable-model-invocation`: fora da lista; nunca conclua "não existe"). **"Rode `/mss-spec:X`" = execute os passos na mão** — invocar falha com *"Falha ao executar a habilidade"*. Kit parecendo ausente → `/mss-spec:doctor`.
 - **Siga as skills do superpowers à risca** (o harness lista quais são). Precisão acima de velocidade.
@@ -23,6 +24,7 @@
 - **Sob demanda, nunca na partida**: `memory/DIARIO.md` → `memory/sessions/<data>-<assunto>.md` · `docs/superpowers/MAPA-historico.md` e `INDEX-historico.md` (estado velho, fechadas).
 - **Um assunto por janela — e um projeto por janela** (regra 8). Surgiu um 2º assunto (bug em homolog incluso)? **Não aja sobre ele**: anote o estado no `MAPA.md`, ofereça `/mss-spec:to-dolist adicionar <assunto>` e mande **`/clear` + janela nova** — idem com a **janela ≥ 75%** (hook avisa). Feature nova só sem aberta (hook nega).
 - **Bola de neve** (fechar A pede entender B): entender B (ou investigar amplo) = **subagente**, que volta só o resumo; mexer em B = to-dolist, nunca aqui. Corrigiu 2× o mesmo ponto? `/clear`.
+- **Pedido com várias partes** ("vamos por partes", A + B + C): liste as partes na **ordem de dependência que eu dei**, uma spec por parte, e faça **só a 1ª** nesta janela; o resto vai pro `## Backlog` do INDEX. Backlog e diário não são o estado atual (F-030).
 - **Ao compactar (`/compact`), preserve**: a **branch** e o assunto · as **premissas** declaradas · os critérios de aceite abertos · o comando de teste e a última saída · os arquivos tocados.
 - **`<private>`**: trecho marcado `<private>…</private>` nunca vira memória/diário/decisão versionada.
 

@@ -183,6 +183,66 @@ def test_processo_entrada_malformada_libera():
     assert proc.returncode == 0
 
 
+# --- AC5: backlog não é feature aberta (caso F-030) -----------------------------------------
+
+INDEX_COM_BACKLOG = """# Índice de tarefas
+
+## Em andamento
+- [painel qa](../specs/painel-qa.md) — fila de consolidação — em andamento
+
+## Backlog
+- nps-whatsapp — dois endpoints de NPS — aberta
+
+### Crítico
+- identidade-por-sessao — identidade global de processo — aberta
+
+### Encontrado no código
+- tratamento-erro-cotacao — erro do n8n vira mensagem genérica — aberta
+
+## Fora de escopo — decidido NÃO fazer
+- Redis para o handoff — aberta
+"""
+
+INDEX_SO_BACKLOG = """# Índice de tarefas
+
+## Backlog
+- nps-whatsapp — dois endpoints de NPS — aberta
+### Crítico
+- identidade-por-sessao — identidade global de processo — aberta
+"""
+
+
+def test_item_de_backlog_nao_conta_como_aberta():
+    """No Whats, 34 itens de backlog `aberta` travavam o nova-feature pra sempre — e o assistente
+    passou a fazer tudo à mão, fora do ritual."""
+    abertas = _mod().abertas(INDEX_COM_BACKLOG)
+    assert len(abertas) == 1 and "painel qa" in abertas[0], abertas
+
+
+def test_subsecao_do_backlog_herda_o_backlog():
+    """`### Crítico` embaixo de `## Backlog` continua sendo backlog."""
+    assert _mod().abertas(INDEX_SO_BACKLOG) == []
+
+
+def test_secao_depois_do_backlog_volta_a_contar():
+    texto = INDEX_SO_BACKLOG + "\n## Em andamento\n- deploy prod — publicar a main — aberta\n"
+    abertas = _mod().abertas(texto)
+    assert len(abertas) == 1 and "deploy prod" in abertas[0]
+
+
+def test_so_backlog_libera_a_feature_nova(tmp_path):
+    raiz = _projeto(tmp_path, INDEX_SO_BACKLOG)
+    assert _mod().decidir(_evento("/mss-spec:nova-feature deploy-azure-prd", raiz), {}) is None
+
+
+def test_kickoff_semeia_o_backlog_na_secao_backlog():
+    """O kickoff grava as necessidades como `aberta`; fora da seção Backlog elas travariam a 1ª feature."""
+    kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    assert "## Backlog" in kickoff, "kickoff.md não manda semear o backlog sob `## Backlog`"
+    molde = (REPO / "templates" / "INDEX.md").read_text(encoding="utf-8")
+    assert "## Em andamento" in molde and "## Backlog" in molde, "molde do INDEX sem as duas seções"
+
+
 # --- AC4: registrado, documentado e com a 2ª camada em prosa -----------------------------
 
 def test_hook_registrado_no_user_prompt_submit():

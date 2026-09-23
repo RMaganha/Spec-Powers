@@ -379,7 +379,7 @@ def _corta(s: str, n: int = 120) -> str:
     return s if len(s) <= n else s[:n].rsplit(" ", 1)[0] + "…"
 
 
-def fontes(proj: Path) -> list:
+def fontes(proj: Path, diario: bool = True) -> list:
     proj = Path(proj)
     memdir = proj / "memory"
     out = []
@@ -419,7 +419,7 @@ def fontes(proj: Path) -> list:
             if re.match(r"^- \d{4}-\d{2}-\d{2}", l):
                 out.append(Fonte(l, f"docs/decisoes.md:{n} — {_corta(l[2:])}", PRIO["decisao"]))
     dia = memdir / "DIARIO.md"
-    if dia.is_file():
+    if diario and dia.is_file():
         texto, _ = _ler(dia)
         for n, l in enumerate(texto.split("\n"), 1):
             m = RE_LINHA_DIARIO.match(l)
@@ -429,13 +429,14 @@ def fontes(proj: Path) -> list:
     return out
 
 
-def casar(proj: Path, prompt: str, limite: int = 3, minimo: int = MINIMO_TOKENS) -> list:
-    """Ponteiros ordenados por score desc, prioridade asc. Memória e sua linha de índice: sai só a memória."""
+def casar(proj: Path, prompt: str, limite: int = 3, minimo: int = MINIMO_TOKENS, diario: bool = True) -> list:
+    """Ponteiros ordenados por score desc, prioridade asc. Memória e sua linha de índice: sai só a memória.
+    `diario=False` (o hook): diário de sessão é passado, sob demanda — injetado sozinho vira "estado atual" (F-030)."""
     toks, _ = tokens(prompt)
     if len(toks) < minimo:
         return []
     achados = []
-    for f in fontes(proj):
+    for f in fontes(proj, diario=diario):
         ftoks, fids = tokens(f.texto)
         comum = toks & ftoks
         if len(comum) < minimo:
