@@ -23,7 +23,7 @@ from pathlib import Path
 # tetos do orçamento de contexto (os mesmos de tests/test_orcamento_contexto.py; MEMORY.md = só o TOPO,
 # os subíndices em memory/indice/ carregam sob demanda)
 TETOS = {
-    "CLAUDE.md": 8000,
+    "CLAUDE.md": 10000,
     "docs/superpowers/MAPA.md": 6000,
     "docs/superpowers/INDEX.md": 7000,
     "memory/MEMORY.md": 6000,
@@ -158,7 +158,7 @@ def a_fazer(proj: Path) -> list:
 # de wiring: alvo que deixar de existir = teste vermelho, nunca painel mentindo em silêncio.
 
 LANE_PARTIDA = [
-    ("Molde do CLAUDE.md do projeto", "Entra inteiro em toda sessão (teto 8 KB travado por teste): "
+    ("Molde do CLAUDE.md do projeto", "Entra inteiro em toda sessão (teto 10 KB travado por teste): "
      "só guardrail + ponteiro; procedimento mora nos comandos.", ["templates/CLAUDE.md"]),
     ("Ritual de partida", "O assistente lê MAPA (onde estamos) → INDEX (aberto + fora de escopo) → "
      "índice de memória POR GATILHO — destilado antes da fonte.",

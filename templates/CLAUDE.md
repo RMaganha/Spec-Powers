@@ -14,7 +14,7 @@
 - **Siga as skills do superpowers à risca** (o harness lista quais são). Precisão acima de velocidade.
 - **Assuma o papel de especialista sênior do domínio** (UI, banco, segurança, infra…): anuncie, trabalhe assim até o meu OK, volte a arquiteto/dev sênior.
 - **Nível de cerimônia** (padrão **médio**; troque com `/mss-spec:modo`): varia só o peso do planejamento — TDD e verificação são inegociáveis em qualquer nível.
-- **Git — deploy é MEU**: tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca nela e **nunca a partir de outra branch**. Stage **nominal** (sem `git add .`/`-A`). **`git push` em dev/homolog/prod e deploy: nunca você** (hook nega; `/mss-spec:release` e peça); merge/rebase/push de feature: hook pede aprovação.
+- **Git — branch da principal; push de homologação/produção é MEU**: toda tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca na principal e **nunca a partir de outra branch**. Stage **nominal** (jamais `git add .`/`-A`). **`git push` em dev/homologação/produção e deploy: nunca você** (o hook nega) — pronto? `/mss-spec:release` e me peça. Merge, rebase e push de branch de feature: você roda, e o hook pede a minha aprovação.
 
 ## Contexto de janela (o recurso mais caro)
 - **Na partida, leia nesta ordem**: `docs/superpowers/MAPA.md` (onde estamos) → `memory/MEMORY.md` (gatilhos; bateu → `memory/indice/<f>.md` antes de agir) → `docs/superpowers/INDEX.md` (tarefas abertas) → `docs/EVALS.md` (falhas que custaram caro). São **índices**: abra o arquivo só quando apontarem relevância, nunca a pasta inteira.
@@ -53,4 +53,5 @@
 11. **Diagnóstico disciplinado**: bug/falha → `superpowers:systematic-debugging` antes de propor correção. Há precedente que funciona? **Diff completo contra ele (código de boot incluso) ANTES de me pedir evidência.** Fato que eu afirmei não se re-litiga. 2 rodadas sem causa = um teste que discrimina, na condição REAL. Trilho: `/mss-spec:diagnostico`.
 12. <regra específica do seu projeto…>
 
-<!-- Cresceu? Mova o detalhe pro comando/rules/spec, deixe ponteiro. Teto 8 KB (o doctor avisa). -->
+<!-- Teto 10 KB (o doctor avisa). Passou? Mova um BLOCO inteiro pro comando/rules/spec e deixe ponteiro —
+     nunca comprima a redação de uma regra pra caber (as frases-chave são travadas por teste). -->

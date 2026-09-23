@@ -13,11 +13,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-# 8.000 bytes (~2.000 tokens) NÃO é número redondo escolhido antes: é o que sobrou depois de mover
-# todo procedimento pro seu lar (comando, `.claude/rules/`, spec) — o resto é guardrail com ponteiro,
-# e cada um nasceu de falha real. Baixar mais significaria APAGAR regra, não movê-la. Se este teto
-# apertar de novo, a pergunta certa é 'o que ainda é procedimento aqui?', não 'quanto posso cortar?'.
-TETO_CLAUDE_MD = 8000       # bytes — o molde que entra em toda sessão
+# 8.000 bytes (~2.000 tokens) foi o que sobrou em 2026-08-18 depois de mover todo procedimento pro seu
+# lar (comando, `.claude/rules/`, spec). Em 2026-09-23 o owner subiu pra 10.000: no teto de 8 KB a
+# regra de Git precisou ser espremida palavra por palavra pra caber — e a 1ª tentativa apagou duas
+# frases que o smoke test exige. Espremer redação de regra é o que quebra em silêncio; com a janela de
+# 1M, 2 KB (~500 tokens) custam menos que isso. Passou de 10 KB, o procedimento é o de sempre, sem
+# exceção: MOVER um bloco inteiro de procedimento pro comando/rules/spec, deixando ponteiro — nunca
+# comprimir a redação de uma regra (as frases-chave abaixo são travadas por teste).
+TETO_CLAUDE_MD = 10000      # bytes — o molde que entra em toda sessão
 TETO_LINHA = 600            # bytes — linha gigante é procedimento disfarçado de regra
 TETO_MAPA = 6000            # bytes — mapa é 1 tela, não arquivo morto
 TETO_INDEX = 7000           # bytes — índice de tarefas ABERTAS
@@ -33,6 +36,48 @@ def test_claude_md_dentro_do_orcamento():
     p = REPO / "templates" / "CLAUDE.md"
     n = _b(p)
     assert n <= TETO_CLAUDE_MD, f"templates/CLAUDE.md tem {n} bytes (teto {TETO_CLAUDE_MD})"
+
+
+# Uma frase por regra — o que não pode sumir numa poda. Poda que precise tirar uma destas está
+# APAGANDO regra: mova o bloco inteiro pro comando/rules/spec em vez de comprimir a redação.
+FRASES_CHAVE_CLAUDE_MD = (
+    "sempre em pt-BR",
+    "Não codar antes do meu OK explícito",
+    "Declare as premissas antes do OK",
+    "Não inventar fatos concretos",
+    "PERGUNTE, não vasculhe",
+    "Falha ao executar a habilidade",
+    "a partir da principal atualizada",
+    "nunca a partir de outra branch",
+    "Stage **nominal**",
+    "`git push` em dev/homologação/produção e deploy: nunca você",
+    "o hook pede a minha aprovação",
+    "Um assunto por janela",
+    "Bola de neve",
+    "`<private>`",
+    "NUNCA num `CLAUDE.md`",
+    "Nunca commitar `.env`",
+    "Tailwind",
+    "Estrutura de pastas em camadas",
+    "secure-by-default",
+    "Spec viva não pode mentir",
+    "nunca `print`",
+    "outro projeto é SOMENTE-LEITURA",
+    "rode o teste e cole a saída",
+    "Pré-vôo de ambiente",
+    "Diagnóstico disciplinado",
+)
+
+
+def test_claude_md_mantem_as_frases_chave_das_regras():
+    """H — teto não justifica apagar regra: cada regra do molde mantém sua frase-chave, e as regras
+    críticas seguem numeradas 1..11 (comandos citam "regra 8")."""
+    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    faltam = [f for f in FRASES_CHAVE_CLAUDE_MD if f not in txt]
+    assert not faltam, f"poda apagou regra do templates/CLAUDE.md: {faltam}"
+    criticas = txt.split("## Regras críticas", 1)[1]
+    numeros = [int(n) for n in re.findall(r"^(\d+)\. ", criticas, re.M)]
+    assert numeros[:11] == list(range(1, 12)), f"regras críticas renumeradas: {numeros}"
 
 
 def test_claude_md_sem_linha_gigante():
