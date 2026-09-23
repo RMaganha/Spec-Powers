@@ -19,4 +19,9 @@ a âncora do INDEX), e regex escrito em string **não-raw** dentro de script de 
 de controle (`\\b` gravou um backspace real no hook — 76 testes vermelhos). Regra: edição de arquivo
 com acento ou regex vai pelo `Edit` ou por script gravado com `Write`, nunca por heredoc.
 
+**E a cerca de publicação lê o heredoc como comando:** mensagem de commit que cite `docker push` ou
+`(gh pr merge` no começo de uma linha é negada. É de propósito — pular o corpo do heredoc abriria
+`bash <<EOF … git push origin main … EOF`. Mensagem de commit que fala dos comandos vai por
+`git commit -F <arquivo>`.
+
 Relacionado: a memória do Whats `powershell-quebra-argumento-nativo` (mesma família: passe por arquivo).
