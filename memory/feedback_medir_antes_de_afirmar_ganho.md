@@ -22,5 +22,12 @@ ocorrências, somar tamanhos) e ponha o **antes × depois** numa tabela. Depois 
 **teste** — número sem teste volta a subir na semana seguinte. E se o teto que você mesmo definiu
 apertar, a pergunta certa é "o que aqui ainda é procedimento?" e não "quanto posso cortar": mexer no
 teto pra caber é aceitável **só** quando o corte restante apagaria guardrail — e aí escreva o porquê
-junto do número. Parente de [[feedback-pesquisar-fonte-primaria-antes-de-desenhar]] e de
+junto do número.
+
+**Corolário (2026-09-23, F-028):** medir inclui **localizar**. Antes de dizer "o guardrail X teria
+pegado o caso Y", abra o caso e veja *em que momento* ele falhou (commit? release? deploy?); antes de
+citar o custo de um comando do kit, leia o `commands/<x>.md`. Os dois levam minutos — e sem eles eu
+vendi "release em script" pra um problema que acontece na hora do commit.
+
+Parente de [[feedback-pesquisar-fonte-primaria-antes-de-desenhar]] e de
 [[feedback-item-de-backlog-nao-e-design]].

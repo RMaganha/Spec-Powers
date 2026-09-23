@@ -1,7 +1,7 @@
 ---
 name: project_heredoc_grande_com_acento_quebra_no_git_bash
 description: heredoc grande (dezenas de linhas) com acentos passado ao Bash tool corrompe bytes (locale enu) e parte strings; script com acento vai pro scratchpad via Write e roda por arquivo
-gatilho: quando rodar pelo Bash tool um script Python de mais de ~30 linhas com acentos ou travessão
+gatilho: quando rodar pelo Bash tool um script Python com acentos, travessão ou regex
 metadata:
   type: project
 ---
@@ -14,4 +14,9 @@ na mesma sessão; o problema aparece com volume.
 
 **How to apply:** script com acento/travessão → grave no scratchpad com `Write` (UTF-8) e rode
 `python "<scratchpad>/arquivo.py"`. Vale também pra mensagens de commit longas (`git commit -F arquivo`).
+**2026-09-23 — não é só volume:** um heredoc de 8 linhas com acento também falhou (o `assert` não achou
+a âncora do INDEX), e regex escrito em string **não-raw** dentro de script de edição virou caractere
+de controle (`\\b` gravou um backspace real no hook — 76 testes vermelhos). Regra: edição de arquivo
+com acento ou regex vai pelo `Edit` ou por script gravado com `Write`, nunca por heredoc.
+
 Relacionado: a memória do Whats `powershell-quebra-argumento-nativo` (mesma família: passe por arquivo).

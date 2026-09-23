@@ -38,4 +38,12 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-025 | 2026-09-15 | quando o comando de teste e o `git commit` forem encadeados no mesmo comando de shell | commit com suíte vermelha (pipe mascarou o exit) | cerca no `hooks/git_publicacao.py` (nega pytest com saída em pipe antes do `git commit` no mesmo comando, sem `pipefail`; falha ABERTA; `MSS_PIPE_TESTE_OFF`) · memória `feedback_pipe_mascara_o_exit_do_teste` · `tests/test_hook_pipe_teste.py` (os comandos reais de `edc0ab9` e `f9388e5` são negados) | fechado |
 | F-026 | 2026-09-23 | quando, pra fechar o assunto da janela, surgir "preciso entender outro assunto antes" — ou a janela passar de 75% | bola de neve: a janela de um assunto vira vários e enche | hook `alerta_contexto.py` (UserPromptSubmit + PostToolUse, aviso em 75/85/95%) · prosa "bola de neve" no `CLAUDE.md`/`to-dolist`/`nova-feature` (entender = subagente, mexer = to-dolist) · `tests/test_hook_alerta_contexto.py` | fechado |
 | F-027 | 2026-09-23 | quando um número do ambiente (janela, limite, versão) não vier na entrada e for preciso ASSUMIR um padrão | premissa `sem fonte` virou padrão do código | janela sai do owner (`MSS_JANELA_TOKENS`, `CLAUDE_CODE_AUTO_COMPACT_WINDOW`) ou do id do modelo (família 5 = 1M), conferido contra o print do app · `test_familia_5_tem_janela_de_1m` + `test_print_do_owner_fica_calado` | fechado |
+| F-028 | 2026-09-23 | quando propor melhoria ou guardrail citando um caso real ou o custo de um comando do kit | ganho vendido sem conferir o mecanismo | memória `feedback_medir_antes_de_afirmar_ganho` (corolário: localizar onde a falha acontece e ler o comando antes de citar custo) · sem teste | aberto |
+
+### F-028 — ganho vendido sem conferir o mecanismo (aberto)
+
+- **Falhou:** disse que o "release em script" fechava o F-025 e que o `divergir` tinha "custo fixo de ~10" — errado nos dois: o F-025 acontece na hora do commit, não no release, e o `commands/divergir.md` já dispara 3-5 subagentes. E citei o `63b1de3` como falha do release, quando o release em prosa o pegou.
+- **Verdade:** só apareceu quando o owner pediu *"precisamos ter certeza que isso realmente são melhorias"*; a 2ª checagem (EVALS, `git log -S`, leitura do comando) levou minutos e derrubou as duas.
+- **Guardrail:** antes de atribuir ganho a um caso, abrir o registro do caso (quando/onde falhou) e o arquivo do comando citado — hoje só prosa (memória acima).
+- **Teste:** nenhum — é conduta de análise, não código. Fica aberto até reincidência zero em 3 sessões de avaliação/proposta.
 
