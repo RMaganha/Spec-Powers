@@ -1,9 +1,10 @@
-Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
+Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os seis anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega) | cerca: publicar/integrar/deploy é ato do owner |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega) | cerca: publicar/integrar/deploy é ato do owner · e pytest mascarado por pipe antes do `git commit` (F-025) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão/diário que casou com o prompt |
@@ -111,6 +112,27 @@ veredito e **pede** — o owner publica/integra do terminal dele (hook não roda
   exit 2 com motivo no stderr).
 - **Escape consciente só do owner:** `MSS_PUBLICACAO_OFF=1` (no `settings.json`, bloco `env`). Não há
   escape por argumento do assistente.
+
+## 2ª cerca no mesmo processo — pytest mascarado por pipe (caso F-025)
+
+**Por que existe:** `python -m pytest -q 2>&1 | tail -1 && git commit …` **commitou com 2 testes
+vermelhos** (`edc0ab9`, 2026-09-15). Num pipe, o código de saída é o do **último** comando (o `tail`),
+e o `&&` só olha esse. A memória `feedback_pipe_mascara_o_exit_do_teste` foi escrita e **não bastou**:
+reincidiu em `f9388e5` — prosa não chega no momento do atalho.
+
+**Nega** quando o mesmo comando tem o **pytest como comando** (`pytest`, `py.test`, `<python> -m
+pytest`) com a saída num `|` e um **`git commit` depois**, sem `pipefail`. Passam: `pytest && git
+commit` (o commit depende do exit real), `pytest | tail` sem commit, `set -o pipefail; …`, `grep
+pytest … | …` (a palavra como texto) e o teste **depois** do commit. PowerShell também é pego
+(`| Select-Object -Last 1; git commit`).
+
+- **Mora no `git_publicacao.py`** porque é o mesmo evento (`PreToolUse` Bash/PowerShell): um hook
+  separado custaria ~190 ms a mais em **todo** comando de shell (medido: a partida do Python).
+- **Modo de falha PRÓPRIO — ABERTA**: bug aqui → libera. Commit vermelho se reverte; push não — por
+  isso a cerca de publicação segue FECHADA e é avaliada primeiro. Uma não liga nem desliga a outra.
+- **Escape próprio, só do owner:** `MSS_PIPE_TESTE_OFF=1`.
+- Não é "hook de pre-commit bloqueante" (fora de escopo no INDEX): não roda teste nem trava commit —
+  só recusa o comando que **esconde** o resultado do teste.
 
 ---
 
@@ -238,3 +260,44 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 - **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado.
 - **Calado** abaixo do limiar e na faixa já avisada.
 - **Escape consciente só do owner:** `MSS_ALERTA_CONTEXTO_OFF=1`.
+
+---
+
+# Registro local — o que os hooks FIZERAM (`_registro.py`)
+
+**Por que existe:** os hooks decidem calados, e ninguém consegue dizer quanto eles valem — quantas
+vezes a cerca de publicação barrou um push, se o recall aponta a memória certa, se o alerta de
+contexto calcula a janela certa. O caso **F-027** (o alerta dizia 92% onde o app mostrava 18%) só
+apareceu porque o owner comparou com o print do app. Com o registro, isso vira número.
+
+Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/registro-hooks.jsonl`
+(um arquivo por máquina, fora de qualquer repo, com o nome da pasta do projeto em cada linha):
+
+| hook | decisão | detalhe gravado |
+|---|---|---|
+| `git_publicacao` | `negou` | `git push`, `git merge`… · `pytest em pipe antes do git commit` · `defeito da cerca` |
+| `projeto_ativo` | `negou` | o tool (`Write`/`Edit`) — **não** o caminho |
+| `um_item_por_janela` | `bloqueou` | `abertas=N` |
+| `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
+| `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
+| `capturar_nudge` | `lembrou` | — |
+
+Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
+
+```
+python hooks/_registro.py resumo            # tudo
+python hooks/_registro.py resumo --dias 7   # só a última semana
+```
+
+## Garantias
+
+- **Nunca grava o texto do prompt nem a linha de comando** — o detalhe é sempre um rótulo do
+  próprio hook. Travado por teste com um segredo falso no comando, no prompt e no caminho.
+- **Registro quebrado não muda decisão nenhuma** — disco cheio, pasta sem permissão, módulo
+  ausente: o hook responde byte a byte igual (travado por teste nos seis). A cerca de publicação
+  segue falhando FECHADA por conta dela, não do registro.
+- **Passar calado não grava** (o `alerta_contexto` roda em todo `PostToolUse`; só a faixa nova vira linha).
+- **Teto:** acima de 1 MB o arquivo vira `.1` (o `.1` anterior é descartado) — nunca cresce sem limite.
+- **Custo:** anexar uma linha é < 1 ms, contra os ~190–260 ms que cada hook já gasta na partida do Python.
+- **Escape consciente, só do owner:** `MSS_REGISTRO_OFF=1`. `MSS_REGISTRO_ARQUIVO` troca o caminho
+  (a suíte usa, via `tests/conftest.py`, pra nunca sujar o registro real).

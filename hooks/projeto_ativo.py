@@ -24,6 +24,25 @@ import os
 import subprocess
 import sys
 
+
+# Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
+# ou com qualquer defeito dele, o hook segue exatamente igual.
+try:
+    _PASTA_HOOKS = os.path.dirname(os.path.abspath(__file__))
+    if _PASTA_HOOKS not in sys.path:
+        sys.path.insert(0, _PASTA_HOOKS)
+    from _registro import registrar as _registrar
+except Exception:                                    # noqa: BLE001
+    _registrar = None
+
+
+def _anotar(decisao, detalhe, evento):
+    try:
+        if _registrar is not None:
+            _registrar("projeto_ativo", decisao, detalhe, evento)
+    except Exception:                                # noqa: BLE001
+        pass
+
 ENV_DESLIGA = "MSS_ANCORA_OFF"
 ENV_ANCORA = "CLAUDE_PROJECT_DIR"
 TOOLS_DE_ESCRITA = ("Write", "Edit", "NotebookEdit")
@@ -155,6 +174,7 @@ def decidir(evento, ambiente=None, git_common_dir=None):
     if mesmo_repo(alvo, ancora, git_common_dir):
         return None
 
+    _anotar("negou", evento.get("tool_name"), evento)     # o caminho não vai pro registro
     return MOTIVO.format(ancora=ancora_bruta, alvo=bruto, env=ENV_DESLIGA)
 
 

@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.30.0 — 2026-09-23 (cerca do pipe · registro dos hooks)
+- **o que motivou:** avaliação de duas análises externas do kit. Das quatro melhorias levantadas, duas se sustentaram com caso real; o "release em script" caiu porque o F-025 acontece na hora do commit, não no release, e o `divergir` em escada inverteria a lógica do comando.
+- feat(**cerca do pipe no `hooks/git_publicacao.py`**, caso **F-025** → fechado): nega o comando com pytest (como comando) com saída em pipe antes de um `git commit`, sem `pipefail` — `pytest | tail -1 && git commit` commitou com 2 vermelhos (`edc0ab9`) e reincidiu com a memória escrita (`f9388e5`). Mesmo processo da cerca de publicação (hook separado = ~190 ms a mais em todo comando de shell), com modo de falha **próprio, ABERTA**, e escape próprio `MSS_PIPE_TESTE_OFF=1`; a de publicação segue FECHADA e é avaliada primeiro.
+- feat(**`hooks/_registro.py`, registro local**): os seis hooks anotam em `~/.claude/mss-spec/registro-hooks.jsonl` cada vez que **agem** — hook, decisão, rótulo curto, pasta do projeto, início da sessão; **nunca** prompt nem comando. Registro quebrado não muda decisão nenhuma (byte a byte, travado nos seis); > 1 MB → `.1`; `MSS_REGISTRO_OFF=1`. Leitura: `python hooks/_registro.py resumo [--dias N]`.
+- test: `tests/test_hook_pipe_teste.py` (**25**) + `tests/test_hook_registro.py` (**33**) + `tests/conftest.py` (a suíte nunca grava no registro real). Suíte **530 passed** (era 472), nenhum teste existente alterado. Dogfood nesta sessão: as duas cercas negaram ao vivo e o registro gravou a linha.
+
 ## 0.29.1 — 2026-09-23 (a janela do Opus 5.5 é 1M)
 - fix(**`alerta_contexto.py` media a janela errada**, caso **F-027**): o app mostrava `184,8k / 1M (18%)` e o hook assumia 200 mil (92%) — o id no transcript é `claude-opus-5-5`, sem `[1m]`, e nenhum hook recebe o tamanho da janela (doc do Claude Code). Família 5 (Opus/Sonnet/Fable) passa a 1M; 4.x e Haiku seguem 200 mil; `CLAUDE_CODE_AUTO_COMPACT_WINDOW` entra antes do modelo, `MSS_JANELA_TOKENS` antes de tudo. Conferido no transcript real: 193.662 tokens → 19,4%.
 - test: `tests/test_hook_alerta_contexto.py` 17 → **20**.

@@ -5,6 +5,10 @@
 
 ## 2026-09-23 — fechadas
 
+8. cerca do pipe e registro dos hooks — commit não sai com o resultado do pytest escondido por pipe (F-025) + registro local do que os hooks fizeram (specs `docs/specs/travas-um-item-por-janela.md` e `docs/specs/registro-dos-hooks.md`) — fechada
+
+## 2026-09-23 — fechadas
+
 - [alerta de contexto e bola de neve](../specs/alerta-de-contexto.md) — hook `alerta_contexto.py` avisa em 75/85/95% da janela (UserPromptSubmit + PostToolUse, não bloqueia) · prosa "bola de neve": entender = subagente, mexer = to-dolist (F-026) (0.29.0) — fechada
 
 ## 2026-09-15 — fechadas

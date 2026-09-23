@@ -8,7 +8,10 @@ metadata:
 
 2026-09-15, commit `edc0ab9` do kit: `python -m pytest tests/... -q 2>&1 | tail -1 && git add … && git commit`
 commitou com **2 testes vermelhos**. O `&&` viu o exit do `tail` (0), não o do pytest. Só apareceu duas
-tarefas depois, ao rodar a suíte inteira sem pipe. Caso **F-025** em `docs/EVALS.md` (aberto).
+tarefas depois, ao rodar a suíte inteira sem pipe. Caso **F-025** em `docs/EVALS.md` — reincidiu em
+`f9388e5` com esta memória já escrita, e desde a 0.30.0 é **cerca**: o `hooks/git_publicacao.py` nega
+pytest com saída em pipe antes do `git commit` no mesmo comando (escape do owner: `MSS_PIPE_TESTE_OFF=1`).
+A memória segue valendo pra onde a cerca não olha (`dotnet test`, `npm test`, `;` sem pipe).
 
 **Why:** "rodou sem erro" era o `tail`. A regra 9 do `CLAUDE.md` (rode o teste e cole a saída) pressupõe
 que o exit visto é o do teste — o pipe quebra essa premissa em silêncio.

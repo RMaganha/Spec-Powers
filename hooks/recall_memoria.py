@@ -20,6 +20,25 @@ import sys
 import traceback
 from pathlib import Path
 
+
+# Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
+# ou com qualquer defeito dele, o hook segue exatamente igual.
+try:
+    _PASTA_HOOKS = os.path.dirname(os.path.abspath(__file__))
+    if _PASTA_HOOKS not in sys.path:
+        sys.path.insert(0, _PASTA_HOOKS)
+    from _registro import registrar as _registrar
+except Exception:                                    # noqa: BLE001
+    _registrar = None
+
+
+def _anotar(decisao, detalhe, evento):
+    try:
+        if _registrar is not None:
+            _registrar("recall_memoria", decisao, detalhe, evento)
+    except Exception:                                # noqa: BLE001
+        pass
+
 ENV_DESLIGA = "MSS_RECALL_OFF"
 ENV_DEBUG = "MSS_RECALL_DEBUG"
 MIN_TOKENS_PROMPT = 4
@@ -61,6 +80,9 @@ def responder(evento, ambiente=None):
         texto = motor.formatar_injecao(motor.casar(proj, prompt, limite=LIMITE))
         if not texto:
             return None
+        # só o ponteiro (arquivo:linha), nunca o prompt nem o resumo da memória
+        ponteiros = [l[2:].split(" — ")[0] for l in texto.splitlines() if l.startswith("- ")]
+        _anotar("injetou", ", ".join(ponteiros), evento)
         return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": texto}}
     except Exception:                                # noqa: BLE001 — falha ABERTA
         if str((ambiente or os.environ).get(ENV_DEBUG, "")).strip():
