@@ -4,7 +4,7 @@ Os seis anotam no **registro local** cada vez que **agem** (seção no fim deste
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega) | cerca: publicar/integrar/deploy é ato do owner · e pytest mascarado por pipe antes do `git commit` (F-025) |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão/diário que casou com o prompt |
@@ -74,13 +74,13 @@ a mensagem `[mss-spec] BLOQUEADO`. Se passar (não bloqueou), registre à mão n
 }
 ```
 
-Mesmo canário pras outras duas cercas: peça um `git push --dry-run` (tem que vir `[mss-spec] BLOQUEADO`) e,
+Mesmo canário pras outras duas cercas: peça um `git push --dry-run origin main` (tem que vir `[mss-spec] BLOQUEADO`) e,
 com uma feature `aberta` no INDEX, digite `/mss-spec:nova-feature outra-coisa` (o prompt tem que ser
 bloqueado com a lista das abertas).
 
 ---
 
-# Hook ligado — publicar e integrar é ato do owner (`git_publicacao.py`)
+# Hook ligado — push em homologação/produção é ato do owner (`git_publicacao.py`)
 
 **Por que existe (acidente real, caso F-022, 2026-09):** numa janela aberta pra **uma** feature, o
 assistente absorveu um 2º e um 3º assunto, mesclou branches e **disparou `git push`** — e o push é o
@@ -88,28 +88,45 @@ gatilho do deploy automático em homologação. Quando o owner viu, vários já 
 quebrou inteira e custou centenas de testes pra entender o quê. A frase *"`git push` só quando eu
 pedir"* **já estava** no `CLAUDE.md` e foi ignorada: prosa não segura na hora 2 de uma sessão longa.
 
-Evento `PreToolUse`, matcher `Bash|PowerShell`, lê `tool_input.command` e **nega** o que:
-- **publica**: `git push` (qualquer forma: `-u`, `--force*`, `-C <dir>`, encadeado com `;`/`&&`/`|`,
-  prefixo `VAR=x`, PowerShell);
-- **integra**: `git merge`, `git rebase` (menos `--abort`, que desfaz), `gh pr merge`;
-- **faz deploy**: `docker push`, `az acr build`, `az webapp <escrita>` (`log`/`show`/`list` passam),
-  `az containerapp update|create|revision`.
+**Por que mudou (0.31.0):** a 1ª versão negava **todo** push/merge/rebase e travou o dia a dia —
+merge local, push de branch de feature, até `git merge-base` (que só lê; o registro gravou a recusa).
+O dano do F-022 veio do push que faz **deploy**: é isso que segue negado. O resto virou **pedido de
+aprovação** — o owner vê o comando e aprova com um clique.
 
-Casa o **verbo no início de um comando simples**, não a palavra solta — `grep -rn 'git push' docs/`
-e `echo pushing` passam. **Libera o resto do git**: status, log, diff, fetch, add, commit,
-checkout/switch/branch (abrir a branch da feature continua livre), stash.
+Evento `PreToolUse`, matcher `Bash|PowerShell`, lê `tool_input.command`:
 
-**O que o assistente faz no lugar:** roda `/mss-spec:release` (gate de pré-publicação), cola o
-veredito e **pede** — o owner publica/integra do terminal dele (hook não roda no terminal humano).
+| Comando | Decisão |
+|---|---|
+| `git push` pra branch **protegida** — `main`, `master`, `dev`, `develop`, `production`, `homolog*`, `hml*`, `prod*`, `release/*` — por refspec (`origin dev`, `HEAD:dev`, `x:main`, `--delete main`) | **nega** |
+| `git push` sem refspec estando numa protegida, ou com o `@{push}` apontando pra uma (feature que rastreia `origin/dev`) | **nega** |
+| `git push` de destino indeterminável: `--all`, `--mirror`, `--tags`, `:`, HEAD destacado, git que não responde | **nega** |
+| deploy e integração remota: `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update\|create\|revision` | **nega** |
+| `git merge`, `git rebase` (menos `--abort`) e `git push` de feature/fix | **pede aprovação** (`"ask"`) |
+| o resto: `merge-base`, `merge-tree`, `pull`, status, fetch, commit, checkout/branch, stash | passa calado |
+
+Casa o **verbo no início de um comando simples** (e só o verbo inteiro — `merge` não casa
+`merge-base`), não a palavra solta: `grep -rn 'git push' docs/` e `echo pushing` passam. Num comando
+com várias ações, a mais grave vence (negar > pedir aprovação). Sem refspec, a cerca pergunta ao
+**git da pasta do comando** (`-C <dir>` › último `cd <dir>` › `cwd`) a branch atual e o `@{push}`.
+
+**Pedido de aprovação:** `permissionDecision: "ask"` com exit 0 — o app (Desktop incluso) mostra o
+comando e o motivo, e o owner aprova ou recusa. Segundo a doc de permissões do Claude Code, o hook
+não fura as regras de permissão (uma regra `ask` pede aprovação mesmo se o hook liberar).
+
+**O que o assistente faz no push protegido:** roda `/mss-spec:release` (gate de pré-publicação),
+cola o veredito e **pede** — o owner publica do terminal dele (hook não roda no terminal humano).
 
 ## Garantias
 
 - **Falha FECHADA** onde importa: há comando e a avaliação estourou → **nega** com o motivo
-  "cerca com defeito". É o oposto da cerca da âncora, de propósito: uma escrita barrada por engano
-  custa um `MSS_ANCORA_OFF=1`; um push que passa por engano custa um ambiente. Evento **sem
-  comando** (malformado) libera calado — não existe push num evento vazio.
+  "cerca com defeito"; push sem destino explícito e git que não responde → **nega** ("não deu pra
+  saber"). É o oposto da cerca da âncora, de propósito: uma escrita barrada por engano custa um
+  `MSS_ANCORA_OFF=1`; um push que passa por engano custa um ambiente. Evento **sem comando**
+  (malformado) libera calado — não existe push num evento vazio.
 - **Calado quando libera**; ao negar, os dois protocolos (`permissionDecision: "deny"` no stdout +
-  exit 2 com motivo no stderr).
+  exit 2 com motivo no stderr); ao pedir aprovação, só o JSON e exit 0 (exit 2 ignoraria o `ask`).
+- **Falso bloqueio conhecido:** feature cujo nome **começa** com `prod`/`hml`/`homolog` (ex.:
+  `produto-x`) conta como protegida — use `feature/produto-x`.
 - **Escape consciente só do owner:** `MSS_PUBLICACAO_OFF=1` (no `settings.json`, bloco `env`). Não há
   escape por argumento do assistente.
 
@@ -275,7 +292,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 
 | hook | decisão | detalhe gravado |
 |---|---|---|
-| `git_publicacao` | `negou` | `git push`, `git merge`… · `pytest em pipe antes do git commit` · `defeito da cerca` |
+| `git_publicacao` | `negou` · `perguntou` | `git push → dev`, `git push indeterminado`, `docker push`… · `git merge`, `git push → feature/x` · `pytest em pipe antes do git commit` · `defeito da cerca` |
 | `projeto_ativo` | `negou` | o tool (`Write`/`Edit`) — **não** o caminho |
 | `um_item_por_janela` | `bloqueou` | `abertas=N` |
 | `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |

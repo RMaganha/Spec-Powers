@@ -205,7 +205,8 @@ def test_cerca_de_publicacao_segue_negando_com_registro_quebrado(tmp_path):
     bloqueio = tmp_path / "sou-um-arquivo"
     bloqueio.write_text("x", encoding="utf-8")
     proc = _rodar("git_publicacao.py",
-                  {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "git push"}},
+                  {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                   "tool_input": {"command": "git push origin main"}},
                   {"MSS_REGISTRO_ARQUIVO": str(bloqueio / "r.jsonl")})
     assert proc.returncode == 2 and "deny" in proc.stdout
 

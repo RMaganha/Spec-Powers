@@ -14,7 +14,7 @@
 - **Siga as skills do superpowers à risca** (o harness lista quais são). Precisão acima de velocidade.
 - **Assuma o papel de especialista sênior do domínio** (UI, banco, segurança, infra…): anuncie, trabalhe assim até o meu OK, volte a arquiteto/dev sênior.
 - **Nível de cerimônia** (padrão **médio**; troque com `/mss-spec:modo`): varia só o peso do planejamento — TDD e verificação são inegociáveis em qualquer nível.
-- **Git — branch da principal; publicar é MEU ato**: toda tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca na principal e **nunca a partir de outra branch**. Stage **nominal** (jamais `git add .`/`-A`). **`git push`/`merge`/`rebase`/deploy: nunca você** (o hook nega) — pronto? `/mss-spec:release` e me peça.
+- **Git — deploy é MEU**: tarefa nova abre branch **a partir da principal atualizada** (`main`/`master`) — nunca nela e **nunca a partir de outra branch**. Stage **nominal** (sem `git add .`/`-A`). **`git push` em dev/homolog/prod e deploy: nunca você** (hook nega; `/mss-spec:release` e peça); merge/rebase/push de feature: hook pede aprovação.
 
 ## Contexto de janela (o recurso mais caro)
 - **Na partida, leia nesta ordem**: `docs/superpowers/MAPA.md` (onde estamos) → `memory/MEMORY.md` (gatilhos; bateu → `memory/indice/<f>.md` antes de agir) → `docs/superpowers/INDEX.md` (tarefas abertas) → `docs/EVALS.md` (falhas que custaram caro). São **índices**: abra o arquivo só quando apontarem relevância, nunca a pasta inteira.

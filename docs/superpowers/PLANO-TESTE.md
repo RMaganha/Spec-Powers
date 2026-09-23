@@ -108,15 +108,16 @@
 - `test_sonda_de_worktree_falha_FECHADA` — a única exceção ao fail-open: git inconsultável → nega (senão a cerca sumiria só por o git faltar no PATH)
 - `test_processo_nega_com_json_e_stderr` / `test_processo_libera_silencioso` / `test_processo_falha_aberta_com_stdin_invalido` — contrato do processo: deny pelos dois protocolos (JSON `permissionDecision` + exit 2 com motivo no stderr), liberação calada, stdin inválido sai 0
 
-`tests/test_hook_git_publicacao.py` — comportamento da cerca de publicação (hook `git_publicacao.py`, F-022):
-- `test_nega_publicacao_e_integracao` (×20) — `git push` (todas as formas: `-u`, `--force*`, `-C <dir>`, encadeado `;`/`&&`/`|`, prefixo `VAR=x`, tab, multilinha), `git merge`, `git rebase`, `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update` → negados, com motivo que cita o owner e o `/mss-spec:release`
-- `test_nega_tambem_no_powershell` / `test_comando_em_varias_linhas_e_pego` — mesma cerca no tool PowerShell e em comando de várias linhas
-- `test_libera_o_resto` (×22) — status/log/diff/fetch/add/commit/checkout/switch/branch/stash/`merge --abort`/`rebase --abort`, pytest, `docker build`, `az account show`, `az webapp log tail`, `echo pushing`, `grep 'git push'` → passam
-- `test_outro_tool_nao_e_avaliado` — Write com "git push" no conteúdo não é comando
-- `test_escape_do_owner` — `MSS_PUBLICACAO_OFF=1` libera; em branco não conta
-- `test_evento_sem_comando_libera_calado` / `test_bug_na_avaliacao_falha_fechada` — sem comando libera; avaliação que estoura NEGA (falha fechada)
-- `test_processo_*` (×3) — via subprocess: deny pelos dois protocolos (JSON + exit 2 + stderr), libera calado, entrada não-JSON libera
-- `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json` (matcher Bash|PowerShell, âncora segue 1º grupo), README (escape, falha fechada) e `CLAUDE.md`
+`tests/test_hook_git_publicacao.py` — cerca de publicação POR DESTINO (hook `git_publicacao.py`, F-022; 0.31.0):
+- `test_nega_push_protegido_indeterminado_e_deploy` (×33) — push pra main/master/dev/develop/production/homolog*/hml*/prod*/release/* (refspec, `HEAD:dev`, `x:main`, `+x:master`, `refs/heads/…`, `--delete`, dois refspecs, `-C`, encadeado, `VAR=x`, tab, multilinha), `--all`/`--mirror`/`--tags`/`:`, `gh pr merge`, `docker push`, `az …` → negados, motivo cita o owner e o `/mss-spec:release`
+- `test_push_sem_refspec_nega_quando_o_destino_e_protegido_ou_incerto` (×6) / `test_git_inconsultavel_nega_push_sem_destino_explicito` — `git push` puro em protegida, feature rastreando `origin/dev`, HEAD destacado, git que não responde → negado (falha fechada)
+- `test_nega_tambem_no_powershell` / `test_negacao_vence_pedido_no_mesmo_comando` — PowerShell; negar vence perguntar (inclusive a cerca do pipe)
+- `test_pede_aprovacao_pra_integrar_e_push_de_feature` (×12) — merge, rebase, push de feature/fix (explícito, `HEAD:feature`, puro, `-u origin HEAD`, `cd … &&`) → `ask`
+- `test_consulta_o_git_na_pasta_do_comando` / `test_push_com_destino_explicito_nao_consulta_o_git` — `-C` › `cd` › cwd; destino explícito não chama o git
+- `test_libera_o_resto` (×26) — inclui `merge-base`/`merge-tree`/`merge-file` (falso positivo da 0.30.0) e `git pull`
+- `test_outro_tool_nao_e_avaliado` / `test_escape_do_owner` / `test_evento_sem_comando_libera_calado` / `test_bug_na_avaliacao_falha_fechada` / `test_decidir_segue_devolvendo_o_motivo`
+- `test_processo_*` (×5) — deny = JSON + exit 2 + stderr; **ask = JSON + exit 0, stderr vazio**; libera calado; não-JSON libera; **repo git real** (dev nega, feature pergunta)
+- `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json`, README (escape, falha fechada, aprovação, `release/*`) e `CLAUDE.md` (push de homologação/produção do owner, resto com aprovação)
 
 `tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022):
 - `test_lista_abertas_ignora_fechada_e_pausada` / `test_em_andamento_conta_como_aberta` / `test_indice_vazio_nao_tem_aberta` — parser do INDEX: `aberta` e `em andamento` contam; `fechada`/`pausada` não
@@ -139,7 +140,7 @@
 - `test_registro_que_nao_grava_nao_muda_a_decisao` (×7) / `test_cerca_de_publicacao_segue_negando_com_registro_quebrado` — saída byte a byte igual com o registro quebrado
 - `test_escape_do_owner_nao_grava` / `test_acima_do_teto_faz_rodizio` / `test_detalhe_curto_e_numa_linha_so` / `test_padrao_e_na_pasta_do_kit_no_home` / `test_resumo_*` (×2) / `test_documentado_no_readme`
 
-**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`). Mesmo canário pras cercas da 0.26.0: `git push --dry-run` pedido ao assistente tem que vir `[mss-spec] BLOQUEADO`, e `/mss-spec:nova-feature outra-coisa` com feature `aberta` no INDEX tem que ser bloqueado com a lista.
+**Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`). Mesmo canário pras cercas da 0.26.0: `git push --dry-run origin main` pedido ao assistente tem que vir `[mss-spec] BLOQUEADO` (e `git push --dry-run` numa feature tem que PEDIR aprovação), e `/mss-spec:nova-feature outra-coisa` com feature `aberta` no INDEX tem que ser bloqueado com a lista.
 
 - `test_infra_pergunta_no_kickoff` — CA1: o kickoff pergunta MSIG × própria e grava na linha `Infra:` do `CLAUDE.md`
 - `test_infra_declarada_no_molde_do_claude_md` — CA2: a linha viaja no molde, nomeando o que MSIG implica e o que não se aplica

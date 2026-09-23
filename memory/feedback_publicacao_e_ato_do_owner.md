@@ -1,16 +1,20 @@
 ---
 name: feedback_publicacao_e_ato_do_owner
-description: Publicar, integrar e fazer deploy (git push/merge/rebase, docker push, az) é ato do OWNER — o assistente roda /mss-spec:release e PEDE; e feature nova só quando não há feature aberta (um item por janela é trava, não alerta)
+description: Push em dev/homologação/produção e deploy (docker push, az, gh pr merge) é ato do OWNER — o assistente roda /mss-spec:release e PEDE; merge/rebase/push de feature rodam com a aprovação do owner; e feature nova só quando não há feature aberta (um item por janela é trava, não alerta)
 gatilho: quando for publicar/integrar/fazer deploy (git push, merge, rebase, docker/az) ou quando surgir um 2º assunto na janela de uma feature
 metadata:
   type: feedback
 ---
 
-**Publicar/integrar é ato do owner, nunca do assistente.** `git push`, `git merge`, `git rebase`,
-`gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update` são
-**negados** pelo hook `hooks/git_publicacao.py` (PreToolUse em Bash/PowerShell, ligado por padrão,
-falha fechada). O caminho certo: `/mss-spec:release` → colar o veredito → **pedir**; o owner
-executa do terminal dele. **E um item por janela é trava:** `/mss-spec:nova-feature` é bloqueado
+**Push em homologação/produção e deploy são ato do owner, nunca do assistente.** `git push` pra
+`main`/`master`/`dev`/`develop`/`production`/`homolog*`/`hml*`/`prod*`/`release/*` (ou de destino
+incerto), `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update`
+são **negados** pelo hook `hooks/git_publicacao.py` (PreToolUse em Bash/PowerShell, ligado por
+padrão, falha fechada). O caminho certo: `/mss-spec:release` → colar o veredito → **pedir**; o owner
+executa do terminal dele. **Desde a 0.31.0** `git merge`, `git rebase` e push da branch de feature
+**pedem aprovação** (o owner vê o comando e aprova) em vez de serem negados — a versão que negava tudo
+travou o dia a dia (*"a atualização minha no merge está impactando o dia a dia"*, 2026-09-23); o
+dano do F-022 foi o push que faz deploy, e só esse segue travado. **E um item por janela é trava:** `/mss-spec:nova-feature` é bloqueado
 pelo hook `hooks/um_item_por_janela.py` enquanto o `docs/superpowers/INDEX.md` tiver feature
 `aberta`/`em andamento` de outro assunto (retomar a mesma passa; `pausada: <motivo>` marcado à mão
 pelo owner não conta). Surgiu 2º assunto no meio (bug em homologação incluso)? **Não aja sobre ele**:

@@ -1,6 +1,6 @@
 {
   "name": "mss-local",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "allowCrossMarketplaceDependenciesOn": ["claude-plugins-official"],
   "plugins": [
     {
