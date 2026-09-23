@@ -2,6 +2,10 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.29.1 — 2026-09-23 (a janela do Opus 5.5 é 1M)
+- fix(**`alerta_contexto.py` media a janela errada**, caso **F-027**): o app mostrava `184,8k / 1M (18%)` e o hook assumia 200 mil (92%) — o id no transcript é `claude-opus-5-5`, sem `[1m]`, e nenhum hook recebe o tamanho da janela (doc do Claude Code). Família 5 (Opus/Sonnet/Fable) passa a 1M; 4.x e Haiku seguem 200 mil; `CLAUDE_CODE_AUTO_COMPACT_WINDOW` entra antes do modelo, `MSS_JANELA_TOKENS` antes de tudo. Conferido no transcript real: 193.662 tokens → 19,4%.
+- test: `tests/test_hook_alerta_contexto.py` 17 → **20**.
+
 ## 0.29.0 — 2026-09-23 (alerta de contexto em 75% · bola de neve)
 - **o que motivou:** a janela de um assunto vira bola de neve — *"pra fechar um assunto preciso entender outro"* — e o contexto enche sem aviso até a compactação automática (caso **F-026**).
 - feat(**`hooks/alerta_contexto.py`, ligado por padrão, NÃO bloqueia**): `UserPromptSubmit` + `PostToolUse` leem o `usage` da última resposta no transcript (hook não recebe a % pronta — só a statusline) e, a partir de **75%** (`MSS_ALERTA_CONTEXTO_PCT`), mandam o assistente avisar o owner e fechar a janela: estado no `MAPA.md`, sobra no `to-dolist`, `/clear`. Uma vez por faixa (75 · 85 · 95), rearma depois do `/compact`; janela 200 mil ou 1M (`[1m]`, uso > 200 mil, ou `MSS_JANELA_TOKENS`); `systemMessage` junto pro terminal (no Desktop ele não aparece). Escape `MSS_ALERTA_CONTEXTO_OFF=1`. Os 75% são escolha do owner — a doc da Anthropic não fixa limiar.

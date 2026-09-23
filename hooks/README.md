@@ -220,9 +220,12 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 - **limiar** 75% (`MSS_ALERTA_CONTEXTO_PCT`, 1–99). É **escolha do owner**: a documentação da
   Anthropic **não** fixa um número "saudável" — ela só compacta perto do limite. 75% deixa folga pra
   fechar o assunto antes disso;
-- **janela** = `MSS_JANELA_TOKENS` › modelo com `[1m]` → 1.000.000 › uso já acima de 200 mil →
-  1.000.000 › 200.000. Numa janela de 1M sem `[1m]` no id, o padrão avisa **cedo** (150 mil) —
-  nunca tarde; ajuste com `MSS_JANELA_TOKENS=1000000`;
+- **janela** (nenhum hook a recebe; só o `SessionStart` às vezes recebe o `model`) =
+  `MSS_JANELA_TOKENS` › `CLAUDE_CODE_AUTO_COMPACT_WINDOW` › `[1m]` no id ou uso acima de 200 mil →
+  1.000.000 › **família 5** (`claude-opus-5-5`, `claude-sonnet-5`, `claude-fable-5-1` — o id no
+  transcript vem **sem** `[1m]`) → 1.000.000 › 200.000 (4.x, Haiku). Modelo novo que fuja da regra:
+  `MSS_JANELA_TOKENS`. Caso **F-027**: com 200 mil fixo, o hook dizia 92% onde o app mostrava
+  184,8k / 1M (18%);
 - **uma vez por faixa** (75 · 85 · 95) por sessão, somando os dois eventos; caiu abaixo do limiar
   (depois de `/compact`) → rearma. Estado em `%TEMP%/mss_alerta_contexto_<sessão>.txt`;
 - **saída**: `additionalContext` manda o assistente abrir a próxima mensagem com o aviso e fechar a
