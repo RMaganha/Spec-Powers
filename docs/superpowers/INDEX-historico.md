@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-09-23 — fechadas
+
+- [alerta de contexto e bola de neve](../specs/alerta-de-contexto.md) — hook `alerta_contexto.py` avisa em 75/85/95% da janela (UserPromptSubmit + PostToolUse, não bloqueia) · prosa "bola de neve": entender = subagente, mexer = to-dolist (F-026) (0.29.0) — fechada
+
 ## 2026-09-15 — fechadas
 
 - [orçamento de partida e recall determinístico](specs/2026-09-15-orcamento-de-partida-e-recall-deterministico-design.md) — índice de memória em dois níveis · hook de recall · rodízio MAPA/INDEX (0.27.0) — fechada
