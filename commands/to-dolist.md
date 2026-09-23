@@ -10,6 +10,8 @@ Caixa de captura de ideias/ajustes que surgem **fora do contexto** da tarefa atu
 
 É o destino do protocolo **um assunto por janela** (regra no `CLAUDE.md`): quando um 2º assunto não relacionado aparece no meio de uma tarefa, ele é anotado aqui — `adicionar <assunto>` — e tratado depois, numa **nova janela**, em vez de emendar na atual.
 
+Também é o destino da **bola de neve** — quando, pra fechar o assunto A, aparece o assunto B que "precisa ser entendido antes". Só **entender** B cabe na janela, e por **subagente** (lê em janela separada, devolve o resumo). **Mexer** em B vem pra cá — `adicionar <B> (trava: <A>)` — e a janela segue em A, ou para. E é o destino do que sobra quando o hook `alerta_contexto.py` avisa que a janela passou de **75%**: fecha-se A, anota-se o resto aqui e `/clear`.
+
 A lista vive em **`to-dolist.md` na raiz do projeto** (não na pasta do plugin) e é **ignorada pelo git** de propósito: por não ser rastreada, o git não a toca ao trocar de branch — então ela aparece em **qualquer branch**. É pessoal, local e não versionada.
 
 Interprete `$ARGUMENTS`:

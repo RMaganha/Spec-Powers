@@ -1,4 +1,4 @@
-Cinco hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
+Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in):
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -7,6 +7,7 @@ Cinco hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloque
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão/diário que casou com o prompt |
+| `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
 
 ---
 
@@ -200,3 +201,37 @@ de não existir = o owner virar índice humano. Ignora `/comando` e prompt com <
 
 **Falha ABERTA:** exceção → exit 0 calado (`MSS_RECALL_DEBUG=1` mostra o traceback). Escape consciente,
 só do owner: `MSS_RECALL_OFF=1`.
+
+---
+
+# Hook ligado — alerta de contexto (`alerta_contexto.py`)
+
+**Por que existe:** a janela aberta pra UM assunto vira **bola de neve** — *"pra fechar A preciso
+entender B"*, B puxa C — e o contexto enche sem ninguém ver, até a compactação automática (que só
+dispara perto do limite e resume o que não devia). "Um assunto por janela" é prosa; a % da janela é
+número, e número dá pra vigiar.
+
+Eventos `UserPromptSubmit` (antes de cada prompt do owner) e `PostToolUse` (no meio de uma rodada
+longa, quando não há prompt). **Hook não recebe a % da janela** — só a statusline recebe (doc do
+Claude Code). A % sai do transcript: a **última** mensagem do assistente fora de subagente
+(`isSidechain` falso) traz `message.usage`; contexto = `input_tokens` + `cache_read_input_tokens` +
+`cache_creation_input_tokens`. Lê só a cauda do arquivo (512 KB).
+
+- **limiar** 75% (`MSS_ALERTA_CONTEXTO_PCT`, 1–99). É **escolha do owner**: a documentação da
+  Anthropic **não** fixa um número "saudável" — ela só compacta perto do limite. 75% deixa folga pra
+  fechar o assunto antes disso;
+- **janela** = `MSS_JANELA_TOKENS` › modelo com `[1m]` → 1.000.000 › uso já acima de 200 mil →
+  1.000.000 › 200.000. Numa janela de 1M sem `[1m]` no id, o padrão avisa **cedo** (150 mil) —
+  nunca tarde; ajuste com `MSS_JANELA_TOKENS=1000000`;
+- **uma vez por faixa** (75 · 85 · 95) por sessão, somando os dois eventos; caiu abaixo do limiar
+  (depois de `/compact`) → rearma. Estado em `%TEMP%/mss_alerta_contexto_<sessão>.txt`;
+- **saída**: `additionalContext` manda o assistente abrir a próxima mensagem com o aviso e fechar a
+  janela (estado no `MAPA.md`, sobra no `/mss-spec:to-dolist adicionar`, `/clear`) — porque o
+  `systemMessage` **não aparece no app Desktop**; o `systemMessage` vai junto pra quem usa terminal;
+- ignora evento de **subagente** (`agent_id`): a janela dele não é a do owner.
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado.
+- **Calado** abaixo do limiar e na faixa já avisada.
+- **Escape consciente só do owner:** `MSS_ALERTA_CONTEXTO_OFF=1`.
