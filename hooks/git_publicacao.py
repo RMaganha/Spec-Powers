@@ -21,6 +21,13 @@ Contrato:
   sozinha). Evento sem comando (malformado) → libera calado: não existe push num evento vazio.
 
 Escape consciente, só do owner: `MSS_PUBLICACAO_OFF=1`.
+
+2ª cerca no MESMO processo (mesmo evento, custo extra ~0 ms): **pytest mascarado por pipe antes
+do `git commit`** (caso F-025). `pytest … | tail -1 && git commit` commitou com 2 testes vermelhos:
+o código de saída de um pipe é o do último comando, e o `&&` só olha esse. Nega quando o mesmo
+comando tem o pytest (como comando, não como texto) com a saída num `|` e um `git commit` depois,
+sem `pipefail`. Modo de falha PRÓPRIO — **ABERTA** (commit vermelho se reverte; push não) — e
+escape próprio: `MSS_PIPE_TESTE_OFF=1`. Uma cerca não liga nem desliga a outra.
 """
 import json
 import os
@@ -28,6 +35,7 @@ import re
 import sys
 
 ENV_DESLIGA = "MSS_PUBLICACAO_OFF"
+ENV_PIPE_DESLIGA = "MSS_PIPE_TESTE_OFF"
 TOOLS_DE_SHELL = ("Bash", "PowerShell")
 
 # Início de um comando simples: começo do texto, separador de shell, abre-parêntese ou `$(`.
@@ -50,6 +58,11 @@ PADROES = (
      "az containerapp — altera o Container App"),
 )
 
+# pytest como COMANDO (não a palavra solta): `pytest`, `py.test`, `<python> -m pytest`.
+_PYTEST = re.compile(_INICIO + _ENV + r"(?:\S*python[\d.]*(?:\.exe)?\s+(?:-\S+\s+)*-m\s+pytest|py\.?test)\b")
+_COMMIT = re.compile(_INICIO + _ENV + _GIT + r"commit\b")
+_PIPE_SIMPLES = re.compile(r"(?<!\|)\|(?!\|)")      # `|`, não `||`
+
 MOTIVO = (
     "[mss-spec] BLOQUEADO — publicar/integrar é ato do OWNER, não do assistente.\n"
     "Comando recusado ({alvo}):\n  {comando}\n\n"
@@ -68,6 +81,17 @@ MOTIVO_DEFEITO = (
 )
 
 
+MOTIVO_PIPE = (
+    "[mss-spec] BLOQUEADO — o pipe esconde o resultado do pytest e o commit sairia mesmo com teste "
+    "vermelho.\nComando recusado:\n  {comando}\n\n"
+    "Por quê: num pipe, o código de saída é o do ÚLTIMO comando (`tail`, `grep`, `Select-Object`), "
+    "não o do pytest — e o `&&` só olha esse. Foi assim que saiu commit com testes vermelhos, duas "
+    "vezes (caso F-025 do docs/EVALS.md). Saídas: (1) rode o pytest num passo próprio, leia o "
+    "resultado e só então commite; ou (2) comece o comando com `set -o pipefail;` (Bash). "
+    "Escape consciente (só o owner decide): {env}=1."
+)
+
+
 def _texto(valor):
     """Env/campo vazio ou em branco conta como ausente."""
     return valor.strip() if isinstance(valor, str) and valor.strip() else None
@@ -81,18 +105,23 @@ def publica_ou_integra(comando):
     return None
 
 
-def decidir(evento, ambiente=None):
-    """None = libera; str = motivo do bloqueio."""
-    ambiente = os.environ if ambiente is None else ambiente
+def mascara_teste(comando):
+    """True se um pipe esconde o exit do pytest antes de um `git commit` no mesmo comando."""
+    if "pipefail" in comando:
+        return False
+    teste = _PYTEST.search(comando)
+    if teste is None:
+        return False
+    commit = _COMMIT.search(comando, teste.end())
+    if commit is None:
+        return False
+    # entre o pytest e o commit (inclui o separador que abre o commit: `pytest | git commit`)
+    return _PIPE_SIMPLES.search(comando[teste.end():commit.start() + 1]) is not None
+
+
+def _decidir_publicacao(comando, ambiente):
     if _texto(ambiente.get(ENV_DESLIGA)):
         return None
-    if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_SHELL:
-        return None
-    entrada = evento.get("tool_input")
-    comando = entrada.get("command") if isinstance(entrada, dict) else None
-    comando = _texto(comando)
-    if comando is None:
-        return None                                  # nada a avaliar → nada a negar
     try:
         alvo = publica_ou_integra(comando)
     except Exception as erro:                        # noqa: BLE001 — falha FECHADA
@@ -100,6 +129,30 @@ def decidir(evento, ambiente=None):
     if alvo is None:
         return None
     return MOTIVO.format(alvo=alvo, comando=comando[:200], env=ENV_DESLIGA)
+
+
+def _decidir_pipe(comando, ambiente):
+    if _texto(ambiente.get(ENV_PIPE_DESLIGA)):
+        return None
+    try:
+        if not mascara_teste(comando):
+            return None
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None
+    return MOTIVO_PIPE.format(comando=comando[:200], env=ENV_PIPE_DESLIGA)
+
+
+def decidir(evento, ambiente=None):
+    """None = libera; str = motivo do bloqueio. A cerca de publicação é avaliada primeiro."""
+    ambiente = os.environ if ambiente is None else ambiente
+    if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_SHELL:
+        return None
+    entrada = evento.get("tool_input")
+    comando = entrada.get("command") if isinstance(entrada, dict) else None
+    comando = _texto(comando)
+    if comando is None:
+        return None                                  # nada a avaliar → nada a negar
+    return _decidir_publicacao(comando, ambiente) or _decidir_pipe(comando, ambiente)
 
 
 def main():
