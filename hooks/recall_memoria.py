@@ -77,7 +77,7 @@ def responder(evento, ambiente=None):
         toks, _ = motor.tokens(prompt)
         if len(toks) < MIN_TOKENS_PROMPT:
             return None
-        texto = motor.formatar_injecao(motor.casar(proj, prompt, limite=LIMITE))
+        texto = motor.formatar_injecao(motor.casar(proj, prompt, limite=LIMITE, diario=False))
         if not texto:
             return None
         # só o ponteiro (arquivo:linha), nunca o prompt nem o resumo da memória

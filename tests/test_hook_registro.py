@@ -120,9 +120,19 @@ def _cenario_nudge(tmp):
             {}, "lembrou", "")
 
 
+def _cenario_orcamento(tmp):
+    proj = tmp / "proj"
+    (proj / "docs" / "superpowers").mkdir(parents=True, exist_ok=True)
+    (proj / "docs" / "superpowers" / "MAPA.md").write_bytes(b"x" * 20000)
+    return ("orcamento_partida.py",
+            {"hook_event_name": "SessionStart", "source": "startup", "cwd": str(proj),
+             "session_id": "abcdef123456"},
+            {}, "avisou", "MAPA.md=20000")
+
+
 CENARIOS = [_cenario_publicacao, _cenario_pipe, _cenario_ancora, _cenario_um_item,
-            _cenario_recall, _cenario_alerta, _cenario_nudge]
-IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge"]
+            _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento]
+IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento"]
 
 
 def _preparar(cenario, tmp_path, env):
@@ -173,6 +183,7 @@ def test_nunca_grava_o_texto_do_prompt_nem_do_comando(cenario, tmp_path):
                            "tool_input": {"command": "python -m pytest -q && git commit -m x"}}),
     ("um_item_por_janela.py", {"hook_event_name": "UserPromptSubmit", "prompt": "oi, tudo bem?"}),
     ("recall_memoria.py", {"hook_event_name": "UserPromptSubmit", "prompt": "/mss-spec:mapa"}),
+    ("orcamento_partida.py", {"hook_event_name": "SessionStart", "source": "startup"}),
 ])
 def test_hook_que_passa_calado_nao_grava(hook, evento, tmp_path):
     arquivo = tmp_path / "registro-hooks.jsonl"

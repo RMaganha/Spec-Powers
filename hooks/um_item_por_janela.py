@@ -49,6 +49,7 @@ RE_COMANDO = re.compile(r"^\s*/(?:mss-spec:)?nova-feature(?:\s+(.*?))?\s*$", re.
 RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
 RE_SEPARADOR = re.compile(r"\s+[—–]\s+")
 RE_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+RE_CABECALHO = re.compile(r"^\s*(#{1,6})\s+(.*\S)\s*$")
 ABERTOS = ("aberta", "em andamento")
 FECHADOS = ("fechada", "pausada")
 
@@ -88,13 +89,26 @@ def _status(item):
     return aberto and not fechado
 
 
+def _secao_ignorada(titulo):
+    """Backlog e 'Fora de escopo' não são feature aberta: backlog é o que ainda não começou (F-030 —
+    34 itens `aberta` de backlog travavam o nova-feature pra sempre)."""
+    t = normalizar(titulo)
+    return t.startswith("backlog") or "fora de escopo" in t
+
+
 def abertas(texto_index):
-    """Itens (linha de lista, sem o marcador) com status aberto, fora da seção 'Fora de escopo'."""
+    """Itens (linha de lista, sem o marcador) com status aberto, fora das seções Backlog e 'Fora de
+    escopo'. Subseção (`###`…) herda a seção `##` de cima; `#` e `##` redefinem."""
     saida = []
-    ignorar = False
+    ignorar = pai_ignorado = False
     for linha in texto_index.splitlines():
-        if linha.lstrip().startswith("#"):
-            ignorar = "fora de escopo" in linha.lower()
+        cabecalho = RE_CABECALHO.match(linha)
+        if cabecalho:
+            nivel, titulo = len(cabecalho.group(1)), cabecalho.group(2)
+            if nivel <= 2:
+                ignorar = pai_ignorado = _secao_ignorada(titulo)
+            else:
+                ignorar = pai_ignorado or _secao_ignorada(titulo)
             continue
         if ignorar:
             continue

@@ -62,6 +62,31 @@ def test_injeta_ponteiro_quando_casa(tmp_path):
     assert len(ctx.encode("utf-8")) <= 600
 
 
+DIARIO_WHATS = ("# Diário\n"
+                "- [evolution-go-em-homologacao] evolution go em homologação na azure, deploy do webhook do whatsapp"
+                " → sessions/2026-08-04-evolution-go-em-homologacao.md\n")
+PROMPT_DEPLOY = "preciso publicar no azure de produção o webhook do whatsapp, deploy da main"
+
+
+def test_hook_nao_injeta_diario_de_sessao(tmp_path):
+    """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o
+    assistente tratou o passado como estado atual. O `CLAUDE.md` já diz: diário é sob demanda."""
+    raiz = _projeto(tmp_path)
+    (raiz / "memory" / "DIARIO.md").write_text(DIARIO_WHATS, encoding="utf-8")
+    saida = _mod().responder(_evento(PROMPT_DEPLOY, raiz), {})
+    ctx = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
+    assert "memory/sessions/" not in ctx, "o hook injetou diário de sessão"
+
+
+def test_buscar_manual_ainda_acha_o_diario(tmp_path):
+    """O `/mss-spec:memory buscar` é pedido do owner: lá o diário continua valendo."""
+    raiz = _projeto(tmp_path)
+    (raiz / "memory" / "DIARIO.md").write_text(DIARIO_WHATS, encoding="utf-8")
+    motor = _mod()._motor()
+    r = motor.casar(raiz, PROMPT_DEPLOY, limite=10)
+    assert any(x.ponteiro.startswith("memory/sessions/2026-08-04") for x in r)
+
+
 def test_silencio_quando_nada_casa(tmp_path):
     mod = _mod()
     assert mod.responder(_evento("ajusta o rodapé da página de login por favor", _projeto(tmp_path)), {}) is None

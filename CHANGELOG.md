@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.32.0 — 2026-09-23 (partida no orçamento · backlog não é feature aberta)
+- **o que motivou:** caso **F-030** — no Whats, um pedido de deploy em produção abriu com 160 KB de partida (`CLAUDE.md` 28 KB, `MAPA.md` 60 KB, `INDEX.md` 71 KB), n8n e cotação do backlog entraram no plano como fato, o "vamos por partes" do owner foi feito de uma vez e o owner interrompeu 4 vezes. Nenhum hook negou nada: o "não pode" era o assistente prevendo a trava do `nova-feature` pelos 44 itens de backlog.
+- feat(**`hooks/orcamento_partida.py`, SessionStart, ligado, não bloqueia**): mede os quatro arquivos da partida contra os tetos (10 · 6 · 7 · 6 KB, travados contra o teste de orçamento e o `rodizio_partida.py`); acima → diz o que estourou, o que ler (MAPA → "Onde estamos", INDEX → "Em andamento"), que backlog/diário não é o estado atual e manda oferecer o `doctor`. 615 bytes no Whats real; calado no kit. Falha aberta; `MSS_ORCAMENTO_OFF=1`; registro `avisou`.
+- fix(**`um_item_por_janela.py` ignora `## Backlog`** e as subseções dele, como já ignorava "Fora de escopo"): no INDEX real do Whats, 44 → 6 abertas. `templates/INDEX.md` ganha `## Em andamento` · `## Backlog` · `## Fora de escopo`; `kickoff` semeia sob Backlog; `nova-feature` grava sob Em andamento (item do backlog sobe, não duplica).
+- fix(**recall do hook sem diário de sessão**): `casar(..., diario=False)` no `recall_memoria.py`; o `/mss-spec:memory buscar` segue achando o diário.
+- docs(**`templates/CLAUDE.md`**, 8.735/10.000 bytes): "Pedido com várias partes" (ordem de dependência do owner, uma spec por parte, só a 1ª) e "Relate o que está no disco" (ferramenta recusada → `git status` antes de dizer o que existe) — frases-chave travadas. Spec `docs/specs/partida-no-orcamento.md`, `decisoes.md`, F-030, `hooks/README.md`, `LEIA-ME.md`.
+- test: `tests/test_hook_orcamento_partida.py` (**17**) · +5 na trava (backlog, subseção, seção depois do backlog, só-backlog libera, kickoff/molde) · +2 no recall · cenário novo no registro · 2 frases-chave · contagem "Sete hooks" no smoke (mudança intencional). Suíte **600 passed** (era 572).
+
 ## 0.31.1 — 2026-09-23 (teto do CLAUDE.md em 10 KB · frases-chave travadas)
 - **o que motivou:** no teto de 8 KB a linha de Git da 0.31.0 foi espremida palavra por palavra pra caber, e a 1ª tentativa apagou duas frases que o smoke test exige — *"mexer em texto ou regras ali pode quebrar algo"*.
 - chore(**teto do `templates/CLAUDE.md`: 8.000 → 10.000 bytes**, escolha do owner): `tests/test_orcamento_contexto.py`, `commands/doctor.md` (check 9), `templates/anatomia.py` e o comentário do molde. Passou de 10 KB → **mover um bloco inteiro** pro comando/rules/spec com ponteiro, nunca comprimir redação de regra.

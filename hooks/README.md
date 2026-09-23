@@ -1,14 +1,15 @@
-Seis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os seis anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Sete hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os sete anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) |
-| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta |
+| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta (`## Backlog` e "Fora de escopo" não contam) |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
-| `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão/diário que casou com o prompt |
+| `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
+| `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 
 ---
 
@@ -280,6 +281,27 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 
 ---
 
+# Hook ligado — orçamento da partida (`orcamento_partida.py`)
+
+**Por que existe (F-030):** o Whats abria a janela com `CLAUDE.md` 28 KB + `MAPA.md` 60 KB + `INDEX.md`
+71 KB — 73 mil → 139 mil tokens antes da 1ª resposta — e item velho de backlog entrou num plano de deploy
+como se fosse o estado atual. O `doctor` (check 9) media isso, mas ninguém roda o doctor antes de cada janela.
+
+Evento `SessionStart`. Mede em bytes, na raiz (`CLAUDE_PROJECT_DIR` › `cwd`): `CLAUDE.md` 10 KB ·
+`docs/superpowers/MAPA.md` 6 KB · `docs/superpowers/INDEX.md` 7 KB · `memory/MEMORY.md` 6 KB (os tetos do
+`tests/test_orcamento_contexto.py` e do `rodizio_partida.py`; um teste trava os três). Algum acima →
+`additionalContext` (≤ 1.000 bytes) com o que estourou, o que ler de cada um (MAPA → `## Onde estamos`;
+INDEX → `## Em andamento`; o resto por `grep`), "backlog, fora de escopo e diário não são o estado atual"
+e "avise o owner e ofereça `/mss-spec:doctor`" + `systemMessage` de 1 linha. **Não move nada**: mover é
+decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado. Tudo no teto → calado.
+- **Escape consciente só do owner:** `MSS_ORCAMENTO_OFF=1`.
+
+---
+
 # Registro local — o que os hooks FIZERAM (`_registro.py`)
 
 **Por que existe:** os hooks decidem calados, e ninguém consegue dizer quanto eles valem — quantas
@@ -298,6 +320,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
+| `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
 
