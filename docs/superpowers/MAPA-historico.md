@@ -4,6 +4,9 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-23 — saiu do rodízio do MAPA (v0.30.0 na branch)
+`feature/hooks-cerca-pipe-e-registro` — **v0.30.0 pronta na branch; merge/push são do owner.** Suíte **530 verde** (era 472). Entregue: cerca do pipe no `hooks/git_publicacao.py` (pytest em pipe antes do `git commit` → nega; F-025 fechado) + `hooks/_registro.py` (os 6 hooks anotam em `~/.claude/mss-spec/registro-hooks.jsonl` quando agem; `python hooks/_registro.py resumo`). As duas cercas negaram ao vivo nesta sessão e o registro gravou a linha. A branch `docs/catalogo-do-kit` (`8b935a2`, CATALOGO.html) segue fora da `main` — o CATALOGO precisa citar a cerca do pipe e o registro depois que as duas entrarem. Specs: `docs/specs/travas-um-item-por-janela.md` (4) e `docs/specs/registro-dos-hooks.md`.
+
 ## 2026-09-23 — saiu do rodízio do MAPA (v0.29.1)
 `fix/alerta-contexto-janela-1m` — **v0.29.1 pronta na branch; merge/push são do owner** (0.29.0 já integrada). Fix: família 5 = janela de 1M (F-027). Suíte **472 verde**. Entregue: `hooks/alerta_contexto.py` (UserPromptSubmit + PostToolUse, avisa em 75/85/95% pela `usage` do transcript, não bloqueia) + prosa "bola de neve" (entender = subagente, mexer = to-dolist) no `CLAUDE.md`/`to-dolist`/`nova-feature`. **Não validado numa sessão nova** (recarregar e ver o aviso chegar). Spec: `docs/specs/alerta-de-contexto.md`.
 
