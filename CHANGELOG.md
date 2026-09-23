@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.31.1 — 2026-09-23 (teto do CLAUDE.md em 10 KB · frases-chave travadas)
+- **o que motivou:** no teto de 8 KB a linha de Git da 0.31.0 foi espremida palavra por palavra pra caber, e a 1ª tentativa apagou duas frases que o smoke test exige — *"mexer em texto ou regras ali pode quebrar algo"*.
+- chore(**teto do `templates/CLAUDE.md`: 8.000 → 10.000 bytes**, escolha do owner): `tests/test_orcamento_contexto.py`, `commands/doctor.md` (check 9), `templates/anatomia.py` e o comentário do molde. Passou de 10 KB → **mover um bloco inteiro** pro comando/rules/spec com ponteiro, nunca comprimir redação de regra.
+- test(**`test_claude_md_mantem_as_frases_chave_das_regras`**): 25 frases-chave (uma por regra) + regras críticas numeradas 1..11; provado contra a compressão da 0.31.0, a regra 8 apagada e a linha de Git sem a aprovação.
+- fix(**linha de Git do molde volta à redação completa**) — a compressão foi desfeita; a regra nova (push de homologação/produção é do owner; merge/rebase/push de feature com aprovação) fica. Molde em 8.236 bytes. Suíte **572 passed**.
+
 ## 0.31.0 — 2026-09-23 (cerca de publicação por destino)
 - **o que motivou:** *"a atualização minha no merge está impactando o dia a dia"* — a cerca negava todo push/merge/rebase, e o registro da 0.30.0 mostrou até o `git merge-base` (só leitura) sendo negado como `git merge`. O dano do F-022 foi o push que faz deploy.
 - feat(**`hooks/git_publicacao.py` por destino**): **nega** push pra `main`, `master`, `dev`, `develop`, `production`, `homolog*`, `hml*`, `prod*`, `release/*` — por refspec (`HEAD:dev`, `x:main`, `--delete`…) ou, sem refspec, pela branch atual e pelo `@{push}` do git da pasta do comando (`-C` › `cd` › cwd) —, push de destino incerto (`--all`, `--mirror`, `--tags`, `:`, HEAD destacado, git que não responde) e deploy (`gh pr merge`, `docker push`, `az …`). **Pede aprovação** (`permissionDecision: "ask"`, exit 0; aparece no Desktop) pra `git merge`, `git rebase` e push de feature/fix. Negar vence perguntar no mesmo comando; falha fechada; `MSS_PUBLICACAO_OFF=1`.
