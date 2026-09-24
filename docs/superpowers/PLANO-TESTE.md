@@ -119,12 +119,15 @@
 - `test_processo_*` (×5) — deny = JSON + exit 2 + stderr; **ask = JSON + exit 0, stderr vazio**; libera calado; não-JSON libera; **repo git real** (dev nega, feature pergunta)
 - `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json`, README (escape, falha fechada, aprovação, `release/*`) e `CLAUDE.md` (push de homologação/produção do owner, resto com aprovação)
 
-`tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022):
+`tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022; por chat desde a 0.34.0):
 - `test_lista_abertas_ignora_fechada_e_pausada` / `test_em_andamento_conta_como_aberta` / `test_indice_vazio_nao_tem_aberta` — parser do INDEX: `aberta` e `em andamento` contam; `fechada`/`pausada` não
-- `test_sem_aberta_passa` / `test_outra_aberta_bloqueia_e_lista` / `test_mesma_feature_retoma` / `test_sem_argumento_com_aberta_bloqueia` — a decisão: bloqueia listando as abertas e ensinando `pausada`; retomar a mesma (nome, slug, grafia) passa
-- `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem INDEX passa
-- `test_escape_do_owner` / `test_entrada_malformada_libera` — `MSS_UM_ITEM_OFF=1`; evento sem cwd/prompt libera (falha aberta)
-- `test_processo_*` (×3) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; libera calado; não-JSON libera
+- `test_chat_novo_passa_mesmo_com_outra_aberta` / `test_chat_novo_com_outra_aberta_avisa_e_lembra_worktree` / `test_outro_chat_nao_herda_a_trava` — o caso de 2026-09-24: chat novo abre; outras abertas viram aviso (lista, worktree, `pausada`)
+- `test_mesmo_chat_pedindo_outra_bloqueia` / `test_feature_do_chat_fora_do_index_segue_valendo` / `test_mesmo_chat_em_outro_projeto_nao_herda` — o F-022: o mesmo chat não abre 2ª feature (manda chat novo), mesmo antes de a linha nascer no INDEX
+- `test_mesma_feature_retoma` / `test_retomar_nao_avisa_da_propria_feature` / `test_feature_do_chat_encerrada_libera_a_proxima` / `test_fechada_movida_pro_historico_libera_a_proxima` — retomar (nome, slug, grafia) passa; `fechada`/`pausada` no INDEX ou no histórico libera a próxima
+- `test_nome_da_feature_e_so_a_primeira_linha` — o prompt real tem comando + parágrafos: só a 1ª linha é o nome (o parágrafo casaria qualquer feature)
+- `test_sem_argumento_passa` / `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem nome ou sem INDEX passa
+- `test_escape_do_owner` / `test_entrada_malformada_libera` / `test_estado_corrompido_libera_e_se_refaz` / `test_sem_session_id_passa_sem_gravar` / `test_estado_descarta_chat_com_mais_de_30_dias` — `MSS_UM_ITEM_OFF=1`; falha aberta; estado com validade de 30 dias
+- `test_processo_*` (×4) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; aviso = exit 0 com `systemMessage` + `additionalContext`; libera calado; não-JSON libera
 - `test_hook_registrado_no_user_prompt_submit` / `test_segunda_camada_em_prosa` — `hooks.json` (UserPromptSubmit), passo 0 do `nova-feature.md`, `CLAUDE.md` sem "alerta, não trava", README
 
 `tests/test_hook_pipe_teste.py` — cerca do pipe no `git_publicacao.py` (F-025):

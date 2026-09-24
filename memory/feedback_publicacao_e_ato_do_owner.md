@@ -14,10 +14,11 @@ padrão, falha fechada). O caminho certo: `/mss-spec:release` → colar o veredi
 executa do terminal dele. **Desde a 0.31.0** `git merge`, `git rebase` e push da branch de feature
 **pedem aprovação** (o owner vê o comando e aprova) em vez de serem negados — a versão que negava tudo
 travou o dia a dia (*"a atualização minha no merge está impactando o dia a dia"*, 2026-09-23); o
-dano do F-022 foi o push que faz deploy, e só esse segue travado. **E um item por janela é trava:** `/mss-spec:nova-feature` é bloqueado
-pelo hook `hooks/um_item_por_janela.py` enquanto o `docs/superpowers/INDEX.md` tiver feature
-`aberta`/`em andamento` de outro assunto (retomar a mesma passa; `pausada: <motivo>` marcado à mão
-pelo owner não conta). Surgiu 2º assunto no meio (bug em homologação incluso)? **Não aja sobre ele**:
+dano do F-022 foi o push que faz deploy, e só esse segue travado. **E um item por janela é trava — por CHAT:** o hook `hooks/um_item_por_janela.py`
+bloqueia `/mss-spec:nova-feature` quando **este chat** já abriu outra feature que não está `fechada`
+nem `pausada: <motivo>` (retomar a mesma passa). **Chat novo sempre abre**: feature aberta de outro
+chat no `docs/superpowers/INDEX.md` só gera aviso + worktree (desde a 0.34.0 — contar por projeto
+travou o chat novo e o owner passou a tirar o comando do prompt, 2026-09-24). Surgiu 2º assunto no meio (bug em homologação incluso)? **Não aja sobre ele**:
 anote o estado da feature no `MAPA.md`, `to-dolist adicionar`, janela nova.
 
 **Why:** 2026-09 (caso F-022 em `docs/EVALS.md`): uma janela aberta pra UMA feature (formatação da

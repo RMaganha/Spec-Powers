@@ -1,19 +1,27 @@
-"""Hook do mss-spec: UM ITEM POR JANELA — feature nova só quando não há feature aberta.
+"""Hook do mss-spec: UM ITEM POR JANELA — um chat não abre uma 2ª feature enquanto a dele estiver aberta.
 
 Nasceu do mesmo acidente do F-022 (`docs/EVALS.md`, 2026-09): a janela aberta pra UMA feature
 absorveu um 2º e um 3º assunto, misturou branches e a homologação quebrou inteira. A regra
-"um assunto por janela" existia como ALERTA ("é alerta, não trava") e ficou muda. Agora trava.
+"um assunto por janela" existia como ALERTA ("é alerta, não trava") e ficou muda. Virou trava na
+0.26.0 contando por PROJETO — e aí o chat NOVO também não abria nada enquanto outro chat tivesse
+feature aberta (6 abertas no Whats, 2026-09-24), e o owner passou a tirar o comando do prompt.
+Desde a 0.34.0 conta por CHAT (o `session_id` do evento).
 
 Contrato:
 - evento `UserPromptSubmit`; só age quando o prompt é o comando de abrir feature
   (`/mss-spec:nova-feature <nome>` ou `/nova-feature <nome>`) — qualquer outro texto passa calado;
-- lê `<cwd>/docs/superpowers/INDEX.md` (o índice de tarefas do projeto) e considera ABERTA a
-  linha de item cujo status é `aberta` ou `em andamento`; `fechada` e `pausada: <motivo>` não contam;
-- **bloqueia** o prompt (apaga e mostra o motivo) se há feature aberta de OUTRO assunto;
-- **passa** quando não há aberta, quando o nome pedido é a própria feature aberta (retomar não é
-  misturar — casa por nome ou pelo slug da spec, sem acento/caixa) ou quando o projeto não tem INDEX;
-- **falha ABERTA**: entrada malformada ou bug aqui → libera e sai 0 (apagar o prompt do owner por
-  defeito do hook seria pior que a regra não disparar uma vez).
+- lembra qual feature cada chat abriu em `~/.claude/mss-spec/um-item-janelas.json`
+  (`session_id → projeto, feature`; um por máquina, fora de qualquer repo; chat com mais de 30 dias
+  sai; `MSS_UM_ITEM_ESTADO` troca o caminho);
+- **bloqueia** o prompt quando ESTE chat já abriu a feature Y, Y não foi encerrada e o pedido é
+  outra. Encerrada = a linha de Y está `fechada` ou `pausada: <motivo>` no INDEX ou no
+  `INDEX-historico.md`; Y fora do INDEX segue valendo (a linha só nasce no passo 3 do comando);
+- **passa com aviso** quando o INDEX tem feature `aberta`/`em andamento` de outro assunto (outro
+  chat) — lista-as e lembra do worktree: duas features na mesma pasta trocam a branch uma da outra;
+- **passa** calado no resto: retomar a própria (casa por nome ou pelo slug da spec, sem
+  acento/caixa), sem nome, sem `session_id`, projeto sem INDEX;
+- **falha ABERTA**: entrada malformada, estado ilegível ou bug aqui → libera e sai 0 (apagar o
+  prompt do owner por defeito do hook seria pior que a regra não disparar uma vez).
 
 Escape consciente, só do owner: `MSS_UM_ITEM_OFF=1`.
 """
@@ -22,6 +30,7 @@ import os
 import re
 import sys
 import unicodedata
+from datetime import datetime, timedelta
 
 
 # Registro local do que este hook FEZ (`hooks/_registro.py`). Nunca muda a decisão: sem o módulo,
@@ -43,7 +52,11 @@ def _anotar(decisao, detalhe, evento):
         pass
 
 ENV_DESLIGA = "MSS_UM_ITEM_OFF"
+ENV_ESTADO = "MSS_UM_ITEM_ESTADO"
+ESTADO_PADRAO = os.path.join("~", ".claude", "mss-spec", "um-item-janelas.json")
+VALIDADE = timedelta(days=30)
 INDEX_REL = ("docs", "superpowers", "INDEX.md")
+HISTORICO_REL = ("docs", "superpowers", "INDEX-historico.md")
 
 RE_COMANDO = re.compile(r"^\s*/(?:mss-spec:)?nova-feature(?:\s+(.*?))?\s*$", re.S)
 RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
@@ -54,15 +67,24 @@ ABERTOS = ("aberta", "em andamento")
 FECHADOS = ("fechada", "pausada")
 
 MOTIVO = (
-    "[mss-spec] BLOQUEADO — um item por janela: já existe feature ABERTA neste projeto.\n"
-    "Abertas em docs/superpowers/INDEX.md:\n{lista}\n\n"
-    "Feature nova só quando não houver aberta — misturar assuntos numa janela foi o que quebrou "
-    "a homologação (caso F-022). Saídas: (1) terminar a aberta: retome com "
-    "`/mss-spec:nova-feature <nome dela>` (o mesmo nome passa) e feche pelo fecho normal; "
-    "(2) parar sem terminar: edite o INDEX à mão e troque o status por `pausada: <motivo>` — ato "
-    "do owner, não do assistente; (3) o assunto novo vai pro `/mss-spec:to-dolist adicionar "
-    "<assunto>` e ganha janela própria depois. Escape consciente (só o owner): {env}=1."
+    "[mss-spec] BLOQUEADO — um item por janela: este chat já é da feature `{dele}` (ainda aberta).\n"
+    "Feature nova vai num CHAT NOVO — lá este mesmo comando passa. Misturar assuntos numa janela "
+    "foi o que quebrou a homologação (caso F-022). Saídas: (1) abra um chat novo e rode "
+    "`/mss-spec:nova-feature {pedida}`; (2) continuar a deste chat: `/mss-spec:nova-feature {dele}`; "
+    "(3) a deste chat terminou ou parou: feche pelo fecho normal ou troque o status dela no INDEX "
+    "por `pausada: <motivo>` (ato do owner, não do assistente) — aí este chat abre a nova; "
+    "(4) guardar pra depois: `/mss-spec:to-dolist adicionar {pedida}`. "
+    "Escape consciente (só o owner): {env}=1."
 )
+
+AVISO = (
+    "[mss-spec] Aviso — um item por janela: este chat fica com `{pedida}`, e há outra(s) feature(s) "
+    "aberta(s) neste projeto (docs/superpowers/INDEX.md):\n{lista}\n"
+    "Se outro chat está trabalhando numa delas NESTA MESMA pasta, as branches se trocam por baixo "
+    "uma da outra (caso F-022) — abra esta num worktree (superpowers:using-git-worktrees). Linha "
+    "parada há tempo? O owner troca o status dela por `pausada: <motivo>` à mão."
+)
+PRO_ASSISTENTE = "Abra a resposta repassando este aviso ao owner, antes do passo 1:\n"
 
 
 def _texto(valor):
@@ -76,9 +98,9 @@ def normalizar(texto):
     return " ".join(re.sub(r"[^a-z0-9]+", " ", sem_acento.lower()).split())
 
 
-def _status(item):
-    """Casa o status pelos segmentos após ` — `: aberto se algum começa por aberta/em andamento
-    e nenhum por fechada/pausada (pausada vence — é a saída honesta de quem parou)."""
+def _marcas(item):
+    """(aberto, fechado) pelos segmentos após ` — `: algum começa por aberta/em andamento ·
+    algum começa por fechada/pausada."""
     aberto = fechado = False
     for seg in RE_SEPARADOR.split(item)[1:]:
         s = seg.strip().strip("*").strip().lower()
@@ -86,6 +108,13 @@ def _status(item):
             aberto = True
         if s.startswith(FECHADOS):
             fechado = True
+    return aberto, fechado
+
+
+def _status(item):
+    """Aberto se algum segmento diz aberta/em andamento e nenhum fechada/pausada (pausada vence —
+    é a saída honesta de quem parou)."""
+    aberto, fechado = _marcas(item)
     return aberto and not fechado
 
 
@@ -143,38 +172,120 @@ def mesmo_assunto(argumento, item):
     return False
 
 
-def decidir(evento, ambiente=None):
-    """None = libera; str = motivo do bloqueio. Qualquer defeito aqui → None (falha aberta)."""
+def _itens(texto):
+    """Todo item de lista, de qualquer seção — pra achar a linha de uma feature pelo nome."""
+    return [m.group(1) for m in map(RE_ITEM.match, texto.splitlines()) if m]
+
+
+def _mesma(pedida, dele, todos):
+    """A pedida é a feature do chat? Direto, ou pela mesma linha do INDEX (nome × slug)."""
+    return mesmo_assunto(pedida, dele) or any(
+        mesmo_assunto(dele, item) and mesmo_assunto(pedida, item) for item in todos)
+
+
+def _encerrada(dele, todos):
+    """A linha da feature do chat está `fechada`/`pausada`. Fora do INDEX não conta como encerrada."""
+    return any(_marcas(item)[1] and mesmo_assunto(dele, item) for item in todos)
+
+
+def _chave_projeto(cwd):
+    return os.path.normcase(os.path.abspath(cwd))
+
+
+def _caminho_estado(ambiente):
+    return os.path.expanduser(_texto(ambiente.get(ENV_ESTADO)) or ESTADO_PADRAO)
+
+
+def _ler_estado(caminho):
+    """{session_id: {projeto, feature, quando}}; ausente ou ilegível → vazio (falha aberta)."""
+    try:
+        with open(caminho, encoding="utf-8") as f:
+            estado = json.load(f)
+        return estado if isinstance(estado, dict) else {}
+    except Exception:                                # noqa: BLE001
+        return {}
+
+
+def _gravar_estado(caminho, estado, agora):
+    """Descarta chat com mais de VALIDADE e grava atômico. Defeito aqui não muda a decisão."""
+    try:
+        vivos = {}
+        for sessao, reg in estado.items():
+            try:
+                if agora - datetime.fromisoformat(reg["quando"]) <= VALIDADE:
+                    vivos[sessao] = reg
+            except Exception:                        # noqa: BLE001 — registro torto sai
+                pass
+        os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
+        temporario = f"{caminho}.{os.getpid()}.tmp"
+        with open(temporario, "w", encoding="utf-8") as f:
+            json.dump(vivos, f, ensure_ascii=False, indent=1)
+        os.replace(temporario, caminho)
+    except Exception:                                # noqa: BLE001
+        pass
+
+
+def _ler(caminho):
+    if not os.path.isfile(caminho):
+        return ""
+    with open(caminho, encoding="utf-8") as f:
+        return f.read()
+
+
+def avaliar(evento, ambiente=None):
+    """("libera", None) · ("avisa", texto) · ("bloqueia", motivo). Qualquer defeito → libera."""
     try:
         ambiente = os.environ if ambiente is None else ambiente
-        if _texto(ambiente.get(ENV_DESLIGA)):
-            return None
-        if not isinstance(evento, dict):
-            return None
+        if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict):
+            return "libera", None
         prompt = evento.get("prompt")
-        if not isinstance(prompt, str):
-            return None
-        m = RE_COMANDO.match(prompt)
-        if not m:
-            return None
+        m = RE_COMANDO.match(prompt) if isinstance(prompt, str) else None
         cwd = _texto(evento.get("cwd"))
-        if cwd is None:
-            return None
-        index = os.path.join(cwd, *INDEX_REL)
-        if not os.path.isfile(index):
-            return None
-        with open(index, encoding="utf-8") as f:
-            itens = abertas(f.read())
-        if not itens:
-            return None
-        argumento = m.group(1) or ""
-        if argumento and any(mesmo_assunto(argumento, item) for item in itens):
-            return None
-        lista = "\n".join(f"  - {item}" for item in itens)
-        _anotar("bloqueou", f"abertas={len(itens)}", evento)
-        return MOTIVO.format(lista=lista, env=ENV_DESLIGA)
+        if not m or cwd is None:
+            return "libera", None
+        texto_index = _ler(os.path.join(cwd, *INDEX_REL))
+        if not texto_index:
+            return "libera", None
+        # Só a 1ª linha é o nome: o resto do prompt é contexto (o texto todo casaria qualquer feature).
+        pedida = (m.group(1) or "").strip().split("\n", 1)[0].strip()
+        if not pedida:
+            return "libera", None
+        abertas_agora = abertas(texto_index)
+
+        sessao = _texto(evento.get("session_id"))
+        if sessao is not None:
+            caminho = _caminho_estado(ambiente)
+            estado = _ler_estado(caminho)
+            projeto = _chave_projeto(cwd)
+            reg = estado.get(sessao)
+            dele = None
+            if isinstance(reg, dict) and reg.get("projeto") == projeto:
+                dele = _texto(reg.get("feature"))
+            todos = _itens(texto_index) + _itens(_ler(os.path.join(cwd, *HISTORICO_REL)))
+            retomando = dele is not None and _mesma(pedida, dele, todos)
+            if dele is not None and not retomando and not _encerrada(dele, todos):
+                _anotar("bloqueou", f"abertas={len(abertas_agora)}", evento)
+                return "bloqueia", MOTIVO.format(dele=dele, pedida=pedida, env=ENV_DESLIGA)
+            if not retomando:
+                agora = datetime.now()
+                estado[sessao] = {"projeto": projeto, "feature": pedida,
+                                  "quando": agora.isoformat(timespec="seconds")}
+                _gravar_estado(caminho, estado, agora)
+
+        outras = [item for item in abertas_agora if not mesmo_assunto(pedida, item)]
+        if not outras:
+            return "libera", None
+        _anotar("avisou", f"abertas={len(outras)}", evento)
+        lista = "\n".join(f"  - {item}" for item in outras)
+        return "avisa", AVISO.format(pedida=pedida, lista=lista)
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None
+        return "libera", None
+
+
+def decidir(evento, ambiente=None):
+    """None = libera (com ou sem aviso); str = motivo do bloqueio."""
+    decisao, texto = avaliar(evento, ambiente)
+    return texto if decisao == "bloqueia" else None
 
 
 def main():
@@ -182,12 +293,19 @@ def main():
         evento = json.load(sys.stdin)
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    motivo = decidir(evento)
-    if motivo is None:
-        sys.exit(0)                                  # libera, calado
-    print(json.dumps({"decision": "block", "reason": motivo}))
-    print(motivo, file=sys.stderr)
-    sys.exit(2)
+    decisao, texto = avaliar(evento)
+    if decisao == "bloqueia":
+        print(json.dumps({"decision": "block", "reason": texto}))
+        print(texto, file=sys.stderr)
+        sys.exit(2)
+    if decisao == "avisa":
+        # No app Desktop o systemMessage não aparece: o additionalContext faz o assistente repassar.
+        print(json.dumps({
+            "systemMessage": texto,
+            "hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+                                   "additionalContext": PRO_ASSISTENTE + texto},
+        }))
+    sys.exit(0)
 
 
 if __name__ == "__main__":

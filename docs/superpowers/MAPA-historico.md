@@ -4,6 +4,9 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-24 — saiu do rodízio do MAPA (v0.30.0 na main)
+`main` — **v0.30.0 integrada e publicada pelo owner** (merge `3cefb19` de `feature/hooks-cerca-pipe-e-registro`). Entregue: cerca do pipe no `hooks/git_publicacao.py` (F-025 fechado) + registro local dos 6 hooks (`python hooks/_registro.py resumo`). Suíte **530 verde**. Commit local à frente do `origin/main`: `d8a036d` (captura de memória da sessão: F-028, diário) — publicar é do owner. Nenhuma feature aberta no INDEX.
+
 ## 2026-09-23 — saiu do rodízio do MAPA (v0.30.0 na branch)
 `feature/hooks-cerca-pipe-e-registro` — **v0.30.0 pronta na branch; merge/push são do owner.** Suíte **530 verde** (era 472). Entregue: cerca do pipe no `hooks/git_publicacao.py` (pytest em pipe antes do `git commit` → nega; F-025 fechado) + `hooks/_registro.py` (os 6 hooks anotam em `~/.claude/mss-spec/registro-hooks.jsonl` quando agem; `python hooks/_registro.py resumo`). As duas cercas negaram ao vivo nesta sessão e o registro gravou a linha. A branch `docs/catalogo-do-kit` (`8b935a2`, CATALOGO.html) segue fora da `main` — o CATALOGO precisa citar a cerca do pipe e o registro depois que as duas entrarem. Specs: `docs/specs/travas-um-item-por-janela.md` (4) e `docs/specs/registro-dos-hooks.md`.
 

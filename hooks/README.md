@@ -5,7 +5,7 @@ Os oito anotam no **registro local** cada vez que **agem** (seção no fim deste
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) |
-| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: feature nova só sem feature aberta (`## Backlog` e "Fora de escopo" não contam) |
+| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (worktree) |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
@@ -77,8 +77,8 @@ a mensagem `[mss-spec] BLOQUEADO`. Se passar (não bloqueou), registre à mão n
 ```
 
 Mesmo canário pras outras duas cercas: peça um `git push --dry-run origin main` (tem que vir `[mss-spec] BLOQUEADO`) e,
-com uma feature `aberta` no INDEX, digite `/mss-spec:nova-feature outra-coisa` (o prompt tem que ser
-bloqueado com a lista das abertas).
+no **mesmo chat**, digite `/mss-spec:nova-feature canario-a` e depois `/mss-spec:nova-feature canario-b` (o 2º
+prompt tem que ser bloqueado dizendo que o chat já é da `canario-a`; num chat novo, o `canario-b` passa).
 
 ---
 
@@ -162,15 +162,27 @@ pytest … | …` (a palavra como texto) e o teste **depois** do commit. PowerSh
 trava mecânica no ponto onde dá: **abrir feature nova**.
 
 Evento `UserPromptSubmit`: só age quando o prompt é `/mss-spec:nova-feature <nome>` (ou
-`/nova-feature <nome>`) — qualquer outro texto passa calado. Lê `<cwd>/docs/superpowers/INDEX.md`
-e considera **aberta** a linha de item com status `aberta` ou `em andamento` (`fechada` e
-`pausada: <motivo>` não contam; a seção "Fora de escopo" é ignorada).
+`/nova-feature <nome>`) — qualquer outro texto passa calado. **Conta por chat** (desde a 0.34.0):
+guarda qual feature cada chat abriu em `~/.claude/mss-spec/um-item-janelas.json`
+(`session_id` → projeto + feature; um por máquina, fora de qualquer repo; chat com mais de 30 dias
+sai; `MSS_UM_ITEM_ESTADO` troca o caminho). No `<cwd>/docs/superpowers/INDEX.md`, **aberta** é a
+linha com status `aberta` ou `em andamento` (`fechada` e `pausada: <motivo>` não contam; `## Backlog`
+e "Fora de escopo" são ignorados).
 
-- **outra aberta** → **bloqueia o prompt** (apaga e mostra o motivo) listando as abertas e as três
-  saídas honestas: terminar a aberta, o owner marcar `pausada: <motivo>` à mão, ou mandar o assunto
-  novo pro `/mss-spec:to-dolist adicionar`;
-- **a mesma** (por nome ou pelo slug da spec, sem acento/caixa) → passa — retomar não é misturar;
-- **nenhuma aberta**, ou projeto **sem INDEX** → passa.
+- **este chat já abriu a feature Y**, Y não está `fechada`/`pausada` (no INDEX ou no
+  `INDEX-historico.md`; fora do INDEX Y segue valendo — a linha só nasce no passo 3) e o pedido é
+  outra → **bloqueia o prompt** e manda abrir **um chat novo** (lá passa), ou continuar Y, ou o owner
+  marcar Y `pausada: <motivo>` à mão, ou mandar o assunto novo pro `/mss-spec:to-dolist adicionar`;
+- **chat novo** (ou Y encerrada) com feature aberta de **outro** chat no INDEX → **passa com aviso**
+  listando as abertas e lembrando do **worktree** (duas features na mesma pasta trocam a branch uma
+  da outra) — `systemMessage` pro terminal + `additionalContext` pro assistente repassar no Desktop;
+- o **nome** é só a 1ª linha do argumento (o resto do prompt é contexto);
+- **a mesma** (por nome ou pelo slug da spec, sem acento/caixa), **sem nome**, **sem `session_id`**,
+  **nenhuma aberta** ou projeto **sem INDEX** → passa calado.
+
+Por que por chat e não por projeto: contando por projeto (0.26.0 a 0.33.0), com features abertas em
+outros chats o chat **novo** também não abria nada — no Whats, 6 abertas travaram o comando e o owner
+passou a tirar o `nova-feature` do prompt (o ritual deixou de rodar, como no F-030).
 
 2ª camada: o **passo 0** do `commands/nova-feature.md` faz o mesmo check em prosa, pra quando o hook
 não disparar.
@@ -180,7 +192,8 @@ não disparar.
 - **Falha ABERTA**: entrada malformada ou bug → libera e sai 0. Apagar o prompt do owner por defeito
   do hook seria pior que a regra não disparar uma vez (e o passo 0 cobre).
 - **Calado quando libera**; ao bloquear, `{"decision": "block", "reason": …}` no stdout + exit 2 com o
-  motivo no stderr (é o que o owner vê no terminal).
+  motivo no stderr (é o que o owner vê no terminal); ao avisar, exit 0 com `systemMessage` +
+  `hookSpecificOutput.additionalContext`. Estado ilegível → vazio; defeito ao gravar não muda a decisão.
 - **Escape consciente só do owner:** `MSS_UM_ITEM_OFF=1`.
 
 ---
@@ -357,7 +370,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 |---|---|---|
 | `git_publicacao` | `negou` · `perguntou` | `git push → dev`, `git push indeterminado`, `docker push`… · `git merge`, `git push → feature/x` · `pytest em pipe antes do git commit` · `defeito da cerca` |
 | `projeto_ativo` | `negou` | o tool (`Write`/`Edit`) — **não** o caminho |
-| `um_item_por_janela` | `bloqueou` | `abertas=N` |
+| `um_item_por_janela` | `bloqueou` · `avisou` | `abertas=N` |
 | `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |

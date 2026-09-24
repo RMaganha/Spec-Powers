@@ -130,9 +130,11 @@ Nove redes prontas para quando algo dá errado — nenhuma é comando novo:
   (caso F-022): o assistente disparou vários pushes numa janela de feature e o push era o deploy
   automático — homologação quebrou inteira. Pro push protegido ele roda `/mss-spec:release` e **pede**;
   você publica do seu terminal. Falha **fechada**; escape consciente `MSS_PUBLICACAO_OFF=1`.
-- **Um item por janela** — o hook `hooks/um_item_por_janela.py` (ligado por padrão) **bloqueia**
-  `/mss-spec:nova-feature` enquanto o `docs/superpowers/INDEX.md` tiver feature `aberta`/`em andamento`
-  de outro assunto (retomar a mesma passa; `pausada: <motivo>` marcado por você à mão não conta).
+- **Um item por janela** — o hook `hooks/um_item_por_janela.py` (ligado por padrão) conta **por chat**:
+  o chat que já abriu uma feature **não abre outra** enquanto ela estiver aberta (`/mss-spec:nova-feature`
+  de outro assunto é **bloqueado**; retomar a mesma passa; `fechada` ou `pausada: <motivo>` marcado por
+  você à mão libera). **Chat novo sempre abre** — se o `docs/superpowers/INDEX.md` tiver feature aberta
+  de outro chat, ele só **avisa** e lembra do worktree (duas features na mesma pasta trocam a branch).
   Mesmo acidente: a janela de uma feature virou três assuntos. Falha aberta; escape `MSS_UM_ITEM_OFF=1`.
 - **Âncora do projeto ativo** — a rede que **bloqueia** escrita fora: o hook `hooks/projeto_ativo.py` (ligado
   por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
