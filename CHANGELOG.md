@@ -2,6 +2,10 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.34.1 — 2026-09-25 (resposta do tamanho do pedido)
+- **o que motivou:** caso **F-033** — no Whats, o owner pediu o passo a passo de backup → restore → scripts e recebeu 8 etapas, duas rotas, "dia definitivo", pendências, proposta de ferramenta nova e jargão: *"um retorno gigantesco cheio de jargões de IA não focando no que eu preciso"*.
+- docs(**regra "Responda só o que eu pedi, do tamanho do pedido"** no `templates/CLAUDE.md`, frase-chave travada): o pedido define escopo e ordem; o não pedido cabe em 1 linha; fato que muda o roteiro se pergunta antes (nada de roteiro com bifurcação); sem jargão. Memória `feedback_resposta_do_tamanho_do_pedido`; F-033 **aberto** (guardrail só em prosa).
+
 ## 0.34.0 — 2026-09-24 (um item por janela conta por chat)
 - **o que motivou:** o owner, com print do bloqueio no Whats: *"novamente hook bloqueando os comandos, nunca sei quando devo usar ou se posso abrir um chat novo e ele vai entender"*. Contando por projeto, 6 features abertas em outros chats travavam o `nova-feature` do chat **novo** — e o owner passou a tirar o comando do prompt.
 - feat(**`hooks/um_item_por_janela.py` por chat**): guarda `session_id → projeto + feature` em `~/.claude/mss-spec/um-item-janelas.json` (30 dias; `MSS_UM_ITEM_ESTADO`). Bloqueia só o **mesmo chat** pedindo outra feature enquanto a dele não está `fechada`/`pausada` (INDEX ou `INDEX-historico.md`); chat novo passa e, com feature aberta de outro chat, **avisa** (lista + worktree) por `systemMessage` + `additionalContext`. Sem nome ou sem `session_id` passa. Falha aberta; registro `bloqueou`/`avisou`.
