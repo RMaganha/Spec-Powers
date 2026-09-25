@@ -164,8 +164,9 @@ trava mecânica no ponto onde dá: **abrir feature nova**.
 Evento `UserPromptSubmit`: só age quando o prompt é `/mss-spec:nova-feature <nome>` (ou
 `/nova-feature <nome>`) — qualquer outro texto passa calado. **Conta por chat** (desde a 0.34.0):
 guarda qual feature cada chat abriu em `~/.claude/mss-spec/um-item-janelas.json`
-(`session_id` → projeto + feature; um por máquina, fora de qualquer repo; chat com mais de 30 dias
-sai; `MSS_UM_ITEM_ESTADO` troca o caminho). No `<cwd>/docs/superpowers/INDEX.md`, **aberta** é a
+(chave `session_id` + projeto → feature + quantas linhas estavam fechadas; um por máquina,
+fora de qualquer repo; chat parado há mais de 30 dias sai — retomar renova; `MSS_UM_ITEM_ESTADO` troca
+o caminho). No `<cwd>/docs/superpowers/INDEX.md`, **aberta** é a
 linha com status `aberta` ou `em andamento` (`fechada` e `pausada: <motivo>` não contam; `## Backlog`
 e "Fora de escopo" são ignorados).
 
@@ -176,7 +177,8 @@ e "Fora de escopo" são ignorados).
 - **chat novo** (ou Y encerrada) com feature aberta de **outro** chat no INDEX → **passa com aviso**
   listando as abertas e lembrando do **worktree** (duas features na mesma pasta trocam a branch uma
   da outra) — `systemMessage` pro terminal + `additionalContext` pro assistente repassar no Desktop;
-- o **nome** é só a 1ª linha do argumento (o resto do prompt é contexto);
+- o **nome** é só o resto da linha do comando (as linhas de baixo são contexto; comando sozinho na
+  linha = sem nome); a linha do chat é achada **só pelo nome**, por palavra inteira (`ui` não casa com `guia`; nome de 1 palavra só casa igual), e **encerrada** só se toda linha que casa estiver `fechada`/`pausada` (a `v1` fechada não encerra a `v2` nem a `busca vetorial hibrida` abertas). Linha nova em que nenhum nome contém o outro **não** é atribuída ao chat — o INDEX não diz qual chat a escreveu. Sem linha pelo nome, a feature do chat só conta como encerrada se nada está aberto no INDEX e alguma linha fechou desde a abertura; senão bloqueia dizendo que não achou a linha (custo aceito: título do passo 3 sem que um nome contenha o outro + outra feature aberta → o chat sai por chat novo);
 - **a mesma** (por nome ou pelo slug da spec, sem acento/caixa), **sem nome**, **sem `session_id`**,
   **nenhuma aberta** ou projeto **sem INDEX** → passa calado.
 

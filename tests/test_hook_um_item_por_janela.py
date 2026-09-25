@@ -208,6 +208,174 @@ def test_nome_da_feature_e_so_a_primeira_linha(tmp_path):
     assert "vai pro Azure" not in motivo, "o motivo citou o parágrafo como nome da feature do chat"
 
 
+# --- revisão 0.34.0: o nome digitado não é o título que o passo 3 grava --------------------
+
+def _index(raiz, texto):
+    (raiz / "docs" / "superpowers" / "INDEX.md").write_text(texto, encoding="utf-8")
+
+
+def _historico(raiz, texto):
+    (raiz / "docs" / "superpowers" / "INDEX-historico.md").write_text(texto, encoding="utf-8")
+
+
+def test_titulo_do_passo_3_contido_no_nome_digitado_liga_ao_chat(tmp_path):
+    """O passo 3 escolhe o assunto "pelo tema": o owner digita 'exportar relatório em PDF' e o INDEX
+    ganha 'Exportar PDF'. Retomar pelo slug passa; fechada a linha, o chat abre a próxima."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar relatório em PDF", raiz, sessao="c1"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n- [Exportar PDF](../specs/exportar-pdf.md) — gerar o PDF — aberta\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar-pdf", raiz, sessao="c1"), amb) is None, \
+        "barrou retomar pelo slug da linha que o passo 3 gravou"
+    assert mod.decidir(_evento("/mss-spec:nova-feature outra coisa", raiz, sessao="c1"), amb) is not None
+    _index(raiz, "# Índice\n## Em andamento\n- [Exportar PDF](../specs/exportar-pdf.md) — gerar o PDF — fechada\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature outra coisa", raiz, sessao="c1"), amb) is None, \
+        "o chat fechou a própria feature e continuou travado"
+
+
+def test_nome_com_erro_de_digitacao_trava_enquanto_houver_aberta(tmp_path):
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature cadstro de clientes", raiz, sessao="c1"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n- [cadastro de clientes](../specs/cadastro-clientes.md) — tela — aberta\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"), amb) is not None
+    _index(raiz, "# Índice\n## Em andamento\n- [cadastro de clientes](../specs/cadastro-clientes.md) — tela — pausada: layout\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"), amb) is None
+
+
+def test_linha_nova_do_backlog_nao_prende_o_chat(tmp_path):
+    """to-dolist no meio da feature grava `aberta` no Backlog — isso não é a feature do chat."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar relatório em PDF", raiz, sessao="c1"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n- [Exportar PDF](../specs/exportar-pdf.md) — gerar — fechada\n"
+                 "## Backlog\n- tratar erro do n8n — mensagem genérica — aberta\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature outra coisa", raiz, sessao="c1"), amb) is None
+
+
+def test_v1_fechada_nao_encerra_a_v2_aberta(tmp_path):
+    raiz = _projeto(tmp_path, "# Índice\n## Em andamento\n- busca vetorial v2 — reindexar — aberta\n")
+    _historico(raiz, "# Histórico\n- busca vetorial — primeira versão — fechada\n")
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature busca vetorial v2", raiz, sessao="c1"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"), amb) is not None, \
+        "a v1 fechada no histórico encerrou a v2 aberta — F-022 passou"
+
+
+def test_v1_fechada_que_casa_melhor_nao_encerra_a_linha_aberta_do_chat(tmp_path):
+    """3ª revisão: evoluir feature já fechada. O chat abre 'busca vetorial' (= nome exato da v1
+    fechada) e o passo 3 grava 'busca vetorial hibrida' aberta — a v1 casar melhor não encerra nada."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    _historico(raiz, "# Histórico\n- [busca vetorial](../specs/busca-vetorial.md) — v1 — fechada\n")
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature busca vetorial", raiz, sessao="c1"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n"
+                 "- [busca vetorial hibrida](../specs/busca-vetorial-hibrida.md) — BM25 + vetor — aberta\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"), amb) is not None, \
+        "a v1 fechada encerrou a linha aberta do próprio chat — F-022 passou"
+
+
+def test_nome_curto_fechado_nao_encerra_por_pedaco_de_palavra(tmp_path):
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    _historico(raiz, "# Histórico\n- [UI](../specs/ui.md) — tema escuro — fechada\n")
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature guia do usuário", raiz, sessao="c1"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"), amb) is not None, \
+        "'ui' dentro de 'guia' encerrou a feature do chat"
+
+
+def test_linha_de_terceiro_nao_vira_ponte_entre_assuntos(tmp_path):
+    raiz = _projeto(tmp_path, "# Índice\n## Em andamento\n- [API](../specs/api.md) — contrato — aberta\n")
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature rapido cadastro", raiz, sessao="c1"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature api de pagamentos", raiz, sessao="c1"), amb) is not None, \
+        "'rápido cadastro' e 'api de pagamentos' viraram a mesma feature pela linha API"
+
+
+def test_comando_sem_nome_na_mesma_linha_nao_grava_o_paragrafo(tmp_path):
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    prompt = "/mss-spec:nova-feature\n\nPreciso levar o banco pro Azure e ajustar o roteiro"
+    assert mod.decidir(_evento(prompt, raiz, sessao="c1"), amb) is None
+    assert not Path(amb["MSS_UM_ITEM_ESTADO"]).exists(), "a 1ª frase do contexto virou nome de feature"
+
+
+INDEX_DOIS_CHATS = ("# Índice\n## Em andamento\n"
+                    "- [Login SSO](../specs/login-sso.md) — entrar com a conta MSIG — {login}\n"
+                    "- [Exportar CSV](../specs/exportar-csv.md) — planilha do mês — aberta\n")
+
+
+def test_linha_de_outro_chat_nao_vira_do_chat(tmp_path):
+    """2ª revisão: o chat A abriu 'entrar com a conta da empresa' e o passo 3 gravou 'Login SSO'
+    (nenhuma palavra em comum); o chat B abriu 'Exportar CSV' na mesma pasta. Linha nova no INDEX não
+    diz de qual chat é — o A não pode assumir a do B."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature entrar com a conta da empresa", raiz, sessao="A"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="B"), amb) is None
+    _index(raiz, INDEX_DOIS_CHATS.format(login="aberta"))
+    assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="A"), amb) is not None, \
+        "o chat A 'retomou' a feature do chat B — F-022 pela linha do vizinho"
+
+
+def test_nome_sem_linha_com_outra_aberta_bloqueia_e_manda_chat_novo(tmp_path):
+    """Custo aceito e declarado: o nome digitado não casa com linha nenhuma e há feature aberta (de
+    outro chat) → o hook não sabe se a do chat fechou; bloqueia dizendo isso e dando as saídas."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature entrar com a conta da empresa", raiz, sessao="A"), amb) is None
+    _index(raiz, INDEX_DOIS_CHATS.format(login="fechada"))
+    motivo = mod.decidir(_evento("/mss-spec:nova-feature relatorio mensal", raiz, sessao="A"), amb)
+    assert motivo is not None
+    assert "não achei" in motivo.lower() and "chat novo" in motivo.lower(), \
+        "bloqueio sem dizer que a linha não foi achada — o owner vê 'ainda aberta' sobre o que acabou de fechar"
+    assert "ainda aberta" not in motivo
+    assert "/mss-spec:nova-feature entrar com a conta da empresa" in motivo, "sem o comando exato pra continuar"
+
+
+def test_nome_sem_linha_e_nada_aberto_libera(tmp_path):
+    """Sem nenhuma feature aberta no INDEX, a do chat não pode estar aberta — seja qual for o título."""
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature dashboard de atrasos", raiz, sessao="A"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n- [Painel de SLA](../specs/painel-sla.md) — prazos — fechada\n"
+                 "- Movido para [ASSUNTOS-EXISTENTES.md](ASSUNTOS-EXISTENTES.md) em 2026-09-25 — ponteiro\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature outra coisa", raiz, sessao="A"), amb) is None, \
+        "linha sem status (ponteiro do rodízio) ou título que subiu do backlog prendeu o chat"
+
+
+def test_retomar_pelo_nome_digitado_sempre_passa(tmp_path):
+    raiz = _projeto(tmp_path, "# Índice\n## Backlog\n- [Painel de SLA](../specs/painel-sla.md) — prazos — aberta\n")
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature dashboard de atrasos", raiz, sessao="A"), amb) is None
+    _index(raiz, "# Índice\n## Em andamento\n- [Painel de SLA](../specs/painel-sla.md) — prazos — aberta\n")
+    assert mod.decidir(_evento("/mss-spec:nova-feature dashboard de atrasos", raiz, sessao="A"), amb) is None
+
+
+def test_voltar_ao_projeto_anterior_mantem_a_trava_dele(tmp_path):
+    a = _projeto(tmp_path / "a", INDEX_VAZIO)
+    b = _projeto(tmp_path / "b", INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature primeira", a, sessao="c1"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature segunda", b, sessao="c1"), amb) is None
+    assert mod.decidir(_evento("/mss-spec:nova-feature terceira", a, sessao="c1"), amb) is not None, \
+        "passar pelo projeto B apagou a trava do chat no A"
+
+
+def test_retomar_renova_a_validade(tmp_path):
+    raiz = _projeto(tmp_path, INDEX_VAZIO)
+    mod, amb = _mod(), _amb(tmp_path)
+    assert mod.decidir(_evento("/mss-spec:nova-feature login por SSO", raiz, sessao="c1"), amb) is None
+    caminho = Path(amb["MSS_UM_ITEM_ESTADO"])
+    estado = json.loads(caminho.read_text(encoding="utf-8"))
+    for reg in estado.values():
+        reg["quando"] = "2026-01-01T00:00:00"
+    caminho.write_text(json.dumps(estado), encoding="utf-8")
+    assert mod.decidir(_evento("/mss-spec:nova-feature login por SSO", raiz, sessao="c1"), amb) is None
+    assert all(r["quando"] > "2026-01-02" for r in json.loads(caminho.read_text(encoding="utf-8")).values()), \
+        "retomar não renovou a data — feature longa perde a trava aos 30 dias"
+
+
 def test_sem_argumento_passa(tmp_path):
     """`/mss-spec:nova-feature` sem nome não tem o que comparar — passa, sem gravar."""
     raiz = _projeto(tmp_path, INDEX_COM_ABERTA)
@@ -285,7 +453,7 @@ def test_estado_descarta_chat_com_mais_de_30_dias(tmp_path):
     }), encoding="utf-8")
     assert mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c2"), amb) is None
     estado = json.loads(Path(amb["MSS_UM_ITEM_ESTADO"]).read_text(encoding="utf-8"))
-    assert "velho" not in estado and "c2" in estado
+    assert "velho" not in estado and any(k.startswith("c2|") for k in estado)
 
 
 # --- AC3: protocolo de processo --------------------------------------------------------

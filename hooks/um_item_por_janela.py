@@ -10,12 +10,16 @@ Desde a 0.34.0 conta por CHAT (o `session_id` do evento).
 Contrato:
 - evento `UserPromptSubmit`; só age quando o prompt é o comando de abrir feature
   (`/mss-spec:nova-feature <nome>` ou `/nova-feature <nome>`) — qualquer outro texto passa calado;
+- o nome é o resto da LINHA do comando (as de baixo são contexto);
 - lembra qual feature cada chat abriu em `~/.claude/mss-spec/um-item-janelas.json`
-  (`session_id → projeto, feature`; um por máquina, fora de qualquer repo; chat com mais de 30 dias
-  sai; `MSS_UM_ITEM_ESTADO` troca o caminho);
+  (`session_id|projeto → feature` + quantas linhas estavam fechadas; um por máquina, fora de
+  qualquer repo; parado há mais de 30 dias sai, retomar renova; `MSS_UM_ITEM_ESTADO` troca o caminho);
 - **bloqueia** o prompt quando ESTE chat já abriu a feature Y, Y não foi encerrada e o pedido é
-  outra. Encerrada = a linha de Y está `fechada` ou `pausada: <motivo>` no INDEX ou no
-  `INDEX-historico.md`; Y fora do INDEX segue valendo (a linha só nasce no passo 3 do comando);
+  outra. A linha de Y (INDEX + `INDEX-historico.md`) é achada SÓ pelo nome, por PALAVRA INTEIRA,
+  e a que casa melhor é a de retomar. Encerrada = TODA linha que casa `fechada`/`pausada:
+  <motivo>` (a v1 fechada não encerra a v2 aberta). Sem linha pelo nome (título do passo 3
+  diferente, ou ela ainda não nasceu): encerrada só se nada está aberto e alguma linha fechou desde
+  a abertura — senão bloqueia dizendo que não achou a linha;
 - **passa com aviso** quando o INDEX tem feature `aberta`/`em andamento` de outro assunto (outro
   chat) — lista-as e lembra do worktree: duas features na mesma pasta trocam a branch uma da outra;
 - **passa** calado no resto: retomar a própria (casa por nome ou pelo slug da spec, sem
@@ -58,16 +62,18 @@ VALIDADE = timedelta(days=30)
 INDEX_REL = ("docs", "superpowers", "INDEX.md")
 HISTORICO_REL = ("docs", "superpowers", "INDEX-historico.md")
 
-RE_COMANDO = re.compile(r"^\s*/(?:mss-spec:)?nova-feature(?:\s+(.*?))?\s*$", re.S)
+# O nome é o resto da linha do comando; linhas de baixo são contexto (não viram nome).
+RE_COMANDO = re.compile(r"^\s*/(?:mss-spec:)?nova-feature(?:[ \t]+([^\n]*))?\s*(?:\n.*)?$", re.S)
 RE_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
 RE_SEPARADOR = re.compile(r"\s+[—–]\s+")
 RE_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 RE_CABECALHO = re.compile(r"^\s*(#{1,6})\s+(.*\S)\s*$")
 ABERTOS = ("aberta", "em andamento")
 FECHADOS = ("fechada", "pausada")
+PALAVRAS_VAZIAS = frozenset("a o as os e de da do das dos em no na nos nas um uma pra para por com".split())
 
 MOTIVO = (
-    "[mss-spec] BLOQUEADO — um item por janela: este chat já é da feature `{dele}` (ainda aberta).\n"
+    "[mss-spec] BLOQUEADO — um item por janela: este chat já é da feature `{dele}` ({onde}).\n"
     "Feature nova vai num CHAT NOVO — lá este mesmo comando passa. Misturar assuntos numa janela "
     "foi o que quebrou a homologação (caso F-022). Saídas: (1) abra um chat novo e rode "
     "`/mss-spec:nova-feature {pedida}`; (2) continuar a deste chat: `/mss-spec:nova-feature {dele}`; "
@@ -125,12 +131,11 @@ def _secao_ignorada(titulo):
     return t.startswith("backlog") or "fora de escopo" in t
 
 
-def abertas(texto_index):
-    """Itens (linha de lista, sem o marcador) com status aberto, fora das seções Backlog e 'Fora de
+def _itens_por_secao(texto):
+    """(item, de_feature) de cada linha de lista; de_feature = fora das seções Backlog e 'Fora de
     escopo'. Subseção (`###`…) herda a seção `##` de cima; `#` e `##` redefinem."""
-    saida = []
     ignorar = pai_ignorado = False
-    for linha in texto_index.splitlines():
+    for linha in texto.splitlines():
         cabecalho = RE_CABECALHO.match(linha)
         if cabecalho:
             nivel, titulo = len(cabecalho.group(1)), cabecalho.group(2)
@@ -139,12 +144,15 @@ def abertas(texto_index):
             else:
                 ignorar = pai_ignorado or _secao_ignorada(titulo)
             continue
-        if ignorar:
-            continue
         m = RE_ITEM.match(linha)
-        if m and _status(m.group(1)):
-            saida.append(m.group(1))
-    return saida
+        if m:
+            yield m.group(1), not ignorar
+
+
+def abertas(texto_index):
+    """Itens (linha de lista, sem o marcador) com status aberto, fora das seções Backlog e 'Fora de
+    escopo'."""
+    return [item for item, de_feature in _itens_por_secao(texto_index) if de_feature and _status(item)]
 
 
 def nomes_de(item):
@@ -160,32 +168,45 @@ def nomes_de(item):
     return [normalizar(n) for n in nomes if normalizar(n)]
 
 
-def mesmo_assunto(argumento, item):
-    arg = normalizar(argumento)
+def _palavras(texto):
+    return frozenset(p for p in normalizar(texto).split() if p not in PALAVRAS_VAZIAS)
+
+
+def grau(argumento, item):
+    """Quanto o argumento casa com o item, por PALAVRA INTEIRA (`ui` não casa com `guia`):
+    2 = mesmo nome (texto do link, slug da spec ou 1º segmento) · 1 = um contém o outro e o menor tem
+    2+ palavras (`exportar pdf` ⊂ `exportar relatório em pdf`) · 0 = outro assunto."""
+    arg = _palavras(argumento)
     if not arg:
-        return False
+        return 0
+    melhor = 0
     for nome in nomes_de(item):
-        if arg == nome:
-            return True
-        if len(arg) >= 4 and (nome in arg or (len(nome) >= 4 and arg in nome)):
-            return True
-    return False
+        n = _palavras(nome)
+        if not n:
+            continue
+        if n == arg:
+            return 2
+        if min(len(n), len(arg)) >= 2 and (n <= arg or arg <= n):
+            melhor = 1
+    return melhor
 
 
-def _itens(texto):
-    """Todo item de lista, de qualquer seção — pra achar a linha de uma feature pelo nome."""
-    return [m.group(1) for m in map(RE_ITEM.match, texto.splitlines()) if m]
+def mesmo_assunto(argumento, item):
+    return grau(argumento, item) > 0
 
 
-def _mesma(pedida, dele, todos):
-    """A pedida é a feature do chat? Direto, ou pela mesma linha do INDEX (nome × slug)."""
-    return mesmo_assunto(pedida, dele) or any(
-        mesmo_assunto(dele, item) and mesmo_assunto(pedida, item) for item in todos)
+def linhas_do_chat(dele, itens):
+    """As linhas (INDEX + histórico) da feature do chat, SÓ pelo nome: a que casa melhor vence (a
+    `v2` aberta ganha da `v1` fechada). Linha nova sem nome em comum NÃO é atribuída ao chat — o
+    INDEX não diz qual chat a escreveu, e adivinhar (2ª revisão) prendia o chat pela linha do vizinho
+    ou deixava o chat assumir a feature do vizinho."""
+    graus = [(grau(dele, item), item) for item, _ in itens]
+    topo = max((g for g, _ in graus), default=0)
+    return [item for g, item in graus if g == topo] if topo else []
 
 
-def _encerrada(dele, todos):
-    """A linha da feature do chat está `fechada`/`pausada`. Fora do INDEX não conta como encerrada."""
-    return any(_marcas(item)[1] and mesmo_assunto(dele, item) for item in todos)
+def _fechadas(itens):
+    return sum(1 for item, de_feature in itens if de_feature and _marcas(item)[1])
 
 
 def _chave_projeto(cwd):
@@ -197,7 +218,7 @@ def _caminho_estado(ambiente):
 
 
 def _ler_estado(caminho):
-    """{session_id: {projeto, feature, quando}}; ausente ou ilegível → vazio (falha aberta)."""
+    """{"<session_id>|<projeto>": {projeto, feature, quando, fechadas}}; ausente ou ilegível → vazio."""
     try:
         with open(caminho, encoding="utf-8") as f:
             estado = json.load(f)
@@ -221,8 +242,11 @@ def _gravar_estado(caminho, estado, agora):
         with open(temporario, "w", encoding="utf-8") as f:
             json.dump(vivos, f, ensure_ascii=False, indent=1)
         os.replace(temporario, caminho)
-    except Exception:                                # noqa: BLE001
-        pass
+    except Exception:                                # noqa: BLE001 — no Windows, outro chat lendo
+        try:                                         # faz o replace falhar: não deixa .tmp órfão
+            os.remove(temporario)
+        except Exception:                            # noqa: BLE001
+            pass
 
 
 def _ler(caminho):
@@ -246,8 +270,8 @@ def avaliar(evento, ambiente=None):
         texto_index = _ler(os.path.join(cwd, *INDEX_REL))
         if not texto_index:
             return "libera", None
-        # Só a 1ª linha é o nome: o resto do prompt é contexto (o texto todo casaria qualquer feature).
-        pedida = (m.group(1) or "").strip().split("\n", 1)[0].strip()
+        # O nome é só o resto da linha do comando; as linhas de baixo são contexto.
+        pedida = (m.group(1) or "").strip()
         if not pedida:
             return "libera", None
         abertas_agora = abertas(texto_index)
@@ -257,20 +281,42 @@ def avaliar(evento, ambiente=None):
             caminho = _caminho_estado(ambiente)
             estado = _ler_estado(caminho)
             projeto = _chave_projeto(cwd)
-            reg = estado.get(sessao)
-            dele = None
-            if isinstance(reg, dict) and reg.get("projeto") == projeto:
-                dele = _texto(reg.get("feature"))
-            todos = _itens(texto_index) + _itens(_ler(os.path.join(cwd, *HISTORICO_REL)))
-            retomando = dele is not None and _mesma(pedida, dele, todos)
-            if dele is not None and not retomando and not _encerrada(dele, todos):
-                _anotar("bloqueou", f"abertas={len(abertas_agora)}", evento)
-                return "bloqueia", MOTIVO.format(dele=dele, pedida=pedida, env=ENV_DESLIGA)
-            if not retomando:
-                agora = datetime.now()
-                estado[sessao] = {"projeto": projeto, "feature": pedida,
-                                  "quando": agora.isoformat(timespec="seconds")}
-                _gravar_estado(caminho, estado, agora)
+            chave = f"{sessao}|{projeto}"            # voltar a um projeto mantém a trava de lá
+            reg = estado.get(chave)
+            reg = reg if isinstance(reg, dict) else {}
+            dele = _texto(reg.get("feature"))
+            itens = (list(_itens_por_secao(texto_index))
+                     + [(item, True) for item, _ in
+                        _itens_por_secao(_ler(os.path.join(cwd, *HISTORICO_REL)))])
+            agora = datetime.now()
+            quando = agora.isoformat(timespec="seconds")
+            if dele is None:
+                retomando = False
+            else:
+                linhas = linhas_do_chat(dele, itens)
+                retomando = grau(pedida, dele) > 0 or any(grau(pedida, item) > 0 for item in linhas)
+                if linhas:
+                    # Encerrada olha TODA linha que casa pelo nome, não só a melhor: a v1 fechada
+                    # (nome exato) não encerra a linha aberta do chat (`busca vetorial hibrida`).
+                    encerrada = all(_marcas(item)[1] for item, _ in itens if grau(dele, item) > 0)
+                else:
+                    # Sem linha pelo nome (o passo 3 escolhe o título pelo tema; ou ela ainda não
+                    # nasceu): só é encerrada se nada está aberto E algo fechou desde a abertura.
+                    antes = reg.get("fechadas")
+                    encerrada = (not abertas_agora and isinstance(antes, int)
+                                 and _fechadas(itens) > antes)
+                if not retomando and not encerrada:
+                    onde = "ainda aberta" if linhas else (
+                        "não achei a linha dela no INDEX pelo nome — o passo 3 pode ter gravado outro "
+                        "título, ou ela ainda não nasceu; se ela já fechou, abra um chat novo")
+                    _anotar("bloqueou", f"abertas={len(abertas_agora)}", evento)
+                    return "bloqueia", MOTIVO.format(dele=dele, onde=onde, pedida=pedida, env=ENV_DESLIGA)
+            if retomando:                            # renova a validade de feature longa
+                estado[chave] = {**reg, "quando": quando}
+            else:                                    # chat novo, ou a dele encerrou: passa a ser da pedida
+                estado[chave] = {"projeto": projeto, "feature": pedida, "quando": quando,
+                                 "fechadas": _fechadas(itens)}
+            _gravar_estado(caminho, estado, agora)
 
         outras = [item for item in abertas_agora if not mesmo_assunto(pedida, item)]
         if not outras:
