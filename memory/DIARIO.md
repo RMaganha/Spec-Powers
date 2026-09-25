@@ -3,6 +3,9 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-09-25
+- [um-item-por-chat] chat novo bloqueado por 6 abertas no Whats → a trava conta por chat (0.34.0); 3 revisões: substring → palavra inteira, foto do INDEX retirada (adivinhava o dono da linha), encerrada olha toda linha que casa; 676 verdes → sessions/2026-09-25-um-item-por-chat.md
+
 ## 2026-09-23
 - [cerca-por-destino-e-teto-claude-md] "negar todo merge trava o dia a dia" → cerca por destino (push em homologação/produção e deploy negados; merge/rebase/push de feature com `ask`, validado no Desktop) + teto do CLAUDE.md em 10 KB com frases-chave travadas (F-029) — 0.31.0/0.31.1 → sessions/2026-09-23-cerca-por-destino-e-teto-claude-md.md
 - [analise-externa-cerca-pipe-registro] duas análises externas do kit (ChatGPT/Gemini) cruzadas com o repo → metade já existia ou contrariava decisão; das 4 recomendadas, a 2ª checagem derrubou 2 (F-028) e entraram a cerca do pipe (F-025 fechado) e o registro dos hooks (0.30.0) → sessions/2026-09-23-analise-externa-cerca-pipe-registro.md

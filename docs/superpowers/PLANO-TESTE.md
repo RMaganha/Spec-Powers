@@ -119,12 +119,19 @@
 - `test_processo_*` (×5) — deny = JSON + exit 2 + stderr; **ask = JSON + exit 0, stderr vazio**; libera calado; não-JSON libera; **repo git real** (dev nega, feature pergunta)
 - `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json`, README (escape, falha fechada, aprovação, `release/*`) e `CLAUDE.md` (push de homologação/produção do owner, resto com aprovação)
 
-`tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022):
+`tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022; por chat desde a 0.34.0):
 - `test_lista_abertas_ignora_fechada_e_pausada` / `test_em_andamento_conta_como_aberta` / `test_indice_vazio_nao_tem_aberta` — parser do INDEX: `aberta` e `em andamento` contam; `fechada`/`pausada` não
-- `test_sem_aberta_passa` / `test_outra_aberta_bloqueia_e_lista` / `test_mesma_feature_retoma` / `test_sem_argumento_com_aberta_bloqueia` — a decisão: bloqueia listando as abertas e ensinando `pausada`; retomar a mesma (nome, slug, grafia) passa
-- `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem INDEX passa
-- `test_escape_do_owner` / `test_entrada_malformada_libera` — `MSS_UM_ITEM_OFF=1`; evento sem cwd/prompt libera (falha aberta)
-- `test_processo_*` (×3) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; libera calado; não-JSON libera
+- `test_chat_novo_passa_mesmo_com_outra_aberta` / `test_chat_novo_com_outra_aberta_avisa_e_lembra_worktree` / `test_outro_chat_nao_herda_a_trava` — o caso de 2026-09-24: chat novo abre; outras abertas viram aviso (lista, worktree, `pausada`)
+- `test_mesmo_chat_pedindo_outra_bloqueia` / `test_feature_do_chat_fora_do_index_segue_valendo` / `test_mesmo_chat_em_outro_projeto_nao_herda` — o F-022: o mesmo chat não abre 2ª feature (manda chat novo), mesmo antes de a linha nascer no INDEX
+- `test_mesma_feature_retoma` / `test_retomar_nao_avisa_da_propria_feature` / `test_feature_do_chat_encerrada_libera_a_proxima` / `test_fechada_movida_pro_historico_libera_a_proxima` — retomar (nome, slug, grafia) passa; `fechada`/`pausada` no INDEX ou no histórico libera a próxima
+- `test_nome_da_feature_e_so_a_primeira_linha` / `test_comando_sem_nome_na_mesma_linha_nao_grava_o_paragrafo` — o prompt real tem comando + parágrafos: o nome é o resto da linha do comando
+- `test_titulo_do_passo_3_contido_no_nome_digitado_liga_ao_chat` / `test_nome_com_erro_de_digitacao_trava_enquanto_houver_aberta` / `test_linha_nova_do_backlog_nao_prende_o_chat` / `test_retomar_pelo_nome_digitado_sempre_passa` — o título que o passo 3 grava ≠ o nome digitado: casa por palavra inteira; retomar pelo nome digitado passa; fechada a linha, o chat abre a próxima
+- `test_linha_de_outro_chat_nao_vira_do_chat` / `test_nome_sem_linha_com_outra_aberta_bloqueia_e_manda_chat_novo` / `test_nome_sem_linha_e_nada_aberto_libera` — 2ª revisão: linha nova sem nome em comum não é do chat (F-022 pelo vizinho); sem linha pelo nome, o bloqueio diz que não achou e manda chat novo; nada aberto + algo fechado desde a abertura libera (ponteiro do rodízio não prende)
+- `test_v1_fechada_nao_encerra_a_v2_aberta` / `test_v1_fechada_que_casa_melhor_nao_encerra_a_linha_aberta_do_chat` / `test_nome_curto_fechado_nao_encerra_por_pedaco_de_palavra` / `test_linha_de_terceiro_nao_vira_ponte_entre_assuntos` — casamento por palavra inteira, a linha que casa melhor vence (F-022 não passa por semelhança)
+- `test_voltar_ao_projeto_anterior_mantem_a_trava_dele` / `test_retomar_renova_a_validade` — chave `chat + projeto`; retomar renova os 30 dias
+- `test_sem_argumento_passa` / `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem nome ou sem INDEX passa
+- `test_escape_do_owner` / `test_entrada_malformada_libera` / `test_estado_corrompido_libera_e_se_refaz` / `test_sem_session_id_passa_sem_gravar` / `test_estado_descarta_chat_com_mais_de_30_dias` — `MSS_UM_ITEM_OFF=1`; falha aberta; estado com validade de 30 dias
+- `test_processo_*` (×4) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; aviso = exit 0 com `systemMessage` + `additionalContext`; libera calado; não-JSON libera
 - `test_hook_registrado_no_user_prompt_submit` / `test_segunda_camada_em_prosa` — `hooks.json` (UserPromptSubmit), passo 0 do `nova-feature.md`, `CLAUDE.md` sem "alerta, não trava", README
 
 `tests/test_hook_pipe_teste.py` — cerca do pipe no `git_publicacao.py` (F-025):
@@ -148,4 +155,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-09-23 · branch feature/partida-que-nao-cresce (teto na gravação · outro projeto pelo shell · recall sem vencido) · 649 passed
+**Último 100% verde:** 2026-09-25 · branch feature/um-item-por-chat · commit 8a6ad77 (um item por janela conta por chat · ligação chat → linha só pelo nome) · 676 passed

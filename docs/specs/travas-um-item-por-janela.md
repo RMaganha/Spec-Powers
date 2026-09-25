@@ -20,17 +20,23 @@ simples** (após `;` `&&` `|` `(` quebra de linha ou prefixo `VAR=x`); negar ven
 FECHADA**. Escape só do owner: `MSS_PUBLICACAO_OFF=1`. No push protegido o assistente roda
 `/mss-spec:release` e **pede**; o owner publica do terminal dele.
 
-**(2) `hooks/um_item_por_janela.py`** — `UserPromptSubmit`. Só age em `/mss-spec:nova-feature <nome>`
-(ou `/nova-feature`). Lê `<cwd>/docs/superpowers/INDEX.md`; linha de item com status `aberta` ou
-`em andamento` conta como aberta (`fechada`/`pausada: <motivo>` não; seção "Fora de escopo" ignorada).
-Outra aberta → **bloqueia o prompt** listando-as e as três saídas (terminar a aberta; o owner marcar
-`pausada` à mão; `to-dolist adicionar`). A mesma (nome ou slug da spec, sem acento/caixa) → passa.
-Sem INDEX → passa. **Falha ABERTA**. Escape só do owner: `MSS_UM_ITEM_OFF=1`.
+**(2) `hooks/um_item_por_janela.py`** — `UserPromptSubmit`, **por chat** (0.34.0). Só age em
+`/mss-spec:nova-feature <nome>` (ou `/nova-feature`); o nome é o resto da linha do comando. Guarda
+`session_id + projeto → feature` (+ quantas linhas estavam fechadas) em `~/.claude/mss-spec/um-item-janelas.json`
+(por máquina, fora do repo; parado há mais de 30 dias sai, retomar renova; `MSS_UM_ITEM_ESTADO` troca o
+caminho). Ligação chat → linha: a linha do chat é achada **só pelo nome**, por palavra inteira (`ui` não casa com `guia`; nome de 1 palavra só casa igual), e **encerrada** só se toda linha que casa estiver `fechada`/`pausada` (a `v1` fechada não encerra a `v2` nem a `busca vetorial hibrida` abertas). Linha nova em que nenhum nome contém o outro **não** é atribuída ao chat — o INDEX não diz qual chat a escreveu. Sem linha pelo nome, a feature do chat só conta como encerrada se nada está aberto no INDEX e alguma linha fechou desde a abertura; senão bloqueia dizendo que não achou a linha (custo aceito: título do passo 3 sem que um nome contenha o outro + outra feature aberta → o chat sai por chat novo). **Bloqueia o prompt** quando **este chat** já abriu a feature Y,
+Y não está `fechada`/`pausada: <motivo>` (no INDEX ou no `INDEX-historico.md`; Y fora do INDEX segue
+valendo — a linha nasce no passo 3) e o pedido é outra: manda abrir **chat novo**, continuar Y, o
+owner marcar Y `pausada` à mão ou `to-dolist adicionar`. **Chat novo** com feature `aberta`/`em
+andamento` de outro assunto no INDEX (fora de `## Backlog` e "Fora de escopo") → **passa com aviso**
+(lista + worktree: duas features na mesma pasta trocam a branch uma da outra), via `systemMessage` +
+`additionalContext`. A mesma (nome ou slug, sem acento/caixa), sem nome, sem `session_id`, sem INDEX →
+passa calado. **Falha ABERTA** (estado ilegível → vazio). Escape só do owner: `MSS_UM_ITEM_OFF=1`.
 
 **(3) Prosa que virou trava**: `templates/CLAUDE.md` (linha "Um assunto por janela" deixa de ser
 "alerta, não trava": 2º assunto → **não aja**, anote no MAPA, `to-dolist`, janela nova; linha Git:
 push em dev/homolog/prod e deploy "nunca você", merge/rebase/push de feature com aprovação) ·
-`commands/nova-feature.md` **passo 0** (gate de feature aberta — 2ª camada do hook 2) e fecho (push
+`commands/nova-feature.md` **passo 0** (gate "um chat, uma feature" — 2ª camada do hook 2) e fecho (push
 protegido é do owner; merge local e push da feature com aprovação) · `commands/diagnostico.md`
 passo 3 (**F-023**: saúde de endpoint só com a matriz de variantes do chamador; diff do deploy
 inteiro). O molde ficou em **7.991/8.000 bytes** via compressão de prosa (mover/encurtar, nunca apagar).
@@ -62,3 +68,7 @@ não do kit — complemento opcional do owner) · escape por argumento do assist
   F-015 já eram prosa e não seguraram).
 - 2026-09-23 — (4) cerca do pipe no processo do `git_publicacao.py` (motivo: F-025 reincidiu — `edc0ab9` commitou com 2 vermelhos, `f9388e5` repetiu o atalho com a memória já escrita; a própria linha do EVALS pedia cerca). Nasceu da avaliação de duas análises externas do kit: o "release em script" que elas sugeriam não teria pego nenhum dos dois commits (o F-025 acontece na hora do commit, não no release).
 - 2026-09-23 — (1) passa a ser por DESTINO (0.31.0) (motivo: o owner — *"a atualização minha no merge está impactando o dia a dia"*; negar todo merge/rebase/push travou o trabalho, inclusive `git merge-base`, que só lê e o registro gravou como `negou · git merge`). O dano do F-022 foi o push que faz deploy: push pra branch protegida, push de destino incerto e deploy seguem negados; merge/rebase/push de feature viram pedido de aprovação (`ask` — escolha do owner entre pedir aprovação e só avisar). Lista de protegidas = regra única, sem configuração (escolha do owner).
+- 2026-09-24 — (2) passa a contar por CHAT (`session_id`), não por projeto (0.34.0) (motivo: o owner — *"novamente hook bloqueando os comandos, nunca sei quando devo usar ou se posso abrir um chat novo"*; no Whats, 6 features abertas em outros chats travavam o `nova-feature` do chat novo, e ele passou a tirar o comando do prompt — o ritual deixava de rodar, como no F-030). O dano do F-022 é a MESMA janela absorvendo outro assunto: isso segue bloqueado; feature aberta de outro chat vira aviso com worktree. Escolha do owner entre por chat, por projeto com mensagem melhor e deixar como está. Rejeitado: ler o transcript pra saber o que o chat abriu (o formato não é contrato) e bloquear quando outro chat tem feature na mesma pasta (fica aviso — premissa declarada, sem fonte).
+- 2026-09-25 — (2) a ligação chat → linha do INDEX passa a ser só pelo nome, por palavra inteira, a que casa melhor vence (motivo: a revisão de código reproduziu 7 cenários — o chat seguia travado depois de fechar a própria feature quando o passo 3 gravava título diferente do digitado, e o casamento por pedaço de texto deixava a `v1` fechada ou um `UI` fechado encerrar a feature aberta do chat, soltando o F-022). Junto: comando sozinho na linha não grava o parágrafo como nome, chave `chat + projeto`, retomar renova a validade, `.tmp` órfão removido.
+- 2026-09-25 — (2) sai a "foto do INDEX" que atribuía ao chat as linhas nascidas depois da abertura (motivo: a 2ª revisão reproduziu o chat preso pela linha aberta do vizinho na mesma pasta e o chat A "retomando" a feature do chat B — o INDEX não diz qual chat escreveu a linha). Fica o que dá pra afirmar: linha pelo nome; sem ela, encerrada só se nada está aberto e algo fechou desde a abertura. Brechas aceitas e declaradas: reabrir feature já `fechada` conta como encerrada até o passo 3 reabrir a linha; comando sem nome na linha passa calado; retomar por subconjunto aceita a feature vizinha (`exportar pdf` × `exportar pdf assinado`).
+- 2026-09-25 — (2) "encerrada" passa a olhar toda linha que casa pelo nome, não só a que casa melhor (motivo: 3ª revisão — evoluir feature já fechada: a v1 `busca vetorial` fechada, nome exato, encerrava a `busca vetorial hibrida` aberta do próprio chat e o F-022 passava). Custo aceito: linha aberta do vizinho que case pelo nome segura o chat.

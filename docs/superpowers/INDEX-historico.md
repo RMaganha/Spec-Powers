@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-09-25 — fechadas
+
+8. [um item por chat](../specs/travas-um-item-por-janela.md) — o `nova-feature` trava só o mesmo chat; chat novo abre e só avisa das outras (worktree) — fechada
+
 ## 2026-09-23 — fechadas
 
 8. cerca do pipe e registro dos hooks — commit não sai com o resultado do pytest escondido por pipe (F-025) + registro local do que os hooks fizeram (specs `docs/specs/travas-um-item-por-janela.md` e `docs/specs/registro-dos-hooks.md`) — fechada

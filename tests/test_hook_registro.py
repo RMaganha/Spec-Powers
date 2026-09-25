@@ -82,7 +82,7 @@ def _cenario_um_item(tmp):
     return ("um_item_por_janela.py",
             {"hook_event_name": "UserPromptSubmit", "cwd": str(proj), "session_id": "abcdef123456",
              "prompt": f"/mss-spec:nova-feature {SEGREDO}"},
-            {}, "bloqueou", "abertas=1")
+            {"MSS_UM_ITEM_ESTADO": str(tmp / "um-item-janelas.json")}, "avisou", "abertas=1")
 
 
 def _cenario_recall(tmp):
