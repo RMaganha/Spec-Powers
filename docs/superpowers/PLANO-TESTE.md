@@ -155,4 +155,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-09-23 · branch feature/partida-que-nao-cresce (teto na gravação · outro projeto pelo shell · recall sem vencido) · 649 passed
+**Último 100% verde:** 2026-09-25 · branch feature/um-item-por-chat · commit 8a6ad77 (um item por janela conta por chat · ligação chat → linha só pelo nome) · 676 passed
