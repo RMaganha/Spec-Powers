@@ -44,6 +44,14 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-031 | 2026-09-23 | quando, da janela de um projeto, for gravar em OUTRO (git de escrita com `cd`/`-C`, script com `--proj … --aplicar`, `>`/`tee`) | um projeto atuou em outro pelo shell | 3ª cerca no `hooks/git_publicacao.py`: nega gravar num repositório git diferente do da âncora e entrega o comando verbatim pra colar na janela dele (falha ABERTA, `MSS_ANCORA_OFF`) · `tests/test_hook_outro_projeto_shell.py` (a sequência real desta janela: `cd <Whats> && git checkout -b`, `git -C … merge`, `--proj … --aplicar`) | fechado |
 | F-032 | 2026-09-24 | quando uma cerca (hook que bloqueia) conta por um escopo maior que o do dano (projeto em vez de chat) | cerca larga demais vira contorno: o chat novo travava por features abertas em outros chats e o owner passou a tirar o `/mss-spec:nova-feature` do prompt — o ritual deixou de rodar | `hooks/um_item_por_janela.py` por chat (`session_id`): bloqueia só o mesmo chat; outras abertas viram aviso + worktree (0.34.0) · `test_chat_novo_passa_mesmo_com_outra_aberta` + `test_mesmo_chat_pedindo_outra_bloqueia` + `test_linha_de_outro_chat_nao_vira_do_chat` | fechado |
 | F-033 | 2026-09-24 | quando o owner pedir uma entrega específica (passo a passo, roteiro, comando) | resposta maior que o pedido, com bifurcação e jargão | prosa: regra "Responda só o que eu pedi" no `templates/CLAUDE.md` (frase-chave travada) + memória `feedback_resposta_do_tamanho_do_pedido` · sem teste de comportamento | aberto |
+| F-034 | 2026-09-24 | quando a ação que você vai fazer (não o prompt do owner) é a coberta por uma memória: rodar script pelo Bash, dizer ao owner que falta atualizar/instalar algo | memória existe e não chega na hora da ação | gatilho das memórias `project_mss_spec_instalado_por_junction` e `project_heredoc_…` reforçado (prosa) · sem mecanismo: o recall só dispara no `UserPromptSubmit` | aberto |
+
+### F-034 — memória existe e não chega na hora da ação (aberto)
+
+- **Falhou:** na mesma sessão, heredoc de Python com acento quebrou 3 vezes com a memória `project_heredoc_grande_com_acento_quebra_no_git_bash` existindo; e eu disse ao owner que faltava atualizar o plugin, quando a memória `project_mss_spec_instalado_por_junction` diz que não precisa.
+- **Verdade:** o recall casa o **prompt do owner**; o gatilho das duas memórias é uma **ação minha** (rodar um script, afirmar um passo de instalação), que nunca passa pelo `UserPromptSubmit`.
+- **Guardrail:** gatilhos reforçados (prosa). Candidato mecânico, se reincidir: recall também no `PreToolUse` do Bash, casando o comando com os gatilhos de ação.
+- **Teste:** nenhum — fica aberto até 3 sessões sem reincidência.
 
 ### F-033 — resposta maior que o pedido (aberto)
 

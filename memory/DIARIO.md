@@ -4,6 +4,7 @@
 # Diário de sessão — mss-spec
 
 ## 2026-09-25
+- [janela-afogada-e-partida-que-nao-cresce] janela do Whats afogada (160 KB de partida, backlog virou fato) → 0.32.0 aviso na abertura + trava sem backlog · enxugamento do Whats · 0.33.0 teto na gravação (`enxugar` + `teto_ao_gravar`) e cerca de outro repositório pelo shell · 0.34.1 resposta do tamanho do pedido; F-030, F-031, F-033, F-034 → sessions/2026-09-23-janela-afogada-e-partida-que-nao-cresce.md
 - [um-item-por-chat] chat novo bloqueado por 6 abertas no Whats → a trava conta por chat (0.34.0); 3 revisões: substring → palavra inteira, foto do INDEX retirada (adivinhava o dono da linha), encerrada olha toda linha que casa; 676 verdes → sessions/2026-09-25-um-item-por-chat.md
 
 ## 2026-09-23
