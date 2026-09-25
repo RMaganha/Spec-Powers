@@ -1,7 +1,7 @@
 ---
 name: project_mss_spec_instalado_por_junction
 description: na máquina do owner o mss-spec é carregado por JUNCTION em ~/.claude/skills/mss-spec → este clone de dev; edições são live em TODO projeto; NÃO precisa marketplace update / pull / push — só recarregar a sessão
-gatilho: quando pensar em atualizar ou reinstalar o mss-spec nesta máquina
+gatilho: quando pensar em atualizar ou reinstalar o mss-spec nesta máquina — ou for dizer ao owner que falta atualizar, reinstalar ou dar pull no kit pra algo valer (F-034: disse isso em 2026-09-23 sem abrir esta memória)
 metadata:
   type: project
 ---

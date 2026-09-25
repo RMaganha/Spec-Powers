@@ -25,3 +25,5 @@ com acento ou regex vai pelo `Edit` ou por script gravado com `Write`, nunca por
 `git commit -F <arquivo>`.
 
 Relacionado: a memória do Whats `powershell-quebra-argumento-nativo` (mesma família: passe por arquivo).
+
+**2026-09-23/24 — reincidiu 3 vezes na mesma sessão** (patch do `rodizio_partida.py`, registro da 0.33.0 e `\b` num heredoc), com esta memória existindo: o recall casa o prompt do owner, e o gatilho aqui é ação minha (caso **F-034**). Antes de escrever `python - <<` com acento, aspas aninhadas ou regex: **pare** e grave o script com `Write`.
