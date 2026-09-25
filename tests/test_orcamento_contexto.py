@@ -46,6 +46,7 @@ FRASES_CHAVE_CLAUDE_MD = (
     "Declare as premissas antes do OK",
     "Não inventar fatos concretos",
     "PERGUNTE, não vasculhe",
+    "Responda só o que eu pedi",
     "Falha ao executar a habilidade",
     "a partir da principal atualizada",
     "nunca a partir de outra branch",
