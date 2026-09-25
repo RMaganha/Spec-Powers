@@ -4,12 +4,12 @@ Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (worktree) |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
-| `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) |
+| `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 
@@ -302,6 +302,8 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 
 **Por que existe (F-035):** "não inventar fatos concretos" era só prosa. A doc da Anthropic sobre alucinação manda permitir o "não sei" e verificar cada afirmação contra a fonte; a parte que se verifica sem LLM é a citação. Evento `Stop`: lê `last_assistant_message` (ou a última resposta no transcript) e confere, fora de bloco de código, caminho em `crase` ou em link (com `:linha`, a linha tem de existir), `/mss-spec:<x>` e `F-0NN` (se o projeto tem `docs/EVALS.md`). Caminho vale no projeto ou no kit, inteiro ou como final de um caminho que existe; molde do kit (`docs/SEGURANCA.md` ← `templates/SEGURANCA.md`) conta. Não confere URL, glob, placeholder, texto com espaço, nem linha que **propõe** ("→", "criar", "novo", "vai para", "vira") ou **nega** ("não existe"). Achou o que não existe → **devolve a resposta uma vez** (exit 2, motivo no stderr em UTF-8); com `stop_hook_active` deixa sair. Medido em 121 respostas reais: 0 devolução nas sessões dentro do próprio projeto; as 7 que sobram são desta janela citando arquivos do Whats.
 
+**0.36.0 — mesma devolução, mais duas conferências:** resposta com ≥ 2 rotas alternativas ("Rota 1", "Opção A"…) acima de 300 palavras sem o pedido falar em opção (F-033; medido: só a do caso em 201 respostas reais) e resposta que casa o `gatilho_resposta:` de uma memória do projeto ou do kit (F-034; uma vez por sessão por memória). O lado do comando mora no `git_publicacao.py`: `gatilho_comando:` casou → nega uma vez por sessão, repetir passa (medido: 6 de 957 comandos, um por sessão, todos heredoc de Python com acento). Escape `MSS_MEMORIA_ACAO_OFF=1`. O motivo vai por `print` comum no stderr, como nos outros hooks.
+
 ## Garantias
 
 - **Uma vez por turno**, nunca laço. **Falha ABERTA**. Sem citação inválida → calado, custo zero de token.
@@ -389,7 +391,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
-| `confere_citacoes` | `devolveu` | `citacoes=2` — nunca o texto da resposta |
+| `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
