@@ -110,7 +110,10 @@ os compose templates parseiam. Rode antes de commitar mudança em comando/templa
 `docs/superpowers/PLANO-TESTE.md`. Histórico de versões: `CHANGELOG.md` (bump no `plugin.json` a cada release).
 
 ## Redes de segurança
-Nove redes prontas para quando algo dá errado — nenhuma é comando novo:
+Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
+- **Fonte ou não sei** — o hook `hooks/confere_citacoes.py` (ligado, `Stop`): antes de a resposta sair, confere no
+  disco o que ela cita (arquivo e linha, `/mss-spec:<x>`, `F-0NN`); citou o que não existe → a resposta volta **uma
+  vez** pra corrigir ou dizer "não sei". Sem LLM, sem custo quando está tudo certo. Escape `MSS_CITACOES_OFF=1`.
 - **Teto ao gravar** — o hook `hooks/teto_ao_gravar.py` (ligado, **não bloqueia**): gravou `MAPA.md`/`INDEX.md` e passou
   do teto → o excesso sai na hora pra arquivo próprio com ponteiro (`BACKLOG.md`, `FORA-DE-ESCOPO.md`, `EM-ANDAMENTO.md`,
   `CONEXOES.md`…), movendo e nunca apagando. E a cerca de publicação passa a **negar** gravar em OUTRO repositório

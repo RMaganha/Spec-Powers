@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.35.0 — 2026-09-25 (fonte ou não sei)
+- **o que motivou:** o owner pediu a regra de "não alucinar": perguntar quando não está claro, não se estender sem profundidade, consultar a memória, responder claro e curto — *"responder errado é um custo real de tokens e o pior tempo"*.
+- docs(**regra "Fonte ou não sei"** no `templates/CLAUDE.md`, frase-chave travada): fato do projeto sai do que foi aberto na janela (`arquivo:linha`) ou do que o owner disse; sem fonte, "não sei" e abrir/perguntar.
+- feat(**`hooks/confere_citacoes.py`, Stop, ligado**, caso **F-035**): confere no disco, sem LLM, as citações da resposta — arquivo e `:linha`, `/mss-spec:<x>`, `F-0NN` — e devolve **uma vez** a que cita o que não existe. Pula código, URL, glob, placeholder, linha que propõe ou nega. Medido em 121 respostas reais: 0 devolução nas sessões dentro do próprio projeto. stderr em UTF-8 (no Windows o travessão chegava corrompido). `MSS_CITACOES_OFF=1`.
+- docs: `hooks/README.md` ("Nove hooks"), `LEIA-ME.md`, F-035, `decisoes.md`, spec `fonte-ou-nao-sei.md`.
+
 ## 0.34.1 — 2026-09-25 (resposta do tamanho do pedido)
 - **o que motivou:** caso **F-033** — no Whats, o owner pediu o passo a passo de backup → restore → scripts e recebeu 8 etapas, duas rotas, "dia definitivo", pendências, proposta de ferramenta nova e jargão: *"um retorno gigantesco cheio de jargões de IA não focando no que eu preciso"*.
 - docs(**regra "Responda só o que eu pedi, do tamanho do pedido"** no `templates/CLAUDE.md`, frase-chave travada): o pedido define escopo e ordem; o não pedido cabe em 1 linha; fato que muda o roteiro se pergunta antes (nada de roteiro com bifurcação); sem jargão. Memória `feedback_resposta_do_tamanho_do_pedido`; F-033 **aberto** (guardrail só em prosa).
