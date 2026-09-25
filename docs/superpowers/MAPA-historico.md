@@ -4,6 +4,12 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-09-25 — saiu do rodízio do MAPA (v0.34.1, antes da 0.35/0.36)
+
+**Onde estamos:** `main` — **v0.34.0 integrada localmente** (merge `76943b1` de `feature/um-item-por-chat`; **7 commits à frente do `origin/main` — `git push` pendente, ato do owner**). O `um_item_por_janela.py` conta **por chat**: chat novo sempre abre (outras abertas só geram aviso + worktree); o mesmo chat não abre 2ª feature enquanto a dele, achada só pelo nome, não está `fechada`/`pausada`. Três rodadas de revisão de código; suíte **676 verde** na `main`. Caso F-032 fechado; memória `feedback_nao_adivinhar_dono_do_dado`. Nenhuma feature aberta no INDEX.
+
+**Próximo passo:** **Publicar a 0.34.0:** release verde, captura gravada e merge local feitos → falta o **push da `main` pelo owner**. **Canário ao vivo** (depois de o kit novo carregar): no mesmo chat `/mss-spec:nova-feature canario-a` e depois `canario-b` — o 2º bloqueia dizendo que o chat já é da `canario-a`; num chat novo o `canario-b` passa. **No Whats (janela de lá):** das 6 abertas do INDEX, as paradas viram `pausada: <motivo>` à mão (não bloqueiam mais, só poluem o aviso). Custos aceitos pra observar no `python hooks/_registro.py resumo`: bloqueio "não achei a linha dela pelo nome" quando o passo 3 grava título sem que um nome contenha o outro.
+
 ## 2026-09-25 — saiu do rodízio do MAPA (antes da captura da janela afogada)
 
 **Onde estamos:** `main` — **v0.31.1 integrada e publicada** (`edda6f3`, em dia com o `origin/main`). Nesta leva: 0.30.0 (cerca do pipe — F-025 fechado — e registro local dos hooks, `python hooks/_registro.py resumo`) · 0.31.0 (cerca de publicação **por destino**: push em main/master/dev/develop/production/homolog*/hml*/prod*/release/* e deploy negados; merge/rebase/push de feature pedem aprovação do owner) · 0.31.1 (teto do `CLAUDE.md` em 10 KB + frases-chave das regras travadas por teste). Suíte **572 verde**. Nenhuma feature aberta no INDEX.

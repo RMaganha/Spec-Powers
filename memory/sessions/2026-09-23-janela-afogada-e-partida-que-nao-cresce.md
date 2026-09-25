@@ -38,3 +38,20 @@ memória do heredoc existindo (os dois últimos viraram o F-034).
 
 **Próximo:** canário da 0.34.0 (pendência da outra sessão) · observar F-033 e F-034 · a regra "não alucinar"
 que o owner vai trazer · no Whats (janela de lá): as 2 regras novas no `CLAUDE.md` de lá.
+
+## Depois: não alucinar (0.35.0) e memória na hora da ação (0.36.0)
+
+**Conversamos:** o owner pediu a regra de "não alucinar" — perguntar quando não está claro, não se estender sem profundidade, consultar a memória, responder curto. Depois, tratar os casos abertos F-033 e F-034.
+
+**Pivôs:**
+1. das práticas da Anthropic (permitir "não sei", investigar antes, ancorar em citação) para o que se faz sem LLM: regra "Fonte ou não sei" + `confere_citacoes.py` no `Stop` (devolve uma vez — escolha do owner);
+2. medir antes de ligar: 16 de 121 respostas reais seriam devolvidas; linha que propõe/nega, caminho parcial e molde do kit eram falso positivo → 0 nas sessões no próprio projeto; o hook não achou invenção real no histórico (rede barata, não ganho medido);
+3. F-033: tamanho não separa (60 de 211 acima de 450 palavras); a forma separa — ≥ 2 rotas não pedidas só pega a resposta do caso;
+4. F-034: recall por palavras no comando seria ruído → a memória declara `gatilho_comando:`/`gatilho_resposta:`; a doc não garante `additionalContext` no `PreToolUse`, então o comando é negado uma vez com a memória no motivo;
+5. o stderr em UTF-8 forçado da 0.35.0 voltou ao `print` comum (a doc não diz como o Claude Code lê; o `print` aparece certo ao vivo).
+
+**Rejeitado:** verificação por LLM (best-of-N, auto-verificação: tokens em toda resposta) · medir tamanho da resposta · recall no `PreToolUse` por palavras em comum · conferir `[[memória]]` (link pendente é permitido).
+
+**Fizemos:** 0.35.0 (regra + `confere_citacoes.py`, F-035) · 0.36.0 (`_memoria_de_acao.py`, 4ª verificação no `git_publicacao.py`, rotas no `Stop`, gatilhos nas memórias do heredoc e da junction; F-034 fechado). Suíte 676 → 731. Tropeço meu: o patch das memórias foi por heredoc e estragou o regex com caractere de controle — o F-034 ao vivo, consertado por script gravado com `Write`.
+
+**Próximo:** observar F-033 e F-035 · no Whats (janela de lá): as regras novas no `CLAUDE.md` de lá.
