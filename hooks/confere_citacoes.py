@@ -199,6 +199,48 @@ def citacoes_invalidas(texto, raiz):
     return saida
 
 
+# F-033: rota alternativa que ninguém pediu. Medido em 211 respostas reais: ≥ 2 marcadores numa resposta de mais
+# de 300 palavras, sem o pedido falar em opção, só pega a resposta do caso ("Rota 1 / Rota 2" num passo a passo).
+RE_ROTA = re.compile(r"\b(?:Rota|Op[çc][ãa]o|Caminho|Alternativa)\s+[1-9A-C]\b", re.I)
+RE_PEDIU_OPCOES = re.compile(r"(?i)\bop[çc](?:[ãa]o|[õo]es)\b|\balternativ|\brotas?\b|\bcaminhos\b|\bcompar")
+MIN_PALAVRAS_ROTA = 300
+MOTIVO_ROTAS = (
+    "[mss-spec] Antes de entregar — resposta do tamanho do pedido (caso F-033): a resposta oferece rotas "
+    "alternativas que o pedido não pediu. Se falta um fato que decide a rota, troque as rotas por 1–2 perguntas "
+    "curtas; se não falta, entregue só a rota certa. O que não foi pedido cabe em 1 linha."
+)
+MOTIVO_MEMORIA = (
+    "[mss-spec] Antes de entregar — há memória que cobre o que a resposta afirma (caso F-034):\n{lista}\n"
+    "Confira a resposta contra ela; se ela estiver certa e a memória não se aplicar, entregue como está."
+)
+
+
+def _ultimo_prompt(transcript):
+    """Último prompt de texto do owner no transcript (não resultado de ferramenta), ou ''."""
+    if not _texto(transcript):
+        return ""
+    try:
+        ultimo = ""
+        with open(transcript, encoding="utf-8") as f:
+            for linha in f:
+                try:
+                    reg = json.loads(linha)
+                except ValueError:
+                    continue
+                c = (reg.get("message") or {}).get("content") if reg.get("type") == "user" else None
+                if isinstance(c, str) and c.strip():
+                    ultimo = c
+        return ultimo
+    except Exception:                                # noqa: BLE001
+        return ""
+
+
+def rotas_nao_pedidas(texto, prompt):
+    sem_codigo = RE_CERCADO.sub(" ", texto)
+    return (len(set(m.lower() for m in RE_ROTA.findall(sem_codigo))) >= 2
+            and len(sem_codigo.split()) > MIN_PALAVRAS_ROTA and not RE_PEDIU_OPCOES.search(prompt or ""))
+
+
 def decidir(evento, ambiente=None):
     """None = deixa sair; str = motivo pra devolver a resposta. Qualquer defeito → None (falha aberta)."""
     try:
@@ -215,12 +257,30 @@ def decidir(evento, ambiente=None):
             texto = _ultima_resposta(evento.get("transcript_path")) if _texto(evento.get("transcript_path")) else None
         if not _texto(texto):
             return None
+        partes, detalhes = [], []
         invalidas = citacoes_invalidas(texto, raiz)
-        if not invalidas:
+        if invalidas:
+            partes.append(MOTIVO.format(lista="\n".join(f"- `{c}` — {m}" for c, m in invalidas[:10])))
+            detalhes.append(f"citacoes={len(invalidas)}")
+        prompt = _ultimo_prompt(evento.get("transcript_path"))
+        if rotas_nao_pedidas(texto, prompt):
+            partes.append(MOTIVO_ROTAS)
+            detalhes.append("rotas")
+        try:
+            import _memoria_de_acao as mem
+            sessao = evento.get("session_id")
+            achadas = mem.casar(texto, "resposta", raiz, sessao)
+            if achadas:
+                mem.marcar(sessao, [m[0] for m in achadas])
+                partes.append(MOTIVO_MEMORIA.format(lista="\n".join(
+                    f"- `{n}` ({a}): {d}" for n, a, d, _ in achadas[:3])))
+                detalhes.append("memoria=" + ",".join(m[0] for m in achadas[:3]))
+        except Exception:                            # noqa: BLE001 — memória quebrada não muda o resto
+            pass
+        if not partes:
             return None
-        _anotar("devolveu", f"citacoes={len(invalidas)}", evento)
-        lista = "\n".join(f"- `{c}` — {m}" for c, m in invalidas[:10])
-        return MOTIVO.format(lista=lista)
+        _anotar("devolveu", " ".join(detalhes)[:200], evento)
+        return "\n\n".join(partes)
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
 
@@ -233,9 +293,9 @@ def main():
     motivo = decidir(evento)
     if motivo is None:
         sys.exit(0)
-    # UTF-8 explícito: no Windows o stderr sai em cp1252 e o travessão chegava corrompido (0x97)
-    sys.stderr.buffer.write((motivo + "\n").encode("utf-8"))
-    sys.stderr.flush()
+    # `print` comum, igual aos outros hooks que aparecem certos ao vivo: a doc não diz com que codificação o
+    # Claude Code lê o stderr, e forçar UTF-8 viraria `â€”` se ele lê na página de código do Windows
+    print(motivo, file=sys.stderr)
     sys.exit(2)                                       # Stop: exit 2 devolve a resposta com o motivo
 
 

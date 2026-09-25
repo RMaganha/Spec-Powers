@@ -155,4 +155,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-09-25 · branch feature/fonte-ou-nao-sei (fonte ou não sei · confere_citacoes) · 718 passed
+**Último 100% verde:** 2026-09-25 · branch feature/memoria-na-acao (memória na hora da ação · rotas não pedidas) · 731 passed

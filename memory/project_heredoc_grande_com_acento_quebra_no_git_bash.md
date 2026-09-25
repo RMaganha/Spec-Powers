@@ -2,6 +2,7 @@
 name: project_heredoc_grande_com_acento_quebra_no_git_bash
 description: heredoc grande (dezenas de linhas) com acentos passado ao Bash tool corrompe bytes (locale enu) e parte strings; script com acento vai pro scratchpad via Write e roda por arquivo
 gatilho: quando rodar pelo Bash tool um script Python com acentos, travessão ou regex
+gatilho_comando: (?s)python[0-9.]*(?:\.exe)?\s+-\s*<<.*[^\x00-\x7f]
 metadata:
   type: project
 ---

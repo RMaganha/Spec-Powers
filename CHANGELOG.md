@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.36.0 — 2026-09-25 (memória na hora da ação · rotas não pedidas)
+- **o que motivou:** os casos abertos F-033 (resposta com rotas que ninguém pediu) e F-034 (memória que existe e não chega na hora da ação), a pedido do owner.
+- feat(**memória com gatilho de ação**, F-034 → fechado): `gatilho_comando:`/`gatilho_resposta:` (regex) no frontmatter, lidos do projeto e do kit (`hooks/_memoria_de_acao.py`); comando que casa é negado **uma vez por sessão** pelo `git_publicacao.py` com a memória no motivo; resposta que casa volta uma vez no `confere_citacoes.py`. As memórias do heredoc e da junction ganharam gatilho. Medido: 6 de 957 comandos reais (1 por sessão), 1 resposta (o "falta atualizar o plugin"). `MSS_MEMORIA_ACAO_OFF=1`.
+- feat(**rotas não pedidas**, F-033): o `Stop` devolve uma vez a resposta com ≥ 2 rotas alternativas acima de 300 palavras sem o pedido falar em opção — medido: só a do caso em 201 respostas reais.
+- fix(**stderr do `confere_citacoes.py` volta ao `print` comum**): a 0.35.0 forçou UTF-8 sem saber como o Claude Code lê; o `print` dos outros hooks aparece certo ao vivo.
+- docs: `commands/memory.md` (os campos novos no capturar), `hooks/README.md`, `LEIA-ME.md`, F-033/F-034, `decisoes.md`, spec `fonte-ou-nao-sei.md`.
+
 ## 0.35.0 — 2026-09-25 (fonte ou não sei)
 - **o que motivou:** o owner pediu a regra de "não alucinar": perguntar quando não está claro, não se estender sem profundidade, consultar a memória, responder claro e curto — *"responder errado é um custo real de tokens e o pior tempo"*.
 - docs(**regra "Fonte ou não sei"** no `templates/CLAUDE.md`, frase-chave travada): fato do projeto sai do que foi aberto na janela (`arquivo:linha`) ou do que o owner disse; sem fonte, "não sei" e abrir/perguntar.

@@ -144,6 +144,7 @@ def test_le_o_transcript_quando_falta_o_texto_final(proj, tmp_path):
 
 def _rodar(ev):
     amb = {k: v for k, v in os.environ.items() if k not in ("MSS_CITACOES_OFF", "CLAUDE_PROJECT_DIR")}
+    amb["PYTHONIOENCODING"] = "utf-8"   # o hook usa `print`; o teste só precisa ler o motivo
     return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
                           encoding="utf-8", env=amb, timeout=30)
 

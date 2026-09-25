@@ -442,6 +442,37 @@ def _decidir_outro_projeto(evento, comando, ambiente, cwd):
     return None, None
 
 
+# ------------------------------------------------------------------ 4ª verificação: memória do comando (F-034)
+# Memória com `gatilho_comando:` (regex) vale pro que o assistente vai RODAR — o recall só casa o prompt do owner.
+# Casou → nega UMA vez por sessão com a memória no motivo; repetir o comando passa. Falha ABERTA.
+
+ENV_MEMORIA_DESLIGA = "MSS_MEMORIA_ACAO_OFF"
+MOTIVO_MEMORIA = (
+    "[mss-spec] Antes deste comando — a memória `{nome}` cobre isto (caso F-034):\n  {descricao}\n"
+    "Detalhe em `{arquivo}`. Siga o que ela diz; se já considerou, repita o comando — este aviso aparece uma vez "
+    "por sessão. Escape consciente (só o owner): {env}=1."
+)
+
+
+def _decidir_memoria_do_comando(evento, comando, ambiente):
+    """(motivo, detalhe) ou (None, None)."""
+    if _texto(ambiente.get(ENV_MEMORIA_DESLIGA)):
+        return None, None
+    try:
+        import _memoria_de_acao as mem
+        raiz = _texto(ambiente.get("CLAUDE_PROJECT_DIR")) or _texto(evento.get("cwd"))
+        sessao = evento.get("session_id")
+        achadas = mem.casar(comando, "comando", raiz, sessao)
+        if not achadas:
+            return None, None
+        nome, arquivo, descricao, _ = achadas[0]
+        mem.marcar(sessao, [nome])
+        return (MOTIVO_MEMORIA.format(nome=nome, descricao=descricao, arquivo=arquivo, env=ENV_MEMORIA_DESLIGA),
+                f"memória do comando ({nome})")
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, None
+
+
 def avaliar(evento, ambiente=None, git_destino=None):
     """(tipo, motivo): (None, None) libera · ("deny", …) nega · ("ask", …) pede aprovação do owner."""
     ambiente = os.environ if ambiente is None else ambiente
@@ -461,6 +492,10 @@ def avaliar(evento, ambiente=None, git_destino=None):
         motivo_pipe, detalhe_pipe = _decidir_pipe(comando, ambiente)
         if motivo_pipe is not None:                  # negar vence perguntar
             tipo, motivo, detalhe = NEGA, motivo_pipe, detalhe_pipe
+    if tipo is None:                                 # só quando nenhuma cerca agiu: é aviso, não trava
+        motivo_mem, detalhe_mem = _decidir_memoria_do_comando(evento, comando, ambiente)
+        if motivo_mem is not None:
+            tipo, motivo, detalhe = NEGA, motivo_mem, detalhe_mem
     if tipo is not None:
         _anotar("negou" if tipo == NEGA else "perguntou", detalhe, evento)
     return tipo, motivo
