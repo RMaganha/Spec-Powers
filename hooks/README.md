@@ -1,5 +1,5 @@
-Oito hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os oito anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Nove hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -9,6 +9,7 @@ Os oito anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
+| `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) |
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 
@@ -297,6 +298,17 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 
 ---
 
+# Hook ligado — confere citações (`confere_citacoes.py`)
+
+**Por que existe (F-035):** "não inventar fatos concretos" era só prosa. A doc da Anthropic sobre alucinação manda permitir o "não sei" e verificar cada afirmação contra a fonte; a parte que se verifica sem LLM é a citação. Evento `Stop`: lê `last_assistant_message` (ou a última resposta no transcript) e confere, fora de bloco de código, caminho em `crase` ou em link (com `:linha`, a linha tem de existir), `/mss-spec:<x>` e `F-0NN` (se o projeto tem `docs/EVALS.md`). Caminho vale no projeto ou no kit, inteiro ou como final de um caminho que existe; molde do kit (`docs/SEGURANCA.md` ← `templates/SEGURANCA.md`) conta. Não confere URL, glob, placeholder, texto com espaço, nem linha que **propõe** ("→", "criar", "novo", "vai para", "vira") ou **nega** ("não existe"). Achou o que não existe → **devolve a resposta uma vez** (exit 2, motivo no stderr em UTF-8); com `stop_hook_active` deixa sair. Medido em 121 respostas reais: 0 devolução nas sessões dentro do próprio projeto; as 7 que sobram são desta janela citando arquivos do Whats.
+
+## Garantias
+
+- **Uma vez por turno**, nunca laço. **Falha ABERTA**. Sem citação inválida → calado, custo zero de token.
+- **Escape consciente só do owner:** `MSS_CITACOES_OFF=1`.
+
+---
+
 # Hook ligado — teto ao gravar (`teto_ao_gravar.py`)
 
 **Por que existe (F-030):** quem escreve no MAPA/INDEX (`/mss-spec:mapa`, `nova-feature`, `memory capturar`) só
@@ -377,6 +389,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
+| `confere_citacoes` | `devolveu` | `citacoes=2` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):

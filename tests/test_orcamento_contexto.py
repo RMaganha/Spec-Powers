@@ -45,6 +45,7 @@ FRASES_CHAVE_CLAUDE_MD = (
     "Não codar antes do meu OK explícito",
     "Declare as premissas antes do OK",
     "Não inventar fatos concretos",
+    "Fonte ou não sei",
     "PERGUNTE, não vasculhe",
     "Responda só o que eu pedi",
     "Falha ao executar a habilidade",

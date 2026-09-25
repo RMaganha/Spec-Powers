@@ -45,6 +45,14 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-032 | 2026-09-24 | quando uma cerca (hook que bloqueia) conta por um escopo maior que o do dano (projeto em vez de chat) | cerca larga demais vira contorno: o chat novo travava por features abertas em outros chats e o owner passou a tirar o `/mss-spec:nova-feature` do prompt — o ritual deixou de rodar | `hooks/um_item_por_janela.py` por chat (`session_id`): bloqueia só o mesmo chat; outras abertas viram aviso + worktree (0.34.0) · `test_chat_novo_passa_mesmo_com_outra_aberta` + `test_mesmo_chat_pedindo_outra_bloqueia` + `test_linha_de_outro_chat_nao_vira_do_chat` | fechado |
 | F-033 | 2026-09-24 | quando o owner pedir uma entrega específica (passo a passo, roteiro, comando) | resposta maior que o pedido, com bifurcação e jargão | prosa: regra "Responda só o que eu pedi" no `templates/CLAUDE.md` (frase-chave travada) + memória `feedback_resposta_do_tamanho_do_pedido` · sem teste de comportamento | aberto |
 | F-034 | 2026-09-24 | quando a ação que você vai fazer (não o prompt do owner) é a coberta por uma memória: rodar script pelo Bash, dizer ao owner que falta atualizar/instalar algo | memória existe e não chega na hora da ação | gatilho das memórias `project_mss_spec_instalado_por_junction` e `project_heredoc_…` reforçado (prosa) · sem mecanismo: o recall só dispara no `UserPromptSubmit` | aberto |
+| F-035 | 2026-09-25 | quando a resposta afirmar um fato do projeto (arquivo, função, comando, número, o que a memória diz) | afirmação sem fonte / citação inventada | prosa "Fonte ou não sei" no `templates/CLAUDE.md` (frase-chave travada) + hook `confere_citacoes.py` (Stop: citação que não existe no disco devolve a resposta uma vez) · `tests/test_hook_confere_citacoes.py` | aberto |
+
+### F-035 — afirmação sem fonte (aberto; a parte das citações é mecânica)
+
+- **Origem:** pedido do owner — *"não alucinar… sem consultar a memória do projeto… alongar-se em um assunto, sendo desnecessário e responder errado, é um custo real de tokens e o pior tempo"*. Prática da Anthropic (Reduce hallucinations): permitir o "não sei", investigar antes de responder, ancorar em fonte citada.
+- **Guardrail:** regra "Fonte ou não sei" (prosa) + `confere_citacoes.py` (citação verificável).
+- **Medição:** repassado em 121 respostas reais — 0 devolução nas sessões no próprio projeto (depois de tirar os falsos positivos de linha que propõe/nega, caminho parcial e molde); 7 nesta janela, citando o Whats. O hook não achou invenção real no histórico: é rede barata, não ganho medido.
+- **Teste:** `tests/test_hook_confere_citacoes.py`. Afirmação errada SEM citação segue só com a prosa — fica aberto até 3 sessões sem reincidência.
 
 ### F-034 — memória existe e não chega na hora da ação (aberto)
 

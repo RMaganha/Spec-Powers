@@ -66,6 +66,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/confere_citacoes.py\""
+          }
+        ]
+      }
     ]
   }
 }

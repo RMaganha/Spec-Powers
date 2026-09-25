@@ -142,9 +142,19 @@ def _cenario_teto(tmp):
             {}, "moveu", "INDEX.md=")
 
 
+def _cenario_citacoes(tmp):
+    proj = tmp / "proj"
+    proj.mkdir(parents=True, exist_ok=True)
+    return ("confere_citacoes.py",
+            {"hook_event_name": "Stop", "cwd": str(proj), "session_id": "abcdef123456", "stop_hook_active": False,
+             "last_assistant_message": f"{SEGREDO} — veja `services/nao_existe.py`."},
+            {}, "devolveu", "citacoes=1")
+
+
 CENARIOS = [_cenario_publicacao, _cenario_pipe, _cenario_ancora, _cenario_um_item,
-            _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento, _cenario_teto]
-IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto"]
+            _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento, _cenario_teto,
+            _cenario_citacoes]
+IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto", "citacoes"]
 
 
 def _preparar(cenario, tmp_path, env):
@@ -196,6 +206,8 @@ def test_nunca_grava_o_texto_do_prompt_nem_do_comando(cenario, tmp_path):
     ("um_item_por_janela.py", {"hook_event_name": "UserPromptSubmit", "prompt": "oi, tudo bem?"}),
     ("recall_memoria.py", {"hook_event_name": "UserPromptSubmit", "prompt": "/mss-spec:mapa"}),
     ("orcamento_partida.py", {"hook_event_name": "SessionStart", "source": "startup"}),
+    ("confere_citacoes.py", {"hook_event_name": "Stop", "stop_hook_active": False,
+                             "last_assistant_message": "tudo certo, sem citação"}),
 ])
 def test_hook_que_passa_calado_nao_grava(hook, evento, tmp_path):
     arquivo = tmp_path / "registro-hooks.jsonl"
