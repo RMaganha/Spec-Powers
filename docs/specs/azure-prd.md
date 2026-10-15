@@ -18,7 +18,9 @@ rodando é lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` nos 
 **Variáveis de ambiente** (`templates/azure-prd/app_settings.py`, fora do Bicep porque `appSettings`
 substitui a coleção inteira): todas as da homologação vão; o `infra/app-settings.json` (só nomes) marca
 cada uma `"copiar"`, `"senha"` (grava `*****` só se ainda não existe em produção — nunca sobrescreve a
-verdadeira) ou `{"prd": "<valor>"}`. Variável da homologação fora do arquivo trava o pipeline com o nome
+verdadeira) ou `{"prd": "<valor>"}` (que também cria variável só de produção, como a
+`WEBSITE_DNS_ALT_SERVER=168.63.129.16`). Plano, VNet/subnet e DNS de produção vêm do `docs/AMBIENTE.md` §5,
+sem perguntar. Variável da homologação fora do arquivo trava o pipeline com o nome
 dela; sem arquivo, a 1ª simulação imprime a proposta. Gravação por mescla; valor nunca vai pro log; o fim
 lista as senhas ainda `*****` em produção. O `hooks/git_publicacao.py` nega ao assistente
 `az deployment … create` e `az stack … create`.
@@ -45,3 +47,7 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
   lida do Web App, pipeline de código de produção conferido (motivo: a 1ª execução real, no MSS-UTILS,
   achou quatro erros — Azure CLI local que não existe, nome de variável na receita apagaria a senha, imagem
   fixa, pipeline suposto; caso F-036. O owner exigiu que todas as variáveis fossem, senha como `*****`).
+- 2026-10-15 — plano, VNet/subnet e DNS de produção mapeados no `templates/AMBIENTE.md` §5 e usados sem
+  perguntar; `{"prd": …}` passa a criar variável que só existe em produção (motivo: o comando perguntou
+  ao owner o que o Whats, já em produção, tinha medido — e a `WEBSITE_DNS_ALT_SERVER` obrigatória lá não
+  existe na homologação, então o script a ignoraria).

@@ -6,7 +6,8 @@ Nunca imprime valor: só nomes e o que acontece com cada um.
 O arquivo `infra/app-settings.json` (versionado, sem valor nenhum) diz o que fazer com cada variável:
   "copiar"            → copia o valor da homologação
   "senha"             → grava ***** só se a variável ainda não existe em produção (nunca apaga a verdadeira)
-  {"prd": "<valor>"}  → grava o valor de produção escrito ali (nunca senha — senha é "senha")
+  {"prd": "<valor>"}  → grava o valor de produção escrito ali (nunca senha — senha é "senha"); é também
+                        o jeito de criar variável que só existe em produção (ex.: WEBSITE_DNS_ALT_SERVER)
 
   conferir  → compara homologação × arquivo e mostra o plano. Variável da homologação fora do arquivo
               TRAVA (exit 1) com o nome dela; sem arquivo, imprime a proposta pronta pra colar.
@@ -34,7 +35,7 @@ class Plano:
     gravar: dict = field(default_factory=dict)
     acoes: list = field(default_factory=list)       # (nome, o que acontece) — nunca o valor
     faltando: list = field(default_factory=list)    # na homologação, fora do arquivo → trava
-    sobrando: list = field(default_factory=list)    # no arquivo, fora da homologação → só avisa
+    sobrando: list = field(default_factory=list)    # no arquivo, fora da homologação, sem valor de prd → só avisa
     invalidas: list = field(default_factory=list)   # marca que não é copiar/senha/{"prd": ...} → trava
     pendentes: list = field(default_factory=list)   # senha que fica ***** em produção
 
@@ -44,10 +45,21 @@ def sugerir(nomes):
     return {n: ("senha" if _SENHA.search(n) else "copiar") for n in nomes}
 
 
+def _valor_prd(marca):
+    return isinstance(marca, dict) and set(marca) == {"prd"} and isinstance(marca["prd"], str)
+
+
 def planejar(hml, prd, config):
     p = Plano()
     p.faltando = sorted(n for n in hml if n not in config)
-    p.sobrando = sorted(n for n in config if n not in hml)
+    # só em produção (ex.: WEBSITE_DNS_ALT_SERVER — o DNS de cada VNet é diferente): vale com valor de
+    # produção; "copiar"/"senha" sem a variável na homologação não tem de onde vir → só avisa
+    for nome in sorted(n for n in config if n not in hml):
+        if _valor_prd(config[nome]):
+            p.gravar[nome] = config[nome]["prd"]
+            p.acoes.append((nome, "só em produção: valor do app-settings.json"))
+        else:
+            p.sobrando.append(nome)
     for nome in sorted(n for n in config if n in hml):
         marca = config[nome]
         if marca == "copiar":
@@ -63,7 +75,7 @@ def planejar(hml, prd, config):
                 p.pendentes.append(nome)
             else:
                 p.acoes.append((nome, "senha já preenchida em produção: não mexe"))
-        elif isinstance(marca, dict) and set(marca) == {"prd"} and isinstance(marca["prd"], str):
+        elif _valor_prd(marca):
             p.gravar[nome] = marca["prd"]
             p.acoes.append((nome, "valor de produção do app-settings.json"))
         else:
@@ -118,7 +130,8 @@ def executar(argv, az=_az_real, saida=print):
     for nome, oque in plano.acoes:
         saida(f"  {nome}: {oque}")
     for nome in plano.sobrando:
-        saida(f"  AVISO {nome}: está no arquivo mas não existe na homologação — não é gravada")
+        saida(f"  AVISO {nome}: está no arquivo, não existe na homologação e não tem valor de "
+              "produção — não é gravada")
     if plano.faltando or plano.invalidas:
         if plano.faltando:
             saida("ERRO: variáveis da homologação que NÃO estão no "

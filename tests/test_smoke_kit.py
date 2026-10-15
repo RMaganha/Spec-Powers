@@ -1199,6 +1199,12 @@ def test_azure_prd_wiring():
     assert "pendência" in cmd.lower() and "trigger" in cmd
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
     assert "/mss-spec:azure-prd" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
+    # dados de producao mapeados uma vez no kit (medidos no Whats) — o comando usa, nao pergunta
+    for trecho in ("mss-ai-asp-prod-br", "VNET-MSSD-PRD", "SNET-WEB-AI-PRD", "WEBSITE_DNS_ALT_SERVER=168.63.129.16",
+                   "resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD"):
+        assert trecho in ambiente, f"AMBIENTE.md secao 5 sem {trecho!r}"
+    assert "não\npergunte" in cmd or "não pergunte" in cmd, "comando voltaria a perguntar o que o kit ja mapeia"
+    assert "WEBSITE_DNS_ALT_SERVER" in cmd
 
 
 def _estagios_azure_prd(doc):

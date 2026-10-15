@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.38.1 — 2026-10-15 (azure-prd: dados de produção mapeados no kit)
+- **o que motivou:** na 2ª execução no MSS-UTILS o comando perguntou plano, subnet e DNS de produção — dados que o Whats, já em produção, tinha medido.
+- docs(**`templates/AMBIENTE.md` §5**): plano `mss-ai-asp-prod-br`, `VNET-MSSD-PRD`/`SNET-WEB-AI-PRD` e `WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória em produção (fonte: Whats). O comando usa de lá e não pergunta. Id completo da subnet de produção (`VNET-MSSD-PRD` no grupo `RG-MSSD-PRD`, conferido no portal pelo owner) já preenchido no `prd.bicepparam`.
+- fix(**variável que só existe em produção**): o `app_settings.py` grava `{"prd": …}` mesmo sem a variável na homologação (antes era ignorada) — é o caso da `WEBSITE_DNS_ALT_SERVER`.
+- docs: modelos `.bicepparam` com o plano preenchido; Whats no catálogo `precedentes-msig` como o 1º deploy em produção.
+
 ## 0.38.0 — 2026-10-15 (azure-prd: variáveis de ambiente e nada na máquina do owner)
 - **o que motivou:** a 1ª execução real do `/mss-spec:azure-prd` (MSS-UTILS) achou quatro erros na 0.37.0 (caso F-036), e o owner exigiu que todas as variáveis de ambiente fossem pra produção, senha como `*****`.
 - feat(**variáveis de ambiente**): `templates/azure-prd/app_settings.py` — todas as da homologação vão; `infra/app-settings.json` (só nomes) marca `copiar` · `senha` (`*****` só se ainda não existe — nunca sobrescreve a verdadeira) · `{"prd": …}`; variável fora do arquivo trava o pipeline; valor nunca vai pro log; fim lista as senhas pendentes. Fora do Bicep (`appSettings` substitui a coleção inteira).
