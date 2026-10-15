@@ -1183,30 +1183,67 @@ def test_azure_prd_wiring():
     Spec: docs/specs/azure-prd.md."""
     cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
     for trecho in ("infra/main.bicep", "infra/hml.bicepparam", "infra/prd.bicepparam",
-                   "what-if", "RG-MSSAI-DEV", "RG-MSSAI-PRD", "Approvals and checks",
-                   "templates/azure-prd/azure-pipelines-prd.yml", "templates/azure-prd/prd.bicepparam"):
+                   "infra/app-settings.json", "infra/app_settings.py", "what-if", "RG-MSSAI-DEV",
+                   "RG-MSSAI-PRD", "Approvals and checks", "Run pipeline",
+                   "templates/azure-prd/azure-pipelines-prd.yml", "templates/azure-prd/prd.bicepparam",
+                   "templates/azure-prd/app_settings.py"):
         assert trecho in cmd, f"commands/azure-prd.md sem {trecho!r}"
-    # a simulacao contra a homologacao vem ANTES do pipeline de producao
-    assert cmd.index("RG-MSSAI-DEV") < cmd.index("azure-pipelines-prd.yml")
     # o assistente nunca aplica a receita: quem cria e o pipeline com aprovacao do owner
     assert "az deployment group create" in cmd and "owner" in cmd.lower()
+    # F-036: nada roda na maquina do owner contra o Azure — nem az login, nem what-if local
+    assert "az login" not in cmd, "o comando voltou a exigir o Azure CLI na maquina do owner"
+    assert "```bash\naz " not in cmd, "comando az pra rodar fora do pipeline"
+    # F-036: App Settings fora do Bicep (appSettings substitui a colecao inteira e apagaria a senha real)
+    assert "appSettings" in cmd and "substitui" in cmd
+    # F-036: pipeline de codigo de producao nao e suposto — e conferido
+    assert "pendência" in cmd.lower() and "trigger" in cmd
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
     assert "/mss-spec:azure-prd" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
+
+
+def _estagios_azure_prd(doc):
+    """Achata os estagios, inclusive os inseridos por `${{ if ... }}` (chave do mapping)."""
+    saida = []
+    for item in doc["stages"]:
+        if "stage" in item:
+            saida.append((None, item))
+        else:
+            (cond, lista), = item.items()
+            saida.extend((cond, e) for e in lista)
+    return saida
 
 
 def test_azure_prd_pipeline_e_yaml_com_aprovacao():
     yaml = __import__("pytest").importorskip("yaml")
     texto = (REPO / "templates" / "azure-prd" / "azure-pipelines-prd.yml").read_text(encoding="utf-8")
     doc = yaml.safe_load(texto)
-    estagios = {e["stage"]: e for e in doc["stages"]}
-    assert list(estagios) == ["Simular", "Criar"], f"estagios: {list(estagios)}"
-    simular = json.dumps(estagios["Simular"])
-    assert "what-if" in simular and "create" not in simular.replace("what-if", "")
-    criar = estagios["Criar"]
+    assert "trigger: none" in texto, "pipeline de infra roda a mao, nao por push"
+    (param,) = doc["parameters"]
+    assert param["name"] == "ambiente" and param["values"] == ["hml", "prd"] and param["default"] == "hml"
+    estagios = _estagios_azure_prd(doc)
+    assert [e["stage"] for _, e in estagios] == ["Simular", "Criar"]
+    (cond_sim, simular), (cond_criar, criar) = estagios
+    # Simular roda nos dois; Criar so EXISTE no prd (removido na compilacao — estagio pulado por
+    # `condition:` ainda pediria a aprovacao)
+    assert cond_sim is None
+    assert cond_criar and "parameters.ambiente" in cond_criar and "'prd'" in cond_criar
+    s = json.dumps(simular, ensure_ascii=False)
+    for trecho in ("az bicep build", "what-if", "IMAGEM", "linuxFxVersion", "app_settings.py conferir",
+                   "${{ parameters.ambiente }}"):
+        assert trecho in s, f"Simular sem {trecho!r}"
+    assert "deployment group create" not in s and "aplicar" not in s
     assert criar["dependsOn"] == "Simular"
     job = criar["jobs"][0]
     assert job.get("environment") == "producao", "o botao de aprovacao mora no environment 'producao'"
-    assert "az deployment group create" in json.dumps(criar)
-    assert "RG-MSSAI-PRD" in texto and "trigger: none" in texto, "pipeline de infra roda a mao, nao por push"
-    params = (REPO / "templates" / "azure-prd" / "prd.bicepparam").read_text(encoding="utf-8")
-    assert "using './main.bicep'" in params and "-prod" in params
+    c = json.dumps(criar, ensure_ascii=False)
+    for trecho in ("az deployment group create", "IMAGEM", "app_settings.py aplicar", "RG-MSSAI-PRD"):
+        assert trecho in c or trecho in texto, f"Criar sem {trecho!r}"
+    assert c.index("deployment group create") < c.index("app_settings.py aplicar"), \
+        "as variaveis so podem ser gravadas depois de o Web App existir"
+
+
+def test_azure_prd_bicepparam_preserva_a_imagem_rodando():
+    for nome, sufixo in (("prd.bicepparam", "-prod"), ("hml.bicepparam", "-dev-br")):
+        params = (REPO / "templates" / "azure-prd" / nome).read_text(encoding="utf-8")
+        assert "using './main.bicep'" in params and sufixo in params, nome
+        assert "readEnvironmentVariable('IMAGEM'" in params, f"{nome}: imagem fixa voltaria producao pra versao velha"

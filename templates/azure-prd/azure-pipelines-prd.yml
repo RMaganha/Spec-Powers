@@ -1,60 +1,92 @@
-# Pipeline de INFRA de produção — gerado pelo /mss-spec:azure-prd.
-# Cria (ou ajusta) os recursos de produção a partir da receita infra/main.bicep + infra/prd.bicepparam —
-# a MESMA receita que, simulada contra a homologação, respondeu "nada muda".
+# Pipeline de INFRA — gerado pelo /mss-spec:azure-prd.
+# Leva a homologação que funciona pra produção pela receita infra/main.bicep. Nada roda na máquina do
+# owner: tudo aqui, com a conexão do pipeline.
 #
-# Roda à mão (Pipelines → Run pipeline): não dispara por push.
-# O botão de aprovação mora no environment 'producao' (Pipelines → Environments → producao →
-# Approvals and checks). Sem aprovador cadastrado lá, o estágio Criar roda SEM PARAR — cadastre antes
-# da 1ª execução.
-# Quem aprova: abra o log do estágio Simular, leia a lista do what-if e só então clique em Approve.
+# Roda à mão: Pipelines → este pipeline → Run pipeline → escolha o ambiente:
+#   hml → só SIMULA contra a homologação (prova que a receita é igual ao que funciona). Não cria nada.
+#   prd → simula contra produção, PARA no botão de aprovação e, depois do clique, cria.
+#
+# O botão mora no environment 'producao' (Pipelines → Environments → producao → Approvals and checks).
+# Sem aprovador cadastrado lá, o estágio Criar roda SEM PARAR — cadastre antes do 1º prd.
+# Quem aprova: abra o log do estágio Simular, leia a lista do what-if e o plano das variáveis, e só
+# então clique em Approve.
 
 trigger: none
 
+parameters:
+- name: ambiente
+  displayName: 'Ambiente (hml = só simula na homologação · prd = simula, espera aprovação e cria)'
+  type: string
+  default: hml
+  values:
+  - hml
+  - prd
+
 variables:
   azureServiceConnection: 'Mitsui Sumitomo Seguros S.A. - Azure Subscriptions (e87b4af3-ce34-4c44-8c64-0151ca959654)'
-  resourceGroup: 'RG-MSSAI-PRD'
   vmImageName: 'ubuntu-latest'
+  rgHml: 'RG-MSSAI-DEV'
+  rgPrd: 'RG-MSSAI-PRD'
+  webAppHml: 'mss-miti-ai-<projeto>-dev-br'
+  webAppPrd: 'mss-miti-ai-<projeto>-prod'
 
 stages:
 - stage: Simular
-  displayName: 'Simular (what-if) — não muda nada no Azure'
+  displayName: 'Simular (${{ parameters.ambiente }}) — não muda nada no Azure'
   jobs:
-  - job: WhatIf
+  - job: Simular
     pool:
       vmImage: $(vmImageName)
     steps:
     - task: AzureCLI@2
-      displayName: 'what-if contra $(resourceGroup)'
+      displayName: 'Receita + variáveis: o que mudaria'
       inputs:
         azureSubscription: $(azureServiceConnection)
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
-          az deployment group what-if \
-            --resource-group $(resourceGroup) \
-            --parameters infra/prd.bicepparam
+          set -euo pipefail
+          AMB='${{ parameters.ambiente }}'
+          if [ "$AMB" = "prd" ]; then RG='$(rgPrd)'; APP='$(webAppPrd)'; else RG='$(rgHml)'; APP='$(webAppHml)'; fi
+          az bicep build --file infra/main.bicep
+          # a imagem que está rodando hoje no Web App (se ele existe); senão vale a padrão do .bicepparam
+          IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+          if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
+          echo "=== Receita contra $RG (hml: tem de dar 'nada muda') ==="
+          az deployment group what-if --resource-group "$RG" --parameters "infra/$AMB.bicepparam"
+          echo "=== Variáveis de ambiente (só nomes, nunca valores) ==="
+          python3 infra/app_settings.py conferir --config infra/app-settings.json \
+            --hml-rg '$(rgHml)' --hml-app '$(webAppHml)' --prd-rg '$(rgPrd)' --prd-app '$(webAppPrd)'
 
-- stage: Criar
-  displayName: 'Criar em produção (espera a aprovação)'
-  dependsOn: Simular
-  jobs:
-  - deployment: AplicarReceita
-    environment: producao
-    pool:
-      vmImage: $(vmImageName)
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - checkout: self
-          - task: AzureCLI@2
-            displayName: 'Aplicar a receita em $(resourceGroup)'
-            inputs:
-              azureSubscription: $(azureServiceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az deployment group create \
-                  --resource-group $(resourceGroup) \
-                  --parameters infra/prd.bicepparam \
-                  --name azure-prd-$(Build.BuildId)
+# Criar só EXISTE quando o ambiente é prd: removido na compilação, não pulado por condição — estágio
+# pulado por `condition:` ainda pediria a aprovação.
+- ${{ if eq(parameters.ambiente, 'prd') }}:
+  - stage: Criar
+    displayName: 'Criar em produção (espera a aprovação)'
+    dependsOn: Simular
+    jobs:
+    - deployment: AplicarReceita
+      environment: producao
+      pool:
+        vmImage: $(vmImageName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - checkout: self
+            - task: AzureCLI@2
+              displayName: 'Aplicar a receita e as variáveis em $(rgPrd)'
+              inputs:
+                azureSubscription: $(azureServiceConnection)
+                scriptType: bash
+                scriptLocation: inlineScript
+                inlineScript: |
+                  set -euo pipefail
+                  IMG="$(az webapp show -g '$(rgPrd)' -n '$(webAppPrd)' --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+                  if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
+                  az deployment group create \
+                    --resource-group '$(rgPrd)' \
+                    --parameters infra/prd.bicepparam \
+                    --name azure-prd-$(Build.BuildId)
+                  python3 infra/app_settings.py aplicar --config infra/app-settings.json \
+                    --hml-rg '$(rgHml)' --hml-app '$(webAppHml)' --prd-rg '$(rgPrd)' --prd-app '$(webAppPrd)'

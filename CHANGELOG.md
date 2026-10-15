@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.38.0 — 2026-10-15 (azure-prd: variáveis de ambiente e nada na máquina do owner)
+- **o que motivou:** a 1ª execução real do `/mss-spec:azure-prd` (MSS-UTILS) achou quatro erros na 0.37.0 (caso F-036), e o owner exigiu que todas as variáveis de ambiente fossem pra produção, senha como `*****`.
+- feat(**variáveis de ambiente**): `templates/azure-prd/app_settings.py` — todas as da homologação vão; `infra/app-settings.json` (só nomes) marca `copiar` · `senha` (`*****` só se ainda não existe — nunca sobrescreve a verdadeira) · `{"prd": …}`; variável fora do arquivo trava o pipeline; valor nunca vai pro log; fim lista as senhas pendentes. Fora do Bicep (`appSettings` substitui a coleção inteira).
+- fix(**simulação no pipeline**): escolha `hml`/`prd` no Run pipeline; `hml` só simula contra `RG-MSSAI-DEV`; o estágio Criar só existe no `prd` (estágio pulado por condição ainda pediria aprovação). Nenhum `az` na máquina do owner.
+- fix(**imagem**): lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` nos `.bicepparam`) — a simulação não acusa diferença à toa e nova execução não volta produção pra versão velha.
+- fix(**pipeline de código de produção**): conferido no passo 0; não existe → pendência avisada.
+- docs: caso F-036 no `EVALS.md`, spec `azure-prd.md`, `LEIA-ME.md`, `COMO-FUNCIONA.html`.
+
 ## 0.37.0 — 2026-10-15 (homologação Azure → produção)
 - **o que motivou:** produção é montada à mão por um prestador a partir de documentação — erra ou não entende, e cada rodada de ajuste leva tempo. A homologação, que o owner monta e funciona, vira a fonte.
 - feat(**`/mss-spec:azure-prd`**): exporta a homologação como receita **Bicep** (`infra/main.bicep` + `infra/hml.bicepparam` + `infra/prd.bicepparam`, sem senha nem IP da homologação), simula com `what-if` contra `RG-MSSAI-DEV` ("nada muda") e monta o pipeline `templates/azure-prd/azure-pipelines-prd.yml`: Simular (`what-if` em `RG-MSSAI-PRD`) → botão do environment `producao` → Criar. Bicep em vez de Terraform: nativo do Azure, sem arquivo de estado.
