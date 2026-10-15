@@ -13,7 +13,9 @@ O pipeline roda à mão com a escolha **hml** ou **prd**. `hml`: só o estágio 
 `what-if` contra `RG-MSSAI-DEV` (tem de dar "nada muda") + conferência das variáveis. `prd`: Simular
 contra `RG-MSSAI-PRD`, depois o estágio Criar — que só existe no `prd` (inserido na compilação) e para no
 botão de aprovação do environment `producao` — cria a receita e grava as variáveis. A imagem que está
-rodando é lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` nos `.bicepparam`).
+rodando é lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` sem valor padrão nos
+`.bicepparam`); na 1ª criação de produção é a que está rodando na homologação (produção nasce espelho e
+sobe sem o pipeline de código de produção); sem nenhuma das duas, o pipeline falha em vez de criar.
 
 **Variáveis de ambiente** (`templates/azure-prd/app_settings.py`, fora do Bicep porque `appSettings`
 substitui a coleção inteira): todas as da homologação vão; o `infra/app-settings.json` (só nomes) marca
@@ -55,3 +57,7 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
   ambientes; a proposta sugere a senha do registro como `copiar` (motivo: o portal mostrou a
   `WEBSITE_DNS_SERVER` em produção, que eu tinha dado como ausente pelo documento — F-037; e o owner
   decidiu que a senha do registro compartilhado vai copiada).
+- 2026-10-15 — 1ª criação de produção usa a imagem da homologação; `.bicepparam` sem imagem padrão
+  (motivo: o MSS-UTILS apontou que a imagem padrão `…-prod:latest` só existiria depois do pipeline de
+  código de produção, que o projeto não tem — produção seria criada sem subir. O owner pediu chegar o
+  mais perto possível de 100%).

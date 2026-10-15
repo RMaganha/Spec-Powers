@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.38.3 — 2026-10-15 (azure-prd: produção nasce com a imagem da homologação)
+- **o que motivou:** no MSS-UTILS, a 1ª criação de produção usaria a imagem `…-prod:latest`, que só existe depois do pipeline de código de produção — que o projeto não tem. Produção seria criada sem subir.
+- fix(**imagem na 1ª criação**): Web App de produção ainda não existe → o pipeline usa a imagem que está rodando na homologação (já testada, mesmo registro); sem ela, falha em vez de criar. O mesmo bloco nos estágios Simular e Criar.
+- fix(**`.bicepparam` sem imagem padrão**): `readEnvironmentVariable('IMAGEM')` — faltou a imagem, a receita falha em vez de usar uma inventada.
+- test: `tests/test_azure_prd_imagem.py` roda o trecho de bash real do pipeline com um `az` falso (1ª criação, produção existente, homologação, e a falha sem imagem).
+
 ## 0.38.2 — 2026-10-15 (azure-prd: DNS e registro iguais nos dois ambientes)
 - **o que motivou:** recomendei não levar a `WEBSITE_DNS_SERVER` pra produção porque os documentos do Whats não a citavam; o portal mostrou que ela existe lá, com o mesmo IP (caso F-037). E o owner decidiu: senha do registro de imagens vai como `copiar`.
 - fix(**`templates/AMBIENTE.md` §5**): DNS de saída `WEBSITE_DNS_SERVER=10.170.210.2` nos dois ambientes + `WEBSITE_DNS_ALT_SERVER` obrigatória em produção; `DOCKER_REGISTRY_SERVER_*` iguais nos dois (registro compartilhado).

@@ -49,9 +49,16 @@ stages:
           AMB='${{ parameters.ambiente }}'
           if [ "$AMB" = "prd" ]; then RG='$(rgPrd)'; APP='$(webAppPrd)'; else RG='$(rgHml)'; APP='$(webAppHml)'; fi
           az bicep build --file infra/main.bicep
-          # a imagem que está rodando hoje no Web App (se ele existe); senão vale a padrão do .bicepparam
+          # imagem: início — a que está rodando no Web App; na 1ª criação de produção, a da homologação
           IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+          if [ -z "$IMG" ] && [ "$APP" = '$(webAppPrd)' ]; then
+            # produção ainda não existe: nasce com a imagem já testada na homologação (mesmo registro).
+            # Sem ela, o script FALHA — nunca cria produção com uma imagem que não existe.
+            IMG="$(az webapp show -g '$(rgHml)' -n '$(webAppHml)' --query siteConfig.linuxFxVersion -o tsv)"
+            echo "1ª criação de produção: usa a imagem da homologação ($IMG)"
+          fi
           if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
+          # imagem: fim
           echo "=== Receita contra $RG (hml: tem de dar 'nada muda') ==="
           az deployment group what-if --resource-group "$RG" --parameters "infra/$AMB.bicepparam"
           echo "=== Variáveis de ambiente (só nomes, nunca valores) ==="
@@ -82,8 +89,17 @@ stages:
                 scriptLocation: inlineScript
                 inlineScript: |
                   set -euo pipefail
-                  IMG="$(az webapp show -g '$(rgPrd)' -n '$(webAppPrd)' --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+                  RG='$(rgPrd)'; APP='$(webAppPrd)'
+                  # imagem: início — a que está rodando no Web App; na 1ª criação de produção, a da homologação
+                  IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+                  if [ -z "$IMG" ] && [ "$APP" = '$(webAppPrd)' ]; then
+                    # produção ainda não existe: nasce com a imagem já testada na homologação (mesmo registro).
+                    # Sem ela, o script FALHA — nunca cria produção com uma imagem que não existe.
+                    IMG="$(az webapp show -g '$(rgHml)' -n '$(webAppHml)' --query siteConfig.linuxFxVersion -o tsv)"
+                    echo "1ª criação de produção: usa a imagem da homologação ($IMG)"
+                  fi
                   if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
+                  # imagem: fim
                   az deployment group create \
                     --resource-group '$(rgPrd)' \
                     --parameters infra/prd.bicepparam \

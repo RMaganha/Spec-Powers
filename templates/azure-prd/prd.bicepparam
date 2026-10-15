@@ -8,6 +8,7 @@ param nomeWebApp = 'mss-miti-ai-<projeto>-prod'
 param nomePlano = 'mss-ai-asp-prod-br'
 // VNET-MSSD-PRD fica no grupo RG-MSSD-PRD (confirmado no portal em 2026-10-15) — docs/AMBIENTE.md §5.
 param subnetId = '/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD'
-// A imagem que está rodando: o pipeline lê do Web App e passa em IMAGEM, pra uma nova execução nunca
-// voltar produção pra uma versão velha. O valor abaixo só vale na 1ª vez (Web App ainda não existe).
-param imagem = readEnvironmentVariable('IMAGEM', 'DOCKER|mssaicontainerregistry.azurecr.io/<imagem de produção>:latest')
+// A imagem vem SEMPRE do pipeline, em IMAGEM: a que está rodando em produção (nova execução nunca volta
+// pra versão velha) ou, na 1ª criação, a que está rodando na homologação (já testada, mesmo registro).
+// Sem valor padrão de propósito: faltou IMAGEM, a receita falha em vez de criar com imagem inexistente.
+param imagem = readEnvironmentVariable('IMAGEM')

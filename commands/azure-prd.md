@@ -65,8 +65,11 @@ Na limpeza do `main.bicep`:
   (vai em `siteConfig.linuxFxVersion`). O export cria parâmetros com nomes longos
   (`sites_mss_miti_ai_..._name`) — renomeie pros curtos.
 - **Imagem nunca fixa:** ela muda a cada push. O pipeline lê a que está rodando no Web App e passa em
-  `IMAGEM` (os `.bicepparam` usam `readEnvironmentVariable('IMAGEM', …)`); assim a simulação não acusa
-  diferença à toa e uma nova execução nunca volta produção pra uma versão velha.
+  `IMAGEM` (os `.bicepparam` usam `readEnvironmentVariable('IMAGEM')`, sem valor padrão); assim a
+  simulação não acusa diferença à toa e uma nova execução nunca volta produção pra uma versão velha.
+  **Na 1ª criação de produção** (o Web App de produção ainda não existe), o pipeline usa a imagem que
+  está rodando na **homologação** — já testada, mesmo registro: produção nasce espelho e sobe sem esperar
+  o pipeline de código de produção. Sem essa imagem, o pipeline falha em vez de criar.
 - **Tire TODAS as variáveis de ambiente do `main.bicep`** (`siteConfig.appSettings` e qualquer recurso
   `config 'appsettings'`): no Bicep, `appSettings` **substitui** a coleção inteira — uma 2ª execução
   apagaria a senha que o prestador colocou à mão. Quem leva as variáveis é o `infra/app_settings.py`.
