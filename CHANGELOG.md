@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.38.2 — 2026-10-15 (azure-prd: DNS e registro iguais nos dois ambientes)
+- **o que motivou:** recomendei não levar a `WEBSITE_DNS_SERVER` pra produção porque os documentos do Whats não a citavam; o portal mostrou que ela existe lá, com o mesmo IP (caso F-037). E o owner decidiu: senha do registro de imagens vai como `copiar`.
+- fix(**`templates/AMBIENTE.md` §5**): DNS de saída `WEBSITE_DNS_SERVER=10.170.210.2` nos dois ambientes + `WEBSITE_DNS_ALT_SERVER` obrigatória em produção; `DOCKER_REGISTRY_SERVER_*` iguais nos dois (registro compartilhado).
+- fix(**`app_settings.py`**): a proposta sugere `DOCKER_REGISTRY_SERVER_PASSWORD` como `copiar` (com `*****` produção não subiria até o prestador preencher).
+- docs: `commands/azure-prd.md` — dúvida se algo existe em produção, o owner confere no portal; caso F-037 no `EVALS.md`.
+
 ## 0.38.1 — 2026-10-15 (azure-prd: dados de produção mapeados no kit)
 - **o que motivou:** na 2ª execução no MSS-UTILS o comando perguntou plano, subnet e DNS de produção — dados que o Whats, já em produção, tinha medido.
 - docs(**`templates/AMBIENTE.md` §5**): plano `mss-ai-asp-prod-br`, `VNET-MSSD-PRD`/`SNET-WEB-AI-PRD` e `WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória em produção (fonte: Whats). O comando usa de lá e não pergunta. Id completo da subnet de produção (`VNET-MSSD-PRD` no grupo `RG-MSSD-PRD`, conferido no portal pelo owner) já preenchido no `prd.bicepparam`.

@@ -40,9 +40,14 @@ class Plano:
     pendentes: list = field(default_factory=list)   # senha que fica ***** em produção
 
 
+# Iguais nos dois ambientes (docs/AMBIENTE.md §5): o registro de imagens é compartilhado — com *****
+# produção não sobe até o prestador preencher (decisão do owner, 2026-10-15).
+_SEMPRE_COPIAR = {"DOCKER_REGISTRY_SERVER_PASSWORD"}
+
+
 def sugerir(nomes):
     """Proposta inicial do arquivo: senha pelo nome, o resto copia. O owner revisa antes do commit."""
-    return {n: ("senha" if _SENHA.search(n) else "copiar") for n in nomes}
+    return {n: ("senha" if _SENHA.search(n) and n not in _SEMPRE_COPIAR else "copiar") for n in nomes}
 
 
 def _valor_prd(marca):

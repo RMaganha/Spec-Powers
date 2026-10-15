@@ -82,6 +82,12 @@ Na limpeza do `main.bicep`:
 | `"senha"` | grava `*****` **só se ainda não existe** em produção; se já existe, não mexe |
 | `{"prd": "<valor>"}` | grava o valor de produção escrito ali (URL, servidor, ambiente — nunca senha). Serve também pra variável que **só existe em produção**: acrescente sempre `"WEBSITE_DNS_ALT_SERVER": {"prd": "168.63.129.16"}` (`docs/AMBIENTE.md` §5) |
 
+Iguais nos dois ambientes, sempre `"copiar"` (`docs/AMBIENTE.md` §5): `WEBSITE_DNS_SERVER` (`10.170.210.2`)
+e as `DOCKER_REGISTRY_SERVER_*` — inclusive a senha: o registro é compartilhado, e com `*****` produção
+não sobe até o prestador preencher. **Dúvida se uma variável existe ou vale em produção? Não conclua pelo
+documento de outro projeto** — peça ao owner pra conferir no portal (Web App de produção → Variáveis de
+ambiente) (caso F-037).
+
 O arquivo nasce do passo 3: a 1ª simulação, sem ele, **para e imprime a proposta pronta** com os nomes
 de todas as variáveis da homologação (senha marcada pelo nome). Você grava o arquivo a partir da
 proposta e **revisa com o owner, uma a uma**, quais mudam em produção. Variável que aparecer depois na

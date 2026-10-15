@@ -1200,6 +1200,8 @@ def test_azure_prd_wiring():
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
     assert "/mss-spec:azure-prd" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
     # dados de producao mapeados uma vez no kit (medidos no Whats) — o comando usa, nao pergunta
+    # F-037: WEBSITE_DNS_SERVER existe em producao (portal), embora os documentos do Whats nao a citassem
+    assert "`WEBSITE_DNS_SERVER=10.170.210.2` (o mesmo)" in ambiente
     for trecho in ("mss-ai-asp-prod-br", "VNET-MSSD-PRD", "SNET-WEB-AI-PRD", "WEBSITE_DNS_ALT_SERVER=168.63.129.16",
                    "resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD"):
         assert trecho in ambiente, f"AMBIENTE.md secao 5 sem {trecho!r}"
