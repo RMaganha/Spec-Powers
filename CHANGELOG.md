@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.37.0 — 2026-10-15 (homologação Azure → produção)
+- **o que motivou:** produção é montada à mão por um prestador a partir de documentação — erra ou não entende, e cada rodada de ajuste leva tempo. A homologação, que o owner monta e funciona, vira a fonte.
+- feat(**`/mss-spec:azure-prd`**): exporta a homologação como receita **Bicep** (`infra/main.bicep` + `infra/hml.bicepparam` + `infra/prd.bicepparam`, sem senha nem IP da homologação), simula com `what-if` contra `RG-MSSAI-DEV` ("nada muda") e monta o pipeline `templates/azure-prd/azure-pipelines-prd.yml`: Simular (`what-if` em `RG-MSSAI-PRD`) → botão do environment `producao` → Criar. Bicep em vez de Terraform: nativo do Azure, sem arquivo de estado.
+- feat(**cerca de publicação**): `git_publicacao.py` nega `az deployment … create|delete|cancel` e `az stack … create|set|delete`; `what-if`, `validate`, `show`, `list`, `az bicep build` e `az group export` passam.
+- docs: `templates/AMBIENTE.md` §5, `LEIA-ME.md`, `COMO-FUNCIONA.html` (26 atalhos), `hooks/README.md`, spec `docs/specs/azure-prd.md`.
+
 ## 0.36.0 — 2026-09-25 (memória na hora da ação · rotas não pedidas)
 - **o que motivou:** os casos abertos F-033 (resposta com rotas que ninguém pediu) e F-034 (memória que existe e não chega na hora da ação), a pedido do owner.
 - feat(**memória com gatilho de ação**, F-034 → fechado): `gatilho_comando:`/`gatilho_resposta:` (regex) no frontmatter, lidos do projeto e do kit (`hooks/_memoria_de_acao.py`); comando que casa é negado **uma vez por sessão** pelo `git_publicacao.py` com a memória no motivo; resposta que casa volta uma vez no `confere_citacoes.py`. As memórias do heredoc e da junction ganharam gatilho. Medido: 6 de 957 comandos reais (1 por sessão), 1 resposta (o "falta atualizar o plugin"). `MSS_MEMORIA_ACAO_OFF=1`.
