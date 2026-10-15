@@ -28,8 +28,12 @@ Azure, sem arquivo de estado pra guardar). Padrão de nomes e grupos de recursos
 
 Abra o pipeline de código que existe (`azure-pipelines*.yml`) e a documentação de deploy do projeto:
 nome do Web App de homologação, nome da imagem, plano, subnet, como a imagem é puxada do registro.
-Liste ao owner como **premissa com fonte** (`arquivo:linha`) e marque **sem fonte** o que só ele ou a
-infra sabem (plano e subnet de produção).
+Liste ao owner como **premissa com fonte** (`arquivo:linha`). **Plano, VNet/subnet e DNS de produção
+já estão mapeados** em `docs/AMBIENTE.md` §5 (plano `mss-ai-asp-prod-br`, `VNET-MSSD-PRD` /
+`SNET-WEB-AI-PRD`, `WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória) — use de lá com a fonte, **não
+pergunte**. O projeto é anterior e o `docs/AMBIENTE.md` dele não tem essas linhas? Leia do
+`${CLAUDE_PLUGIN_ROOT}/templates/AMBIENTE.md` — inclusive o **id completo da subnet de produção**
+(`VNET-MSSD-PRD` no grupo `RG-MSSD-PRD`), que já vem preenchido no modelo `prd.bicepparam`.
 
 **Pipeline de código de produção:** procure um pipeline com `trigger` na `main` que atualiza o Web App
 de produção (padrão do `docs/AMBIENTE.md` §5). **Não existe → é pendência**, diga em uma linha: "o push
@@ -76,7 +80,7 @@ Na limpeza do `main.bicep`:
 |---|---|
 | `"copiar"` | copia o valor da homologação |
 | `"senha"` | grava `*****` **só se ainda não existe** em produção; se já existe, não mexe |
-| `{"prd": "<valor>"}` | grava o valor de produção escrito ali (URL, servidor, ambiente — nunca senha) |
+| `{"prd": "<valor>"}` | grava o valor de produção escrito ali (URL, servidor, ambiente — nunca senha). Serve também pra variável que **só existe em produção**: acrescente sempre `"WEBSITE_DNS_ALT_SERVER": {"prd": "168.63.129.16"}` (`docs/AMBIENTE.md` §5) |
 
 O arquivo nasce do passo 3: a 1ª simulação, sem ele, **para e imprime a proposta pronta** com os nomes
 de todas as variáveis da homologação (senha marcada pelo nome). Você grava o arquivo a partir da

@@ -135,6 +135,18 @@ Pipeline padrão via Azure DevOps (ACR → Azure Web App), acionado por branch:
 | Branch | `dev` | `main` |
 | Resource Group | `RG-MSSAI-DEV` | `RG-MSSAI-PRD` |
 | Nome do recurso | `mss-miti-ai-<projeto>-dev-br` | `mss-miti-ai-<projeto>-prod` |
+| App Service Plan (compartilhado entre os apps) | `mss-ai-asp-dev-br` | `mss-ai-asp-prod-br` |
+| VNet / Subnet (integração do Web App) | `VNET-MSSD-DEVQA` / `SNET-WEB-AI-DEVQA` | `VNET-MSSD-PRD` / `SNET-WEB-AI-PRD` |
+| DNS de saída | herdado da VNet (cada projeto confere o seu) | **`WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória** |
+
+Plano, VNet e DNS de produção: medidos no Whats (`IA Bot Agent - Whats`, `docs/chatwoot-azure-prod.md` e
+spec `deploy-azure-prd.md`, produção no ar em 2026-09-24). **DNS:** integrado à `VNET-MSSD-PRD`, o Web App
+herda o DNS dela, que não resolve nome **público** (ex.: o Postgres gerenciado de produção) — sem a
+`WEBSITE_DNS_ALT_SERVER` (o resolvedor fixo da própria Azure) a conexão nem sai; a homologação funciona
+sem ela. No `/mss-spec:azure-prd` ela entra no `infra/app-settings.json` como `{"prd": "168.63.129.16"}`.
+**Id completo da subnet de produção** (a `VNET-MSSD-PRD` fica no grupo **`RG-MSSD-PRD`**, assinatura
+`e87b4af3-ce34-4c44-8c64-0151ca959654` — conferido no portal pelo owner em 2026-10-15):
+`/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD`
 
 Fixos em qualquer projeto:
 ```yaml

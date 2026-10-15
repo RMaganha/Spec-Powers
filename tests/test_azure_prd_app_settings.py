@@ -64,6 +64,22 @@ def test_variavel_so_no_arquivo_e_avisada_e_nao_gravada():
     assert p.sobrando == ["VELHA"] and "VELHA" not in p.gravar
 
 
+def test_variavel_que_so_existe_em_producao_e_gravada():
+    """Caso do Whats: `WEBSITE_DNS_ALT_SERVER=168.63.129.16` é obrigatória em produção e a homologação
+    funciona sem ela — o DNS de cada VNet é diferente."""
+    cfg = dict(CONFIG, WEBSITE_DNS_ALT_SERVER={"prd": "168.63.129.16"})
+    p = _mod().planejar(HML, {}, cfg)
+    assert p.gravar["WEBSITE_DNS_ALT_SERVER"] == "168.63.129.16"
+    assert p.sobrando == [] and p.invalidas == []
+    assert ("WEBSITE_DNS_ALT_SERVER", "só em produção: valor do app-settings.json") in p.acoes
+
+
+def test_so_em_producao_tem_de_ter_valor_de_producao():
+    for marca in ("copiar", "senha"):
+        p = _mod().planejar(HML, {}, dict(CONFIG, SO_PRD=marca))
+        assert p.sobrando == ["SO_PRD"] and "SO_PRD" not in p.gravar, marca
+
+
 def test_variavel_so_em_producao_nao_e_apagada():
     p = _mod().planejar(HML, {"SO_PRD": "x"}, CONFIG)
     assert "SO_PRD" not in p.gravar   # gravação é por mescla: o que não está no plano fica como está

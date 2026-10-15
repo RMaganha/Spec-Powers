@@ -5,7 +5,8 @@
 using './main.bicep'
 
 param nomeWebApp = 'mss-miti-ai-<projeto>-dev-br'
-param nomePlano = '<plano do App Service de homologação>'
-param subnetId = '<id da subnet de homologação>'
+param nomePlano = 'mss-ai-asp-dev-br'
+// O id completo vem do export (…/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA).
+param subnetId = '<id da subnet de homologação, copiado do export>'
 // A imagem muda a cada push na dev: o pipeline lê a que está rodando e passa em IMAGEM.
 param imagem = readEnvironmentVariable('IMAGEM', 'DOCKER|mssaicontainerregistry.azurecr.io/<imagem de homologação>:latest')
