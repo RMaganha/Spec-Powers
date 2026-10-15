@@ -4,6 +4,9 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-15 — saiu do rodízio do MAPA (v0.34.1, ao abrir `feature/azure-prd`)
+`main` — **v0.34.1 publicada** (`215f75c`, em dia com o `origin/main`). Nesta leva (caso F-030 a F-034): a partida **não volta a crescer** — o `teto_ao_gravar.py` roda o `rodizio_partida.py enxugar` a cada gravação de MAPA/INDEX acima do teto, movendo e nunca apagando, e o `orcamento_partida.py` avisa na abertura; a trava do `nova-feature` ignora `## Backlog`; **um projeto não grava em outro** pelo shell (3ª cerca do `git_publicacao.py`, por identidade de repositório, com o comando pronto pra colar na janela de lá); o recall não injeta diário nem linha `pausada:`/`obsoleta:` e lê o `FORA-DE-ESCOPO.md`; no molde, "Comando pra eu rodar = passo a passo" e "Responda só o que eu pedi". Suíte 676.
+
 ## 2026-09-25 — saiu do rodízio do MAPA (v0.34.1, antes da 0.35/0.36)
 
 **Onde estamos:** `main` — **v0.34.0 integrada localmente** (merge `76943b1` de `feature/um-item-por-chat`; **7 commits à frente do `origin/main` — `git push` pendente, ato do owner**). O `um_item_por_janela.py` conta **por chat**: chat novo sempre abre (outras abertas só geram aviso + worktree); o mesmo chat não abre 2ª feature enquanto a dele, achada só pelo nome, não está `fechada`/`pausada`. Três rodadas de revisão de código; suíte **676 verde** na `main`. Caso F-032 fechado; memória `feedback_nao_adivinhar_dono_do_dado`. Nenhuma feature aberta no INDEX.

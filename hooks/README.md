@@ -103,7 +103,7 @@ Evento `PreToolUse`, matcher `Bash|PowerShell`, lê `tool_input.command`:
 | `git push` pra branch **protegida** — `main`, `master`, `dev`, `develop`, `production`, `homolog*`, `hml*`, `prod*`, `release/*` — por refspec (`origin dev`, `HEAD:dev`, `x:main`, `--delete main`) | **nega** |
 | `git push` sem refspec estando numa protegida, ou com o `@{push}` apontando pra uma (feature que rastreia `origin/dev`) | **nega** |
 | `git push` de destino indeterminável: `--all`, `--mirror`, `--tags`, `:`, HEAD destacado, git que não responde | **nega** |
-| deploy e integração remota: `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update\|create\|revision` | **nega** |
+| deploy e integração remota: `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`, `az containerapp update\|create\|revision`, `az deployment … create\|delete\|cancel`, `az stack … create\|set\|delete` (receita Bicep do `/mss-spec:azure-prd` — `what-if`, `validate`, `show` passam) | **nega** |
 | `git merge`, `git rebase` (menos `--abort`) e `git push` de feature/fix | **pede aprovação** (`"ask"`) |
 | o resto: `merge-base`, `merge-tree`, `pull`, status, fetch, commit, checkout/branch, stash | passa calado |
 

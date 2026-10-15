@@ -5,6 +5,9 @@
 
 # Índice de tarefas — mss-spec
 
+## Em andamento
+- [azure-prd](../specs/azure-prd.md) — `/mss-spec:azure-prd` leva a receita Bicep da homologação pra produção pelo pipeline com botão de aprovação — aberta
+
 ## A fazer (ordem)
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

@@ -1,0 +1,60 @@
+# Pipeline de INFRA de produção — gerado pelo /mss-spec:azure-prd.
+# Cria (ou ajusta) os recursos de produção a partir da receita infra/main.bicep + infra/prd.bicepparam —
+# a MESMA receita que, simulada contra a homologação, respondeu "nada muda".
+#
+# Roda à mão (Pipelines → Run pipeline): não dispara por push.
+# O botão de aprovação mora no environment 'producao' (Pipelines → Environments → producao →
+# Approvals and checks). Sem aprovador cadastrado lá, o estágio Criar roda SEM PARAR — cadastre antes
+# da 1ª execução.
+# Quem aprova: abra o log do estágio Simular, leia a lista do what-if e só então clique em Approve.
+
+trigger: none
+
+variables:
+  azureServiceConnection: 'Mitsui Sumitomo Seguros S.A. - Azure Subscriptions (e87b4af3-ce34-4c44-8c64-0151ca959654)'
+  resourceGroup: 'RG-MSSAI-PRD'
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Simular
+  displayName: 'Simular (what-if) — não muda nada no Azure'
+  jobs:
+  - job: WhatIf
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: AzureCLI@2
+      displayName: 'what-if contra $(resourceGroup)'
+      inputs:
+        azureSubscription: $(azureServiceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az deployment group what-if \
+            --resource-group $(resourceGroup) \
+            --parameters infra/prd.bicepparam
+
+- stage: Criar
+  displayName: 'Criar em produção (espera a aprovação)'
+  dependsOn: Simular
+  jobs:
+  - deployment: AplicarReceita
+    environment: producao
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: AzureCLI@2
+            displayName: 'Aplicar a receita em $(resourceGroup)'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az deployment group create \
+                  --resource-group $(resourceGroup) \
+                  --parameters infra/prd.bicepparam \
+                  --name azure-prd-$(Build.BuildId)

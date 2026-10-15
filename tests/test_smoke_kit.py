@@ -1176,3 +1176,37 @@ def test_como_funciona_lista_todos_os_comandos():
     ordem_cards = re.findall(r'<div class="node" id="c-([a-z-]+)"', html)
     assert [c for c, _ in nav] == ordem_cards, "nav lateral fora da ordem dos cards (ou card sem link)"
     assert [int(n) for _, n in nav] == list(range(1, len(comandos) + 1)), "numeração C1..CN da nav lateral"
+
+
+def test_azure_prd_wiring():
+    """/mss-spec:azure-prd: receita Bicep da homologacao levada pra producao pelo pipeline com aprovacao.
+    Spec: docs/specs/azure-prd.md."""
+    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    for trecho in ("infra/main.bicep", "infra/hml.bicepparam", "infra/prd.bicepparam",
+                   "what-if", "RG-MSSAI-DEV", "RG-MSSAI-PRD", "Approvals and checks",
+                   "templates/azure-prd/azure-pipelines-prd.yml", "templates/azure-prd/prd.bicepparam"):
+        assert trecho in cmd, f"commands/azure-prd.md sem {trecho!r}"
+    # a simulacao contra a homologacao vem ANTES do pipeline de producao
+    assert cmd.index("RG-MSSAI-DEV") < cmd.index("azure-pipelines-prd.yml")
+    # o assistente nunca aplica a receita: quem cria e o pipeline com aprovacao do owner
+    assert "az deployment group create" in cmd and "owner" in cmd.lower()
+    ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
+    assert "/mss-spec:azure-prd" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
+
+
+def test_azure_prd_pipeline_e_yaml_com_aprovacao():
+    yaml = __import__("pytest").importorskip("yaml")
+    texto = (REPO / "templates" / "azure-prd" / "azure-pipelines-prd.yml").read_text(encoding="utf-8")
+    doc = yaml.safe_load(texto)
+    estagios = {e["stage"]: e for e in doc["stages"]}
+    assert list(estagios) == ["Simular", "Criar"], f"estagios: {list(estagios)}"
+    simular = json.dumps(estagios["Simular"])
+    assert "what-if" in simular and "create" not in simular.replace("what-if", "")
+    criar = estagios["Criar"]
+    assert criar["dependsOn"] == "Simular"
+    job = criar["jobs"][0]
+    assert job.get("environment") == "producao", "o botao de aprovacao mora no environment 'producao'"
+    assert "az deployment group create" in json.dumps(criar)
+    assert "RG-MSSAI-PRD" in texto and "trigger: none" in texto, "pipeline de infra roda a mao, nao por push"
+    params = (REPO / "templates" / "azure-prd" / "prd.bicepparam").read_text(encoding="utf-8")
+    assert "using './main.bicep'" in params and "-prod" in params

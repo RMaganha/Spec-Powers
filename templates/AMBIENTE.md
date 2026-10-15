@@ -149,6 +149,10 @@ Estágios: **BuildAndPush** (`az acr build`, tag = `$(Build.BuildId)` + `latest`
 `az webapp restart`). Duplique o pipeline (um YAML por branch/ambiente) trocando só `imageName`,
 `webAppName` e `resourceGroup`.
 
+**Criar o ambiente de produção** (Web App, plano, ligação com a rede) a partir da homologação que já
+funciona: `/mss-spec:azure-prd` — receita Bicep exportada da homologação, simulada com `what-if` contra
+`RG-MSSAI-DEV` e aplicada em `RG-MSSAI-PRD` por um pipeline que para no botão de aprovação.
+
 ## 6. Outras convenções
 
 - **Timezone**: `America/Sao_Paulo` em toda variável `TZ`/`GENERIC_TIMEZONE` de container.

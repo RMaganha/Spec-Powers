@@ -152,6 +152,7 @@ li{margin-bottom:6px}
       <li><a href="#c-mapa"><span class="nav-num">C23</span>mapa</a></li>
       <li><a href="#c-mapa-neural"><span class="nav-num">C24</span>mapa-neural</a></li>
       <li><a href="#c-anatomia"><span class="nav-num">C25</span>anatomia</a></li>
+      <li><a href="#c-azure-prd"><span class="nav-num">C26</span>azure-prd</a></li>
       <div class="nav-group">Como o kit pensa</div>
       <li><a href="#spec"><span class="nav-num">05</span>Spec-Driven na prática</a></li>
       <li><a href="#memoria"><span class="nav-num">06</span>Memória &amp; decisões</a></li>
@@ -172,7 +173,7 @@ li{margin-bottom:6px}
   <h1>Um assistente que já sabe <em>o jeito da casa</em>.</h1>
   <p class="hero-sub">O <code>mss-spec</code> é um plugin criado pelo <strong>Ronaldo Maganha</strong> (MSIG) que trabalha <strong>em conjunto com o <a class="gl" href="#g-claude-code">Claude&nbsp;Code</a></strong> — o assistente de programação da Anthropic. Ele ensina o assistente a começar cada projeto já do jeito certo da empresa: com organização, checagens de segurança e o padrão de infraestrutura da MSIG prontos, sem ninguém precisar lembrar de tudo à mão.</p>
   <div class="hero-meta">
-    <div>Comandos<span>25 atalhos</span></div>
+    <div>Comandos<span>26 atalhos</span></div>
     <div>Autor<span>R. Maganha (MSIG)</span></div>
     <div>Trabalha com<span>Claude Code</span></div>
     <div>Instala<span>uma vez só</span></div>
@@ -312,7 +313,7 @@ li{margin-bottom:6px}
   <div class="table-wrap"><table>
     <thead><tr><th>Peça</th><th>O que é</th></tr></thead>
     <tbody>
-      <tr><td><strong>Comandos</strong></td><td>Os 25 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
+      <tr><td><strong>Comandos</strong></td><td>Os 26 atalhos <code>/mss-spec:…</code> que você digita.</td></tr>
       <tr><td><strong>Moldes</strong> (templates)</td><td>Arquivos-modelo prontos (padrão MSIG) que os comandos copiam pro seu projeto — em vez de você copiar à mão.</td></tr>
       <tr><td><strong>Skill</strong></td><td>Uma rede de segurança que se ativa sozinha (catálogo de "isso já foi feito em outro projeto?").</td></tr>
     </tbody>
@@ -326,7 +327,7 @@ li{margin-bottom:6px}
 
 <section class="section" id="comandos">
   <div class="section-num">04 — Os comandos</div>
-  <h2>Os 25 <em>atalhos</em>, na ordem de uso</h2>
+  <h2>Os 26 <em>atalhos</em>, na ordem de uso</h2>
   <p class="lead">Todos começam com <code>/mss-spec:</code> e <strong>só você os dispara</strong> (o assistente não sai executando sozinho). Estão agrupados na <strong>ordem em que costumam aparecer</strong> num projeto — do primeiro comando à publicação. Cada cartão traz um <strong>exemplo</strong> no nosso sistema de clientes.</p>
 
   <h3>Começar</h3>
@@ -660,6 +661,18 @@ li{margin-bottom:6px}
       <pre><code>/mss-spec:anatomia
   → docs/anatomia.html   (fora do git)</code></pre>
       <div class="label-row"><span class="pill graph">números medidos</span><span class="pill ok">visual é pro humano</span></div>
+    </div>
+  </div>
+  <div class="node" id="c-azure-prd">
+    <div class="node-head"><span class="node-idx">C26</span><span class="node-name">azure-prd</span><span class="node-type">homologação → produção</span></div>
+    <div class="node-body">
+      <p class="plain">Leva a homologação que já funciona no Azure para produção, sem ninguém montar à mão a partir de documentação.</p>
+      <p>Exporta a homologação pelo portal como uma receita Bicep, limpa senhas e nomes, simula a receita contra a própria homologação (tem de responder "nada muda") e monta um pipeline que mostra a lista do que vai criar em produção e para no botão de aprovação. Rede e senhas ficam fora da receita.</p>
+      <div class="subhead">Exemplo</div>
+      <pre><code>/mss-spec:azure-prd
+  → infra/main.bicep + infra/hml.bicepparam + infra/prd.bicepparam
+  → azure-pipelines-infra-prd.yml   (Simular → botão → Criar)</code></pre>
+      <div class="label-row"><span class="pill ok">simula antes</span><span class="pill ok">aprovação do owner</span><span class="pill graph">Bicep, nativo do Azure</span></div>
     </div>
   </div>
 </section>
