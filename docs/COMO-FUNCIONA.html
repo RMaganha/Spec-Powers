@@ -667,11 +667,12 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C26</span><span class="node-name">azure-prd</span><span class="node-type">homologação → produção</span></div>
     <div class="node-body">
       <p class="plain">Leva a homologação que já funciona no Azure para produção, sem ninguém montar à mão a partir de documentação.</p>
-      <p>Exporta a homologação pelo portal como uma receita Bicep, limpa senhas e nomes, simula a receita contra a própria homologação (tem de responder "nada muda") e monta um pipeline que mostra a lista do que vai criar em produção e para no botão de aprovação. Rede e senhas ficam fora da receita.</p>
+      <p>Exporta a homologação pelo portal como uma receita Bicep e leva todas as variáveis de ambiente — senha vai como <code>*****</code>, nunca sobrescreve a verdadeira, e variável esquecida trava o pipeline. No pipeline você escolhe <strong>hml</strong> (só simula contra a homologação: tem de dar "nada muda") ou <strong>prd</strong> (simula, para no botão de aprovação e cria). Nada roda na sua máquina contra o Azure; a rede fica fora da receita.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:azure-prd
   → infra/main.bicep + infra/hml.bicepparam + infra/prd.bicepparam
-  → azure-pipelines-infra-prd.yml   (Simular → botão → Criar)</code></pre>
+  → infra/app-settings.json + infra/app_settings.py   (variáveis)
+  → azure-pipelines-infra-prd.yml   (hml: Simular · prd: Simular → botão → Criar)</code></pre>
       <div class="label-row"><span class="pill ok">simula antes</span><span class="pill ok">aprovação do owner</span><span class="pill graph">Bicep, nativo do Azure</span></div>
     </div>
   </div>

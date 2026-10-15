@@ -1,5 +1,5 @@
 ---
-description: Leva a homologação Azure que já funciona pra produção — receita Bicep exportada da homologação, simulada com what-if e aplicada pelo pipeline com botão de aprovação
+description: Leva a homologação Azure que já funciona pra produção — receita Bicep exportada da homologação + todas as variáveis de ambiente (senha vira *****), simuladas e aplicadas pelo pipeline com botão de aprovação
 argument-hint: ""
 disable-model-invocation: true
 ---
@@ -10,81 +10,122 @@ Azure, sem arquivo de estado pra guardar). Padrão de nomes e grupos de recursos
 (homologação `RG-MSSAI-DEV` · produção `RG-MSSAI-PRD`). Spec do kit: `docs/specs/azure-prd.md`.
 
 **Limites (nunca violar):**
+- **Nada roda na máquina do owner contra o Azure** — nem Azure CLI, nem login, nem simulação local. Tudo
+  que fala com o Azure roda **no pipeline**, com a conexão dele; a parte do owner é clicar em
+  **Run pipeline**, aprovar e colar o log (caso F-036).
 - **Você nunca aplica a receita.** `az deployment group create` (e qualquer `az deployment … create`) é
   negado pelo hook `git_publicacao.py`: quem cria em produção é o **pipeline**, depois da aprovação do
-  owner. Você pode rodar `what-if`, `validate`, `show` e `az bicep build` — só leem.
+  owner.
+- **Variáveis de ambiente vão TODAS** — senha/chave vai como `*****` — mas **fora do Bicep** (passo 2).
 - **Fora da receita:** liberação de rede (vnet/IP — segue com a infra; a receita só **aponta** pra subnet
-  já liberada) e **valores de senha** (vão nas App Settings do Web App, à parte — nunca no `.bicep` nem
-  no `.bicepparam`, que são versionados).
+  já liberada) e recurso **compartilhado** com outros projetos (plano usado por vários apps, vnet,
+  registro de imagens `mssaicontainerregistry`): já existe, só é referenciado.
+- Todo passo que o owner executa sai **numerado, com título em negrito** dizendo o que ele faz e onde
+  (portal, Azure DevOps, chat) — sem jargão.
 - Mostre o que vai gravar e **confirme antes de gravar** cada arquivo.
 
-## 1. Exportar a homologação (o owner faz no portal)
+## 0. Ler o que o projeto já tem (você, sem perguntar o que está no repo)
 
-Peça ao owner, em passo numerado:
-1. Portal do Azure → **Grupos de recursos** → `RG-MSSAI-DEV`.
-2. Marque **só** os recursos deste projeto (Web App `mss-miti-ai-<projeto>-dev-br`, o plano do App
-   Service dele e o que mais for exclusivo dele) → **Exportar modelo** → aba **Bicep** → **Baixar**.
-3. Salvar o arquivo baixado em `infra/export-hml.bicep` (fica **fora** do git: acrescente
-   `infra/export-*` no `.gitignore` — o export pode trazer valores da homologação).
+Abra o pipeline de código que existe (`azure-pipelines*.yml`) e a documentação de deploy do projeto:
+nome do Web App de homologação, nome da imagem, plano, subnet, como a imagem é puxada do registro.
+Liste ao owner como **premissa com fonte** (`arquivo:linha`) e marque **sem fonte** o que só ele ou a
+infra sabem (plano e subnet de produção).
 
-Recurso **compartilhado** com outros projetos (registro de imagens `mssaicontainerregistry`, vnet,
-plano usado por vários apps) **não** entra na receita: ele já existe e é só referenciado.
+**Pipeline de código de produção:** procure um pipeline com `trigger` na `main` que atualiza o Web App
+de produção (padrão do `docs/AMBIENTE.md` §5). **Não existe → é pendência**, diga em uma linha: "o push
+na `main` ainda não publica em produção; criar esse pipeline (duplicar o de homologação trocando
+`imageName`, `webAppName` e `resourceGroup`) é tarefa à parte". Não suponha que existe.
 
-## 2. Limpar a receita
+## 1. Exportar a homologação (o owner, no portal)
 
-A partir do export, grave `infra/main.bicep` (receita única, os dois ambientes) e os arquivos de nomes
-por ambiente, copiando os modelos:
+Passos pro owner:
+1. **Abrir o grupo de recursos da homologação:** Portal do Azure → **Grupos de recursos** → `RG-MSSAI-DEV`.
+2. **Marcar só o Web App deste projeto** (`mss-miti-ai-<projeto>-dev-br`) — não marcar plano
+   compartilhado, vnet nem o registro de imagens.
+3. **Baixar a receita:** **Exportar modelo** → aba **Bicep** → **Baixar**.
+4. **Salvar** em `infra/export-hml.bicep` (se vier `.zip`, ele te passa o caminho e você extrai).
+
+Antes de ele salvar, acrescente `infra/export-*` ao `.gitignore` (o export traz valores da
+homologação e nunca entra no git).
+
+## 2. Montar os arquivos
+
+A partir do export, grave `infra/main.bicep` (receita única, os dois ambientes) e copie os modelos:
 - `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/hml.bicepparam` → `infra/hml.bicepparam` — nomes que **já existem** na homologação
 - `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/prd.bicepparam` → `infra/prd.bicepparam` (modelo `templates/azure-prd/prd.bicepparam`) — nomes de produção
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/app_settings.py` → `infra/app_settings.py` (modelo `templates/azure-prd/app_settings.py`) — as variáveis de ambiente
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/azure-pipelines-prd.yml` → `azure-pipelines-infra-prd.yml` na raiz (modelo `templates/azure-prd/azure-pipelines-prd.yml`), trocando `<projeto>` nos nomes dos Web Apps
 
 Na limpeza do `main.bicep`:
-- Tudo que **muda entre ambientes** vira `param`: no mínimo `nomeWebApp`, `nomePlano`, `subnetId` (os
-  nomes dos modelos). O export cria parâmetros com nomes longos (`sites_mss_miti_ai_..._name`) —
-  renomeie pros curtos.
-- **Remova** valores de senha, chaves e connection strings que vieram no export; mantenha o **nome** da
-  App Setting se ajudar, com o valor preenchido à parte.
-- **Remova** IP fixo, id de recurso e nome da homologação escritos direto na receita — viram `param` ou
-  `resourceId(...)`.
-- **Remova** propriedades só de leitura que o export copia (estado, datas, `hostNames` gerados) — se o
-  `az bicep build -f infra/main.bicep` reclamar, é por aí.
-- Confira como a homologação **puxa a imagem** do registro: se for por identidade gerenciada, a
-  permissão no `mssaicontainerregistry` pro Web App de produção é ato do prestador (anote no passo 4).
+- Tudo que **muda entre ambientes** vira `param`: `nomeWebApp`, `nomePlano`, `subnetId` e **`imagem`**
+  (vai em `siteConfig.linuxFxVersion`). O export cria parâmetros com nomes longos
+  (`sites_mss_miti_ai_..._name`) — renomeie pros curtos.
+- **Imagem nunca fixa:** ela muda a cada push. O pipeline lê a que está rodando no Web App e passa em
+  `IMAGEM` (os `.bicepparam` usam `readEnvironmentVariable('IMAGEM', …)`); assim a simulação não acusa
+  diferença à toa e uma nova execução nunca volta produção pra uma versão velha.
+- **Tire TODAS as variáveis de ambiente do `main.bicep`** (`siteConfig.appSettings` e qualquer recurso
+  `config 'appsettings'`): no Bicep, `appSettings` **substitui** a coleção inteira — uma 2ª execução
+  apagaria a senha que o prestador colocou à mão. Quem leva as variáveis é o `infra/app_settings.py`.
+- **Remova** IP fixo, id de recurso e nome da homologação escritos direto na receita (viram `param` ou
+  `resourceId(...)`) e propriedades só de leitura que o export copia (estado, datas, `hostNames` gerados).
 
-Valide sem tocar no Azure:
-```bash
-az bicep build -f infra/main.bicep
-```
+**As variáveis de ambiente — `infra/app-settings.json`** (versionado, **sem valor nenhum**): lista
+**todas** as variáveis da homologação, cada uma com uma marca:
+
+| Marca | O que o pipeline faz em produção |
+|---|---|
+| `"copiar"` | copia o valor da homologação |
+| `"senha"` | grava `*****` **só se ainda não existe** em produção; se já existe, não mexe |
+| `{"prd": "<valor>"}` | grava o valor de produção escrito ali (URL, servidor, ambiente — nunca senha) |
+
+O arquivo nasce do passo 3: a 1ª simulação, sem ele, **para e imprime a proposta pronta** com os nomes
+de todas as variáveis da homologação (senha marcada pelo nome). Você grava o arquivo a partir da
+proposta e **revisa com o owner, uma a uma**, quais mudam em produção. Variável que aparecer depois na
+homologação e não estiver no arquivo **trava** o pipeline com o nome dela — nenhuma fica pra trás.
 
 ## 3. Simular contra a homologação (prova que a receita é igual ao que funciona)
 
-O owner roda (precisa do `az login` dele), ou você roda e cola a saída — `what-if` não muda nada:
-```bash
-az deployment group what-if --resource-group RG-MSSAI-DEV --parameters infra/hml.bicepparam
-```
-**O critério é "nada muda":** recursos em `NoChange` (ou `Ignore`). Cada `Modify`/`Create`/`Delete` é
-algo que a receita descreve diferente da homologação → volte ao passo 2 e ajuste. Propriedade que o
-Azure preenche sozinho pode aparecer como mudança mesmo sem diferença real: mostre cada uma ao owner e
-deixe **ele** decidir se é ruído. Só avance com o owner dizendo que o resultado está limpo.
+Commit na branch da feature e push da branch (o hook pede a aprovação do owner). Passos pro owner:
+1. **Criar o pipeline no Azure DevOps:** **Pipelines** → **New pipeline** → **Azure Repos Git** → este
+   repositório → **Existing Azure Pipelines YAML file** → branch da feature →
+   `/azure-pipelines-infra-prd.yml` → **Save** (não **Run** ainda).
+2. **Rodar a simulação:** abrir o pipeline → **Run pipeline** → branch da feature → ambiente **hml** → **Run**.
+3. **Colar aqui** o log do estágio **Simular**.
 
-## 4. Pipeline de produção com botão de aprovação
+Leia o log com o owner:
+- **1ª vez:** falha nas variáveis com a proposta do `infra/app-settings.json` → grave o arquivo (passo 2),
+  revise com o owner, commit, e ele roda **hml** de novo.
+- **Receita:** o critério é **"nada muda"** — recursos em `NoChange` (ou `Ignore`). Cada
+  `Modify`/`Create`/`Delete` é algo que a receita descreve diferente da homologação → ajuste o
+  `main.bicep`. Propriedade que o Azure preenche sozinho pode aparecer como mudança sem diferença real:
+  mostre cada uma e deixe **o owner** decidir se é ruído.
+- **Erro de permissão** (`AuthorizationFailed`): a conexão do pipeline não pode simular no grupo de
+  recursos — entra no pedido ao prestador do passo 4.
 
-1. Copie `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/azure-pipelines-prd.yml` (modelo
-   `templates/azure-prd/azure-pipelines-prd.yml`) → `azure-pipelines-infra-prd.yml` na raiz. Dois estágios:
-   **Simular** (`what-if` contra `RG-MSSAI-PRD`, não muda nada) → **Criar** (`az deployment group create`
-   em `RG-MSSAI-PRD`, **parado no botão** do environment `producao`). Roda à mão, não por push.
-2. Entregue ao owner, em passos numerados, o que é dele no Azure DevOps:
-   - **Pipelines → Environments → New environment** `producao` → **Approvals and checks** →
-     **Approvals** → cadastrar quem aprova. **Antes da 1ª execução** — sem aprovador, o estágio Criar
-     roda sem parar.
-   - **Pipelines → New pipeline** apontando pro `azure-pipelines-infra-prd.yml`.
-3. Entregue ao owner o pedido pro **prestador** (uma vez só): a conexão do pipeline
-   (`azureServiceConnection` de `docs/AMBIENTE.md` §5) precisa poder **criar** recursos em
-   `RG-MSSAI-PRD` (hoje ela só troca a imagem e reinicia o Web App), mais o que o passo 2 anotou
-   (permissão de puxar imagem, subnet de produção liberada).
-4. **Como aprovar:** abrir o log do estágio **Simular**, ler a lista do `what-if` (só `Create` na 1ª vez)
-   e só então **Approve**. Depois que o Web App existir, o pipeline de código que já existe (branch
-   `main`) segue trocando a imagem como hoje.
+Só avance com o owner dizendo que o resultado está limpo.
+
+## 4. Produção (o owner, com o botão de aprovação)
+
+Passos pro owner, **antes da 1ª execução em prd**:
+1. **Criar o ambiente com o botão:** Azure DevOps → **Pipelines** → **Environments** → **New environment**
+   → nome `producao` → **Resource: None** → **Create**.
+2. **Cadastrar quem aprova:** dentro de `producao`, menu **⋮** → **Approvals and checks** → **+** →
+   **Approvals** → **Next** → em **Approvers**, nome ou e-mail de cada pessoa (usuária da organização no
+   DevOps) → **Create**. Se quem dispara também aprova, marque em **Advanced** a opção que permite
+   aprovar a própria execução. Sem aprovador, o estágio Criar roda **sem parar**.
+3. **Pedir ao prestador (uma vez só):** a conexão do pipeline (`azureServiceConnection` de
+   `docs/AMBIENTE.md` §5) precisa poder **criar** recursos em `RG-MSSAI-PRD` (hoje ela só troca a
+   imagem e reinicia o Web App), mais a subnet de produção liberada e o que o passo 0 anotou.
+
+Depois:
+4. **Rodar em produção:** **Run pipeline** → ambiente **prd** → **Run**.
+5. **Conferir antes de aprovar:** no log do estágio **Simular**, a lista do `what-if` (só `Create` na
+   1ª vez) e o plano das variáveis → **Review** → **Approve**.
+6. **Preencher as senhas:** o fim do log lista as variáveis que estão `*****` em produção — é a lista
+   exata pro prestador preencher no Web App (Configuração → Variáveis de ambiente). Numa nova execução,
+   essas senhas **não** são sobrescritas.
 
 Commit dos arquivos (`infra/main.bicep`, `infra/hml.bicepparam`, `infra/prd.bicepparam`,
-`azure-pipelines-infra-prd.yml`, `.gitignore`) na branch da feature, stage nominal. **Push em `main` é do
-owner** (o hook nega) — rode `/mss-spec:release` e peça.
+`infra/app_settings.py`, `infra/app-settings.json`, `azure-pipelines-infra-prd.yml`, `.gitignore`) na
+branch da feature, stage nominal. **Push em `main` é do owner** (o hook nega) — rode `/mss-spec:release`
+e entregue o passo a passo.
