@@ -51,3 +51,7 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
   perguntar; `{"prd": …}` passa a criar variável que só existe em produção (motivo: o comando perguntou
   ao owner o que o Whats, já em produção, tinha medido — e a `WEBSITE_DNS_ALT_SERVER` obrigatória lá não
   existe na homologação, então o script a ignoraria).
+- 2026-10-15 — `WEBSITE_DNS_SERVER` e `DOCKER_REGISTRY_SERVER_*` registrados como iguais nos dois
+  ambientes; a proposta sugere a senha do registro como `copiar` (motivo: o portal mostrou a
+  `WEBSITE_DNS_SERVER` em produção, que eu tinha dado como ausente pelo documento — F-037; e o owner
+  decidiu que a senha do registro compartilhado vai copiada).

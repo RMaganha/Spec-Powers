@@ -85,6 +85,15 @@ def test_variavel_so_em_producao_nao_e_apagada():
     assert "SO_PRD" not in p.gravar   # gravação é por mescla: o que não está no plano fica como está
 
 
+def test_sugestao_copia_o_que_e_igual_nos_dois_ambientes():
+    """Registro de imagens compartilhado (mssaicontainerregistry): a senha é a mesma em homologação e
+    produção — `*****` deixaria produção sem subir até o prestador preencher (decisão do owner,
+    2026-10-15). WEBSITE_DNS_SERVER=10.170.210.2 também é igual nos dois (conferido no portal)."""
+    s = _mod().sugerir(["DOCKER_REGISTRY_SERVER_PASSWORD", "DOCKER_REGISTRY_SERVER_USERNAME",
+                        "DOCKER_REGISTRY_SERVER_URL", "WEBSITE_DNS_SERVER"])
+    assert set(s.values()) == {"copiar"}, s
+
+
 def test_sugestao_marca_senha_pelo_nome():
     s = _mod().sugerir(["TZ", "DB_PASSWORD", "API_KEY", "AUTH_TOKEN", "SQL_CONNECTION_STRING",
                         "CIPHERTEXT_SSC", "CLIENT_SECRET", "SENHA_BANCO", "LOG_ATIVO", "SQL_PWD"])
@@ -133,7 +142,7 @@ def test_conferir_sem_arquivo_propoe_a_lista_e_falha(tmp_path):
     assert code == 1
     proposta = json.loads(log[log.index("{"):log.rindex("}") + 1])
     assert proposta == {"API_URL": "copiar", "DB_PASSWORD": "senha",
-                        "DOCKER_REGISTRY_SERVER_PASSWORD": "senha", "TZ": "copiar"}
+                        "DOCKER_REGISTRY_SERVER_PASSWORD": "copiar", "TZ": "copiar"}
 
 
 def test_conferir_nunca_mostra_valor_no_log(tmp_path):
