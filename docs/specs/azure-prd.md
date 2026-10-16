@@ -68,3 +68,7 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
 - 2026-10-16 — condução em 6 etapas, `.dockerignore`, `grupoPlano`, teste da imagem no PowerShell
   (motivo: o owner se perdeu no MSS-UTILS — pedidos aos pedaços e sem mapa, caso F-038; o MSS-UTILS achou
   a receita indo pra dentro da imagem pelo `COPY . .`; o grupo do plano de produção foi conferido no portal).
+- 2026-10-16 — etapa 1 com o caminho real do portal e o aviso amarelo; etapa 2 com a tabela do que o export
+  traz da homologação e não vai pra produção como veio, e a conferência contra o roteiro de deploy (motivo:
+  o 1º export real, do MSS-UTILS, trouxe endereço gerado, ligação de rede com código da homologação e
+  "rotear todo o tráfego" ligado, contra o roteiro).

@@ -69,8 +69,11 @@ Pedido ao owner (na 1ª mensagem, junto da tabela):
 1. **Abrir o grupo de recursos:** Portal do Azure → **Grupos de recursos** → `RG-MSSAI-DEV`.
 2. **Marcar só o Web App deste projeto:** a caixinha de `mss-miti-ai-<projeto>-dev-br` (não o plano, a
    VNet nem o registro de imagens).
-3. **Baixar:** **Exportar modelo** → aba **Bicep** → **Baixar**.
-4. **Colar aqui no chat** o caminho do arquivo baixado (ex.: `C:\Users\<você>\Downloads\ExportedTemplate.zip`).
+3. **Abrir a exportação:** no botão **⋯** (à direita de **Exportar para CSV**) → **Exportar modelo** →
+   **Exportar como Bicep**.
+4. **Baixar:** na tela que abre, **Download**. Se aparecer um aviso amarelo (`ExportTemplateCompletedWithErrors`),
+   é esperado — siga.
+5. **Colar aqui no chat** o caminho do arquivo baixado (ex.: `C:\Users\<você>\Downloads\main.bicep`).
 
 Enquanto ele baixa, a etapa 2 já pode ser preparada — mas sem pedir nada novo a ele.
 
@@ -105,8 +108,24 @@ Regras da receita `infra/main.bicep` (montada do export):
 - **Tire TODAS as variáveis de ambiente** (`siteConfig.appSettings` e qualquer recurso
   `config 'appsettings'`): no Bicep, `appSettings` **substitui** a coleção inteira — uma 2ª execução
   apagaria a senha que o prestador colocou à mão. Quem leva as variáveis é o `infra/app_settings.py`.
-- **Remova** IP fixo, id e nome da homologação escritos direto (viram `param`) e propriedades só de
-  leitura que o export copia (estado, datas, `hostNames` gerados).
+- **Sempre** aparece no export (mesmo com o aviso `ExportTemplateCompletedWithErrors`), e não pode ir pra
+  produção como veio:
+
+  | No export | O que fazer |
+  |---|---|
+  | `hostNameSslStates`, recurso `hostNameBindings`, `customDomainVerificationId` | **remover**: é o endereço gerado do Web App de homologação (`…-<código>.azurewebsites.net`); produção ganha o dela sozinha |
+  | recurso `virtualNetworkConnections` e `vnetName` | **remover**: o nome carrega um código da rede de homologação; a ligação com a rede fica só em `virtualNetworkSubnetId: subnetId` |
+  | `vnetRouteAllEnabled` (dentro do `config 'web'`) | **remover**; quem manda é `outboundVnetRouting` com `allTraffic: false` — "rotear todo o tráfego" **desligado**, regra da casa (com ele ligado, a imagem e as chamadas externas passam pela rede e o Web App cai) |
+  | `ipSecurityRestrictions` (regras de acesso) | **manter**; a regra que aponta pra subnet de homologação passa a usar `subnetId`. IPs fixos das regras (escritório) ficam como estão |
+  | `publishingUsername` | **remover** (vem `REDACTED`) |
+  | `linuxFxVersion` (aparece duas vezes: no site e no `config 'web'`) | as duas usam `imagem` |
+  | ids e nomes da homologação escritos direto | viram `param` |
+
+- **Confira a receita contra o roteiro de deploy de homologação do projeto** (ex.: `docs/deploy-azure-dev.md`):
+  comando de inicialização, verificação de saúde, rede, "rotear todo o tráfego", HTTPS e TLS, regras de
+  acesso. O aviso amarelo do export não diz o que ficou de fora — o roteiro diz. Item do roteiro que não
+  está na receita (fora as variáveis, que vão pelo `app_settings.py`) **entra à mão** na receita, e vai
+  na lista da aprovação da etapa como "completado do roteiro".
 
 Pode escrever um teste de proteção no projeto (nomes batem, sem variável nem imagem fixa na receita);
 ao owner, só "proteção: N verdes". Depois do OK e dos arquivos gravados: commit na branch da feature e
