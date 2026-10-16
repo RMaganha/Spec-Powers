@@ -1286,3 +1286,17 @@ def test_azure_prd_conduz_em_6_etapas_com_um_pedido_por_vez():
     assert all(f"| {n} |" in tabela[:2000] for n in range(1, 7))
     # o .dockerignore: o Dockerfile costuma copiar a pasta inteira — a receita nao entra na imagem
     assert ".dockerignore" in cmd and "/infra/" in cmd and "/azure-pipelines*.yml" in cmd
+
+
+def test_azure_prd_segue_o_export_real_do_portal():
+    """Export real do MSS-UTILS (2026-10-16): o caminho do portal e '...' -> Exportar modelo -> Exportar como
+    Bicep -> Download, com o aviso ExportTemplateCompletedWithErrors; e a receita traz pecas da homologacao
+    que nao podem ir pra producao. O comando ensina cada uma."""
+    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    for trecho in ("Exportar para CSV", "Exportar como Bicep", "**Download**", "ExportTemplateCompletedWithErrors"):
+        assert trecho in cmd, f"etapa 1 sem {trecho!r}"
+    assert "aba **Bicep**" not in cmd, "caminho antigo do portal (nao existe aba Bicep)"
+    for trecho in ("virtualNetworkConnections", "vnetName", "vnetRouteAllEnabled", "outboundVnetRouting",
+                   "ipSecurityRestrictions", "hostNameBindings", "hostNameSslStates",
+                   "customDomainVerificationId", "publishingUsername", "roteiro de deploy"):
+        assert trecho in cmd, f"etapa 2 sem a regra de {trecho!r}"

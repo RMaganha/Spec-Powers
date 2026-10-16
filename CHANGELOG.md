@@ -2,6 +2,11 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.39.2 — 2026-10-16 (azure-prd: segue o export real do portal)
+- **o que motivou:** o 1º export real (MSS-UTILS) mostrou o caminho certo do portal e um aviso que o comando não previa, e trouxe peças da homologação que copiariam errado pra produção.
+- fix(**etapa 1**): caminho real — **⋯** (à direita de **Exportar para CSV**) → **Exportar modelo** → **Exportar como Bicep** → **Download**; o aviso amarelo `ExportTemplateCompletedWithErrors` é esperado.
+- fix(**etapa 2**): tabela do que sempre vem no export e não vai pra produção como veio — endereço gerado da homologação (`hostNameSslStates`, `hostNameBindings`, `customDomainVerificationId`), ligação de rede com código da homologação (`virtualNetworkConnections`, `vnetName`), `vnetRouteAllEnabled` ("rotear todo o tráfego" fica desligado por `outboundVnetRouting`), regras de acesso apontando pra subnet de homologação, `publishingUsername`, `linuxFxVersion` duplicado; e a receita é conferida contra o roteiro de deploy de homologação do projeto (o aviso não diz o que ficou de fora — o roteiro diz).
+
 ## 0.39.1 — 2026-10-16 (azure-prd: sem termo técnico na fala com o owner)
 - fix(**condução**): a 1ª mensagem mostra o que já está definido sem a fonte (arquivo e linha só se o owner perguntar); a pendência do pipeline de código de produção é dita em palavras simples ("Hoje, publicar na `main` ainda não atualiza produção. Criar isso é tarefa à parte."), sem os nomes técnicos — achado na validação do zero no MSS-UTILS.
 
