@@ -12,8 +12,9 @@ partir de documentação. Ferramenta: **Bicep** (nativo do Azure). Fatos fixos d
 
 O owner não é especialista em Azure e acompanha pelo chat. Caso F-038: sem mapa, ele se perdeu.
 
-1. **Na 1ª mensagem**, mostre a tabela do caminho inteiro (abaixo), as premissas com fonte em poucas
-   linhas e o pedido da etapa 1. **Peça o export uma vez só**, nessa mensagem.
+1. **Na 1ª mensagem**, mostre a tabela do caminho inteiro (abaixo), o que já está definido em até 2
+   linhas **sem a fonte** (arquivo e linha só se o owner perguntar) e o pedido da etapa 1. **Peça o
+   export uma vez só**, nessa mensagem.
 2. **Toda mensagem termina com o mesmo bloco**, nesta forma:
    **Etapa X de 6 — <nome da etapa>**
    **O que preciso de você agora:** <UMA coisa, em passos numerados> — ou "nada, sigo sozinho".
@@ -57,9 +58,10 @@ de lá com a fonte, **não pergunte**. O projeto é anterior e o `docs/AMBIENTE.
 linhas? Leia do `${CLAUDE_PLUGIN_ROOT}/templates/AMBIENTE.md`.
 
 **Pipeline de código de produção:** procure um pipeline com `trigger` na `main` que atualiza o Web App de
-produção. **Não existe → é pendência**, em uma linha: "o push na `main` ainda não publica em produção;
-criar esse pipeline (duplicar o de homologação trocando `imageName`, `webAppName` e `resourceGroup`) é
-tarefa à parte". Produção sobe mesmo assim: na 1ª criação ela usa a imagem da homologação (etapa 2).
+produção. **Não existe → é pendência**, dita ao owner exatamente assim: "Hoje, publicar na `main` ainda
+não atualiza produção. Criar isso é tarefa à parte." (Como fazer — duplicar o pipeline de homologação
+trocando nome da imagem, do Web App e do grupo — só quando ele pedir essa tarefa.) Produção sobe mesmo
+assim: na 1ª criação ela usa a imagem da homologação (etapa 2).
 
 ## Etapa 1 de 6 — Baixar a receita da homologação
 
