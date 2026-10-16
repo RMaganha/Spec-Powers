@@ -1276,8 +1276,11 @@ def test_azure_prd_conduz_em_6_etapas_com_um_pedido_por_vez():
     assert etapas == ["1", "2", "3", "4", "5", "6"], f"etapas no comando: {etapas}"
     for trecho in ("Etapa X de 6", "O que preciso de você agora", "nada, sigo sozinho",
                    "uma aprovação por etapa", "proteção: N verdes", "export uma vez só",
-                   "mensagem curta, sem linguagem técnica", "até 3 linhas"):
+                   "mensagem curta, sem linguagem técnica", "até 3 linhas", "sem a fonte",
+                   "Hoje, publicar na `main` ainda\nnão atualiza produção. Criar isso é tarefa à parte."):
         assert trecho.lower() in cmd.lower(), f"comando sem a regra de conducao {trecho!r}"
+    for tecnico in ("imageName", "webAppName"):
+        assert tecnico not in cmd, f"termo tecnico {tecnico!r} voltaria pra fala com o owner"
     # a tabela do caminho inteiro vai na 1a mensagem, com as 6 etapas e quem faz cada uma
     tabela = cmd[cmd.index("| Etapa | O que é | Quem faz |"):]
     assert all(f"| {n} |" in tabela[:2000] for n in range(1, 7))

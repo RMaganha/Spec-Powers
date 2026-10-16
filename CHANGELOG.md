@@ -2,6 +2,9 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.39.1 — 2026-10-16 (azure-prd: sem termo técnico na fala com o owner)
+- fix(**condução**): a 1ª mensagem mostra o que já está definido sem a fonte (arquivo e linha só se o owner perguntar); a pendência do pipeline de código de produção é dita em palavras simples ("Hoje, publicar na `main` ainda não atualiza produção. Criar isso é tarefa à parte."), sem os nomes técnicos — achado na validação do zero no MSS-UTILS.
+
 ## 0.39.0 — 2026-10-16 (azure-prd: condução em 6 etapas)
 - **o que motivou:** no MSS-UTILS o owner se perdeu — o comando pedia o export várias vezes, aprovação arquivo por arquivo, descrevia teste interno e não dizia em que ponto do caminho ele estava (caso F-038).
 - feat(**condução**): `commands/azure-prd.md` reorganizado em **6 etapas** (baixar · montar · simular · revisar variáveis · preparar produção · rodar e aprovar). Na 1ª mensagem, a tabela do caminho inteiro; toda mensagem termina com "Etapa X de 6" + UMA coisa que precisa do owner (ou "nada, sigo sozinho"); uma aprovação por etapa; teste vira "proteção: N verdes"; o export é pedido uma vez só.
