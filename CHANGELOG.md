@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.39.0 — 2026-10-16 (azure-prd: condução em 6 etapas)
+- **o que motivou:** no MSS-UTILS o owner se perdeu — o comando pedia o export várias vezes, aprovação arquivo por arquivo, descrevia teste interno e não dizia em que ponto do caminho ele estava (caso F-038).
+- feat(**condução**): `commands/azure-prd.md` reorganizado em **6 etapas** (baixar · montar · simular · revisar variáveis · preparar produção · rodar e aprovar). Na 1ª mensagem, a tabela do caminho inteiro; toda mensagem termina com "Etapa X de 6" + UMA coisa que precisa do owner (ou "nada, sigo sozinho"); uma aprovação por etapa; teste vira "proteção: N verdes"; o export é pedido uma vez só.
+- feat(**`.dockerignore`**): a etapa 2 acrescenta `/infra/` e `/azure-pipelines*.yml` — o `Dockerfile` costuma copiar a pasta inteira e a receita não deve ir pra imagem (achado do MSS-UTILS).
+- feat(**grupo do plano**): `param grupoPlano` nos `.bicepparam` e `resourceId(grupoPlano, 'Microsoft.Web/serverfarms', nomePlano)` na receita — o plano de produção `mss-ai-asp-prod-br` fica em `RG-MSSAI-PRD` (portal, 2026-10-15), e a receita aponta pelo grupo em vez de supor.
+- fix(**teste da imagem no PowerShell**): `tests/test_azure_prd_imagem.py` acha o `bash` do Git quando o do Windows (WSL) não roda — antes os 6 testes pulavam no terminal do owner.
+
 ## 0.38.3 — 2026-10-15 (azure-prd: produção nasce com a imagem da homologação)
 - **o que motivou:** no MSS-UTILS, a 1ª criação de produção usaria a imagem `…-prod:latest`, que só existe depois do pipeline de código de produção — que o projeto não tem. Produção seria criada sem subir.
 - fix(**imagem na 1ª criação**): Web App de produção ainda não existe → o pipeline usa a imagem que está rodando na homologação (já testada, mesmo registro); sem ela, falha em vez de criar. O mesmo bloco nos estágios Simular e Criar.

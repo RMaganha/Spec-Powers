@@ -6,6 +6,8 @@ using './main.bicep'
 
 param nomeWebApp = 'mss-miti-ai-<projeto>-dev-br'
 param nomePlano = 'mss-ai-asp-dev-br'
+// Confira no export: o serverFarmId do Web App traz o grupo do plano (…/resourceGroups/<grupo>/…).
+param grupoPlano = 'RG-MSSAI-DEV'
 // O id completo vem do export (…/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA).
 param subnetId = '<id da subnet de homologação, copiado do export>'
 // A imagem muda a cada push na dev: o pipeline lê a que está rodando e passa em IMAGEM (sem valor

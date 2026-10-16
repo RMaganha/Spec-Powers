@@ -1255,3 +1255,31 @@ def test_azure_prd_bicepparam_preserva_a_imagem_rodando():
         params = (REPO / "templates" / "azure-prd" / nome).read_text(encoding="utf-8")
         assert "using './main.bicep'" in params and sufixo in params, nome
         assert "readEnvironmentVariable('IMAGEM'" in params, f"{nome}: imagem fixa voltaria producao pra versao velha"
+
+
+def test_azure_prd_bicepparam_aponta_o_grupo_do_plano():
+    """O plano pode morar em outro grupo de recursos que o Web App: a receita aponta pelo grupo, nunca supoe."""
+    esperado = {"hml.bicepparam": "param grupoPlano = 'RG-MSSAI-DEV'",
+                "prd.bicepparam": "param grupoPlano = 'RG-MSSAI-PRD'"}
+    for nome, linha in esperado.items():
+        params = (REPO / "templates" / "azure-prd" / nome).read_text(encoding="utf-8")
+        assert linha in params, f"{nome} sem {linha!r}"
+    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    assert "resourceId(grupoPlano, 'Microsoft.Web/serverfarms', nomePlano)" in cmd
+
+
+def test_azure_prd_conduz_em_6_etapas_com_um_pedido_por_vez():
+    """F-038: no MSS-UTILS o owner se perdeu — o comando pedia aos pedacos, sem mapa nem 'onde estamos',
+    aprovava arquivo por arquivo e descrevia teste interno. A conducao agora e regra do comando."""
+    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    etapas = re.findall(r"^## Etapa (\d) de 6 — ", cmd, flags=re.M)
+    assert etapas == ["1", "2", "3", "4", "5", "6"], f"etapas no comando: {etapas}"
+    for trecho in ("Etapa X de 6", "O que preciso de você agora", "nada, sigo sozinho",
+                   "uma aprovação por etapa", "proteção: N verdes", "export uma vez só",
+                   "mensagem curta, sem linguagem técnica", "até 3 linhas"):
+        assert trecho.lower() in cmd.lower(), f"comando sem a regra de conducao {trecho!r}"
+    # a tabela do caminho inteiro vai na 1a mensagem, com as 6 etapas e quem faz cada uma
+    tabela = cmd[cmd.index("| Etapa | O que é | Quem faz |"):]
+    assert all(f"| {n} |" in tabela[:2000] for n in range(1, 7))
+    # o .dockerignore: o Dockerfile costuma copiar a pasta inteira — a receita nao entra na imagem
+    assert ".dockerignore" in cmd and "/infra/" in cmd and "/azure-pipelines*.yml" in cmd

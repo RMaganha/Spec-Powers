@@ -24,10 +24,23 @@ IMG_PRD = "DOCKER|mssaicontainerregistry.azurecr.io/app-prd:99"
 
 
 def _bash():
-    b = shutil.which("bash")
-    if not b or subprocess.run([b, "-c", "echo ok"], capture_output=True, text=True).stdout.strip() != "ok":
-        pytest.skip("bash indisponível")
-    return b
+    """O `bash` que funciona. No PowerShell do Windows o 1º do PATH é o do WSL (`System32\\bash.exe`), que
+    sem distribuição instalada não roda — aí vale o que vem com o Git (`<Git>\\bin\\bash.exe`)."""
+    candidatos = [shutil.which("bash")]
+    git = shutil.which("git")
+    if git:
+        raiz = Path(git).resolve().parent.parent          # <Git>\cmd\git.exe → <Git>
+        candidatos += [raiz / "bin" / "bash.exe", raiz / "usr" / "bin" / "bash.exe"]
+    for b in candidatos:
+        if not b or not Path(b).exists():
+            continue
+        try:
+            ok = subprocess.run([str(b), "-c", "echo ok"], capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if ok.stdout.strip() == "ok":
+            return str(b)
+    pytest.skip("bash indisponível")
 
 
 def _scripts():

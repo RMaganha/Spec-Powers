@@ -2,7 +2,11 @@
 
 ## Estado atual
 **`/mss-spec:azure-prd`** (`commands/azure-prd.md`) leva a homologação que funciona pra produção sem
-nada rodar na máquina do owner contra o Azure. Na janela do projeto: lê o que o projeto já tem (e avisa,
+nada rodar na máquina do owner contra o Azure, em **6 etapas** (baixar · montar · simular · revisar
+variáveis · preparar produção · rodar e aprovar): a 1ª mensagem mostra a tabela do caminho inteiro, toda
+mensagem termina com "Etapa X de 6" + UMA coisa que precisa do owner, uma aprovação por etapa, teste vira
+"proteção: N verdes". A etapa 2 também põe `/infra/` e `/azure-pipelines*.yml` no `.dockerignore`, e a
+receita aponta o plano pelo grupo dele (`grupoPlano`). Na janela do projeto: lê o que o projeto já tem (e avisa,
 como pendência, se não existe pipeline de código de produção) → o owner exporta o Web App da homologação
 pelo portal ("Exportar modelo", Bicep) → o assistente monta `infra/main.bicep` (nomes, plano, subnet e
 **imagem** como parâmetros; **sem nenhuma variável de ambiente**), `infra/hml.bicepparam`,
@@ -61,3 +65,6 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
   (motivo: o MSS-UTILS apontou que a imagem padrão `…-prod:latest` só existiria depois do pipeline de
   código de produção, que o projeto não tem — produção seria criada sem subir. O owner pediu chegar o
   mais perto possível de 100%).
+- 2026-10-16 — condução em 6 etapas, `.dockerignore`, `grupoPlano`, teste da imagem no PowerShell
+  (motivo: o owner se perdeu no MSS-UTILS — pedidos aos pedaços e sem mapa, caso F-038; o MSS-UTILS achou
+  a receita indo pra dentro da imagem pelo `COPY . .`; o grupo do plano de produção foi conferido no portal).

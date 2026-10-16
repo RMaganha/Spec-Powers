@@ -135,7 +135,7 @@ Pipeline padrão via Azure DevOps (ACR → Azure Web App), acionado por branch:
 | Branch | `dev` | `main` |
 | Resource Group | `RG-MSSAI-DEV` | `RG-MSSAI-PRD` |
 | Nome do recurso | `mss-miti-ai-<projeto>-dev-br` | `mss-miti-ai-<projeto>-prod` |
-| App Service Plan (compartilhado entre os apps) | `mss-ai-asp-dev-br` | `mss-ai-asp-prod-br` |
+| App Service Plan (compartilhado entre os apps) | `mss-ai-asp-dev-br` | `mss-ai-asp-prod-br` — grupo `RG-MSSAI-PRD`, B3 Linux (portal, 2026-10-15) |
 | VNet / Subnet (integração do Web App) | `VNET-MSSD-DEVQA` / `SNET-WEB-AI-DEVQA` | `VNET-MSSD-PRD` / `SNET-WEB-AI-PRD` |
 | DNS de saída | `WEBSITE_DNS_SERVER=10.170.210.2` | `WEBSITE_DNS_SERVER=10.170.210.2` (o mesmo) **+ `WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória** |
 | Senha do registro de imagens (`DOCKER_REGISTRY_SERVER_*`) | a do `mssaicontainerregistry` | a mesma (registro compartilhado) — no `azure-prd`, `copiar`, nunca `*****` |
