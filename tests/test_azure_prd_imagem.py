@@ -109,3 +109,28 @@ def test_simulacao_da_homologacao_usa_a_propria_imagem():
 def test_sem_imagem_nem_na_homologacao_falha_em_vez_de_criar():
     code, _ = _rodar(_bloco(_scripts()["Criar"]), "RG-MSSAI-PRD", "app-prd", hml=None, prd=None)
     assert code != 0, "criaria produção com uma imagem que não existe"
+
+
+def _bloco_identidade(script):
+    ini, fim = script.index("# identidade: início"), script.index("# identidade: fim")
+    return script[ini:fim]
+
+
+def test_simular_mostra_a_identidade_que_recebe_as_permissoes():
+    """MSS-UTILS 2026-10-16: tres rodadas de permissao foram pra identidade errada (pegaram o codigo pelo
+    'Manage App registration'). O Simular imprime o object id da identidade REAL do pipeline — e com ele
+    que a infra da as permissoes (--assignee-object-id)."""
+    import base64
+    import json as _json
+    corpo = base64.urlsafe_b64encode(_json.dumps({"oid": "ecab5b96-527b-415d-bc02-3a31cfea7fb0"}).encode()).decode().rstrip("=")
+    token = f"cabecalho.{corpo}.assinatura"
+    falso = f'az() {{ echo "{token}"; }}\nset -euo pipefail\n'
+    import sys
+    # no agente Linux é `python3`; aqui, o Python que roda a suíte (no Windows `python3` pode não existir)
+    bloco = _bloco_identidade(_scripts()["Simular"]).replace("python3", f'"{Path(sys.executable).as_posix()}"')
+    proc = subprocess.run([_bash(), "-c", falso + bloco],
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert "ecab5b96-527b-415d-bc02-3a31cfea7fb0" in proc.stdout
+    assert "Identidade do pipeline" in proc.stdout
+    assert token not in proc.stdout, "o token nunca vai pro log"

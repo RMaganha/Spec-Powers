@@ -2,6 +2,15 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.40.0 — 2026-10-20 (azure-prd: lições da 1ª produção real, MSS-UTILS)
+- **o que motivou:** o MSS-UTILS foi do export à produção no ar (`/health` 200), e o caminho mostrou 22 pontos que o owner anotou pra corrigir no fim, mais duas falhas que custaram horas: permissões dadas à identidade errada (F-039) e a senha do registro de imagens chegando vazia em produção.
+- feat(**identidade do pipeline**): o Simular imprime `Identidade do pipeline (object id …)`, lida do próprio token (que nunca vai pro log); é com ela que a infra dá as permissões.
+- feat(**chamado pronto pra infra**): `templates/azure-prd/permissoes-infra.md` — ambiente `producao` com aprovadores e as permissões mínimas na rede de produção (`MSIG-VNet-Join-Subnet`, `Reader` na VNet, `MSIG-VNet-ServiceEndpoint-Subnet`), com `--assignee-object-id`, conferência antes de criar e o que NÃO dar (`subnets/write`). Feitas em 2026-10-20 e registradas no `templates/AMBIENTE.md` §5: a etapa 5 passa a ser "já está pronto".
+- fix(**variáveis**): a `DOCKER_REGISTRY_SERVER_PASSWORD` (o Azure não entrega na leitura) vem do próprio registro de imagens; valor copiado que chega vazio nunca é gravado — vira "falta preencher"; liga/desliga (`…_ATIVO`/`…_ATIVA`) é sugerido `copiar` mesmo com TOKEN no nome.
+- fix(**condução**, F-038): etapa 3 explica o pipeline novo `<PROJETO>-INFRA` (separado do `-DEV` e do `-PROD`) e como renomear, que não precisa de git, a permissão de uma vez (**Permit**), que a 1ª simulação vai dar erro de propósito, o item exato do log e a tela do **Run pipeline** (branch `feature/azure-prd`, **Ambiente**, **Next: Resources**); aviso antes de enviar a branch; um nome só pra valor que falta; etapa 4 diz o que mudou antes de rodar de novo; etapa 6 com o texto pronto do aprovador, a conferência depois de criar (`/health`, Fluxo de log, sem sidecar) e de onde vem cada valor (registro → **Chaves de acesso**, nunca **Regenerar**).
+- fix(**receita**): a rede fica em `virtualNetworkSubnetId`, nunca `networkConfig` (exige alterar a subnet); partes internas do Web App sem `location` (aviso `BCP187`).
+- docs: F-036 fechado; F-039 novo; spec `azure-prd.md`.
+
 ## 0.39.2 — 2026-10-16 (azure-prd: segue o export real do portal)
 - **o que motivou:** o 1º export real (MSS-UTILS) mostrou o caminho certo do portal e um aviso que o comando não previa, e trouxe peças da homologação que copiariam errado pra produção.
 - fix(**etapa 1**): caminho real — **⋯** (à direita de **Exportar para CSV**) → **Exportar modelo** → **Exportar como Bicep** → **Download**; o aviso amarelo `ExportTemplateCompletedWithErrors` é esperado.

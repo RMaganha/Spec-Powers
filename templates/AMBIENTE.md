@@ -152,6 +152,17 @@ prova de que o ambiente não a tem — confira no portal (caso F-037).
 `e87b4af3-ce34-4c44-8c64-0151ca959654` — conferido no portal pelo owner em 2026-10-15):
 `/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD`
 
+**Permissões da conexão do pipeline em produção — feitas em 2026-10-20** (1ª produção pelo
+`/mss-spec:azure-prd`, MSS-UTILS). Valem pra todo projeto que usa a conexão abaixo; o `azure-prd` pula a
+etapa 5 quando estão aqui:
+- identidade da conexão `Mitsui Sumitomo Seguros S.A. - Azure Subscriptions` (object id
+  `ecab5b96-527b-415d-bc02-3a31cfea7fb0` — o que o pipeline mostra na linha `Identidade do pipeline`);
+- papel `MSIG-VNet-Join-Subnet` (ligar + ler a subnet) e papel `MSIG-VNet-ServiceEndpoint-Subnet` (regra de
+  acesso apontando pra subnet) em `SNET-WEB-AI-PRD`; papel `Reader` na rede `VNET-MSSD-PRD`. Sem
+  permissão de alterar a subnet (já delegada a `Microsoft.Web/serverFarms`);
+- ambiente `producao` no projeto MSS-AI do Azure DevOps, com aprovadores (gerente e coordenador de infra).
+Chamado-modelo, se precisar refazer: `templates/azure-prd/permissoes-infra.md`.
+
 Fixos em qualquer projeto:
 ```yaml
 variables:

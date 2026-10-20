@@ -104,12 +104,34 @@ def test_sugestao_marca_senha_pelo_nome():
 
 # --- a linha de comando que o pipeline roda (az falso) ---------------------------------------
 
+def test_sugestao_liga_desliga_com_token_no_nome_e_copiar():
+    """MSS-UTILS: NFCOMISSAO_AUTH_TOKEN_ATIVO (true/false) saiu marcada senha só por ter TOKEN no nome."""
+    s = _mod().sugerir(["NFCOMISSAO_AUTH_TOKEN_ATIVO", "NFCOMISSAO_UI_ATIVA", "API_KEY_ATIVA", "NFCOMISSAO_TOKEN_API"])
+    assert s == {"NFCOMISSAO_AUTH_TOKEN_ATIVO": "copiar", "NFCOMISSAO_UI_ATIVA": "copiar",
+                 "API_KEY_ATIVA": "copiar", "NFCOMISSAO_TOKEN_API": "senha"}
+
+
+def test_copiar_valor_vazio_nunca_grava_vazio():
+    """MSS-UTILS 2026-10-20: a DOCKER_REGISTRY_SERVER_PASSWORD chegou vazia em produção (o Azure não
+    entrega o valor dela na leitura) e o Web App não subiu. Valor vazio vira pendência, não gravação."""
+    hml = dict(HML, VAZIA="", NULA=None)
+    p = _mod().planejar(hml, {}, dict(CONFIG, VAZIA="copiar", NULA="copiar"))
+    assert "VAZIA" not in p.gravar and "NULA" not in p.gravar
+    assert {"VAZIA", "NULA"} <= set(p.pendentes)
+    assert ("VAZIA", "veio vazia da homologação: preencher") in p.acoes
+
+
 class _Az:
-    def __init__(self, hml, prd):
+    def __init__(self, hml, prd, acr="senha-do-registro"):
         self.apps = {("RG-MSSAI-DEV", "app-hml"): hml, ("RG-MSSAI-PRD", "app-prd"): prd}
         self.gravado = None
+        self.acr = acr
+        self.acr_pedido = None
 
     def __call__(self, args):
+        if args[:3] == ["acr", "credential", "show"]:
+            self.acr_pedido = args[args.index("-n") + 1]
+            return (0, self.acr) if self.acr else (1, "")
         rg = args[args.index("-g") + 1]
         app = args[args.index("-n") + 1]
         if args[:4] == ["webapp", "config", "appsettings", "list"]:
@@ -183,3 +205,34 @@ def test_aplicar_sem_web_app_de_producao_falha(tmp_path):
     cfg.write_text(json.dumps(CONFIG), encoding="utf-8")
     code, log = _rodar("aplicar", cfg, _Az(HML, None))
     assert code == 1 and "app-prd" in log
+
+
+def test_senha_do_registro_vem_do_proprio_registro(tmp_path):
+    """A senha do registro de imagens nao vem na leitura das variaveis da homologacao; o pipeline le
+    direto do registro (o nome sai da DOCKER_REGISTRY_SERVER_URL) e grava em producao, sem mostrar no log."""
+    cfg = tmp_path / "app-settings.json"
+    cfg.write_text(json.dumps(dict(CONFIG, DOCKER_REGISTRY_SERVER_PASSWORD="copiar",
+                                   DOCKER_REGISTRY_SERVER_URL="copiar")), encoding="utf-8")
+    hml = dict(HML, DOCKER_REGISTRY_SERVER_PASSWORD=None,
+               DOCKER_REGISTRY_SERVER_URL="https://mssaicontainerregistry.azurecr.io")
+    az = _Az(hml, {})
+    code, log = _rodar("aplicar", cfg, az)
+    assert code == 0, log
+    assert az.acr_pedido == "mssaicontainerregistry"
+    assert az.gravado["DOCKER_REGISTRY_SERVER_PASSWORD"] == "senha-do-registro"
+    assert "senha-do-registro" not in log
+    pendentes = log.split("Faltam preencher")[-1] if "Faltam preencher" in log else ""
+    assert "DOCKER_REGISTRY_SERVER_PASSWORD" not in pendentes
+
+
+def test_registro_sem_acesso_vira_pendencia(tmp_path):
+    cfg = tmp_path / "app-settings.json"
+    cfg.write_text(json.dumps(dict(CONFIG, DOCKER_REGISTRY_SERVER_PASSWORD="copiar",
+                                   DOCKER_REGISTRY_SERVER_URL="copiar")), encoding="utf-8")
+    hml = dict(HML, DOCKER_REGISTRY_SERVER_PASSWORD=None,
+               DOCKER_REGISTRY_SERVER_URL="https://mssaicontainerregistry.azurecr.io")
+    az = _Az(hml, {}, acr=None)
+    code, log = _rodar("aplicar", cfg, az)
+    assert code == 0, log
+    assert "DOCKER_REGISTRY_SERVER_PASSWORD" not in az.gravado
+    assert "DOCKER_REGISTRY_SERVER_PASSWORD" in log.split("Faltam preencher")[-1]
