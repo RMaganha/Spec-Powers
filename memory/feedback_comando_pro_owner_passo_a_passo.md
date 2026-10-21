@@ -35,6 +35,14 @@ Regras do formato:
 **Why:** o owner executa os comandos de publicação (push em dev/prod é ato dele — [[feedback_publicacao_e_ato_do_owner]]);
 comando solto num parágrafo ou vários num bloco só é onde ele erra a ordem ou não sabe o que conferir.
 
+**Reincidiu (2026-10-15, chat do kit, assunto azure):** fechei uma entrega com *"merge e push"* sem os
+comandos; o owner: *"preciso do comando git para fazer o merge isso já está no plugin, não faz sentido não
+ter vindo!"*. E um erro da mesma família: pus `/mss-spec:azure-prd` — que se digita **no chat do Claude** —
+num bloco ` ```bash `, junto de `az version`; o owner achou que era comando de terminal. Regras somadas:
+- **comando do chat** (`/mss-spec:<x>`) **nunca** vai em bloco de terminal: diga *"digite no chat:"*;
+- pedido de **rodar de novo** comandos já passados: diga que são **os mesmos** e repita o passo a passo
+  inteiro (*"Não entendi eu não juntei nada"*, 2026-10-21).
+
 **How to apply:** vale em toda resposta que entrega comando pro owner rodar — no fecho de feature, no release, no
 merge/push, e na mensagem pronta pra outra janela. Mora também no `templates/CLAUDE.md` (regra sempre-ativa) com a
 frase-chave travada em `tests/test_orcamento_contexto.py`. Relacionada: [[feedback_estilo_resposta_direto]].
