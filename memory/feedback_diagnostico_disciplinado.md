@@ -30,3 +30,11 @@ antes de pedir, liste o que você ainda não comparou sozinho, e o pedido carreg
 discrimina**, nunca uma lista. Caso F-015 em `docs/EVALS.md`. Parente de
 [[feedback-perguntar-em-vez-de-vasculhar]] (a rodada do owner é cara) e de
 [[feedback-nao-inventar-fatos-concretos]] (fato do owner é fato).
+
+**Em ambiente real (produção, rede, permissão) — 2026-10-16, MSS-UTILS:** duas correções sem efeito =
+**parar e pesquisar a documentação oficial** e buscar a evidência de **quem** o sistema viu (Log de
+atividade, `object id` no texto do erro) **antes de qualquer comando novo**. Foram três rodadas de
+permissão pedidas à infra no escuro, e eu ainda propus uma quarta; o owner cortou: *"pesquise na
+documentação o que realmente é… não é certo ficar rodando inúmeros comandos de liberação em produção"*.
+A documentação mostrou que as permissões bastavam e o erro seguinte trouxe o `object id`: estavam na
+identidade errada. Caso F-039.

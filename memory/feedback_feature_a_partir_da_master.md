@@ -21,3 +21,9 @@ tarefa a partir dela. Ao terminar e integrar, volte pra `main` (não deixe o own
 de feature já mesclada). Continua valendo a regra base: nunca codar direto na `main`, e stage nominal
 (nunca `git add .`/`-A`). Agora que há remote, `git push` para publicar — sempre a pedido do owner.
 Complementa [[feedback_nao_encerrar_com_pergunta]].
+
+**Quase reincidiu (2026-10-21):** abri a `feature/azure-ambiente` com a pasta parada na branch da 0.40.0,
+que o owner ainda não tinha juntado na `main` — a branch nova nasceu da feature, não da `main`. Peguei
+antes de gravar qualquer arquivo, apaguei a branch vazia e pedi o merge antes. Conferência que pega isso:
+**antes do `git checkout -b`, `git status -sb` tem de dizer `## main...origin/main`**; se disser outra
+branch, a anterior ainda não foi integrada — peça o merge com o passo a passo, não ramifique.
