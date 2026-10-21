@@ -22,7 +22,7 @@ Contrato:
     git inconsultável;
   - deploy e integração remota: `gh pr merge`, `docker push`, `az acr build`, `az webapp <escrita>`,
     `az containerapp update|create|revision`, `az deployment … create|delete|cancel` e
-    `az stack … create|set|delete` (receita Bicep do `/mss-spec:azure-prd`; `what-if` passa);
+    `az stack … create|set|delete` (receita Bicep do `/mss-spec:azure-ambiente`; `what-if` passa);
 - **pede aprovação**: `git merge`, `git rebase` (menos `--abort`) e `git push` de feature/fix;
 - **libera calado** o resto do git (`merge-base`, `merge-tree`, `pull`, status, commit…);
 - casa o VERBO no início de um comando simples (após `;`, `&&`, `|`, `(`, quebra de linha ou
@@ -103,7 +103,7 @@ DEPLOY = (
      "az webapp <escrita> — altera o Web App"),
     (re.compile(_INICIO + _ENV + r"az\s+containerapp\s+(?:update|create|revision)\b"),
      "az containerapp — altera o Container App"),
-    # receita Bicep/ARM (/mss-spec:azure-prd): cria recurso — é do pipeline com aprovação.
+    # receita Bicep/ARM (/mss-spec:azure-ambiente): cria recurso — é do pipeline com aprovação.
     # `what-if`, `validate`, `show` e `list` só leem e passam.
     (re.compile(_INICIO + _ENV + r"az\s+(?:deployment(?:\s+(?:group|sub|mg|tenant))?|group\s+deployment)"
                 r"\s+(?:create|delete|cancel)\b"),

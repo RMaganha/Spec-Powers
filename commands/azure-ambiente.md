@@ -1,20 +1,22 @@
 ---
-description: Leva a homologação Azure que já funciona pra produção, em 6 etapas — receita Bicep exportada da homologação + todas as variáveis de ambiente (senha vira *****), simuladas e aplicadas pelo pipeline com botão de aprovação
+description: Cria os ambientes Azure do projeto em 6 etapas — a homologação (se ainda não existe) e a produção espelho dela — por uma receita Bicep + todas as variáveis de ambiente (senha vira *****), simuladas e aplicadas pelo pipeline, produção com botão de aprovação
 argument-hint: ""
 disable-model-invocation: true
 ---
 
-Você vai levar a **homologação que já funciona** pra **produção**, sem ninguém montar produção à mão a
-partir de documentação. Ferramenta: **Bicep** (nativo do Azure). Fatos fixos de homologação e produção
-(grupos, plano, rede, DNS, registro): `docs/AMBIENTE.md` §5. Spec do kit: `docs/specs/azure-prd.md`.
+Você vai criar os ambientes Azure do projeto sem ninguém montar nada à mão a partir de documentação: a
+**homologação**, se ainda não existe, e a **produção**, espelho da homologação que funciona. Ferramenta:
+**Bicep** (nativo do Azure), a partir da receita-base do kit (`templates/azure-ambiente/main.bicep`, tirada
+do MSS-UTILS, em produção desde 2026-10-20). Fatos fixos de homologação e produção (grupos, plano, rede,
+DNS, registro, permissões já feitas): `docs/AMBIENTE.md` §5. Spec do kit: `docs/specs/azure-ambiente.md`.
 
 ## Como conduzir a conversa (regra — vale em TODA mensagem)
 
 O owner não é especialista em Azure e acompanha pelo chat. Caso F-038: sem mapa, ele se perdeu.
 
 1. **Na 1ª mensagem**, mostre a tabela do caminho inteiro (abaixo), o que já está definido em até 2
-   linhas **sem a fonte** (arquivo e linha só se o owner perguntar) e o pedido da etapa 1. **Peça o
-   export uma vez só**, nessa mensagem.
+   linhas **sem a fonte** (arquivo e linha só se o owner perguntar) e a pergunta da etapa 1 (a
+   homologação já existe). **Peça o export uma vez só**, e só se a homologação existe.
 2. **Toda mensagem termina com o mesmo bloco**, nesta forma:
    **Etapa X de 6 — <nome da etapa>**
    **O que preciso de você agora:** <UMA coisa, em passos numerados> — ou "nada, sigo sozinho".
@@ -27,7 +29,7 @@ O owner não é especialista em Azure e acompanha pelo chat. Caso F-038: sem map
 7. **Mensagem curta, sem linguagem técnica:** só o que mudou desde a última mensagem (até 3 linhas) +
    o bloco final. Nada de explicar o que não foi perguntado, de premissa que o owner não precisa decidir,
    nem de assunto que não é do desenvolvedor (capacidade do plano, rede, permissões — é da infra).
-8. **Antes de enviar a branch, avise em uma linha:** "Vou enviar a branch `feature/azure-prd` pro Azure
+8. **Antes de enviar a branch, avise em uma linha:** "Vou enviar a branch `feature/azure-ambiente` pro Azure
    DevOps, pra o pipeline enxergar os arquivos novos. Isso não publica nada na homologação nem em
    produção. Vai aparecer um pedido de aprovação; aprove." Só depois envie.
 9. **Valor que falta tem um nome só:** "falta preencher" (e, em produção, `*****`). Nunca `?` num valor,
@@ -37,9 +39,9 @@ O owner não é especialista em Azure e acompanha pelo chat. Caso F-038: sem map
 
 | Etapa | O que é | Quem faz | Onde |
 |---|---|---|---|
-| 1 | Baixar a receita da homologação | owner | portal do Azure |
+| 1 | Ponto de partida: a homologação já existe? Se sim, baixar a receita dela | owner | chat + portal do Azure |
 | 2 | Montar os arquivos (receita, nomes por ambiente, variáveis, pipeline) | assistente — um OK do owner | este projeto |
-| 3 | Simular contra a homologação | owner clica **Run pipeline** (hml) e cola o log | Azure DevOps |
+| 3 | Criar a homologação (se não existe) ou simular contra ela | owner clica **Run pipeline** (hml) e cola o log | Azure DevOps |
 | 4 | Revisar as variáveis de ambiente, até a simulação dar "nada muda" | os dois | chat + Azure DevOps |
 | 5 | Preparar produção: aprovadores e pedido ao prestador | owner | Azure DevOps + chamado |
 | 6 | Rodar em produção e aprovar | owner clica **Run pipeline** (prd) e **Approve** | Azure DevOps |
@@ -70,9 +72,14 @@ não atualiza produção. Criar isso é tarefa à parte." (Como fazer — duplic
 trocando nome da imagem, do Web App e do grupo — só quando ele pedir essa tarefa.) Produção sobe mesmo
 assim: na 1ª criação ela usa a imagem da homologação (etapa 2).
 
-## Etapa 1 de 6 — Baixar a receita da homologação
+## Etapa 1 de 6 — Ponto de partida
 
-Pedido ao owner (na 1ª mensagem, junto da tabela):
+Pergunta ao owner (na 1ª mensagem, junto da tabela): **"A homologação deste projeto já existe no Azure
+(`mss-miti-ai-<projeto>-dev-br`)?"**
+- **Não existe** → nada a baixar: a receita sai da receita-base do kit e o pipeline cria a homologação na
+  etapa 3. Siga pra etapa 2.
+- **Já existe** → o export dela vira conferência da receita. Pedido ao owner, na mensagem seguinte:
+
 1. **Abrir o grupo de recursos:** Portal do Azure → **Grupos de recursos** → `RG-MSSAI-DEV`.
 2. **Marcar só o Web App deste projeto:** a caixinha de `mss-miti-ai-<projeto>-dev-br` (não o plano, a
    VNet nem o registro de imagens).
@@ -86,22 +93,27 @@ Enquanto ele baixa, a etapa 2 já pode ser preparada — mas sem pedir nada novo
 
 ## Etapa 2 de 6 — Montar os arquivos
 
-Com o export em mãos, liste ao owner **todos** os arquivos de uma vez e peça **um** OK:
+Liste ao owner **todos** os arquivos de uma vez e peça **um** OK. A receita parte **sempre** da receita-base
+(`${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/main.bicep` → `infra/main.bicep`), preenchendo nos dois
+`.bicepparam`: `comandoInicial` (o mesmo do pipeline de código ou do `Dockerfile`), `caminhoSaude` (nunca
+`/`), `ipsPermitidos` (os IPs de acesso, ex.: o escritório — copie de um projeto que já tem, só leitura, ou
+pergunte uma vez ao owner) e, no pipeline, a variável `porta`. Com homologação existente, o export é
+**conferência**: o que o projeto tem a mais entra na receita, seguindo a tabela abaixo.
 
 | Arquivo | O que é |
 |---|---|
 | `.gitignore` | ganha `/infra/export-*` — o export traz valores da homologação e nunca entra no git |
 | `.dockerignore` | ganha `/infra/` e `/azure-pipelines*.yml` — o `Dockerfile` costuma copiar a pasta inteira (`COPY . .`) e a receita não deve ir pra dentro da imagem do sistema |
-| `infra/main.bicep` | a receita, montada do export |
+| `infra/main.bicep` | a receita, a partir da receita-base do kit (e conferida com o export, se a homologação existe) |
 | `infra/hml.bicepparam` / `infra/prd.bicepparam` | os nomes de cada ambiente |
 | `infra/app_settings.py` | leva as variáveis de ambiente |
-| `azure-pipelines-infra-prd.yml` | o pipeline com a escolha hml/prd e o botão |
+| `azure-pipelines-infra.yml` | o pipeline com a escolha hml/prd e o botão |
 
 Cópias dos modelos (troque `<projeto>` pelos nomes reais):
-- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/hml.bicepparam` → `infra/hml.bicepparam`
-- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/prd.bicepparam` → `infra/prd.bicepparam` (modelo `templates/azure-prd/prd.bicepparam`)
-- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/app_settings.py` → `infra/app_settings.py` (modelo `templates/azure-prd/app_settings.py`)
-- `${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/azure-pipelines-prd.yml` → `azure-pipelines-infra-prd.yml` (modelo `templates/azure-prd/azure-pipelines-prd.yml`)
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/hml.bicepparam` → `infra/hml.bicepparam`
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/prd.bicepparam` → `infra/prd.bicepparam` (modelo `templates/azure-ambiente/prd.bicepparam`)
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/app_settings.py` → `infra/app_settings.py` (modelo `templates/azure-ambiente/app_settings.py`)
+- `${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/azure-pipelines-infra.yml` → `azure-pipelines-infra.yml` (modelo `templates/azure-ambiente/azure-pipelines-infra.yml`)
 
 Regras da receita `infra/main.bicep` (montada do export):
 - Tudo que **muda entre ambientes** vira `param`: `nomeWebApp`, `nomePlano`, `grupoPlano`, `subnetId` e
@@ -139,7 +151,15 @@ Pode escrever um teste de proteção no projeto (nomes batem, sem variável nem 
 ao owner, só "proteção: N verdes". Depois do OK e dos arquivos gravados: commit na branch da feature e
 envio da branch, com o aviso da regra 8 antes (o hook pede a aprovação do owner).
 
-## Etapa 3 de 6 — Simular contra a homologação
+## Etapa 3 de 6 — Criar a homologação (se não existe) ou simular contra ela
+
+**Homologação nova — antes de rodar:** confira na seção 5 do `docs/AMBIENTE.md` se as permissões na rede
+de **homologação** (`SNET-WEB-AI-DEVQA`) estão registradas como feitas. Não estão → entregue ao owner a
+seção 4 do `templates/azure-ambiente/permissoes-infra.md`, com o código da identidade registrado na mesma
+seção 5. Com a homologação nova, a opção **hml** cria o Web App com uma imagem provisória e as variáveis de
+plataforma (registro, porta, fuso, DNS); depois o pedido ao owner é, numa mensagem: criar no portal as
+variáveis **do sistema** (as do `.env.example` do projeto) e fazer o 1º push na `dev`, que troca a imagem
+provisória pela real. Rodar **hml** de novo → a homologação já existe → vira simulação, como abaixo.
 
 Antes do pedido, diga ao owner em uma linha cada:
 - é um **pipeline novo**, o **terceiro**, separado do de homologação (`<PROJETO>-DEV`) e do futuro de
@@ -150,12 +170,12 @@ Antes do pedido, diga ao owner em uma linha cada:
 
 Pedido ao owner, numa mensagem:
 1. **Criar o pipeline** (Azure DevOps): **Pipelines** → **New pipeline** → **Azure Repos Git** → este
-   repositório → **Existing Azure Pipelines YAML file** → branch `feature/azure-prd` →
-   `/azure-pipelines-infra-prd.yml` → **Save** (não **Run** ainda).
+   repositório → **Existing Azure Pipelines YAML file** → branch `feature/azure-ambiente` →
+   `/azure-pipelines-infra.yml` → **Save** (não **Run** ainda).
 2. **Dar o nome:** **Pipelines** → na linha do pipeline novo (vem com o nome do repositório, ex.:
    `MSS-UTILS (1)`) → **⋯** → **Rename/move** → `<PROJETO>-INFRA` → **Save**.
 3. **Rodar a simulação:** **Pipelines** → `<PROJETO>-INFRA` → **Run pipeline** → em **Select pipeline
-   version by branch/tag**, `feature/azure-prd` (os arquivos estão só nela; vão pra `main` no fecho) → em
+   version by branch/tag**, `feature/azure-ambiente` (os arquivos estão só nela; vão pra `main` no fecho) → em
    **Parameters → Ambiente**, **hml** → **Next: Resources** → não mexer → **Run**.
 4. **Se aparecer "Permission needed":** é a permissão de uma vez só pra usar a conexão com o Azure →
    **View** → **Permit** → **Permit**.
@@ -182,7 +202,7 @@ regra 9, do começo ao fim.
 
 Com o OK do owner na tabela: commit, aviso da regra 8, envio da branch. Depois o pedido é **um**, dizendo
 **o que mudou** desde a última execução (ex.: "a lista de variáveis foi enviada") e o que esperar:
-**Run pipeline** → branch `feature/azure-prd` → **hml** → **Next: Resources** → **Run** → colar o log do
+**Run pipeline** → branch `feature/azure-ambiente` → **hml** → **Next: Resources** → **Run** → colar o log do
 item **Receita + variáveis: o que mudaria**. Leia com ele:
 - **Receita:** critério **"nada muda"** — recursos em `NoChange` (ou `Ignore`). Cada `Modify`/`Create`/
   `Delete` é diferença entre a receita e a homologação → ajuste o `main.bicep` e repita. Propriedade que
@@ -198,9 +218,10 @@ Só avance quando o owner disser que o resultado está limpo.
 se registra as **permissões da conexão do pipeline em produção** e o ambiente `producao` com aprovadores
 como já feitos, diga "já está pronto desde <data>, seguimos" e vá pra etapa 6.
 
-Se não estão feitos, entregue ao owner **o chamado pronto**: copie o `templates/azure-prd/permissoes-infra.md`
-(`${CLAUDE_PLUGIN_ROOT}/templates/azure-prd/permissoes-infra.md`) trocando `OBJECT_ID` pelo código da
-linha `Identidade do pipeline` do log da etapa 3 e `<PROJETO>` pelo nome real. Nunca peça o código pelo
+Se não estão feitos, entregue ao owner **o chamado pronto**: copie o `templates/azure-ambiente/permissoes-infra.md`
+(`${CLAUDE_PLUGIN_ROOT}/templates/azure-ambiente/permissoes-infra.md`), trocando `<PROJETO>` pelo nome real.
+Os comandos já vêm com o código da conexão (`ecab5b96-…`); confira com a linha `Identidade do pipeline` do
+log da etapa 3 — se for outro código, troque pelo do log. Nunca peça o código pelo
 "Manage App registration" — no MSS-UTILS ele levou as permissões pra outra identidade (caso F-039).
 Pedido ao owner: mandar esse texto pra infra e avisar aqui quando estiver feito.
 
@@ -212,7 +233,7 @@ roda sem parar. O nome do ambiente é `producao`, **minúsculo e sem acento**, i
 ## Etapa 6 de 6 — Rodar em produção e aprovar
 
 Pedido ao owner:
-1. **Rodar:** **Pipelines** → `<PROJETO>-INFRA` → **Run pipeline** → branch `feature/azure-prd` → **prd** →
+1. **Rodar:** **Pipelines** → `<PROJETO>-INFRA` → **Run pipeline** → branch `feature/azure-ambiente` → **prd** →
    **Next: Resources** → **Run**. Se aparecer "Permission needed" (agora pro ambiente `producao`) →
    **View** → **Permit**.
 2. **Copiar o log da simulação:** estágio **Simular** → item **Receita + variáveis: o que mudaria** →
@@ -222,7 +243,7 @@ Pedido ao owner:
    > Preciso da sua aprovação para criar o Web App de produção do `<projeto>` (`mss-miti-ai-<projeto>-prod`).
    > A simulação já foi conferida. Por favor:
    > 1. Abra: `<endereço do pipeline <PROJETO>-INFRA no Azure DevOps>`
-   > 2. Clique na execução `<número>` (branch `feature/azure-prd`).
+   > 2. Clique na execução `<número>` (branch `feature/azure-ambiente`).
    > 3. No aviso no topo, ou no estágio "Criar em produção", clique em **Review**.
    > 4. Clique em **Approve**.
 4. **Depois de aprovado:** estágio **Criar em produção** → item **Aplicar a receita e as variáveis em

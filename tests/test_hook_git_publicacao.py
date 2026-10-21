@@ -95,7 +95,7 @@ def _avaliar(comando, git=None, tool="Bash", ambiente=None):
     "az webapp config appsettings set -g rg -n app --settings X=1",
     "az webapp restart -g rg -n app",
     "az containerapp update -n app -g rg --image x",
-    # receita Bicep/ARM (/mss-spec:azure-prd): criar recurso é do pipeline com aprovação, nunca do assistente
+    # receita Bicep/ARM (/mss-spec:azure-ambiente): criar recurso é do pipeline com aprovação, nunca do assistente
     "az deployment group create -g RG-MSSAI-PRD -f infra/main.bicep -p infra/prd.bicepparam",
     "az deployment sub create -l brazilsouth -f infra/main.bicep",
     "az deployment mg create -m mg -l brazilsouth -f main.bicep",
@@ -212,7 +212,7 @@ def test_push_com_destino_explicito_nao_consulta_o_git():
     "docker ps",
     "az account show",
     "az webapp log tail -g rg -n app",
-    # simular e conferir a receita (/mss-spec:azure-prd) não muda nada no Azure
+    # simular e conferir a receita (/mss-spec:azure-ambiente) não muda nada no Azure
     "az deployment group what-if -g RG-MSSAI-DEV -f infra/main.bicep -p infra/hml.bicepparam",
     "az deployment group validate -g RG-MSSAI-DEV -f infra/main.bicep",
     "az deployment group show -g rg -n dep",

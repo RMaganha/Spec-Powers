@@ -1,10 +1,10 @@
-"""Variáveis de ambiente (App Settings) da homologação levadas pra produção — /mss-spec:azure-prd.
+"""Variáveis de ambiente (App Settings) da homologação levadas pra produção — /mss-spec:azure-ambiente.
 
 O owner exigiu: TODAS as variáveis da homologação vão; senha/chave vai como `*****`; nenhuma pode ficar
 pra trás calada. E a receita não pode apagar a senha verdadeira que o prestador colocou em produção numa
-2ª execução do pipeline. O `templates/azure-prd/app_settings.py` resolve isso fora do Bicep (no Bicep,
+2ª execução do pipeline. O `templates/azure-ambiente/app_settings.py` resolve isso fora do Bicep (no Bicep,
 `appSettings` substitui a coleção inteira), lendo os valores na hora e gravando por mescla.
-Spec: docs/specs/azure-prd.md.
+Spec: docs/specs/azure-ambiente.md.
 """
 import importlib.util
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-SCRIPT = REPO / "templates" / "azure-prd" / "app_settings.py"
+SCRIPT = REPO / "templates" / "azure-ambiente" / "app_settings.py"
 
 
 def _mod():
@@ -236,3 +236,53 @@ def test_registro_sem_acesso_vira_pendencia(tmp_path):
     assert code == 0, log
     assert "DOCKER_REGISTRY_SERVER_PASSWORD" not in az.gravado
     assert "DOCKER_REGISTRY_SERVER_PASSWORD" in log.split("Faltam preencher")[-1]
+
+
+# --- plataforma: as variaveis que nao sao do sistema, numa homologacao nova -------------------
+
+def _plataforma(az, porta="8000"):
+    linhas = []
+    code = _mod().executar(["plataforma", "--app-rg", "RG-MSSAI-DEV", "--app", "app-hml", "--porta", porta],
+                           az=az, saida=linhas.append)
+    return code, "\n".join(linhas)
+
+
+def test_plataforma_cria_as_variaveis_da_casa_numa_homologacao_nova():
+    """Valores do roteiro do MSS-UTILS (docs/deploy-azure-dev.md:385-398) + AMBIENTE.md secao 5."""
+    az = _Az({}, {})
+    code, log = _plataforma(az)
+    assert code == 0, log
+    assert az.gravado == {
+        "DOCKER_REGISTRY_SERVER_URL": "https://mssaicontainerregistry.azurecr.io",
+        "DOCKER_REGISTRY_SERVER_USERNAME": "mssaicontainerregistry",
+        "DOCKER_REGISTRY_SERVER_PASSWORD": "senha-do-registro",
+        "WEBSITES_PORT": "8000",
+        "WEBSITES_CONTAINER_START_TIME_LIMIT": "600",
+        "WEBSITE_HEALTHCHECK_MAXPINGFAILURES": "10",
+        "TZ": "America/Sao_Paulo",
+        "WEBSITE_DNS_SERVER": "10.170.210.2",
+    }
+    assert az.acr_pedido == "mssaicontainerregistry"
+    assert "senha-do-registro" not in log
+
+
+def test_plataforma_nunca_sobrescreve_o_que_ja_existe():
+    az = _Az({"WEBSITES_PORT": "9000", "TZ": "UTC"}, {})
+    code, _ = _plataforma(az)
+    assert code == 0
+    assert "WEBSITES_PORT" not in az.gravado and "TZ" not in az.gravado
+    assert az.apps[("RG-MSSAI-DEV", "app-hml")]["WEBSITES_PORT"] == "9000"
+
+
+def test_plataforma_sem_acesso_ao_registro_lista_a_pendencia():
+    az = _Az({}, {}, acr=None)
+    code, log = _plataforma(az)
+    assert code == 0
+    assert "DOCKER_REGISTRY_SERVER_PASSWORD" not in az.gravado
+    assert "DOCKER_REGISTRY_SERVER_PASSWORD" in log.split("Faltam preencher")[-1]
+
+
+def test_plataforma_sem_web_app_falha():
+    az = _Az(None, {})
+    code, log = _plataforma(az)
+    assert code == 1 and "app-hml" in log

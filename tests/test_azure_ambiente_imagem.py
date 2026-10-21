@@ -1,6 +1,6 @@
-"""Imagem do Web App no pipeline do /mss-spec:azure-prd — roda o trecho de bash real com um `az` falso.
+"""Imagem do Web App no pipeline do /mss-spec:azure-ambiente — roda o trecho de bash real com um `az` falso.
 
-Regra (spec docs/specs/azure-prd.md):
+Regra (spec docs/specs/azure-ambiente.md):
 - Web App já existe → usa a imagem que está rodando nele (nova execução nunca volta pra versão velha).
 - 1ª criação de produção (Web App de produção ainda não existe) → usa a imagem que está rodando na
   HOMOLOGAÇÃO: já testada, mesmo registro; produção nasce espelho e sobe sem esperar o pipeline de código
@@ -16,7 +16,7 @@ import pytest
 yaml = pytest.importorskip("yaml")
 
 REPO = Path(__file__).resolve().parent.parent
-PIPE = REPO / "templates" / "azure-prd" / "azure-pipelines-prd.yml"
+PIPE = REPO / "templates" / "azure-ambiente" / "azure-pipelines-infra.yml"
 VARS = {"$(rgHml)": "RG-MSSAI-DEV", "$(webAppHml)": "app-hml",
         "$(rgPrd)": "RG-MSSAI-PRD", "$(webAppPrd)": "app-prd"}
 IMG_HML = "DOCKER|mssaicontainerregistry.azurecr.io/app-hml:123"
@@ -85,8 +85,8 @@ RG='{rg}'; APP='{app}'
 
 def test_os_dois_estagios_tem_o_mesmo_bloco_de_imagem():
     s = _scripts()
-    assert set(s) == {"Simular", "Criar"}
-    assert _bloco(s["Simular"]) == _bloco(s["Criar"]), "a regra da imagem divergiu entre Simular e Criar"
+    assert set(s) == {"Simular", "CriarHml", "Criar"}
+    assert _bloco(s["Simular"]) == _bloco(s["Criar"]) == _bloco(s["CriarHml"]), "a regra da imagem divergiu entre os estagios"
 
 
 @pytest.mark.parametrize("estagio", ["Simular", "Criar"])
@@ -134,3 +134,29 @@ def test_simular_mostra_a_identidade_que_recebe_as_permissoes():
     assert "ecab5b96-527b-415d-bc02-3a31cfea7fb0" in proc.stdout
     assert "Identidade do pipeline" in proc.stdout
     assert token not in proc.stdout, "o token nunca vai pro log"
+
+
+def test_homologacao_nova_nasce_com_imagem_provisoria():
+    """Projeto novo: a imagem real nasce no 1o push na dev; a homologacao e criada com uma provisoria."""
+    code, saida = _rodar(_bloco(_scripts()["CriarHml"]), "RG-MSSAI-DEV", "app-hml", hml=None)
+    assert code == 0 and saida == "IMAGEM=DOCKER|mcr.microsoft.com/appsvc/staticsite:latest"
+
+
+def test_criar_homologacao_nunca_mexe_numa_que_ja_existe(tmp_path):
+    """A guarda roda o script INTEIRO do CriarHml com um az falso que registra cada chamada."""
+    chamadas = tmp_path / "chamadas.txt"
+    falso = f"""
+az() {{
+  echo "$*" >> "{chamadas.as_posix()}"
+  case "$*" in *"webapp show"*) echo "DOCKER|x"; return 0 ;; esac
+  return 0
+}}
+"""
+    script = _scripts()["CriarHml"]
+    for k, v in VARS.items():
+        script = script.replace(k, v)
+    proc = subprocess.run([_bash(), "-c", falso + script], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert "nada a criar" in proc.stdout
+    feitas = chamadas.read_text(encoding="utf-8") if chamadas.exists() else ""
+    assert "deployment" not in feitas and "appsettings" not in feitas, feitas

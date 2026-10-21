@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.41.0 — 2026-10-21 (azure-ambiente: cria também a homologação)
+- **o que motivou:** o owner monta a homologação de cada desenvolvedor à mão, replicando a mesma receita — leva tempo. E o nome passa a dizer o que o comando faz: os ambientes Azure, não só produção.
+- feat(**renomeado**): `/mss-spec:azure-prd` → **`/mss-spec:azure-ambiente`**; nos projetos, a branch vira `feature/azure-ambiente` e o pipeline `azure-pipelines-infra.yml`. Projeto que já usa os nomes antigos (MSS-UTILS) segue funcionando com os arquivos dele.
+- feat(**receita-base**): `templates/azure-ambiente/main.bicep`, tirada da receita do MSS-UTILS (em produção), com `comandoInicial`, `caminhoSaude` e `ipsPermitidos`; os dois `.bicepparam` declaram os mesmos parâmetros. Com homologação existente, o export vira conferência.
+- feat(**homologação nova**): no pipeline, a opção `hml` cria a homologação que ainda não existe (estágio `CriarHml`, sem aprovação, imagem provisória trocada no 1º push na `dev`) e nunca altera uma que existe; `app_settings.py plataforma` cria as variáveis de plataforma (registro, porta, tempo de subida, saúde, fuso, DNS) sem sobrescrever; as do sistema o owner cria no portal.
+- docs: chamado-modelo com a seção 4 (permissões na rede de homologação, ainda não feitas); `AMBIENTE.md` §5 com a subnet de homologação; comando com a etapa 1 "ponto de partida"; spec renomeada `docs/specs/azure-ambiente.md`.
+
 ## 0.40.0 — 2026-10-20 (azure-prd: lições da 1ª produção real, MSS-UTILS)
 - **o que motivou:** o MSS-UTILS foi do export à produção no ar (`/health` 200), e o caminho mostrou 22 pontos que o owner anotou pra corrigir no fim, mais duas falhas que custaram horas: permissões dadas à identidade errada (F-039) e a senha do registro de imagens chegando vazia em produção.
 - feat(**identidade do pipeline**): o Simular imprime `Identidade do pipeline (object id …)`, lida do próprio token (que nunca vai pro log); é com ela que a infra dá as permissões.

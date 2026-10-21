@@ -1,6 +1,6 @@
-"""Variáveis de ambiente (App Settings) da homologação levadas pra produção — gerado pelo /mss-spec:azure-prd.
+"""Variáveis de ambiente (App Settings) da homologação levadas pra produção — gerado pelo /mss-spec:azure-ambiente.
 
-Roda DENTRO do pipeline (azure-pipelines-infra-prd.yml), já logado no Azure pela conexão do pipeline.
+Roda DENTRO do pipeline (azure-pipelines-infra.yml), já logado no Azure pela conexão do pipeline.
 Nunca imprime valor: só nomes e o que acontece com cada um.
 
 O arquivo `infra/app-settings.json` (versionado, sem valor nenhum) diz o que fazer com cada variável:
@@ -14,6 +14,9 @@ O arquivo `infra/app-settings.json` (versionado, sem valor nenhum) diz o que faz
               TRAVA (exit 1) com o nome dela; sem arquivo, imprime a proposta pronta pra colar.
   aplicar   → confere e grava em produção por MESCLA (o que não está no plano fica como está) e lista
               as senhas que ainda estão ***** em produção — o que falta o prestador preencher.
+  plataforma → numa homologação NOVA, cria só as variáveis de plataforma da casa (registro de imagens,
+              porta, tempo de subida, saúde, fuso, DNS) que ainda não existem — nunca sobrescreve. As do
+              sistema o owner cria no portal.
 
 Fora do Bicep de propósito: no Bicep, `appSettings` substitui a coleção inteira — uma 2ª execução
 apagaria a senha que o prestador colocou à mão.
@@ -122,15 +125,76 @@ def _senha_do_registro(az, hml):
     return valor.strip() if code == 0 and valor.strip() else None
 
 
+def _gravar(az, rg, app, valores):
+    """Grava por MESCLA (o que não está em `valores` fica como está). Valores passam por arquivo
+    temporário apagado em seguida — nunca pela linha de comando nem pelo log."""
+    fd, caminho = tempfile.mkstemp(suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump([{"name": k, "value": v, "slotSetting": False} for k, v in valores.items()], f)
+        code, _ = az(["webapp", "config", "appsettings", "set", "-g", rg, "-n", app,
+                      "--settings", "@" + caminho, "-o", "none"])
+    finally:
+        os.remove(caminho)
+    return code
+
+
+# Variáveis de PLATAFORMA (não são do sistema) de toda homologação nova — roteiro do MSS-UTILS
+# (docs/deploy-azure-dev.md §8) e docs/AMBIENTE.md §5. As do sistema o owner cria no portal.
+REGISTRO = "mssaicontainerregistry"
+PLATAFORMA = {
+    "DOCKER_REGISTRY_SERVER_URL": f"https://{REGISTRO}.azurecr.io",
+    "DOCKER_REGISTRY_SERVER_USERNAME": REGISTRO,
+    "WEBSITES_CONTAINER_START_TIME_LIMIT": "600",
+    "WEBSITE_HEALTHCHECK_MAXPINGFAILURES": "10",
+    "TZ": "America/Sao_Paulo",
+    "WEBSITE_DNS_SERVER": "10.170.210.2",
+}
+
+
+def plataforma(a, az, saida):
+    atual = _listar(az, a.app_rg, a.app)
+    if atual is None:
+        saida(f"ERRO: o Web App {a.app} em {a.app_rg} não existe ou não responde — a receita tem de criá-lo antes.")
+        return 1
+    desejado = dict(PLATAFORMA, WEBSITES_PORT=a.porta)
+    senha = _senha_do_registro(az, {"DOCKER_REGISTRY_SERVER_URL": PLATAFORMA["DOCKER_REGISTRY_SERVER_URL"]})
+    pendentes = []
+    if senha:
+        desejado[SENHA_REGISTRO] = senha
+    elif atual.get(SENHA_REGISTRO) in (None, ""):
+        pendentes.append(SENHA_REGISTRO)
+    gravar = {k: v for k, v in desejado.items() if atual.get(k) in (None, "")}
+    for nome in sorted(desejado):
+        saida(f"  {nome}: {'cria' if nome in gravar else 'já existe: não mexe'}")
+    if gravar:
+        code = _gravar(az, a.app_rg, a.app, gravar)
+        if code != 0:
+            saida(f"ERRO: a gravação das variáveis em {a.app} falhou (az saiu {code}).")
+            return 1
+        saida(f"Gravadas {len(gravar)} variáveis de plataforma em {a.app}. As do sistema: crie no portal.")
+    if pendentes:
+        saida(f"Faltam preencher (com ***** ou vazias): {', '.join(pendentes)}")
+    return 0
+
+
 def executar(argv, az=_az_real, saida=print):
     ap = argparse.ArgumentParser(prog="app_settings.py")
-    ap.add_argument("acao", choices=("conferir", "aplicar"))
-    ap.add_argument("--config", required=True)
-    ap.add_argument("--hml-rg", required=True)
-    ap.add_argument("--hml-app", required=True)
-    ap.add_argument("--prd-rg", required=True)
-    ap.add_argument("--prd-app", required=True)
+    sub = ap.add_subparsers(dest="acao", required=True)
+    for acao in ("conferir", "aplicar"):
+        p = sub.add_parser(acao)
+        p.add_argument("--config", required=True)
+        p.add_argument("--hml-rg", required=True)
+        p.add_argument("--hml-app", required=True)
+        p.add_argument("--prd-rg", required=True)
+        p.add_argument("--prd-app", required=True)
+    p = sub.add_parser("plataforma")
+    p.add_argument("--app-rg", required=True)
+    p.add_argument("--app", required=True)
+    p.add_argument("--porta", required=True)
     a = ap.parse_args(argv)
+    if a.acao == "plataforma":
+        return plataforma(a, az, saida)
 
     hml = _listar(az, a.hml_rg, a.hml_app)
     if hml is None:
@@ -172,14 +236,7 @@ def executar(argv, az=_az_real, saida=print):
         return 1
 
     if a.acao == "aplicar" and plano.gravar:
-        fd, caminho = tempfile.mkstemp(suffix=".json")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump([{"name": k, "value": v, "slotSetting": False} for k, v in plano.gravar.items()], f)
-            code, _ = az(["webapp", "config", "appsettings", "set", "-g", a.prd_rg, "-n", a.prd_app,
-                          "--settings", "@" + caminho, "-o", "none"])
-        finally:
-            os.remove(caminho)
+        code = _gravar(az, a.prd_rg, a.prd_app, plano.gravar)
         if code != 0:
             saida(f"ERRO: a gravação das variáveis em {a.prd_app} falhou (az saiu {code}).")
             return 1

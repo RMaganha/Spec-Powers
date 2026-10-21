@@ -1,9 +1,10 @@
-# Pipeline de INFRA — gerado pelo /mss-spec:azure-prd.
-# Leva a homologação que funciona pra produção pela receita infra/main.bicep. Nada roda na máquina do
-# owner: tudo aqui, com a conexão do pipeline.
+# Pipeline de INFRA — gerado pelo /mss-spec:azure-ambiente.
+# Cria a homologação (se ainda não existe) e leva a homologação que funciona pra produção, pela receita
+# infra/main.bicep. Nada roda na máquina do owner: tudo aqui, com a conexão do pipeline.
 #
 # Roda à mão: Pipelines → este pipeline → Run pipeline → escolha o ambiente:
-#   hml → só SIMULA contra a homologação (prova que a receita é igual ao que funciona). Não cria nada.
+#   hml → homologação NÃO existe: cria (sem aprovação) com imagem provisória e as variáveis de plataforma.
+#         homologação JÁ existe: só SIMULA contra ela — nunca altera uma homologação que funciona.
 #   prd → simula contra produção, PARA no botão de aprovação e, depois do clique, cria.
 #
 # O botão mora no environment 'producao' (Pipelines → Environments → producao → Approvals and checks).
@@ -15,7 +16,7 @@ trigger: none
 
 parameters:
 - name: ambiente
-  displayName: 'Ambiente (hml = só simula na homologação · prd = simula, espera aprovação e cria)'
+  displayName: 'Ambiente (hml = cria a homologação se não existe, senão só simula · prd = simula, espera aprovação e cria)'
   type: string
   default: hml
   values:
@@ -29,6 +30,8 @@ variables:
   rgPrd: 'RG-MSSAI-PRD'
   webAppHml: 'mss-miti-ai-<projeto>-dev-br'
   webAppPrd: 'mss-miti-ai-<projeto>-prod'
+  # Porta do container (a mesma do comando de inicialização) — vira a WEBSITES_PORT da homologação nova.
+  porta: '<porta>'
 
 stages:
 - stage: Simular
@@ -54,7 +57,8 @@ stages:
           echo "Identidade do pipeline (object id, é este que recebe as permissões): $OID"
           # identidade: fim
           az bicep build --file infra/main.bicep
-          # imagem: início — a que está rodando no Web App; na 1ª criação de produção, a da homologação
+          # imagem: início — a que está rodando no Web App; 1ª criação de produção: a da homologação;
+          # 1ª criação de homologação: uma provisória, que o pipeline de código troca no 1º push na dev
           IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
           if [ -z "$IMG" ] && [ "$APP" = '$(webAppPrd)' ]; then
             # produção ainda não existe: nasce com a imagem já testada na homologação (mesmo registro).
@@ -62,13 +66,66 @@ stages:
             IMG="$(az webapp show -g '$(rgHml)' -n '$(webAppHml)' --query siteConfig.linuxFxVersion -o tsv)"
             echo "1ª criação de produção: usa a imagem da homologação ($IMG)"
           fi
+          if [ -z "$IMG" ] && [ "$APP" = '$(webAppHml)' ]; then
+            IMG='DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+            echo "1ª criação de homologação: usa uma imagem provisória ($IMG) até o 1º push na dev"
+          fi
           if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
           # imagem: fim
-          echo "=== Receita contra $RG (hml: tem de dar 'nada muda') ==="
+          echo "=== Receita contra $RG (homologação que existe: tem de dar 'nada muda'; nova: o que será criado) ==="
           az deployment group what-if --resource-group "$RG" --parameters "infra/$AMB.bicepparam"
           echo "=== Variáveis de ambiente (só nomes, nunca valores) ==="
-          python3 infra/app_settings.py conferir --config infra/app-settings.json \
-            --hml-rg '$(rgHml)' --hml-app '$(webAppHml)' --prd-rg '$(rgPrd)' --prd-app '$(webAppPrd)'
+          if az webapp show -g '$(rgHml)' -n '$(webAppHml)' >/dev/null 2>&1; then
+            python3 infra/app_settings.py conferir --config infra/app-settings.json \
+              --hml-rg '$(rgHml)' --hml-app '$(webAppHml)' --prd-rg '$(rgPrd)' --prd-app '$(webAppPrd)'
+          else
+            echo "A homologação ainda não existe: o estágio 'Criar homologação' cria as variáveis de plataforma; as do sistema você cria no portal depois."
+          fi
+
+# CriarHml só EXISTE quando o ambiente é hml: cria a homologação que ainda não existe, sem aprovação.
+# Homologação que já existe: sai sem tocar em nada.
+- ${{ if eq(parameters.ambiente, 'hml') }}:
+  - stage: CriarHml
+    displayName: 'Criar homologação (só se ainda não existe — sem aprovação)'
+    dependsOn: Simular
+    jobs:
+    - job: CriarHml
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+      - task: AzureCLI@2
+        displayName: 'Criar a homologação em $(rgHml), se ainda não existe'
+        inputs:
+          azureSubscription: $(azureServiceConnection)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+            RG='$(rgHml)'; APP='$(webAppHml)'
+            if az webapp show -g "$RG" -n "$APP" >/dev/null 2>&1; then
+              echo "A homologação $APP já existe: nada a criar (a opção hml nunca altera uma homologação que existe)."
+              exit 0
+            fi
+            # imagem: início — a que está rodando no Web App; 1ª criação de produção: a da homologação;
+            # 1ª criação de homologação: uma provisória, que o pipeline de código troca no 1º push na dev
+            IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
+            if [ -z "$IMG" ] && [ "$APP" = '$(webAppPrd)' ]; then
+              # produção ainda não existe: nasce com a imagem já testada na homologação (mesmo registro).
+              # Sem ela, o script FALHA — nunca cria produção com uma imagem que não existe.
+              IMG="$(az webapp show -g '$(rgHml)' -n '$(webAppHml)' --query siteConfig.linuxFxVersion -o tsv)"
+              echo "1ª criação de produção: usa a imagem da homologação ($IMG)"
+            fi
+            if [ -z "$IMG" ] && [ "$APP" = '$(webAppHml)' ]; then
+              IMG='DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+              echo "1ª criação de homologação: usa uma imagem provisória ($IMG) até o 1º push na dev"
+            fi
+            if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
+            # imagem: fim
+            az deployment group create \
+              --resource-group '$(rgHml)' \
+              --parameters infra/hml.bicepparam \
+              --name azure-ambiente-hml-$(Build.BuildId)
+            python3 infra/app_settings.py plataforma --app-rg '$(rgHml)' --app '$(webAppHml)' --porta '$(porta)'
 
 # Criar só EXISTE quando o ambiente é prd: removido na compilação, não pulado por condição — estágio
 # pulado por `condition:` ainda pediria a aprovação.
@@ -95,7 +152,8 @@ stages:
                 inlineScript: |
                   set -euo pipefail
                   RG='$(rgPrd)'; APP='$(webAppPrd)'
-                  # imagem: início — a que está rodando no Web App; na 1ª criação de produção, a da homologação
+                  # imagem: início — a que está rodando no Web App; 1ª criação de produção: a da homologação;
+                  # 1ª criação de homologação: uma provisória, que o pipeline de código troca no 1º push na dev
                   IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"
                   if [ -z "$IMG" ] && [ "$APP" = '$(webAppPrd)' ]; then
                     # produção ainda não existe: nasce com a imagem já testada na homologação (mesmo registro).
@@ -103,11 +161,15 @@ stages:
                     IMG="$(az webapp show -g '$(rgHml)' -n '$(webAppHml)' --query siteConfig.linuxFxVersion -o tsv)"
                     echo "1ª criação de produção: usa a imagem da homologação ($IMG)"
                   fi
+                  if [ -z "$IMG" ] && [ "$APP" = '$(webAppHml)' ]; then
+                    IMG='DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+                    echo "1ª criação de homologação: usa uma imagem provisória ($IMG) até o 1º push na dev"
+                  fi
                   if [ -n "$IMG" ]; then export IMAGEM="$IMG"; fi
                   # imagem: fim
                   az deployment group create \
                     --resource-group '$(rgPrd)' \
                     --parameters infra/prd.bicepparam \
-                    --name azure-prd-$(Build.BuildId)
+                    --name azure-ambiente-$(Build.BuildId)
                   python3 infra/app_settings.py aplicar --config infra/app-settings.json \
                     --hml-rg '$(rgHml)' --hml-app '$(webAppHml)' --prd-rg '$(rgPrd)' --prd-app '$(webAppPrd)'

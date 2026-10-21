@@ -1179,15 +1179,15 @@ def test_como_funciona_lista_todos_os_comandos():
 
 
 def test_azure_prd_wiring():
-    """/mss-spec:azure-prd: receita Bicep da homologacao levada pra producao pelo pipeline com aprovacao.
-    Spec: docs/specs/azure-prd.md."""
-    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    """/mss-spec:azure-ambiente: receita Bicep da homologacao levada pra producao pelo pipeline com aprovacao.
+    Spec: docs/specs/azure-ambiente.md."""
+    cmd = (REPO / "commands" / "azure-ambiente.md").read_text(encoding="utf-8")
     for trecho in ("infra/main.bicep", "infra/hml.bicepparam", "infra/prd.bicepparam",
                    "infra/app-settings.json", "infra/app_settings.py", "what-if", "RG-MSSAI-DEV",
                    "RG-MSSAI-PRD", "Approvals and checks", "Run pipeline",
-                   "templates/azure-prd/azure-pipelines-prd.yml", "templates/azure-prd/prd.bicepparam",
-                   "templates/azure-prd/app_settings.py"):
-        assert trecho in cmd, f"commands/azure-prd.md sem {trecho!r}"
+                   "templates/azure-ambiente/azure-pipelines-infra.yml", "templates/azure-ambiente/prd.bicepparam",
+                   "templates/azure-ambiente/app_settings.py"):
+        assert trecho in cmd, f"commands/azure-ambiente.md sem {trecho!r}"
     # o assistente nunca aplica a receita: quem cria e o pipeline com aprovacao do owner
     assert "az deployment group create" in cmd and "owner" in cmd.lower()
     # F-036: nada roda na maquina do owner contra o Azure — nem az login, nem what-if local
@@ -1198,7 +1198,7 @@ def test_azure_prd_wiring():
     # F-036: pipeline de codigo de producao nao e suposto — e conferido
     assert "pendência" in cmd.lower() and "trigger" in cmd
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
-    assert "/mss-spec:azure-prd" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
+    assert "/mss-spec:azure-ambiente" in ambiente, "AMBIENTE.md secao Azure nao aponta o comando"
     # dados de producao mapeados uma vez no kit (medidos no Whats) — o comando usa, nao pergunta
     # F-037: WEBSITE_DNS_SERVER existe em producao (portal), embora os documentos do Whats nao a citassem
     assert "`WEBSITE_DNS_SERVER=10.170.210.2` (o mesmo)" in ambiente
@@ -1223,14 +1223,22 @@ def _estagios_azure_prd(doc):
 
 def test_azure_prd_pipeline_e_yaml_com_aprovacao():
     yaml = __import__("pytest").importorskip("yaml")
-    texto = (REPO / "templates" / "azure-prd" / "azure-pipelines-prd.yml").read_text(encoding="utf-8")
+    texto = (REPO / "templates" / "azure-ambiente" / "azure-pipelines-infra.yml").read_text(encoding="utf-8")
     doc = yaml.safe_load(texto)
     assert "trigger: none" in texto, "pipeline de infra roda a mao, nao por push"
     (param,) = doc["parameters"]
     assert param["name"] == "ambiente" and param["values"] == ["hml", "prd"] and param["default"] == "hml"
     estagios = _estagios_azure_prd(doc)
-    assert [e["stage"] for _, e in estagios] == ["Simular", "Criar"]
-    (cond_sim, simular), (cond_criar, criar) = estagios
+    assert [e["stage"] for _, e in estagios] == ["Simular", "CriarHml", "Criar"]
+    (cond_sim, simular), (cond_hml, criar_hml), (cond_criar, criar) = estagios
+    # CriarHml so EXISTE no hml, sem aprovacao (homologacao nova); nunca altera uma que ja existe
+    assert cond_hml and "parameters.ambiente" in cond_hml and "'hml'" in cond_hml
+    assert "environment" not in criar_hml["jobs"][0]
+    h = json.dumps(criar_hml, ensure_ascii=False)
+    for trecho in ("az deployment group create", "infra/hml.bicepparam", "app_settings.py plataforma", "nada a criar"):
+        assert trecho in h, f"CriarHml sem {trecho!r}"
+    assert h.index("nada a criar") < h.index("deployment group create"), "a guarda vem antes de criar"
+    assert h.index("deployment group create") < h.index("app_settings.py plataforma")
     # Simular roda nos dois; Criar so EXISTE no prd (removido na compilacao — estagio pulado por
     # `condition:` ainda pediria a aprovacao)
     assert cond_sim is None
@@ -1252,7 +1260,7 @@ def test_azure_prd_pipeline_e_yaml_com_aprovacao():
 
 def test_azure_prd_bicepparam_preserva_a_imagem_rodando():
     for nome, sufixo in (("prd.bicepparam", "-prod"), ("hml.bicepparam", "-dev-br")):
-        params = (REPO / "templates" / "azure-prd" / nome).read_text(encoding="utf-8")
+        params = (REPO / "templates" / "azure-ambiente" / nome).read_text(encoding="utf-8")
         assert "using './main.bicep'" in params and sufixo in params, nome
         assert "readEnvironmentVariable('IMAGEM'" in params, f"{nome}: imagem fixa voltaria producao pra versao velha"
 
@@ -1262,16 +1270,16 @@ def test_azure_prd_bicepparam_aponta_o_grupo_do_plano():
     esperado = {"hml.bicepparam": "param grupoPlano = 'RG-MSSAI-DEV'",
                 "prd.bicepparam": "param grupoPlano = 'RG-MSSAI-PRD'"}
     for nome, linha in esperado.items():
-        params = (REPO / "templates" / "azure-prd" / nome).read_text(encoding="utf-8")
+        params = (REPO / "templates" / "azure-ambiente" / nome).read_text(encoding="utf-8")
         assert linha in params, f"{nome} sem {linha!r}"
-    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    cmd = (REPO / "commands" / "azure-ambiente.md").read_text(encoding="utf-8")
     assert "resourceId(grupoPlano, 'Microsoft.Web/serverfarms', nomePlano)" in cmd
 
 
 def test_azure_prd_conduz_em_6_etapas_com_um_pedido_por_vez():
     """F-038: no MSS-UTILS o owner se perdeu — o comando pedia aos pedacos, sem mapa nem 'onde estamos',
     aprovava arquivo por arquivo e descrevia teste interno. A conducao agora e regra do comando."""
-    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    cmd = (REPO / "commands" / "azure-ambiente.md").read_text(encoding="utf-8")
     etapas = re.findall(r"^## Etapa (\d) de 6 — ", cmd, flags=re.M)
     assert etapas == ["1", "2", "3", "4", "5", "6"], f"etapas no comando: {etapas}"
     for trecho in ("Etapa X de 6", "O que preciso de você agora", "nada, sigo sozinho",
@@ -1292,7 +1300,7 @@ def test_azure_prd_segue_o_export_real_do_portal():
     """Export real do MSS-UTILS (2026-10-16): o caminho do portal e '...' -> Exportar modelo -> Exportar como
     Bicep -> Download, com o aviso ExportTemplateCompletedWithErrors; e a receita traz pecas da homologacao
     que nao podem ir pra producao. O comando ensina cada uma."""
-    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    cmd = (REPO / "commands" / "azure-ambiente.md").read_text(encoding="utf-8")
     for trecho in ("Exportar para CSV", "Exportar como Bicep", "**Download**", "ExportTemplateCompletedWithErrors"):
         assert trecho in cmd, f"etapa 1 sem {trecho!r}"
     assert "aba **Bicep**" not in cmd, "caminho antigo do portal (nao existe aba Bicep)"
@@ -1304,7 +1312,7 @@ def test_azure_prd_segue_o_export_real_do_portal():
 
 def test_azure_prd_licoes_da_1a_producao_real():
     """MSS-UTILS em producao (2026-10-20): o que faltou ao comando, item a item da lista do owner."""
-    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    cmd = (REPO / "commands" / "azure-ambiente.md").read_text(encoding="utf-8")
     low = cmd.lower()
     for trecho in (
         "<PROJETO>-INFRA", "Rename/move",                       # pipeline novo, separado, com nome
@@ -1317,7 +1325,7 @@ def test_azure_prd_licoes_da_1a_producao_real():
         "minúsculo",                                            # nome exato do ambiente producao
         "You do not have permissions to manage checks",         # sem permissao de aprovadores
         "Identidade do pipeline",                               # a identidade REAL recebe as permissoes
-        "templates/azure-prd/permissoes-infra.md",              # chamado pronto pra infra
+        "templates/azure-ambiente/permissoes-infra.md",              # chamado pronto pra infra
         "Vou enviar a branch", "não publica nada",              # avisa antes do envio
         "Chaves de acesso", "Regenerar", "Mostrar valores",     # de onde vem cada senha
         "/health", "Fluxo de log",                              # conferir depois de criar
@@ -1327,9 +1335,12 @@ def test_azure_prd_licoes_da_1a_producao_real():
     assert "nunca `networkConfig`" in cmd, "networkConfig exige permissao de alterar a subnet"
     assert "?" not in cmd.split("## Etapa 4 de 6")[1].split("## Etapa 5 de 6")[0].replace("?**", ""), \
         "etapa 4 voltaria a usar ? para valor que falta"
-    infra = (REPO / "templates" / "azure-prd" / "permissoes-infra.md").read_text(encoding="utf-8")
+    infra = (REPO / "templates" / "azure-ambiente" / "permissoes-infra.md").read_text(encoding="utf-8")
     for trecho in ("--assignee-object-id", "MSIG-VNet-Join-Subnet", "MSIG-VNet-ServiceEndpoint-Subnet",
-                   "joinViaServiceEndpoint", '--role "Reader"', "Identidade do pipeline", "uma vez só"):
+                   "joinViaServiceEndpoint", '--role "Reader"', "Identidade do pipeline", "uma vez só",
+                   # homologacao nova: as mesmas permissoes na rede de homologacao
+                   "resourceGroups/RG-MSSD-DEVQA/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA",
+                   "## 4. Permissões na rede de homologação"):
         assert trecho in infra, f"permissoes-infra.md sem {trecho!r}"
     assert "subnets/write" not in infra.replace("NÃO dar `subnets/write`", ""), "nunca pedir permissao de alterar a subnet"
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
