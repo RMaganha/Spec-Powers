@@ -1,7 +1,8 @@
-// Nomes de PRODUÇÃO — gerado pelo /mss-spec:azure-prd.
+// Nomes de PRODUÇÃO — gerado pelo /mss-spec:azure-ambiente.
 // A receita (main.bicep) é a mesma da homologação; aqui mora SÓ o que muda entre os ambientes.
 // Variáveis de ambiente NÃO entram aqui nem no main.bicep: quem cuida delas é o infra/app_settings.py.
-// Único valor a trocar: <projeto> no nome do Web App. O resto é fixo de produção (docs/AMBIENTE.md §5).
+// A trocar: <projeto>, <porta>/<processos> e os IPs — os mesmos da homologação. O resto é fixo de
+// produção (docs/AMBIENTE.md §5).
 using './main.bicep'
 
 param nomeWebApp = 'mss-miti-ai-<projeto>-prod'
@@ -14,3 +15,9 @@ param subnetId = '/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGr
 // pra versão velha) ou, na 1ª criação, a que está rodando na homologação (já testada, mesmo registro).
 // Sem valor padrão de propósito: faltou IMAGEM, a receita falha em vez de criar com imagem inexistente.
 param imagem = readEnvironmentVariable('IMAGEM')
+// Iguais aos da homologação: produção é espelho.
+param comandoInicial = 'uvicorn main:app --host 0.0.0.0 --port <porta> --workers <processos>'
+param caminhoSaude = '/health'
+param ipsPermitidos = [
+  { ip: '<ip do escritório>/32', nome: 'escritorio' }
+]

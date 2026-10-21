@@ -1,6 +1,6 @@
 # Pedido à infra — permissões do pipeline de criação de produção
 
-Gerado pelo `/mss-spec:azure-prd`. Feito **uma vez só**: vale pra todos os projetos que usam a mesma
+Gerado pelo `/mss-spec:azure-ambiente`. Feito **uma vez só**: vale pra todos os projetos que usam a mesma
 conexão do pipeline e a mesma rede de produção. Se a seção 5 do `docs/AMBIENTE.md` já registra que foi
 feito, não refaça.
 
@@ -18,8 +18,10 @@ Onde está: Azure DevOps → **Pipelines** → `<PROJETO>-INFRA` → a última e
 item **Receita + variáveis: o que mudaria** → a linha
 `Identidade do pipeline (object id, é este que recebe as permissões): <código>`.
 
-Nos comandos abaixo, troque `OBJECT_ID` por esse código, mantendo as aspas. Exemplo de como fica:
-`--assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0"`.
+Os comandos abaixo já vêm com o código da conexão `Mitsui Sumitomo Seguros S.A. - Azure Subscriptions`
+— **`ecab5b96-527b-415d-bc02-3a31cfea7fb0`**, o mesmo que recebeu as permissões de produção em 2026-10-20
+(`docs/AMBIENTE.md` §5). Confira com a linha do log: se o pipeline mostrar **outro** código (outra
+conexão), troque nos comandos pelo do log, mantendo as aspas.
 
 ## 2. Ambiente `producao` com aprovadores (Azure DevOps — administrador do projeto MSS-AI)
 
@@ -50,15 +52,15 @@ Depois de criar, espere uns 2 minutos.
 
 3.3. **Dar os três papéis à identidade do pipeline:**
 ```bash
-az role assignment create --assignee-object-id "OBJECT_ID" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-Join-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD"
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-Join-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD"
 ```
 ```bash
-az role assignment create --assignee-object-id "OBJECT_ID" --assignee-principal-type ServicePrincipal --role "Reader" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD"
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "Reader" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD"
 ```
 ```bash
-az role assignment create --assignee-object-id "OBJECT_ID" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-ServiceEndpoint-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD"
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-ServiceEndpoint-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD"
 ```
-Confira em cada saída: `"principalId": "OBJECT_ID"` (o mesmo código do item 1).
+Confira em cada saída: `"principalId": "ecab5b96-527b-415d-bc02-3a31cfea7fb0"` (o mesmo código do item 1).
 
 | Papel | Pra quê | Fonte |
 |---|---|---|
@@ -68,3 +70,20 @@ Confira em cada saída: `"principalId": "OBJECT_ID"` (o mesmo código do item 1)
 
 A subnet `SNET-WEB-AI-PRD` já está delegada para `Microsoft.Web/serverFarms` (conferido no portal em
 2026-10-16), por isso a permissão de alterar a subnet não é necessária.
+
+## 4. Permissões na rede de homologação (só pra o pipeline criar homologação nova)
+
+Os mesmos três papéis da seção 3 (criados uma vez só, na assinatura), agora na rede de homologação
+`VNET-MSSD-DEVQA` (grupo `RG-MSSD-DEVQA`, subnet `SNET-WEB-AI-DEVQA`, já delegada a
+`Microsoft.Web/serverFarms` — é a que as homologações de hoje usam). Mesmo código do item 1.
+```bash
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-Join-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-DEVQA/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA"
+```
+```bash
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "Reader" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-DEVQA/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-DEVQA"
+```
+```bash
+az role assignment create --assignee-object-id "ecab5b96-527b-415d-bc02-3a31cfea7fb0" --assignee-principal-type ServicePrincipal --role "MSIG-VNet-ServiceEndpoint-Subnet" --scope "/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-DEVQA/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA"
+```
+Confira em cada saída: `"principalId": "ecab5b96-527b-415d-bc02-3a31cfea7fb0"`. Se a criação falhar dizendo que falta permissão de
+criar Web App em `RG-MSSAI-DEV`, o erro mostra a permissão exata — leve-a à infra como está, sem chute.

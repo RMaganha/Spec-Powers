@@ -138,13 +138,13 @@ Pipeline padrão via Azure DevOps (ACR → Azure Web App), acionado por branch:
 | App Service Plan (compartilhado entre os apps) | `mss-ai-asp-dev-br` | `mss-ai-asp-prod-br` — grupo `RG-MSSAI-PRD`, B3 Linux (portal, 2026-10-15) |
 | VNet / Subnet (integração do Web App) | `VNET-MSSD-DEVQA` / `SNET-WEB-AI-DEVQA` | `VNET-MSSD-PRD` / `SNET-WEB-AI-PRD` |
 | DNS de saída | `WEBSITE_DNS_SERVER=10.170.210.2` | `WEBSITE_DNS_SERVER=10.170.210.2` (o mesmo) **+ `WEBSITE_DNS_ALT_SERVER=168.63.129.16` obrigatória** |
-| Senha do registro de imagens (`DOCKER_REGISTRY_SERVER_*`) | a do `mssaicontainerregistry` | a mesma (registro compartilhado) — no `azure-prd`, `copiar`, nunca `*****` |
+| Senha do registro de imagens (`DOCKER_REGISTRY_SERVER_*`) | a do `mssaicontainerregistry` | a mesma (registro compartilhado) — no `azure-ambiente`, `copiar`, nunca `*****` |
 
 Plano, VNet e DNS de produção: medidos no Whats (`IA Bot Agent - Whats`, `docs/chatwoot-azure-prod.md` e
 spec `deploy-azure-prd.md`, produção no ar em 2026-09-24). **DNS:** integrado à `VNET-MSSD-PRD`, o Web App
 herda o DNS dela, que não resolve nome **público** (ex.: o Postgres gerenciado de produção) — sem a
 `WEBSITE_DNS_ALT_SERVER` (o resolvedor fixo da própria Azure) a conexão nem sai; a homologação funciona
-sem ela. No `/mss-spec:azure-prd` ela entra no `infra/app-settings.json` como `{"prd": "168.63.129.16"}`.
+sem ela. No `/mss-spec:azure-ambiente` ela entra no `infra/app-settings.json` como `{"prd": "168.63.129.16"}`.
 A `WEBSITE_DNS_SERVER=10.170.210.2` vale nos **dois** ambientes (conferido no portal, Web App de produção
 do Whats, 2026-10-15 — os documentos do Whats não a citavam): `copiar`. Documento sem a variável não é
 prova de que o ambiente não a tem — confira no portal (caso F-037).
@@ -153,7 +153,7 @@ prova de que o ambiente não a tem — confira no portal (caso F-037).
 `/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-PRD/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-PRD/subnets/SNET-WEB-AI-PRD`
 
 **Permissões da conexão do pipeline em produção — feitas em 2026-10-20** (1ª produção pelo
-`/mss-spec:azure-prd`, MSS-UTILS). Valem pra todo projeto que usa a conexão abaixo; o `azure-prd` pula a
+`/mss-spec:azure-ambiente`, MSS-UTILS). Valem pra todo projeto que usa a conexão abaixo; o `azure-ambiente` pula a
 etapa 5 quando estão aqui:
 - identidade da conexão `Mitsui Sumitomo Seguros S.A. - Azure Subscriptions` (object id
   `ecab5b96-527b-415d-bc02-3a31cfea7fb0` — o que o pipeline mostra na linha `Identidade do pipeline`);
@@ -161,7 +161,14 @@ etapa 5 quando estão aqui:
   acesso apontando pra subnet) em `SNET-WEB-AI-PRD`; papel `Reader` na rede `VNET-MSSD-PRD`. Sem
   permissão de alterar a subnet (já delegada a `Microsoft.Web/serverFarms`);
 - ambiente `producao` no projeto MSS-AI do Azure DevOps, com aprovadores (gerente e coordenador de infra).
-Chamado-modelo, se precisar refazer: `templates/azure-prd/permissoes-infra.md`.
+
+**Rede de homologação** (export do MSS-UTILS, 2026-10-16): `VNET-MSSD-DEVQA` fica no grupo `RG-MSSD-DEVQA`;
+id completo da subnet:
+`/subscriptions/e87b4af3-ce34-4c44-8c64-0151ca959654/resourceGroups/RG-MSSD-DEVQA/providers/Microsoft.Network/virtualNetworks/VNET-MSSD-DEVQA/subnets/SNET-WEB-AI-DEVQA`.
+**Permissões da conexão do pipeline na rede de homologação: ainda não feitas** — só são necessárias pra o
+`/mss-spec:azure-ambiente` criar uma homologação nova (seção 4 do chamado-modelo). Quando a infra fizer,
+troque esta linha por "feitas em <data>".
+Chamado-modelo, se precisar refazer: `templates/azure-ambiente/permissoes-infra.md`.
 
 Fixos em qualquer projeto:
 ```yaml
@@ -177,7 +184,7 @@ Estágios: **BuildAndPush** (`az acr build`, tag = `$(Build.BuildId)` + `latest`
 `webAppName` e `resourceGroup`.
 
 **Criar o ambiente de produção** (Web App, plano, ligação com a rede) a partir da homologação que já
-funciona: `/mss-spec:azure-prd` — receita Bicep exportada da homologação, simulada com `what-if` contra
+funciona: `/mss-spec:azure-ambiente` — receita Bicep exportada da homologação, simulada com `what-if` contra
 `RG-MSSAI-DEV` e aplicada em `RG-MSSAI-PRD` por um pipeline que para no botão de aprovação.
 
 ## 6. Outras convenções

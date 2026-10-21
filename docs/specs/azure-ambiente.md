@@ -1,7 +1,16 @@
-# Azure produção — receita da homologação levada pra produção (`/mss-spec:azure-prd`)
+# Ambientes Azure — homologação e produção pela mesma receita (`/mss-spec:azure-ambiente`)
 
 ## Estado atual
-**`/mss-spec:azure-prd`** (`commands/azure-prd.md`) leva a homologação que funciona pra produção sem
+Desde a 0.41.0 o comando chama **`/mss-spec:azure-ambiente`** (era `azure-prd`) e cria, nos projetos, a
+branch **`feature/azure-ambiente`**. A receita parte sempre da receita-base do kit
+(`templates/azure-ambiente/main.bicep`, tirada do MSS-UTILS; parâmetros `comandoInicial`, `caminhoSaude`,
+`ipsPermitidos`); com homologação existente, o export vira conferência. Homologação **nova**: a opção
+**hml** do pipeline cria o Web App (estágio `CriarHml`, sem aprovação, só se ainda não existe — nunca altera
+uma homologação que existe) com imagem provisória e as variáveis de plataforma (`app_settings.py
+plataforma`); as do sistema o owner cria no portal; o 1º push na `dev` troca a imagem. Permissões na rede
+de homologação: seção 4 do chamado-modelo (ainda não feitas).
+
+**`/mss-spec:azure-ambiente`** (`commands/azure-ambiente.md`) leva a homologação que funciona pra produção sem
 nada rodar na máquina do owner contra o Azure, em **6 etapas** (baixar · montar · simular · revisar
 variáveis · preparar produção · rodar e aprovar): a 1ª mensagem mostra a tabela do caminho inteiro, toda
 mensagem termina com "Etapa X de 6" + UMA coisa que precisa do owner, uma aprovação por etapa, teste vira
@@ -11,7 +20,7 @@ como pendência, se não existe pipeline de código de produção) → o owner e
 pelo portal ("Exportar modelo", Bicep) → o assistente monta `infra/main.bicep` (nomes, plano, subnet e
 **imagem** como parâmetros; **sem nenhuma variável de ambiente**), `infra/hml.bicepparam`,
 `infra/prd.bicepparam`, `infra/app_settings.py`, `infra/app-settings.json` e o pipeline
-`azure-pipelines-infra-prd.yml` (modelo `templates/azure-prd/azure-pipelines-prd.yml`).
+`azure-pipelines-infra.yml` (modelo `templates/azure-ambiente/azure-pipelines-infra.yml`).
 
 O pipeline roda à mão com a escolha **hml** ou **prd**. `hml`: só o estágio Simular — `az bicep build` +
 `what-if` contra `RG-MSSAI-DEV` (tem de dar "nada muda") + conferência das variáveis. `prd`: Simular
@@ -21,7 +30,7 @@ rodando é lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` sem 
 `.bicepparam`); na 1ª criação de produção é a que está rodando na homologação (produção nasce espelho e
 sobe sem o pipeline de código de produção); sem nenhuma das duas, o pipeline falha em vez de criar.
 
-**Variáveis de ambiente** (`templates/azure-prd/app_settings.py`, fora do Bicep porque `appSettings`
+**Variáveis de ambiente** (`templates/azure-ambiente/app_settings.py`, fora do Bicep porque `appSettings`
 substitui a coleção inteira): todas as da homologação vão; o `infra/app-settings.json` (só nomes) marca
 cada uma `"copiar"`, `"senha"` (grava `*****` só se ainda não existe em produção — nunca sobrescreve a
 verdadeira) ou `{"prd": "<valor>"}` (que também cria variável só de produção, como a
@@ -32,7 +41,7 @@ lista as senhas ainda `*****` em produção. O `hooks/git_publicacao.py` nega ao
 `az deployment … create` e `az stack … create`.
 
 Desde a 0.40.0 (lições da 1ª produção real, MSS-UTILS, no ar em 2026-10-20): o Simular imprime a
-`Identidade do pipeline (object id)`, e é com ela que o chamado `templates/azure-prd/permissoes-infra.md`
+`Identidade do pipeline (object id)`, e é com ela que o chamado `templates/azure-ambiente/permissoes-infra.md`
 pede as permissões mínimas na rede de produção — já feitas e registradas no `templates/AMBIENTE.md` §5, então
 a etapa 5 vira "já está pronto". A `DOCKER_REGISTRY_SERVER_PASSWORD` vem do próprio registro de imagens;
 valor copiado vazio vira "falta preencher". A rede fica em `virtualNetworkSubnetId`, nunca `networkConfig`.
@@ -42,7 +51,7 @@ Critérios de aceite:
   esse código (nunca o do "Manage App registration").
 - DADO a senha do registro de imagens marcada `copiar`, QUANDO o pipeline grava produção, ENTÃO ela vem do
   registro; se não der, vira "falta preencher" — nunca é gravada vazia.
-- DADO o projeto em homologação, QUANDO o owner roda `/mss-spec:azure-prd`, ENTÃO saem a receita, os dois
+- DADO o projeto em homologação, QUANDO o owner roda `/mss-spec:azure-ambiente`, ENTÃO saem a receita, os dois
   `.bicepparam`, o `app_settings.py`, o `app-settings.json` e o pipeline — e nenhum passo pede comando
   local contra o Azure.
 - DADO o pipeline com ambiente `hml`, QUANDO roda, ENTÃO o `what-if` contra `RG-MSSAI-DEV` dá "nada muda"
@@ -85,3 +94,7 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
 - 2026-10-20 — 0.40.0, lições da 1ª produção real (motivo: o MSS-UTILS foi ao ar; no caminho, permissões
   dadas à identidade errada por três rodadas — F-039 —, a senha do registro chegou vazia em produção e o
   owner anotou 22 pontos de condução e de receita pra corrigir no fim).
+- 2026-10-21 — 0.41.0: renomeado `azure-prd` → `azure-ambiente` (comando e branch dos projetos) e a opção
+  hml passa a criar a homologação que ainda não existe, a partir da receita-base do kit (motivo: o owner
+  monta a homologação à mão pra cada desenvolvedor, replicando a mesma receita, e isso leva tempo; os
+  nomes são dele — o assistente leu errado duas vezes antes de acertar).

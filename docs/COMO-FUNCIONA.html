@@ -152,7 +152,7 @@ li{margin-bottom:6px}
       <li><a href="#c-mapa"><span class="nav-num">C23</span>mapa</a></li>
       <li><a href="#c-mapa-neural"><span class="nav-num">C24</span>mapa-neural</a></li>
       <li><a href="#c-anatomia"><span class="nav-num">C25</span>anatomia</a></li>
-      <li><a href="#c-azure-prd"><span class="nav-num">C26</span>azure-prd</a></li>
+      <li><a href="#c-azure-ambiente"><span class="nav-num">C26</span>azure-ambiente</a></li>
       <div class="nav-group">Como o kit pensa</div>
       <li><a href="#spec"><span class="nav-num">05</span>Spec-Driven na prática</a></li>
       <li><a href="#memoria"><span class="nav-num">06</span>Memória &amp; decisões</a></li>
@@ -663,16 +663,16 @@ li{margin-bottom:6px}
       <div class="label-row"><span class="pill graph">números medidos</span><span class="pill ok">visual é pro humano</span></div>
     </div>
   </div>
-  <div class="node" id="c-azure-prd">
-    <div class="node-head"><span class="node-idx">C26</span><span class="node-name">azure-prd</span><span class="node-type">homologação → produção</span></div>
+  <div class="node" id="c-azure-ambiente">
+    <div class="node-head"><span class="node-idx">C26</span><span class="node-name">azure-ambiente</span><span class="node-type">cria homologação e produção</span></div>
     <div class="node-body">
-      <p class="plain">Leva a homologação que já funciona no Azure para produção, sem ninguém montar à mão a partir de documentação.</p>
-      <p>Exporta a homologação pelo portal como uma receita Bicep e leva todas as variáveis de ambiente — senha vai como <code>*****</code>, nunca sobrescreve a verdadeira, e variável esquecida trava o pipeline. No pipeline você escolhe <strong>hml</strong> (só simula contra a homologação: tem de dar "nada muda") ou <strong>prd</strong> (simula, para no botão de aprovação e cria). Nada roda na sua máquina contra o Azure; a rede fica fora da receita.</p>
+      <p class="plain">Cria os ambientes do projeto no Azure — a homologação, se ainda não existe, e a produção espelho dela — sem ninguém montar à mão a partir de documentação.</p>
+      <p>Parte de uma receita Bicep do kit, tirada de um projeto que já está em produção, e leva todas as variáveis de ambiente — senha vai como <code>*****</code>, nunca sobrescreve a verdadeira, e variável esquecida trava o pipeline. No pipeline você escolhe <strong>hml</strong> (homologação nova: cria, sem aprovação; existente: só compara, tem de dar "nada muda") ou <strong>prd</strong> (simula, para no botão de aprovação e cria). Nada roda na sua máquina contra o Azure; a rede fica fora da receita.</p>
       <div class="subhead">Exemplo</div>
-      <pre><code>/mss-spec:azure-prd
+      <pre><code>/mss-spec:azure-ambiente
   → infra/main.bicep + infra/hml.bicepparam + infra/prd.bicepparam
   → infra/app-settings.json + infra/app_settings.py   (variáveis)
-  → azure-pipelines-infra-prd.yml   (hml: Simular · prd: Simular → botão → Criar)</code></pre>
+  → azure-pipelines-infra.yml   (hml: Simular · prd: Simular → botão → Criar)</code></pre>
       <div class="label-row"><span class="pill ok">simula antes</span><span class="pill ok">aprovação do owner</span><span class="pill graph">Bicep, nativo do Azure</span></div>
     </div>
   </div>
