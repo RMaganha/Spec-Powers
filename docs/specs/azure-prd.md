@@ -31,7 +31,17 @@ dela; sem arquivo, a 1ª simulação imprime a proposta. Gravação por mescla; 
 lista as senhas ainda `*****` em produção. O `hooks/git_publicacao.py` nega ao assistente
 `az deployment … create` e `az stack … create`.
 
+Desde a 0.40.0 (lições da 1ª produção real, MSS-UTILS, no ar em 2026-10-20): o Simular imprime a
+`Identidade do pipeline (object id)`, e é com ela que o chamado `templates/azure-prd/permissoes-infra.md`
+pede as permissões mínimas na rede de produção — já feitas e registradas no `templates/AMBIENTE.md` §5, então
+a etapa 5 vira "já está pronto". A `DOCKER_REGISTRY_SERVER_PASSWORD` vem do próprio registro de imagens;
+valor copiado vazio vira "falta preencher". A rede fica em `virtualNetworkSubnetId`, nunca `networkConfig`.
+
 Critérios de aceite:
+- DADO a 1ª simulação, QUANDO roda, ENTÃO o log mostra a identidade do pipeline, e o chamado à infra usa
+  esse código (nunca o do "Manage App registration").
+- DADO a senha do registro de imagens marcada `copiar`, QUANDO o pipeline grava produção, ENTÃO ela vem do
+  registro; se não der, vira "falta preencher" — nunca é gravada vazia.
 - DADO o projeto em homologação, QUANDO o owner roda `/mss-spec:azure-prd`, ENTÃO saem a receita, os dois
   `.bicepparam`, o `app_settings.py`, o `app-settings.json` e o pipeline — e nenhum passo pede comando
   local contra o Azure.
@@ -72,3 +82,6 @@ pipeline de código de produção (é pendência avisada, tarefa à parte).
   traz da homologação e não vai pra produção como veio, e a conferência contra o roteiro de deploy (motivo:
   o 1º export real, do MSS-UTILS, trouxe endereço gerado, ligação de rede com código da homologação e
   "rotear todo o tráfego" ligado, contra o roteiro).
+- 2026-10-20 — 0.40.0, lições da 1ª produção real (motivo: o MSS-UTILS foi ao ar; no caminho, permissões
+  dadas à identidade errada por três rodadas — F-039 —, a senha do registro chegou vazia em produção e o
+  owner anotou 22 pontos de condução e de receita pra corrigir no fim).

@@ -1300,3 +1300,37 @@ def test_azure_prd_segue_o_export_real_do_portal():
                    "ipSecurityRestrictions", "hostNameBindings", "hostNameSslStates",
                    "customDomainVerificationId", "publishingUsername", "roteiro de deploy"):
         assert trecho in cmd, f"etapa 2 sem a regra de {trecho!r}"
+
+
+def test_azure_prd_licoes_da_1a_producao_real():
+    """MSS-UTILS em producao (2026-10-20): o que faltou ao comando, item a item da lista do owner."""
+    cmd = (REPO / "commands" / "azure-prd.md").read_text(encoding="utf-8")
+    low = cmd.lower()
+    for trecho in (
+        "<PROJETO>-INFRA", "Rename/move",                       # pipeline novo, separado, com nome
+        "não precisa de nenhum comando git",                    # a branch ja foi enviada
+        "**Permit**",                                           # permissao de uma vez so
+        "vai dar erro de propósito",                            # 1a simulacao para nas variaveis
+        "Receita + variáveis: o que mudaria", "View raw log",   # o item exato do log
+        "Next: Resources",                                      # a tela do Run pipeline
+        "Preciso da sua aprovação",                             # texto pronto pro aprovador
+        "minúsculo",                                            # nome exato do ambiente producao
+        "You do not have permissions to manage checks",         # sem permissao de aprovadores
+        "Identidade do pipeline",                               # a identidade REAL recebe as permissoes
+        "templates/azure-prd/permissoes-infra.md",              # chamado pronto pra infra
+        "Vou enviar a branch", "não publica nada",              # avisa antes do envio
+        "Chaves de acesso", "Regenerar", "Mostrar valores",     # de onde vem cada senha
+        "/health", "Fluxo de log",                              # conferir depois de criar
+        "sem `location`",                                       # BCP187 nas partes internas
+    ):
+        assert trecho.lower() in low, f"comando sem {trecho!r}"
+    assert "nunca `networkConfig`" in cmd, "networkConfig exige permissao de alterar a subnet"
+    assert "?" not in cmd.split("## Etapa 4 de 6")[1].split("## Etapa 5 de 6")[0].replace("?**", ""), \
+        "etapa 4 voltaria a usar ? para valor que falta"
+    infra = (REPO / "templates" / "azure-prd" / "permissoes-infra.md").read_text(encoding="utf-8")
+    for trecho in ("--assignee-object-id", "MSIG-VNet-Join-Subnet", "MSIG-VNet-ServiceEndpoint-Subnet",
+                   "joinViaServiceEndpoint", '--role "Reader"', "Identidade do pipeline", "uma vez só"):
+        assert trecho in infra, f"permissoes-infra.md sem {trecho!r}"
+    assert "subnets/write" not in infra.replace("NÃO dar `subnets/write`", ""), "nunca pedir permissao de alterar a subnet"
+    ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
+    assert "permissões da conexão do pipeline em produção" in ambiente.lower()

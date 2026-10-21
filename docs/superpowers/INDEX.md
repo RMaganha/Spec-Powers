@@ -6,7 +6,6 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [azure-prd](../specs/azure-prd.md) — `/mss-spec:azure-prd` leva a receita Bicep da homologação pra produção pelo pipeline com botão de aprovação — aberta
 
 ## A fazer (ordem)
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria

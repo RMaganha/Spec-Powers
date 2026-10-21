@@ -4,7 +4,8 @@ Roda DENTRO do pipeline (azure-pipelines-infra-prd.yml), já logado no Azure pel
 Nunca imprime valor: só nomes e o que acontece com cada um.
 
 O arquivo `infra/app-settings.json` (versionado, sem valor nenhum) diz o que fazer com cada variável:
-  "copiar"            → copia o valor da homologação
+  "copiar"            → copia o valor da homologação (vazia na leitura → pendência, nunca grava vazio; a
+                        DOCKER_REGISTRY_SERVER_PASSWORD, que o Azure não entrega, vem do próprio registro)
   "senha"             → grava ***** só se a variável ainda não existe em produção (nunca apaga a verdadeira)
   {"prd": "<valor>"}  → grava o valor de produção escrito ali (nunca senha — senha é "senha"); é também
                         o jeito de criar variável que só existe em produção (ex.: WEBSITE_DNS_ALT_SERVER)
@@ -43,11 +44,16 @@ class Plano:
 # Iguais nos dois ambientes (docs/AMBIENTE.md §5): o registro de imagens é compartilhado — com *****
 # produção não sobe até o prestador preencher (decisão do owner, 2026-10-15).
 _SEMPRE_COPIAR = {"DOCKER_REGISTRY_SERVER_PASSWORD"}
+# Liga/desliga (true/false) não é senha mesmo com TOKEN/KEY no nome — ex.: NFCOMISSAO_AUTH_TOKEN_ATIVO.
+_LIGA_DESLIGA = re.compile(r"(?i)_ATIV[OA]$")
+# O Azure não entrega o valor desta na leitura das variáveis: vem do próprio registro de imagens.
+SENHA_REGISTRO = "DOCKER_REGISTRY_SERVER_PASSWORD"
 
 
 def sugerir(nomes):
     """Proposta inicial do arquivo: senha pelo nome, o resto copia. O owner revisa antes do commit."""
-    return {n: ("senha" if _SENHA.search(n) and n not in _SEMPRE_COPIAR else "copiar") for n in nomes}
+    return {n: ("senha" if _SENHA.search(n) and n not in _SEMPRE_COPIAR and not _LIGA_DESLIGA.search(n)
+                else "copiar") for n in nomes}
 
 
 def _valor_prd(marca):
@@ -68,8 +74,12 @@ def planejar(hml, prd, config):
     for nome in sorted(n for n in config if n in hml):
         marca = config[nome]
         if marca == "copiar":
-            p.gravar[nome] = hml[nome]
-            p.acoes.append((nome, "copia o valor da homologação"))
+            if hml[nome] in (None, ""):     # vazia na leitura: gravar vazio derrubaria produção calado
+                p.acoes.append((nome, "veio vazia da homologação: preencher"))
+                p.pendentes.append(nome)
+            else:
+                p.gravar[nome] = hml[nome]
+                p.acoes.append((nome, "copia o valor da homologação"))
         elif marca == "senha":
             if nome not in prd:
                 p.gravar[nome] = MASCARA
@@ -101,6 +111,17 @@ def _listar(az, rg, app):
     return {i["name"]: i["value"] for i in json.loads(saida or "[]")}
 
 
+def _senha_do_registro(az, hml):
+    """Senha do registro de imagens lida do próprio registro — o nome sai da DOCKER_REGISTRY_SERVER_URL
+    (https://<nome>.azurecr.io). None se não der (sem URL, sem acesso): aí ela vira pendência."""
+    url = (hml.get("DOCKER_REGISTRY_SERVER_URL") or "").strip()
+    m = re.match(r"(?i)^(?:https?://)?([a-z0-9]+)\.azurecr\.io/?$", url)
+    if not m:
+        return None
+    code, valor = az(["acr", "credential", "show", "-n", m.group(1), "--query", "passwords[0].value", "-o", "tsv"])
+    return valor.strip() if code == 0 and valor.strip() else None
+
+
 def executar(argv, az=_az_real, saida=print):
     ap = argparse.ArgumentParser(prog="app_settings.py")
     ap.add_argument("acao", choices=("conferir", "aplicar"))
@@ -123,6 +144,10 @@ def executar(argv, az=_az_real, saida=print):
         return 1
     with open(a.config, encoding="utf-8") as f:
         config = json.load(f)
+    if config.get(SENHA_REGISTRO) == "copiar" and hml.get(SENHA_REGISTRO) in (None, ""):
+        senha = _senha_do_registro(az, hml)
+        if senha:
+            hml[SENHA_REGISTRO] = senha
 
     prd = _listar(az, a.prd_rg, a.prd_app)
     if prd is None and a.acao == "aplicar":
@@ -160,7 +185,7 @@ def executar(argv, az=_az_real, saida=print):
             return 1
         saida(f"Gravadas {len(plano.gravar)} variáveis em {a.prd_app} (as demais ficaram como estavam).")
     if plano.pendentes:
-        saida(f"Faltam preencher em produção (estão *****): {', '.join(plano.pendentes)}")
+        saida(f"Faltam preencher em produção (com ***** ou vazias): {', '.join(plano.pendentes)}")
     return 0
 
 

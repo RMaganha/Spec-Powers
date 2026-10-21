@@ -48,6 +48,11 @@ stages:
           set -euo pipefail
           AMB='${{ parameters.ambiente }}'
           if [ "$AMB" = "prd" ]; then RG='$(rgPrd)'; APP='$(webAppPrd)'; else RG='$(rgHml)'; APP='$(webAppHml)'; fi
+          # identidade: início — o object id da identidade REAL do pipeline: é ESTE que recebe as permissões
+          # da infra (--assignee-object-id). Lido do próprio token; o token nunca vai pro log.
+          OID="$(az account get-access-token --query accessToken -o tsv | python3 -c 'import sys,json,base64; p=sys.stdin.read().strip().split(".")[1]; p+="="*(-len(p)%4); print(json.loads(base64.urlsafe_b64decode(p))["oid"])')"
+          echo "Identidade do pipeline (object id, é este que recebe as permissões): $OID"
+          # identidade: fim
           az bicep build --file infra/main.bicep
           # imagem: início — a que está rodando no Web App; na 1ª criação de produção, a da homologação
           IMG="$(az webapp show -g "$RG" -n "$APP" --query siteConfig.linuxFxVersion -o tsv 2>/dev/null || true)"

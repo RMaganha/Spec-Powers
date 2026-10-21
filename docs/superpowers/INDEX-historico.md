@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-10-20 — fechadas
+
+- [azure-prd](../specs/azure-prd.md) — `/mss-spec:azure-prd` leva a homologação Azure pra produção (receita Bicep + todas as variáveis, simulação e aprovação no pipeline) — fechada: 0.37.0 → 0.40.0; MSS-UTILS no ar em 2026-10-20 (F-036 e F-039 fechados; F-038, a condução, segue aberto até o próximo projeto)
+
 ## 2026-09-25 — fechadas
 
 8. [um item por chat](../specs/travas-um-item-por-janela.md) — o `nova-feature` trava só o mesmo chat; chat novo abre e só avisa das outras (worktree) — fechada
