@@ -719,3 +719,82 @@ def test_historico_continua_funcionando(tmp_path, monkeypatch):
     monkeypatch.setattr(m, "gravar_linhas_do_kit", lambda repo: chamadas.append(repo) or 7)
     assert m.main(["historico"]) == 0
     assert len(chamadas) == 1
+
+
+# --- falha no meio da gravação (Fix round 1) ----------------------------------------------------------
+
+def _replace_que_falha_na_2a(m, monkeypatch):
+    real = os.replace
+    chamadas = []
+
+    def falho(origem, destino):
+        chamadas.append(str(destino))
+        if len(chamadas) == 2:
+            raise PermissionError(13, "arquivo em uso", str(destino))
+        return real(origem, destino)
+    monkeypatch.setattr(m.os, "replace", falho)
+    return chamadas
+
+
+def _sem_temporarios(proj: Path) -> bool:
+    return not [p for p in proj.rglob("*.mss-tmp")]
+
+
+def test_replace_falha_no_meio_restaura_tudo(tmp_path, monkeypatch):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    mig = m.montar(proj, _linhas_kit(m))
+    assert len(mig.regras_novas) >= 1
+    antes = _arquivos(proj)
+    chamadas = _replace_que_falha_na_2a(m, monkeypatch)
+    with pytest.raises(m.GravacaoFalhou) as erro:
+        m.aplicar(proj, mig)
+    assert len(chamadas) == 2
+    assert _arquivos(proj) == antes                      # CLAUDE.md (já trocado) voltou; nenhum .mss-tmp sobrou
+    assert _sem_temporarios(proj)
+    assert not erro.value.parcial
+
+
+def test_cli_replace_falha_mensagem_curta_sem_traceback(tmp_path, monkeypatch, capsys):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    antes = _arquivos(proj)
+    _replace_que_falha_na_2a(m, monkeypatch)
+    codigo = m.main(["--proj", str(proj), "--aplicar"])
+    saida = capsys.readouterr().out
+    assert codigo == 1
+    assert "Nada foi gravado" in saida and "estava em uso" in saida and "Feche e rode de novo" in saida
+    assert "Traceback" not in saida
+    assert _arquivos(proj) == antes and _sem_temporarios(proj)
+
+
+def test_cli_restauracao_que_tambem_falha_manda_git_restore(tmp_path, monkeypatch, capsys):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    _replace_que_falha_na_2a(m, monkeypatch)
+
+    def nao_restaura(destino, bruto):
+        raise PermissionError(13, "em uso", str(destino))
+    monkeypatch.setattr(m, "_restaurar", nao_restaura)
+    codigo = m.main(["--proj", str(proj), "--aplicar"])
+    saida = capsys.readouterr().out
+    assert codigo == 1
+    assert "migração parcial" in saida.lower() and "git restore" in saida and "CLAUDE.md" in saida
+    assert "Traceback" not in saida
+    assert _sem_temporarios(proj)
+
+
+def test_regra_com_bom_mantem_bom_no_comeco(tmp_path):
+    m = _mod()
+    claude = f"# Proj — teste\r\n\r\n## Contexto\r\n- **Infra:** própria.\r\n{PONTEIRO_COMO_RODA}\r\n"
+    regra = ("﻿---\r\npaths:\r\n  - \"Dockerfile\"\r\n---\r\n\r\n# Deploy\r\n\r\n"
+             "- **Como roda:** gunicorn na porta 8000.\r\n\r\n- Nunca publicar a porta do banco.\r\n")
+    proj = _projeto(tmp_path, claude, {"deploy-e-ambiente.md": regra})
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 0, saida
+    bruto = (proj / ".claude" / "rules" / "deploy-e-ambiente.md").read_bytes()
+    assert bruto.startswith("﻿".encode("utf-8"))
+    assert bruto.count("﻿".encode("utf-8")) == 1
+    assert b"\n" not in bruto.replace(b"\r\n", b"")
+    assert b"gunicorn" not in bruto and b"Nunca publicar" in bruto
+    assert "gunicorn na porta 8000" in _ler(proj / "CLAUDE.md")

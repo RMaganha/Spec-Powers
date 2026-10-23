@@ -654,11 +654,24 @@ def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
 
 # --- gravar e relatório ------------------------------------------------------------------------------
 
+class GravacaoFalhou(RuntimeError):
+    """A gravação não terminou (arquivo em uso, disco…). `arquivo`: o que falhou; `parcial`: arquivos que ficaram
+    migrados porque nem a restauração deles funcionou (vazio = o projeto voltou ao que era)."""
+
+    def __init__(self, arquivo, motivo, parcial=()):
+        super().__init__(f"{arquivo}: {motivo}")
+        self.arquivo, self.motivo, self.parcial = arquivo, motivo, list(parcial)
+
+
+def _restaurar(destino: Path, bruto: bytes) -> None:
+    Path(destino).write_bytes(bruto)
+
+
 def aplicar(proj: Path, m: Migracao, linhas_kit=None) -> None:
     """Grava `claude_novo` e `regras_novas` (os textos já trazem o fim de linha original: bytes, sem tradução).
     Antes de gravar, monta e confere DE NOVO: falha, ou projeto diferente do que `m` montou → RuntimeError e nada
-    é gravado. Grava tudo em arquivo temporário primeiro e só então troca, pra não deixar a migração pela metade.
-    Nunca roda git."""
+    é gravado. Grava tudo em arquivo temporário primeiro e só então troca. Se uma troca falhar (arquivo aberto no
+    editor…), os já trocados voltam aos bytes de antes e levanta `GravacaoFalhou`. Nunca roda git."""
     proj = Path(proj)
     if m.ja_migrado:
         return
@@ -672,17 +685,32 @@ def aplicar(proj: Path, m: Migracao, linhas_kit=None) -> None:
         raise RuntimeError("; ".join(falhas))
     alvos = [(proj / "CLAUDE.md", m.claude_novo)]
     alvos += [(proj.joinpath(*PASTA_REGRAS, nome), texto) for nome, texto in sorted(m.regras_novas.items())]
-    temporarios = []
+    antigos = {destino: destino.read_bytes() for destino, _ in alvos}
+    temporarios, trocados, atual = [], [], alvos[0][0]
     try:
         for destino, texto in alvos:
+            atual = destino
             tmp = destino.with_name(destino.name + ".mss-tmp")
             temporarios.append(tmp)
             tmp.write_bytes(texto.encode("utf-8"))
         for (destino, _), tmp in zip(alvos, temporarios):
+            atual = destino
             os.replace(tmp, destino)
+            trocados.append(destino)
+    except OSError as e:
+        sem_volta = []
+        for destino in trocados:
+            try:
+                _restaurar(destino, antigos[destino])
+            except OSError:
+                sem_volta.append(destino)
+        raise GravacaoFalhou(atual, e, sem_volta) from e
     finally:
         for tmp in temporarios:
-            tmp.unlink(missing_ok=True)
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 MAX_LISTA = {"duvida": 10, "aviso": 6, "falha": 20}
@@ -698,6 +726,13 @@ def _lista(titulo: str, itens: list, limite: int) -> list:
     if len(itens) > limite:
         out.append(f"  • …e mais {len(itens) - limite}")
     return out
+
+
+def _relativo(proj: Path, arquivo) -> str:
+    try:
+        return Path(arquivo).relative_to(proj).as_posix()
+    except ValueError:
+        return str(arquivo)
 
 
 def relatorio(m: Migracao, falhas: list) -> str:
@@ -738,12 +773,16 @@ def main(argv=None) -> int:
         return 0
 
     proj = Path(args.proj).resolve()
-    linhas_kit = set(carregar_linhas_do_kit())
-    m = montar(proj, linhas_kit)
-    if m.ja_migrado:
-        print(relatorio(m, []))
-        return 0
-    falhas = conferir(proj, m, linhas_kit)
+    try:
+        linhas_kit = set(carregar_linhas_do_kit())
+        m = montar(proj, linhas_kit)
+        if m.ja_migrado:
+            print(relatorio(m, []))
+            return 0
+        falhas = conferir(proj, m, linhas_kit)
+    except OSError as e:
+        print(f"Nada foi gravado: não consegui ler {e.filename or proj} ({e.strerror or e}). Confira o caminho e rode de novo.")
+        return 1
     if falhas:
         print("Migração reprovada — nada foi gravado." if args.aplicar else "Prévia — nada foi gravado.")
         print(relatorio(m, falhas))
@@ -754,9 +793,20 @@ def main(argv=None) -> int:
         return 0
     try:
         aplicar(proj, m, linhas_kit)
+    except GravacaoFalhou as e:
+        if e.parcial:
+            nomes = " ".join(_relativo(proj, p) for p in e.parcial)
+            print("Migração parcial: a gravação falhou e não deu pra desfazer sozinha. "
+                  f"Rode `git restore {nomes}`.")
+        else:
+            print(f"Nada foi gravado: {_relativo(proj, e.arquivo)} estava em uso. Feche e rode de novo.")
+        return 1
     except RuntimeError as e:
         print("Migração reprovada — nada foi gravado.")
         print(relatorio(m, [str(e)]))
+        return 1
+    except OSError as e:                      # leitura antes de qualquer troca: nada mudou
+        print(f"Nada foi gravado: não consegui ler {e.filename or proj} ({e.strerror or e}). Rode de novo.")
         return 1
     tocados = ["CLAUDE.md"] + [f".claude/rules/{n}" for n in sorted(m.regras_novas)]
     print("Migração gravada. Nada foi feito no git.")
