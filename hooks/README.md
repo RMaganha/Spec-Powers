@@ -1,5 +1,5 @@
-Dez hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os dez anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Onze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os onze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -13,6 +13,7 @@ Os dez anotam no **registro local** cada vez que **agem** (seção no fim deste 
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
+| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` nega uma vez, com o texto da regra no motivo; a 2ª gravação passa |
 
 ---
 
@@ -398,6 +399,27 @@ não recebe nada).
 
 ---
 
+# Hook ligado — regra por tipo de arquivo antes de gravar (`regra_antes_de_gravar.py`)
+
+**Por que existe:** as regras de caminho do projeto (`.claude/rules/*.md`, frontmatter `paths:`) carregam
+quando o assistente **lê** um arquivo que casa. Quando ele **cria** um arquivo novo, ou edita sem ler antes,
+a regra não carrega — no Whats, `banco.md` faltou em 5 conversas que criaram arquivos em `sql/`.
+
+Evento `PreToolUse`, matcher `Write|Edit|MultiEdit`. O caminho a gravar, relativo à raiz do projeto
+(`CLAUDE_PROJECT_DIR` › `cwd`), é comparado com o `paths:` de cada `.claude/rules/*.md` (`**`, `*`, `?`;
+`\` vale `/`; maiúsculas não contam). Casou e a regra ainda não foi mostrada nesta sessão → **nega**, com o
+texto da regra (sem o frontmatter) no motivo e "repita a gravação"; a 2ª tentativa passa. Várias regras no
+mesmo arquivo → uma negação só, com todos os textos. O estado "já mostrada" fica no temp do SO
+(`mss_regra_antes_<sessão>.json`).
+
+## Garantias
+
+- **Nunca trava por defeito próprio** — sai sempre 0. **Falha ABERTA**: frontmatter quebrado, regra ilegível
+  ou bug → silêncio. Caminho fora da raiz do projeto nunca casa; regra sem `paths:` é ignorada.
+- **Escape consciente só do owner:** `MSS_REGRA_OFF=1`.
+
+---
+
 # Registro local — o que os hooks FIZERAM (`_registro.py`)
 
 **Por que existe:** os hooks decidem calados, e ninguém consegue dizer quanto eles valem — quantas
@@ -417,6 +439,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
+| `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
 | `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
