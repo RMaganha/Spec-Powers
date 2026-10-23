@@ -205,8 +205,51 @@ Prova antes de qualquer projeto: testes com **cópias** do `CLAUDE.md` e do `.cl
 - A normalização das linhas (espaços, marcação) e o limiar de semelhança pra "linha do kit", desde que a dúvida
   fique no projeto.
 
+## Decisões tomadas na construção (o owner confere)
+Cada uma com o custo se estiver errada.
+1. Testes da migração copiam a fixture pra uma pasta temporária com `git init` + commit; a conferência sempre exige
+   working tree limpo. Custo: um ajudante de teste a mais.
+2. A linha **UI** fica no `## Contexto` como fato, na ordem Infra, Stack, Como roda, UI, Ambientes, Banco,
+   Integrações, Versionamento. Custo: uma linha a mais no molde.
+3. Linhas do molde antigo dentro de `## Contexto` e `## Mapa de arquivos` ficam no projeto, não saem como "do kit"
+   (tirá-las apagaria fato do projeto). Custo: algumas linhas genéricas a mais no `CLAUDE.md` migrado.
+4. Linha do `## Contexto` com fato + "— ver `.claude/rules/x.md`" mantém o fato e perde só a indicação, registrada,
+   desde que `x.md` exista e esteja no índice; senão a migração falha nomeando a linha.
+5. Seções casam pelo título exato ("Contexto", "Mapa de arquivos"); "Contexto do negócio" é seção própria e fica
+   inteira; título exato repetido é somado. Custo: seção própria sai depois do Mapa, não na posição original.
+6. A conservação conta cada ocorrência (linha repetida também tem que chegar). Custo: alarme falso em projeto com
+   linha duplicada de propósito.
+7. Se uma gravação falhar no meio, todos os arquivos voltam ao que eram e sai uma mensagem curta; só se a volta
+   também falhar, a mensagem manda `git restore`.
+8. No `upgrade`, a branch `chore/migrar-claude-md` nasce da principal atualizada **antes** da prévia; em projeto onde
+   o git é do owner, ele recebe os comandos e o assistente confere `git branch --show-current` antes de seguir.
+9. `regra_antes_de_gravar.py` só age em projeto com a marca. Custo: projeto ainda não migrado fica sem essa proteção
+   até rodar o `upgrade`.
+10. O estado "regra já mostrada" zera depois de compactar a conversa (entrada `SessionStart` com `compact`). Custo: uma
+    negação a mais por regra depois de cada compactação.
+11. A linha de desempate no topo de cada bloco é texto comum, não comentário HTML. Custo: uma linha visível a mais.
+12. O estado por sessão dos hooks fica na pasta temporária do sistema (como `hooks/_memoria_de_acao.py`).
+
+## Pendências conhecidas (podem esperar — revisão final de 2026-10-23)
+- Padrão de caminho com chaves (`**/*.{ts,tsx}`) não é expandido: a regra nunca casa (falha aberta). Nenhuma regra
+  real usa chaves hoje.
+- `teto_ao_gravar.py` só reconhece `git` como 1ª palavra do comando: `cd x && git add CLAUDE.md` ainda conta como
+  gravação.
+- Arquivos de estado por sessão na pasta temporária nunca são limpos.
+- Seções próprias do projeto saem depois do `## Mapa de arquivos`, não na posição original; títulos `##` são
+  conferidos só por presença.
+- O teste de ordem do `upgrade` olha a 1ª ocorrência de cada passo.
+- Se o owner parar depois da prévia, a branch `chore/migrar-claude-md` fica sobrando.
+- A mensagem "estava em uso" também sai pra disco cheio.
+- O relatório da migração imprime a linha de dúvida inteira (no Whats, uma tem ~600 caracteres).
+- **Não verificado ao vivo:** que o Claude Code honra a negação do `regra_antes_de_gravar.py` (JSON com exit 0). A
+  conferência é pedir um `.sql` novo numa janela nova de projeto migrado.
+
 ## Histórico
 - 2026-10-23 — criado. Doctor no Whats: `CLAUDE.md` 10.096 B; o assistente puxado pra mexer no `CLAUDE.md` e no MAPA
   pelo `teto_ao_gravar.py` disparando em comando de leitura. Medição nas 76 conversas do Whats mostrou a cópia velha
   das regras do kit, os fatos de infra atrás de gatilho de arquivo (F-040) e a regra por tipo falhando ao criar.
 - 2026-10-23 — construído (0.42.0): camadas 1 a 3, migração, correções e comandos; dogfood em dry-run no Whats sem falha (`CLAUDE.md` 10.096 B → 9.624 B). Falta gravar nos projetos pelo `/mss-spec:upgrade`.
+- 2026-10-23 — revisão final da branch inteira: 2 problemas importantes (`CLAUDE.md` fora de UTF-8 calava as regras do
+  kit; regra vazia ainda barrava gravação) + 10 menores, corrigidos em `6121d41`; merge na `main` em `9b51031`
+  (950 testes). O owner rodou o `upgrade` no Whats: prévia 20/18/3, igual à daqui; falta o `--aplicar`.
