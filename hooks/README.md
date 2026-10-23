@@ -1,5 +1,5 @@
-Nove hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Dez hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os dez anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -12,6 +12,7 @@ Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
+| `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 
 ---
 
@@ -372,6 +373,31 @@ decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
 
 ---
 
+# Hook ligado — regras do kit pelo plugin (`regras_do_kit.py`)
+
+**Por que existe:** as regras do kit (modo de trabalho · regras críticas) viviam coladas no `CLAUDE.md` de
+cada projeto — cópia que envelhece e não acompanha o plugin. Agora moram em `templates/regras-do-kit/`
+(`1-modo-de-trabalho.md` · `2-regras-criticas.md`) e este hook as injeta. O `CLAUDE.md` do projeto só carrega
+a **marca**, numa linha sozinha: `<!-- mss-spec:regras-do-kit -->`.
+
+Evento `SessionStart` (startup, resume, clear, compact), sem `matcher`. **Duas entradas** em `hooks.json`
+(`regras_do_kit.py --bloco 1` e `--bloco 2`): o Claude Code corta cada `additionalContext` em 10.000
+caracteres (acima disso o texto vira arquivo e só uma prévia de 2.000 chega ao modelo), então cada bloco é
+uma string própria, com limite de **9.000 caracteres** (`LIMITE`). Na raiz (`CLAUDE_PROJECT_DIR` › `cwd`):
+`CLAUDE.md` com a marca (vale com BOM e CRLF) → injeta o bloco; sem a marca → silêncio (projeto fora do kit
+não recebe nada).
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0, inclusive com entrada ou `--bloco` malformados.
+- **Falha visível (a exceção desta pasta):** os outros hooks falham ABERTO e calados; este não. Sem ele a
+  janela abre sem as regras e ninguém percebe. Depois de confirmada a marca, bloco ilegível, acima de
+  9.000 caracteres ou qualquer defeito → `systemMessage` de 1 linha (`regras do kit não carregaram — rode
+  /mss-spec:doctor`), **nunca** bloco truncado. Antes da marca, defeito → calado.
+- **Escape consciente só do owner:** `MSS_REGRAS_KIT_OFF=1`.
+
+---
+
 # Registro local — o que os hooks FIZERAM (`_registro.py`)
 
 **Por que existe:** os hooks decidem calados, e ninguém consegue dizer quanto eles valem — quantas
@@ -391,6 +417,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
+| `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
 | `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
 

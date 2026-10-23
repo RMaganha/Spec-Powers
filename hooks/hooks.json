@@ -8,6 +8,22 @@
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/orcamento_partida.py\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/regras_do_kit.py\" --bloco 1"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/regras_do_kit.py\" --bloco 2"
+          }
+        ]
       }
     ],
     "PreToolUse": [
