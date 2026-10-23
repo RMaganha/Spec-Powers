@@ -107,6 +107,32 @@ def test_extrair_conexoes(mn, proj):
     assert not any("nenhuma" in i.lower() for i in ids), "não pode incluir a linha 'nenhuma'"
 
 
+def test_conexoes_movidas_pro_conexoes_md_seguem_no_mapa_neural(mn, tmp_path):
+    """Com o detalhe em CONEXOES.md e só os nomes no MAPA, o mapa neural não pode perder as conexões."""
+    sp = tmp_path / "docs" / "superpowers"
+    sp.mkdir(parents=True)
+    (sp / "MAPA.md").write_text(
+        "# Mapa\n\n## Onde estamos\nx\n\n## Conexões\n\n"
+        "- Detalhe em [CONEXOES.md](CONEXOES.md) (contratos, tokens, topologia). Conexões: CRM MSIG · n8n.\n",
+        encoding="utf-8")
+    (sp / "CONEXOES.md").write_text(
+        "# Conexões — o detalhe de cada integração\n\n<!-- movido em 2026-09-23 -->\n\n"
+        "- → CRM MSIG: parcelas e boleto (`www4.msig.com.br`)\n"
+        "- ← n8n: recebe o anexo (`POST /whatsapp/anexo`)\n",
+        encoding="utf-8")
+    ids = _ids(mn.extrair_conexoes(tmp_path))
+    assert "CRM MSIG" in ids and "n8n" in ids, f"conexões do CONEXOES.md sumiram do mapa neural: {ids}"
+
+
+def test_conexao_no_mapa_e_no_conexoes_md_aparece_uma_vez(mn, tmp_path):
+    sp = tmp_path / "docs" / "superpowers"
+    sp.mkdir(parents=True)
+    (sp / "MAPA.md").write_text("# Mapa\n\n## Conexões\n- → CRM MSIG: parcelas (`x`)\n", encoding="utf-8")
+    (sp / "CONEXOES.md").write_text("# Conexões\n\n- → CRM MSIG: parcelas (`x`)\n", encoding="utf-8")
+    no = mn.extrair_conexoes(tmp_path)
+    assert [f["id"] for f in no["filhos"]].count("CRM MSIG") == 1
+
+
 def test_extrair_arquitetura(mn, proj):
     no = mn.extrair_arquitetura(proj)
     assert no["dim"] == "arq"

@@ -253,10 +253,12 @@ def _secao_conexoes(texto: str) -> str:
     return "\n".join(out)
 
 
-def parse_conexoes(texto: str) -> list:
+def parse_conexoes(texto: str, so_a_secao: bool = True) -> list:
+    """Linhas `→ alvo: rótulo (ponto)` / `← …`. `so_a_secao=False` lê o arquivo todo (o `CONEXOES.md`,
+    pra onde o rodízio da partida move o detalhe e deixa no MAPA só os nomes)."""
     texto = _COMENT_RE.sub("", texto)
     saida = []
-    for ln in _secao_conexoes(texto).splitlines():
+    for ln in (_secao_conexoes(texto) if so_a_secao else texto).splitlines():
         s = ln.strip()
         s = s[2:].strip() if s.startswith("- ") else (s[1:].strip() if s.startswith("-") else None)
         if s is None:
@@ -283,16 +285,24 @@ def parse_conexoes(texto: str) -> list:
 
 
 def extrair_conexoes(proj: Path) -> dict:
-    mapa = proj / "docs" / "superpowers" / "MAPA.md"
-    filhos = []
-    if mapa.exists():
-        for c in parse_conexoes(mapa.read_text(encoding="utf-8")):
-            det = []
-            if c["rotulo"]:
-                det.append(_no(c["rotulo"]))
-            if c["ponto"]:
-                det.append(_no(c["ponto"]))
-            filhos.append(_no(c["alvo"], filhos=det))
+    sp = proj / "docs" / "superpowers"
+    conexoes = []
+    if (sp / "MAPA.md").exists():
+        conexoes += parse_conexoes((sp / "MAPA.md").read_text(encoding="utf-8"))
+    if (sp / "CONEXOES.md").exists():
+        conexoes += parse_conexoes((sp / "CONEXOES.md").read_text(encoding="utf-8"), so_a_secao=False)
+    filhos, vistas = [], set()
+    for c in conexoes:
+        chave = (c["direcao"], c["alvo"], c["rotulo"], c["ponto"])
+        if chave in vistas:
+            continue
+        vistas.add(chave)
+        det = []
+        if c["rotulo"]:
+            det.append(_no(c["rotulo"]))
+        if c["ponto"]:
+            det.append(_no(c["ponto"]))
+        filhos.append(_no(c["alvo"], filhos=det))
     return _no("Conexões entre projetos", "conn", filhos)
 
 
