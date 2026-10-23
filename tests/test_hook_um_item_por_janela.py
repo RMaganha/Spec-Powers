@@ -22,6 +22,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from _texto_kit import texto_do_kit
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "um_item_por_janela.py"
@@ -587,7 +588,7 @@ def test_segunda_camada_em_prosa():
     assert "esta conversa" in low and "worktree" in low, \
         "passo 0 ainda conta por projeto — a regra é por chat, com aviso de worktree"
     assert "feature nova só quando não há feature aberta" not in low, "passo 0 com a regra antiga"
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "É alerta, não trava" not in claude, "CLAUDE.md ainda trata 2º assunto como alerta"
     assert "um assunto por janela" in claude.lower()
     assert "não age" in claude.lower() or "não aja" in claude.lower(), \

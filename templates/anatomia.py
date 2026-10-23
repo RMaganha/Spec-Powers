@@ -158,8 +158,11 @@ def a_fazer(proj: Path) -> list:
 # de wiring: alvo que deixar de existir = teste vermelho, nunca painel mentindo em silêncio.
 
 LANE_PARTIDA = [
-    ("Molde do CLAUDE.md do projeto", "Entra inteiro em toda sessão (teto 10 KB travado por teste): "
-     "só guardrail + ponteiro; procedimento mora nos comandos.", ["templates/CLAUDE.md"]),
+    ("Molde do CLAUDE.md do projeto", "Só a parte do projeto entra inteira em toda sessão (orçamento 10 KB, "
+     "o hook avisa): regras do projeto, Contexto, mapa e índice; regras do kit entram pelo hook "
+     "`regras_do_kit.py`, em dois blocos (modo de trabalho · regras críticas).",
+     ["templates/CLAUDE.md", "templates/regras-do-kit/1-modo-de-trabalho.md",
+      "templates/regras-do-kit/2-regras-criticas.md"]),
     ("Ritual de partida", "O assistente lê MAPA (onde estamos) → INDEX (aberto + fora de escopo) → "
      "índice de memória POR GATILHO — destilado antes da fonte.",
      ["templates/MAPA.md", "templates/INDEX.md", "templates/MEMORY.md"]),

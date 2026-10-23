@@ -11,16 +11,18 @@ Estes testes são o teto. Guardrail não se apaga — se move pra onde carrega q
 import re
 from pathlib import Path
 
+from _texto_kit import BLOCOS, texto_do_kit
+
 REPO = Path(__file__).resolve().parent.parent
 
-# 8.000 bytes (~2.000 tokens) foi o que sobrou em 2026-08-18 depois de mover todo procedimento pro seu
-# lar (comando, `.claude/rules/`, spec). Em 2026-09-23 o owner subiu pra 10.000: no teto de 8 KB a
-# regra de Git precisou ser espremida palavra por palavra pra caber — e a 1ª tentativa apagou duas
-# frases que o smoke test exige. Espremer redação de regra é o que quebra em silêncio; com a janela de
-# 1M, 2 KB (~500 tokens) custam menos que isso. Passou de 10 KB, o procedimento é o de sempre, sem
-# exceção: MOVER um bloco inteiro de procedimento pro comando/rules/spec, deixando ponteiro — nunca
-# comprimir a redação de uma regra (as frases-chave abaixo são travadas por teste).
-TETO_CLAUDE_MD = 10000      # bytes — o molde que entra em toda sessão
+# Desde a 0.42.0 o `templates/CLAUDE.md` é SÓ a parte do projeto: as regras do kit vivem em dois blocos em
+# `templates/regras-do-kit/`, que o hook `regras_do_kit.py` injeta em toda janela (cada bloco ≤ 9.000
+# caracteres, margem de 10% sob o limite de 10.000 do hook). Os 10.000 bytes do molde são ORÇAMENTO da parte
+# do projeto, não trava: passou, o doctor/hook AVISA e o conserto é mover um bloco inteiro pro
+# comando/rules/spec deixando ponteiro — nunca comprimir a redação de uma regra (as frases-chave abaixo são
+# travadas por teste, agora nos blocos). O que nunca pode sair do molde é a seção `## Contexto`.
+TETO_CLAUDE_MD = 10000      # bytes — a parte do projeto (orçamento + aviso), entra em toda sessão
+TETO_BLOCO = 9000           # caracteres — cada bloco do kit (o hook limita a string em 10.000)
 TETO_LINHA = 600            # bytes — linha gigante é procedimento disfarçado de regra
 TETO_MAPA = 6000            # bytes — mapa é 1 tela, não arquivo morto
 TETO_INDEX = 7000           # bytes — índice de tarefas ABERTAS
@@ -74,15 +76,51 @@ FRASES_CHAVE_CLAUDE_MD = (
 )
 
 
-def test_claude_md_mantem_as_frases_chave_das_regras():
-    """H — teto não justifica apagar regra: cada regra do molde mantém sua frase-chave, e as regras
-    críticas seguem numeradas 1..11 (comandos citam "regra 8")."""
+def test_blocos_do_kit_cabem_no_limite_do_hook():
+    """H — o hook entrega cada bloco numa string só (limite 10.000): bloco ≤ 9.000 caracteres."""
+    for p in BLOCOS:
+        n = len(p.read_text(encoding="utf-8"))
+        assert n <= TETO_BLOCO, f"{p.name} tem {n} caracteres (teto {TETO_BLOCO})"
+
+
+def test_frases_chave_estao_nos_blocos():
+    """H — teto não justifica apagar regra: cada regra mantém sua frase-chave, agora nos blocos do kit
+    (e não no molde do projeto)."""
+    blocos = "\n".join(p.read_text(encoding="utf-8") for p in BLOCOS)
+    molde = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    faltam = [f for f in FRASES_CHAVE_CLAUDE_MD if f not in blocos]
+    assert not faltam, f"poda apagou regra de templates/regras-do-kit/: {faltam}"
+    duplicadas = [f for f in FRASES_CHAVE_CLAUDE_MD if f in molde]
+    assert not duplicadas, f"regra do kit ficou também no molde do projeto: {duplicadas}"
+
+
+def test_regras_criticas_numeradas_no_bloco_2():
+    """H — comandos citam "regra 8": as regras críticas seguem numeradas 1..11 no bloco 2."""
+    txt = BLOCOS[1].read_text(encoding="utf-8")
+    numeros = [int(n) for n in re.findall(r"^(\d+)\. ", txt, re.M)]
+    assert numeros == list(range(1, 12)), f"regras críticas renumeradas: {numeros}"
+
+
+def test_molde_do_projeto_tem_marca_e_secoes():
+    """H — o molde é só a parte do projeto: marca do hook, as 4 seções na ordem e os rótulos do Contexto."""
     txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
-    faltam = [f for f in FRASES_CHAVE_CLAUDE_MD if f not in txt]
-    assert not faltam, f"poda apagou regra do templates/CLAUDE.md: {faltam}"
-    criticas = txt.split("## Regras críticas", 1)[1]
-    numeros = [int(n) for n in re.findall(r"^(\d+)\. ", criticas, re.M)]
-    assert numeros[:11] == list(range(1, 12)), f"regras críticas renumeradas: {numeros}"
+    assert "<!-- mss-spec:regras-do-kit -->" in txt, "molde sem a marca que liga o hook das regras do kit"
+    secoes = ["## Regras obrigatórias do projeto", "## Contexto", "## Mapa de arquivos",
+              "## Índice de regras por tipo de arquivo"]
+    posicoes = [txt.find(s) for s in secoes]
+    assert all(i >= 0 for i in posicoes), f"seção faltando no molde: {dict(zip(secoes, posicoes))}"
+    assert posicoes == sorted(posicoes), f"seções fora de ordem no molde: {dict(zip(secoes, posicoes))}"
+    for rotulo in ("**Infra:**", "**Stack/runtime:**", "**Como roda:**", "**Ambientes:**", "**Banco:**",
+                   "**Versionamento:**"):
+        assert rotulo in txt, f"rótulo {rotulo} sumiu do ## Contexto do molde"
+
+
+def test_cada_bloco_abre_com_desempate():
+    """H — a 1ª linha de cada bloco diz de onde vem e que a regra do projeto vence a do kit."""
+    for p in BLOCOS:
+        primeira = next(l for l in p.read_text(encoding="utf-8").split("\n") if l.strip())
+        assert "vem do plugin mss-spec" in primeira, f"{p.name}: 1ª linha não diz que vem do plugin"
+        assert "regra do CLAUDE.md do projeto vence" in primeira, f"{p.name}: 1ª linha sem o desempate"
 
 
 def test_claude_md_sem_linha_gigante():
@@ -96,7 +134,7 @@ def test_claude_md_sem_linha_gigante():
 
 def test_poda_moveu_e_nao_apagou():
     """H — cada guardrail podado continua alcançável: o CLAUDE.md aponta o novo lar."""
-    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    txt = texto_do_kit()
     destinos = {
         "front-end (Tailwind/arquivos separados)": ".claude/rules/",
         "segurança (secure-by-default)": "docs/SEGURANCA.md",
@@ -113,7 +151,7 @@ def test_poda_moveu_e_nao_apagou():
 
 def test_regras_sempre_ativas_sobreviveram():
     """H — as regras que NÃO podem sair (nasceram de falha registrada) seguem literais no molde."""
-    low = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
+    low = texto_do_kit().lower()
     for marca, porque in [
         ("não vasculhe", "F-001 — varri o disco 2×"),
         ("âncora", "F-004 — adotei o projeto B e quebrei o B"),
@@ -166,7 +204,7 @@ def test_doctor_mede_o_orcamento():
 
 def test_diretiva_de_compactacao():
     """J — sessão longa compacta; sem diretiva, o que importa evapora."""
-    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    txt = texto_do_kit()
     low = txt.lower()
     assert "compact" in low, "CLAUDE.md não instrui o que preservar na compactação"
     for alvo in ("branch", "premissa"):
@@ -175,7 +213,7 @@ def test_diretiva_de_compactacao():
 
 def test_higiene_de_janela():
     """K — /clear entre assuntos e investigação ampla por subagente: a janela principal fica limpa."""
-    low = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
+    low = texto_do_kit().lower()
     assert "/clear" in low, "CLAUDE.md não manda /clear entre assuntos (janela-cesto-de-lixo)"
     assert "subagente" in low, "CLAUDE.md não manda investigação ampla ir por subagente"
 
@@ -198,7 +236,7 @@ def test_molde_de_memoria_ensina_o_topo_e_o_subindice():
 
 
 def test_claude_md_manda_abrir_o_subindice_quando_a_familia_bate():
-    low = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
+    low = texto_do_kit().lower()
     assert "memory/indice/" in low, "CLAUDE.md não diz onde estão os subíndices"
     assert "antes de agir" in low, "CLAUDE.md não manda abrir o subíndice ANTES de agir"
 
