@@ -1,0 +1,10 @@
+---
+paths:
+  - "**/*.py"
+---
+
+# Estrutura em camadas
+
+<!-- Movido do CLAUDE.md em 2026-09-23 (teto de 10 KB; F-029/F-030 do kit): texto VERBATIM. A regra continua valendo — o CLAUDE.md mantém a frase-chave e aponta pra cá. -->
+
+4. **Estrutura em camadas — migração em curso desde 2026-07-28.** O projeto era achatado (23 `.py` na raiz) e está sendo reorganizado na branch `refactor/estrutura-em-camadas`; o plano, com as fases e o estado de cada uma, é [`docs/superpowers/plans/2026-07-28-estrutura-em-camadas.md`](docs/superpowers/plans/2026-07-28-estrutura-em-camadas.md) — **leia antes de criar ou mover arquivo**. Já existem: `config/` (caminhos e `.env`), `persistencia/` (1 módulo por tabela) e `services/` (18 módulos — integrações, intents e o núcleo do agente). `prompts/`, `web/` e `apis/` (o Blueprint do n8n). Na raiz sobraram só os 2 entrypoints: `chat_server.py` e `agent_bot_cli.py`. **Falta** quebrar o `chat_server.py` nos demais routers e decidir onde vive o HTML gerado no backend (D1) — adiado, ver `to-dolist.md`. Regras que valem **agora**: (a) **na raiz só existe entrypoint** — hoje são 2, `chat_server.py` (servidor Flask) e `agent_bot_cli.py` (terminal), e os **nomes ficam assim** (decisão do owner em 2026-07-28; o `ESTRUTURA.md` do kit diz `main.py`, mas isso **não** é pendência de conserto). Qualquer outro arquivo novo nasce **na pasta da sua camada**, nunca na raiz; (b) o **prefixo `agent_bot_*` é mantido** nos nomes, mesmo dentro das pastas; (c) a regra de isolamento continua valendo — nada importa de fora da pasta do projeto, e a única fronteira com o monólito é `services/agent_bot_responder.py`; (d) rota nova em **Blueprint próprio** (padrão do `agent_bot_cotacao_routes.py`), nunca dentro do `chat_server.py`, que está sendo desmontado; (e) precisa de caminho? vem de `config/settings.py`, **nunca** de um `Path(__file__)` novo — o smoke barra isso; (f) **import dentro de função** (há 2 no projeto) não executa no import do app — se mexer num, confira o check dedicado no smoke. Ao mover qualquer coisa, rode o smoke e cole a saída.
