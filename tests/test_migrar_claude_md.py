@@ -534,3 +534,188 @@ def test_linha_de_molde_no_contexto_fica(tmp_path):
     mig = m.montar(proj, _linhas_kit(m))
     assert stack in mig.claude_novo and mapa in mig.claude_novo
     assert m.conferir(proj, mig) == []
+
+
+# --- gravar, CLI e relatório (Task 6) -----------------------------------------------------------------
+
+def _cli(proj: Path, *args):
+    """Roda o script de verdade, como o `/mss-spec:upgrade` roda. Saída decodificada como UTF-8."""
+    r = subprocess.run([sys.executable, str(SCRIPT), "--proj", str(proj), *args], capture_output=True)
+    return r.returncode, r.stdout.decode("utf-8"), r.stderr.decode("utf-8")
+
+
+def _arquivos(proj: Path) -> dict:
+    return {p.relative_to(proj).as_posix(): p.read_bytes()
+            for p in sorted(proj.rglob("*")) if p.is_file() and ".git" not in p.parts}
+
+
+def _n_commits(proj: Path) -> int:
+    return int(_git(proj, "rev-list", "--count", "HEAD").stdout.strip())
+
+
+def _porcelain(proj: Path) -> set:
+    saida = _git(proj, "status", "--porcelain").stdout
+    return {l[3:] for l in saida.split("\n") if l.strip()}
+
+
+def test_dry_run_nao_grava(tmp_path):
+    proj = _projeto_whats(tmp_path)
+    antes = _arquivos(proj)
+    codigo, saida, _ = _cli(proj)
+    assert codigo == 0, saida
+    assert saida.startswith("Prévia"), saida[:80]
+    assert _arquivos(proj) == antes
+    assert _git(proj, "status", "--porcelain").stdout == ""
+
+
+def test_aplicar_grava_e_nao_toca_no_git(tmp_path):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    commits = _n_commits(proj)
+    esperado = {"CLAUDE.md"} | {f".claude/rules/{n}" for n in m.montar(proj, _linhas_kit(m)).regras_novas}
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 0, saida
+    assert MARCA in _ler(proj / "CLAUDE.md")
+    assert _n_commits(proj) == commits
+    assert _porcelain(proj) == esperado
+    assert _git(proj, "branch", "--show-current").stdout.strip() in ("master", "main")
+
+
+def test_aplicar_com_falha_nao_grava_nada(tmp_path):
+    claude = f"# Proj — teste\n\n## Contexto\n- **Infra:** própria.\n{PONTEIRO_COMO_RODA}\n"
+    regra = "---\npaths:\n  - \"Dockerfile\"\n---\n\n# Deploy\n\n- **Pré-vôo:** rode o doctor.\n"
+    proj = _projeto(tmp_path, claude, {"deploy-e-ambiente.md": regra})
+    antes = _arquivos(proj)
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 1, saida
+    assert PONTEIRO_COMO_RODA in saida
+    assert "Nada foi gravado" in saida
+    assert _arquivos(proj) == antes
+
+
+def test_working_tree_sujo_reprova_na_cli(tmp_path):
+    proj = _projeto_whats(tmp_path)
+    (proj / "CLAUDE.md").write_bytes((proj / "CLAUDE.md").read_bytes() + b"\r\n- linha nova sem commit\r\n")
+    antes = _arquivos(proj)
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 1, saida
+    assert "working tree" in saida and "git restore" in saida
+    assert _arquivos(proj) == antes
+
+
+def test_crlf_preservado_no_whats(tmp_path):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    tocados = ["CLAUDE.md"] + [f".claude/rules/{n}" for n in m.montar(proj, _linhas_kit(m)).regras_novas]
+    assert _cli(proj, "--aplicar")[0] == 0
+    assert len(tocados) > 1
+    for rel in tocados:
+        bruto = (proj / rel).read_bytes()
+        assert b"\r\n" in bruto, rel
+        assert b"\n" not in bruto.replace(b"\r\n", b""), f"{rel}: sobrou \n sozinho"
+    assert m.montar(proj, _linhas_kit(m)).ja_migrado is True
+
+
+def test_bom_e_crlf_preservados(tmp_path):
+    m = _mod()
+    claude = ("﻿# Proj — x\r\n\r\n## Contexto\r\n- **Infra:** própria.\r\n- **Banco:** PostgreSQL.\r\n"
+              "\r\n## Mapa de arquivos\r\n- `app.py` — entrada\r\n")
+    proj = _projeto(tmp_path, claude, {})
+    assert _cli(proj, "--aplicar")[0] == 0
+    bruto = (proj / "CLAUDE.md").read_bytes()
+    assert bruto.startswith("﻿".encode("utf-8")), bruto[:20]
+    assert bruto.count("﻿".encode("utf-8")) == 1
+    assert b"\n" not in bruto.replace(b"\r\n", b"")
+    assert m.montar(proj, _linhas_kit(m)).ja_migrado is True
+
+
+def test_projeto_sem_rules_so_ganha_marca_e_secoes(tmp_path):
+    m = _mod()
+    original = ("# Proj — calcula prêmio\n\n## Contexto\n- **Infra:** própria.\n- **Banco:** PostgreSQL 16.\n\n"
+                "## Regras obrigatórias do projeto\n1. **Nunca alterar a tabela `tarifa_base`** — é da atuária.\n\n"
+                "## Observações\n- A planilha de tarifas chega toda segunda.\n")
+    proj = _projeto(tmp_path, original, {})
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 0, saida
+    novo = _ler(proj / "CLAUDE.md")
+    assert MARCA in novo
+    depois = {m.normalizar(l) for l in novo.split("\n")}
+    for l in original.split("\n"):
+        if l.strip():
+            assert m.normalizar(l) in depois, l
+    assert "Índice de regras" not in novo
+    assert list((proj / ".claude" / "rules").iterdir()) == []
+
+
+def test_segunda_rodada_ja_migrado(tmp_path):
+    proj = _projeto_whats(tmp_path)
+    assert _cli(proj, "--aplicar")[0] == 0
+    depois_da_1a = _arquivos(proj)
+    codigo, saida, _ = _cli(proj, "--aplicar")
+    assert codigo == 0, saida
+    assert "já migrado" in saida
+    assert _arquivos(proj) == depois_da_1a
+
+
+def test_aplicar_recusa_montagem_com_falha(tmp_path):
+    m = _mod()
+    claude = f"# Proj — teste\n\n## Contexto\n- **Infra:** própria.\n{PONTEIRO_COMO_RODA}\n"
+    regra = "---\npaths:\n  - \"Dockerfile\"\n---\n\n# Deploy\n\n- **Pré-vôo:** rode o doctor.\n"
+    proj = _projeto(tmp_path, claude, {"deploy-e-ambiente.md": regra})
+    antes = _arquivos(proj)
+    mig = m.montar(proj, _linhas_kit(m))
+    with pytest.raises(RuntimeError):
+        m.aplicar(proj, mig)
+    assert _arquivos(proj) == antes
+
+
+def test_aplicar_nao_grava_se_o_projeto_mudou_depois_da_montagem(tmp_path):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    mig = m.montar(proj, _linhas_kit(m))
+    (proj / "CLAUDE.md").write_bytes((proj / "CLAUDE.md").read_bytes() + b"\r\n- mexi agora\r\n")
+    antes = _arquivos(proj)
+    with pytest.raises(RuntimeError):
+        m.aplicar(proj, mig)
+    assert _arquivos(proj) == antes
+
+
+def test_relatorio_curto(tmp_path):
+    m = _mod()
+    original = (FIXTURE / "CLAUDE.md").read_bytes().decode("utf-8")
+    inventada = "- **Idioma**: responda em latim nas sextas-feiras, inclusive nos commits."
+    alterado = original.replace("## Modo de trabalho (nunca violar)\r\n",
+                                f"## Modo de trabalho (nunca violar)\r\n{inventada}\r\n", 1)
+    proj = _projeto_whats(tmp_path, claude_md=alterado)
+    mig = m.montar(proj, _linhas_kit(m), teto=100)
+    assert mig.saiu_do_kit and mig.moveu and mig.ficou_por_duvida and mig.avisos
+    texto = m.relatorio(mig, [])
+    assert f"Saíram como do kit (o plugin já entrega): {len(mig.saiu_do_kit)}" in texto
+    assert f"Mudaram de lugar: {len(mig.moveu)}" in texto
+    assert texto.split("Ficaram por dúvida")[1].split("\n")[0].endswith(f": {len(mig.ficou_por_duvida)}")
+    assert inventada in texto
+    for aviso in mig.avisos:
+        assert aviso in texto
+    assert len(texto.split("\n")) <= 40
+
+
+def test_relatorio_com_falha_diz_que_nada_foi_gravado():
+    m = _mod()
+    texto = m.relatorio(m.Migracao(), ["conservação: linha sem destino (CLAUDE.md): x"])
+    assert "Nada foi gravado" in texto and "linha sem destino" in texto
+
+
+def test_relatorio_limita_lista_de_duvidas():
+    m = _mod()
+    mig = m.Migracao(ficou_por_duvida=[f"- **Regra {i}**: texto {i}" for i in range(60)])
+    texto = m.relatorio(mig, [])
+    assert len(texto.split("\n")) <= 40
+    assert "Ficaram por dúvida" in texto and ": 60" in texto and "e mais 50" in texto
+
+
+def test_historico_continua_funcionando(tmp_path, monkeypatch):
+    m = _mod()
+    chamadas = []
+    monkeypatch.setattr(m, "gravar_linhas_do_kit", lambda repo: chamadas.append(repo) or 7)
+    assert m.main(["historico"]) == 0
+    assert len(chamadas) == 1

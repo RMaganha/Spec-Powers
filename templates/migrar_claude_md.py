@@ -5,7 +5,7 @@ regras do kit ocupava ~6,4 KB do teto e nunca recebia regra nova; e os FATOS de 
 `.claude/rules/deploy-e-ambiente.md`, que só carrega ao tocar Dockerfile (F-040). Spec:
 `docs/specs/regras-do-kit-pelo-plugin.md`, seção "Migração dos projetos existentes".
 
-Esta parte só MONTA em memória e CONFERE — nunca grava no projeto e nunca roda git que escreve:
+`montar` e `conferir` só leem; só `aplicar` (e só com `--aplicar`) grava, e NUNCA roda git que escreve:
 - `montar`   classifica cada linha do CLAUDE.md antigo: ponteiro de `## Contexto` pra `.claude/rules/` vira o
              item de mesmo rótulo em negrito (que sai do arquivo de regra); linha que aponta documento do projeto
              fica; linha igual a uma linha de alguma versão do molde do kit sai (o plugin entrega); o resto FICA.
@@ -13,9 +13,17 @@ Esta parte só MONTA em memória e CONFERE — nunca grava no projeto e nunca ro
 - `conferir` conservação (nenhuma linha sem destino), `## Contexto` sem ponteiro e com os rótulos de antes,
              marca, índice com cada regra uma vez, working tree limpo nos arquivos tocados. Teto = aviso.
 
-Uso:  python migrar_claude_md.py historico     (regenera regras-do-kit/linhas-do-kit.txt a partir do git do kit)
+- `aplicar`  monta + confere DE NOVO e só então grava (CRLF/BOM do arquivo original preservados); qualquer falha →
+             nada é gravado. Desfazer é `git restore` nos arquivos tocados (o working tree estava limpo).
+- `relatorio` texto curto pro owner: quantas linhas saíram como do kit, quantas mudaram de lugar, quais ficaram
+             por dúvida.
+
+Uso:  python migrar_claude_md.py [--proj PASTA] [--aplicar]   (sem --aplicar é prévia: não grava nada)
+                                                              exit 0 = ok ou "já migrado"; exit 1 = falhas, nada gravado
+      python migrar_claude_md.py historico                    (regenera regras-do-kit/linhas-do-kit.txt a partir do git do kit)
 """
 import argparse
+import os
 import re
 from collections import Counter
 import subprocess
@@ -394,6 +402,8 @@ def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
         mig.claude_novo, mig.ja_migrado = bruto, True
         return mig
     texto, eol = _ler(arq)
+    bom = "\ufeff" if texto.startswith("\ufeff") else ""
+    texto = texto.lstrip("\ufeff")                # o BOM volta no começo do arquivo novo, nunca no meio
     regras = {n: t for n, (t, _) in _ler_regras(proj).items()}
     eol_regras = {n: e for n, (_, e) in _ler_regras(proj).items()}
     atuais = dict(regras)
@@ -468,7 +478,7 @@ def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
         partes += ["", cab] + _juntar(corpo)
     if atuais:
         partes += ["", f"## {SECAO_INDICE}"] + [_linha_indice(n, atuais[n]) for n in sorted(atuais)]
-    mig.claude_novo = ("\n".join(partes).rstrip("\n") + "\n").replace("\n", eol)
+    mig.claude_novo = bom + ("\n".join(partes).rstrip("\n") + "\n").replace("\n", eol)
 
     tamanho = _bytes(mig.claude_novo)
     if tamanho > teto:
@@ -543,7 +553,7 @@ def _git_status(proj: Path, tocados: list) -> list:
     if st.returncode:
         falhas.append(f"git status falhou: {st.stderr.decode('utf-8', 'replace').strip()}")
     elif sujos:
-        falhas.append("working tree sujo nos arquivos que a migração toca — commite ou descarte antes: "
+        falhas.append("working tree sujo nos arquivos que a migração toca — commite ou descarte (`git restore`) antes: "
                       + " | ".join(sujos))
     return falhas
 
@@ -642,16 +652,118 @@ def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
     return falhas
 
 
+# --- gravar e relatório ------------------------------------------------------------------------------
+
+def aplicar(proj: Path, m: Migracao, linhas_kit=None) -> None:
+    """Grava `claude_novo` e `regras_novas` (os textos já trazem o fim de linha original: bytes, sem tradução).
+    Antes de gravar, monta e confere DE NOVO: falha, ou projeto diferente do que `m` montou → RuntimeError e nada
+    é gravado. Grava tudo em arquivo temporário primeiro e só então troca, pra não deixar a migração pela metade.
+    Nunca roda git."""
+    proj = Path(proj)
+    if m.ja_migrado:
+        return
+    linhas_kit = set(carregar_linhas_do_kit() if linhas_kit is None else linhas_kit)
+    falhas = conferir(proj, m, linhas_kit)
+    if not falhas:
+        agora = montar(proj, linhas_kit)
+        if (agora.claude_novo, agora.regras_novas) != (m.claude_novo, m.regras_novas):
+            falhas = ["o projeto mudou depois da montagem — rode de novo"]
+    if falhas:
+        raise RuntimeError("; ".join(falhas))
+    alvos = [(proj / "CLAUDE.md", m.claude_novo)]
+    alvos += [(proj.joinpath(*PASTA_REGRAS, nome), texto) for nome, texto in sorted(m.regras_novas.items())]
+    temporarios = []
+    try:
+        for destino, texto in alvos:
+            tmp = destino.with_name(destino.name + ".mss-tmp")
+            temporarios.append(tmp)
+            tmp.write_bytes(texto.encode("utf-8"))
+        for (destino, _), tmp in zip(alvos, temporarios):
+            os.replace(tmp, destino)
+    finally:
+        for tmp in temporarios:
+            tmp.unlink(missing_ok=True)
+
+
+MAX_LISTA = {"duvida": 10, "aviso": 6, "falha": 20}
+
+
+def _curta(linha: str) -> str:
+    """Uma linha só (espaços colapsados). Não corta o texto: o owner precisa ler a linha inteira."""
+    return " ".join(str(linha).split())
+
+
+def _lista(titulo: str, itens: list, limite: int) -> list:
+    out = [titulo] + [f"  • {_curta(i)}" for i in itens[:limite]]
+    if len(itens) > limite:
+        out.append(f"  • …e mais {len(itens) - limite}")
+    return out
+
+
+def relatorio(m: Migracao, falhas: list) -> str:
+    """Texto curto pro owner (≤ 40 linhas), em palavras simples."""
+    if m.ja_migrado:
+        return "Este projeto já migrado: o CLAUDE.md já tem a marca das regras do kit. Nada a fazer."
+    if falhas:
+        linhas = [f"A migração não passou nas conferências ({len(falhas)}). Nada foi gravado."]
+        linhas += _lista("O que não fechou:", falhas, MAX_LISTA["falha"])
+        return "\n".join(linhas)
+    linhas = [f"Saíram como do kit (o plugin já entrega): {len(m.saiu_do_kit)}",
+              f"Mudaram de lugar: {len(m.moveu)}",
+              f"Ficaram por dúvida (parecem do kit, mas não batem; ficaram no projeto): {len(m.ficou_por_duvida)}"]
+    if m.ficou_por_duvida:
+        linhas += _lista("Linhas mantidas por dúvida — confira:", m.ficou_por_duvida, MAX_LISTA["duvida"])
+    if m.avisos:
+        linhas += _lista("Avisos:", m.avisos, MAX_LISTA["aviso"])
+    return "\n".join(linhas)
+
+
 # --- CLI ---------------------------------------------------------------------------------------------
 
 def main(argv=None) -> int:
+    for fluxo in (sys.stdout, sys.stderr):
+        try:
+            fluxo.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("historico", help="regenera regras-do-kit/linhas-do-kit.txt a partir do git do kit")
+    ap.add_argument("cmd", nargs="?", choices=["historico"],
+                    help="`historico` regenera regras-do-kit/linhas-do-kit.txt a partir do git do kit")
+    ap.add_argument("--proj", default=".", help="pasta do projeto (padrão: a atual)")
+    ap.add_argument("--aplicar", action="store_true", help="grava; sem isto é só prévia")
     args = ap.parse_args(argv)
     if args.cmd == "historico":
         n = gravar_linhas_do_kit(PASTA_TEMPLATES.parent)
         print(f"{ARQ_LINHAS_KIT}: {n} linhas")
+        return 0
+
+    proj = Path(args.proj).resolve()
+    linhas_kit = set(carregar_linhas_do_kit())
+    m = montar(proj, linhas_kit)
+    if m.ja_migrado:
+        print(relatorio(m, []))
+        return 0
+    falhas = conferir(proj, m, linhas_kit)
+    if falhas:
+        print("Migração reprovada — nada foi gravado." if args.aplicar else "Prévia — nada foi gravado.")
+        print(relatorio(m, falhas))
+        return 1
+    if not args.aplicar:
+        print("Prévia — nada foi gravado. Pra gravar, rode de novo com --aplicar.")
+        print(relatorio(m, []))
+        return 0
+    try:
+        aplicar(proj, m, linhas_kit)
+    except RuntimeError as e:
+        print("Migração reprovada — nada foi gravado.")
+        print(relatorio(m, [str(e)]))
+        return 1
+    tocados = ["CLAUDE.md"] + [f".claude/rules/{n}" for n in sorted(m.regras_novas)]
+    print("Migração gravada. Nada foi feito no git.")
+    print(relatorio(m, []))
+    print("Arquivos alterados: " + ", ".join(tocados))
+    print("Pra desfazer: git restore " + " ".join(tocados))
+    print("Falta commitar, pela regra de git do projeto.")
     return 0
 
 
