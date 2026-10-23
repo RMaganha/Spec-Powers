@@ -282,6 +282,23 @@ def test_mapa_contexto_wiring():
     assert "MAPA.md" in upgrade, "upgrade não garante o docs/superpowers/MAPA.md num projeto que nasceu antes da F1"
 
 
+def test_mapa_com_conexoes_md_deixa_so_os_nomes():
+    """Whats, 2026-10-23: o rodízio tirou o detalhe das Conexões pra CONEXOES.md (no MAPA, "a lista de
+    nomes"), mas o /mss-spec:mapa devolvia rota, arquivo e variável a cada reconciliação — Conexões
+    voltou a 3.073 B e o MAPA estourou o teto de 6.000 a cada integração nova. Com CONEXOES.md, o
+    detalhe é reconciliado LÁ e o MAPA fica com uma linha de nomes no formato do rodízio."""
+    cmd = (REPO / "commands" / "mapa.md").read_text(encoding="utf-8")
+    passo3 = cmd.split("3. **Reconcilie", 1)[1].split("\n4. ", 1)[0]
+    assert "CONEXOES.md" in passo3, "o passo 3 do /mss-spec:mapa não conhece o CONEXOES.md"
+    assert "só os nomes" in passo3, "com CONEXOES.md, o MAPA tem que ficar só com os nomes"
+    assert "Conexões: " in passo3 and " · " in passo3, \
+        "a linha de nomes não segue o formato do rodízio (`Conexões: A · B.`)"
+    assert "[CONEXOES.md](CONEXOES.md)" in passo3, "a linha do MAPA não aponta o CONEXOES.md"
+    rodizio = (REPO / "templates" / "rodizio_partida.py").read_text(encoding="utf-8")
+    assert "Detalhe em [CONEXOES.md](CONEXOES.md)" in rodizio and "Detalhe em [CONEXOES.md](CONEXOES.md)" in passo3, \
+        "o comando e o rodízio escrevem a linha de nomes de jeitos diferentes"
+
+
 def test_mapa_neural_wiring():
     """Mapa mental do projeto (F2 — mesma branch/assunto) montado: o gerador (script Python
     testável) e o comando existem, o comando acha o script via plugin-root e descreve as 4
