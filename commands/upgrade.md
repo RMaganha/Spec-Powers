@@ -1,5 +1,5 @@
 ---
-description: Sincroniza os arquivos do kit no projeto com a versão atual dos templates — atualiza os de referência sozinho e MESCLA CLAUDE.md/AMBIENTE.md sem perder o seu (só conflito real pergunta)
+description: Sincroniza os arquivos do kit no projeto com a versão atual dos templates — atualiza os de referência sozinho e MESCLA CLAUDE.md/AMBIENTE.md sem perder o seu (só conflito real pergunta); projeto ainda com as regras do kit copiadas no CLAUDE.md é migrado antes, sozinho
 argument-hint: "[--dry-run]"
 disable-model-invocation: true
 ---
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Traz o projeto pra versão atual do kit: compara cada arquivo que veio do kit com o template correspondente em `${CLAUDE_PLUGIN_ROOT}/templates/` e reconcilia com **o mínimo de interação** — só **conflito real** chama o owner.
 
-**Antes de mexer:** confirme que o working tree está limpo (ou avise o owner pra revisar depois pelo `git diff`), porque o upgrade **modifica arquivos**. **Não** faça `git add`/commit — deixe as mudanças no working tree pro owner revisar e commitar.
+**Antes de mexer:** confirme que o working tree está limpo (ou avise o owner pra revisar depois pelo `git diff`), porque o upgrade **modifica arquivos**. **Não** faça `git add`/commit — deixe as mudanças no working tree pro owner revisar e commitar. **Única exceção:** o git da migração do `CLAUDE.md` (próxima seção), que segue a regra de git do projeto.
 
 ## Modo `--dry-run` (preview, não toca em arquivo)
 
@@ -20,12 +20,27 @@ No preview:
 
 Ao fim, **deixe explícito que foi só preview** e diga como aplicar de verdade: rode `/mss-spec:upgrade` **sem a flag**. Não faça nenhuma edição, `git add` nem commit no dry-run.
 
-Três categorias:
+## Primeiro: projeto sem a marca → migração do `CLAUDE.md`, sozinha
+
+Abra o `CLAUDE.md` da raiz e procure a linha `<!-- mss-spec:regras-do-kit -->` (a marca: é ela que faz o plugin entregar as regras do kit em toda janela).
+
+- **Tem a marca** → o projeto já migrou; pule esta seção e siga pras categorias.
+- **Não tem** → as regras do kit ainda estão copiadas no `CLAUDE.md`. Faça a migração **primeiro e sozinha**: **nenhuma outra categoria** (1, 2 ou 3) roda na mesma rodada — o `CLAUDE.md` muda de formato, e misturar esconderia a mudança no `git diff`.
+  1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py"` (dry-run; a saída começa com "Prévia"). Mostre o relatório ao owner: quantas linhas saíram por serem do kit, quantas mudaram de lugar, quais ficaram por dúvida, e o aviso de teto se houver.
+  2. Saiu com falha (a saída lista o que não fechou; árvore suja nos arquivos que ele toca também é falha) → **nada foi gravado**: repasse a lista e pare. Com `--dry-run` no `$ARGUMENTS`, pare aqui de qualquer jeito.
+  3. Sem falha → rode o mesmo comando com `--aplicar`. Ele grava e para: **não mexe no git**.
+  4. Branch e commit seguem a **regra de git do projeto** (a linha `Versionamento` do `## Contexto`, ou o documento que ela aponta):
+     - **Padrão do kit** — o assistente faz: **antes do `--aplicar`** (árvore ainda limpa) vá pra branch principal e atualize-a; **depois**, abra `chore/migrar-claude-md` dali, `git add` **pelo nome** de cada arquivo que o script gravou (nunca `-A` nem `.`) e commite. Push só como a regra do projeto permitir.
+     - **Projeto que reserva o git ao owner** — o assistente **não roda nada de git**: entregue os comandos **um por bloco** (principal atualizada · `git switch -c chore/migrar-claude-md` · `git add <arquivo>` · `git commit`) e espere o owner dizer que rodou.
+     - Desfazer, antes de commitar: `git restore <os arquivos que o script gravou>`.
+  5. **Termine aqui** — commit feito (padrão do kit) ou pedido ao owner (git reservado a ele). As outras categorias ficam pra próxima rodada do `/mss-spec:upgrade`, já com a marca.
+
+Três categorias (projeto **com** a marca):
 
 1. **Arquivos só-do-kit (referência) — atualiza sozinho, sem perguntar.** São iguais em todo projeto; substitua pela versão nova do template:
    - `docs/SEGURANCA.md` ← `templates/SEGURANCA.md`
    - `docs/ESTRUTURA.md` ← `templates/ESTRUTURA.md`
-   - `.claude/rules/*.md` ← `templates/rules/` (regras path-scoped; **acrescente as que faltam**, e não recrie a que o projeto apagou de propósito por não se aplicar)
+   - `.claude/rules/*.md` ← `templates/rules/` (regras path-scoped; **só acrescente as que faltam** — **nunca sobrescreva** a que existe, ela é do projeto — e não recrie a que o projeto apagou de propósito por não se aplicar)
    - `docs/FRONTEND.md` ← `templates/FRONTEND.md` (só se o projeto tem UI web)
    - `docker-compose.yml` · `docker-compose.office.yml` · `Dockerfile` · `.dockerignore` ← `templates/docker/` (só se o projeto usa Docker)
    - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou)
@@ -36,8 +51,9 @@ Três categorias:
    **Freio do brownfield — arquivo que "não nasceu do kit" PERGUNTA, não é sobrescrito.** Antes de aplicar esta categoria, leia a tabela **"Pré-existente — não nasceu do kit"** do `docs/ARQUITETURA.md` (se existir; ela é gravada pelo `/mss-spec:analise`). Arquivo listado lá é do **projeto**, não uma cópia velha do molde: **mostre o diff e pergunte** ao owner em vez de atualizar sozinho — o padrão é **manter o do projeto**. Sem esse freio, um projeto **brownfield** que já tinha `docker-compose.yml`/`Dockerfile` próprios teria a infra que roda substituída pelo molde do kit, parando o projeto. Vale o mesmo julgamento quando não há dossiê e o arquivo claramente não veio do kit (conteúdo sem parentesco com o template): na dúvida, **pergunte**. O próprio `docs/ARQUITETURA.md` é **conteúdo do projeto** (levantamento do código, sem template a sincronizar) — o upgrade **nunca** o toca; quem o regenera é o `/mss-spec:analise`.
 
 2. **`CLAUDE.md`, `docs/AMBIENTE.md` e `docs/superpowers/MAPA.md` — MESCLA (nunca sobrescreve o do owner).** O kit dá o esqueleto, o owner preenche/edita. Compare **seção por seção / regra por regra** com o template:
+   - **O `CLAUDE.md` com a marca é só do projeto: a categoria 2 não reacrescenta seção do kit** (Modo de trabalho, Contexto de janela, Regras críticas — vêm do plugin, não voltam pro arquivo). Do `CLAUDE.md` ela só confere as seções do projeto (`## Regras obrigatórias do projeto`, `## Contexto`, `## Mapa de arquivos`, `## Índice de regras por tipo de arquivo`) e acrescenta a que **faltar**. Vale a regra por seção abaixo pro `AMBIENTE.md` e o `MAPA.md`.
    - Seção/regra do template que **falta** no projeto → **acrescente** (novidade do kit).
-   - Conteúdo que o owner escreveu (contexto preenchido, regra específica do projeto — a última das "Regras críticas", que no molde é só um placeholder) → **mantenha intacto**. Atenção à **numeração**: quando o molde ganha uma regra nova, ela entra **antes** da regra do projeto; acrescente a nova e **renumere**, sem sobrescrever a do owner.
+   - Conteúdo que o owner escreveu (contexto preenchido, regras de `## Regras obrigatórias do projeto`) → **mantenha intacto**.
    - Mesma seção/regra nos dois mas **divergiu** (kit diz A, owner editou pra B) → **CONFLITO**: mostre os dois lados e **pergunte** ao owner qual fica. Só isso interage.
    - **Limite honesto:** o upgrade não guarda a versão *antiga* do template que o projeto nasceu, então a reconciliação é por seção/regra (não é 3-way merge). Na dúvida entre mexer ou não, **erre pro lado de manter o do owner**.
    - **Caso da linha `**Infra:**` (novidade da 0.18.0):** ela é o que faz o kit parar de assumir a infra MSIG, e num projeto anterior a esta versão **não existe**. Ao mesclar o `CLAUDE.md`, acrescente-a no Contexto — mas **não escolha por ele**: mostre as duas opções e **pergunte** (*"este projeto roda na infra MSIG — rede `mitiai_network`, proxy, CA do FortiGate, SQL Server corporativo — ou tem infra própria?"*). Enquanto ele não responder, deixe `<MSIG | própria — a confirmar>`; **assumir MSIG em silêncio é justamente o erro** que a versão conserta.

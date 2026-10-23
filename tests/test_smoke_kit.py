@@ -1348,3 +1348,53 @@ def test_azure_prd_licoes_da_1a_producao_real():
     assert "subnets/write" not in infra.replace("NÃO dar `subnets/write`", ""), "nunca pedir permissao de alterar a subnet"
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
     assert "permissões da conexão do pipeline em produção" in ambiente.lower()
+
+
+# ---- regras do kit pelo plugin (0.42.0): fiação dos comandos ----------------
+MARCA_KIT = "<!-- mss-spec:regras-do-kit -->"
+
+
+def test_upgrade_migra_primeiro_e_sozinho():
+    """Projeto sem a marca: o upgrade roda a migração do CLAUDE.md PRIMEIRO e SOZINHA; com a marca, a
+    categoria 2 não reacrescenta seção do kit; branch + commit seguem a regra de git do PROJETO."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    low = up.lower()
+    for trecho in ("migrar_claude_md.py", MARCA_KIT, "primeiro", "nenhuma outra categoria",
+                   "regra de git do projeto", "--aplicar", "chore/migrar-claude-md", "git restore"):
+        assert trecho.lower() in low, f"upgrade.md sem {trecho!r}"
+    assert "não reacrescenta" in low and "seção do kit" in low, \
+        "upgrade.md não diz que, com a marca, a categoria 2 não reacrescenta seção do kit"
+    # referências velhas do molde antigo saíram
+    assert "a última das" not in low, "upgrade.md ainda fala da última das Regras críticas (molde antigo)"
+    assert "renumere" not in low, "upgrade.md ainda manda renumerar regra do kit (molde antigo)"
+
+
+def test_kickoff_grava_marca_sem_regra_do_kit():
+    kick = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    low = kick.lower()
+    assert MARCA_KIT in kick, "kickoff.md não cita a marca das regras do kit"
+    assert "regras do kit vêm do plugin" in low, "kickoff.md não diz que as regras do kit vêm do plugin"
+    assert "não copie" in low and "regra do kit" in low, "kickoff.md não proíbe copiar regra do kit pro CLAUDE.md"
+
+
+def test_analise_contexto_por_extenso():
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    assert "## Contexto" in an and "nunca ponteiro" in an, \
+        "analise.md não manda preencher o `## Contexto` por extenso (nunca ponteiro)"
+
+
+def test_doctor_checks_3_4_9():
+    doc = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    c3 = next(l for l in doc.splitlines() if l.startswith("3. "))
+    assert "vazia" in c3 and "ℹ" in c3 and "✗" in c3 and "nunca ✗" in c3, "check 3 deve contar só chave vazia, como ℹ, nunca ✗"
+    c4 = next(l for l in doc.splitlines() if l.startswith("4. "))
+    assert "a verificar (fora do escritório/VPN)" in c4, "check 4 sem 'a verificar (fora do escritório/VPN)'"
+    c9 = next(l for l in doc.splitlines() if l.startswith("9. "))
+    assert MARCA_KIT in c9 and "10.000" in c9 and "regras do kit" in c9.lower() and "9.000" in c9, \
+        "check 9 sem a marca, o teto 10.000 B e os blocos das regras do kit (≤ 9.000)"
+
+
+def test_compliance_confere_a_marca_nao_o_bloco_velho():
+    comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
+    assert MARCA_KIT in comp, "compliance.md não confere a marca das regras do kit"
+    assert "sem a marca" in comp.lower(), "compliance.md não diz que o bloco antigo só vale pra projeto sem a marca"
