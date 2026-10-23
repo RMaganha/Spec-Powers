@@ -115,6 +115,18 @@ def test_molde_do_projeto_tem_marca_e_secoes():
         assert rotulo in txt, f"rótulo {rotulo} sumiu do ## Contexto do molde"
 
 
+def test_contexto_do_molde_sem_ponteiro_pra_rules_e_na_ordem():
+    """H — o Contexto é um fato por linha, por extenso: nenhuma linha dele aponta pra `.claude/rules/`."""
+    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    contexto = txt.split("## Contexto", 1)[1].split("\n## ", 1)[0]
+    linhas = [l for l in contexto.split("\n") if l.strip()]
+    com_ponteiro = [l for l in linhas if ".claude/rules/" in l]
+    assert not com_ponteiro, f"## Contexto com ponteiro pra .claude/rules/: {com_ponteiro}"
+    rotulos = [re.match(r"- (\*\*[^*]+:\*\*)", l).group(1) for l in linhas]
+    assert rotulos == ["**Infra:**", "**Stack/runtime:**", "**Como roda:**", "**UI:**", "**Ambientes:**",
+                       "**Banco:**", "**Integrações externas:**", "**Versionamento:**"], rotulos
+
+
 def test_cada_bloco_abre_com_desempate():
     """H — a 1ª linha de cada bloco diz de onde vem e que a regra do projeto vence a do kit."""
     for p in BLOCOS:
