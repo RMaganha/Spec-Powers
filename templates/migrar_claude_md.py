@@ -17,6 +17,7 @@ Uso:  python migrar_claude_md.py historico     (regenera regras-do-kit/linhas-do
 """
 import argparse
 import re
+from collections import Counter
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -40,9 +41,16 @@ RE_ROTULO = re.compile(r"^\*\*(.+?)\*\*")
 RE_ALVO_RULES = re.compile(r"`\.claude/rules/([^`]+?\.md)`")
 RE_CITA_RULES = re.compile(r"\.claude/rules/([^\s`)\]]+?\.md)")
 RE_ALVO_ARQUIVO = re.compile(r"`([^`\s]+)`|\]\(([^)\s]+)\)")
+# Fato + fragmento de ponteiro no fim, como o molde de antes da marca escrevia no `## Contexto`:
+# "- **Banco:** PostgreSQL — ver `.claude/rules/banco-e-segredo.md`" / "…; ver `.claude/rules/frontend.md`".
+RE_FRAGMENTO = re.compile(r"\s*[—;,]\s*ver\s+`\.claude/rules/([^`]+?\.md)`(?=\s*[>).]?\s*$)")
+PARA_FRAGMENTO = "ponteiro removido"
 
-# Tipos de seção do CLAUDE.md antigo.
-KIT, CONTEXTO, MAPA, REGRAS, OUTRA, PREAMBULO = "kit", "contexto", "mapa", "regras", "outra", "preambulo"
+# Tipos de seção do CLAUDE.md antigo. VERBATIM = título parecido com Contexto/Mapa ("Contexto do negócio") ou o
+# mesmo título com outra grafia: seção própria, inteira, sem classificar linha.
+KIT, CONTEXTO, MAPA, REGRAS, OUTRA, VERBATIM, PREAMBULO = (
+    "kit", "contexto", "mapa", "regras", "outra", "verbatim", "preambulo")
+TITULOS_EXATOS = {"contexto": CONTEXTO, "mapa de arquivos": MAPA, SECAO_REGRAS.casefold(): REGRAS}
 
 
 @dataclass
@@ -201,19 +209,44 @@ def _comentario_aberto(linhas: list) -> bool:
     return estado
 
 
+def _titulo_exato(titulo: str) -> str:
+    """Título pra comparação EXATA: casefold, espaços colapsados, sem parêntese no fim
+    (`Mapa de arquivos (só o que não se infere lendo o repo)` → `mapa de arquivos`)."""
+    t = re.sub(r"\s+", " ", titulo).strip().casefold()
+    return re.sub(r"\s*\([^()]*\)$", "", t).strip()
+
+
 def _tipo(titulo, cab, linhas_kit) -> str:
     if titulo is None:
         return PREAMBULO
     t = titulo.casefold()
     if t.startswith(("modo de trabalho", "regras críticas", "regras criticas", "contexto de janela")):
         return KIT if normalizar(cab) in linhas_kit else OUTRA
-    if t == "contexto" or re.match(r"^contexto\b", t):
-        return CONTEXTO
-    if t.startswith("mapa de arquivos"):
-        return MAPA
-    if t.startswith(SECAO_REGRAS.casefold()):
-        return REGRAS
+    exato = TITULOS_EXATOS.get(_titulo_exato(titulo))
+    if exato:
+        return exato
+    if t.startswith(("contexto", "mapa de arquivos")):
+        return VERBATIM
     return OUTRA
+
+
+def _tipos_das_secoes(texto: str, linhas_kit) -> list:
+    """[(tipo, cabeçalho, corpo)] — Contexto/Mapa repetidos com o MESMO cabeçalho somam; com outra grafia viram
+    VERBATIM (o `montar` e o `conferir` leem as seções do mesmo jeito)."""
+    out, primeiro = [], {}
+    for titulo, cab, corpo in _secoes(texto):
+        tipo = _tipo(titulo, cab, linhas_kit)
+        if tipo in (CONTEXTO, MAPA):
+            if primeiro.setdefault(tipo, cab) != cab:
+                tipo = VERBATIM
+        out.append((tipo, cab, corpo))
+    return out
+
+
+def _corpo_do_tipo(texto: str, tipo: str, linhas_kit=frozenset()):
+    """Corpo somado das seções do tipo (None se não há)."""
+    corpos = [c for t, _, c in _tipos_das_secoes(texto, linhas_kit) if t == tipo]
+    return None if not corpos else [l for c in corpos for l in c]
 
 
 RE_LINHA_PONTEIRO = re.compile(r"^\*\*.+?\*\*\s*:?\s*→(.*)$")
@@ -368,22 +401,26 @@ def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
     tirados = set()
 
     preambulo, regras_proj, contexto, mapa, outras = [], [], None, None, []
-    for titulo, cab, corpo in _secoes(texto):
-        tipo = _tipo(titulo, cab, linhas_kit)
+    for tipo, cab, corpo in _tipos_das_secoes(texto, linhas_kit):
         if tipo == CONTEXTO:
             novo = []
             for un in _unidades(corpo):
-                if not _eh_ponteiro_rules(un[0]):
+                if _eh_ponteiro_rules(un[0]):
+                    novo += _trocar_ponteiro(un, atuais, tirados, mig)
+                elif RE_FRAGMENTO.search(un[0]):
+                    novo += _tirar_fragmento(un, atuais, mig)
+                else:
                     novo += un
-                    continue
-                novo += _trocar_ponteiro(un, atuais, tirados, mig)
-            contexto = (cab, novo)
+            contexto = (cab, (contexto[1] + [""] if contexto else []) + novo)
             continue
         if tipo == MAPA:
-            mapa = (cab, corpo)
+            mapa = (cab, (mapa[1] + [""] if mapa else []) + corpo)
             continue
         if tipo == REGRAS:
             regras_proj += [""] + corpo
+            continue
+        if tipo == VERBATIM:
+            outras.append((cab, corpo))
             continue
         ficam = []
         for un in _unidades(corpo):
@@ -440,6 +477,18 @@ def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
     return mig
 
 
+def _tirar_fragmento(un: list, atuais: dict, mig: Migracao) -> list:
+    """Fato + ` — ver `.claude/rules/x.md`` no `## Contexto`: o fato fica, só o fragmento sai (x.md está no índice).
+    x.md não existe → falha e a linha fica como está."""
+    linha = un[0]
+    nome = RE_FRAGMENTO.search(linha).group(1)
+    if nome not in atuais:
+        mig.falhas.append(f"ponteiro do `## Contexto` pra `.claude/rules/{nome}`, que não existe: {linha}")
+        return un
+    mig.moveu.append((linha, "CLAUDE.md › ## Contexto", f"{PARA_FRAGMENTO}: `.claude/rules/{nome}` (fica no índice)"))
+    return [RE_FRAGMENTO.sub("", linha, count=1)] + un[1:]
+
+
 def _trocar_ponteiro(un: list, atuais: dict, tirados: set, mig: Migracao) -> list:
     """Ponteiro do `## Contexto` → o item de mesmo rótulo do arquivo de regra. Falhou → a linha fica e vira falha."""
     linha = un[0]
@@ -472,8 +521,6 @@ def _corpo_secao(texto: str, inicio: str):
     """Linhas do corpo da 1ª seção cujo título começa com `inicio` (ou None)."""
     for titulo, _, corpo in _secoes(texto):
         if titulo is not None and titulo.casefold().startswith(inicio.casefold()):
-            if inicio.casefold() == "contexto" and _tipo(titulo, "", set()) != CONTEXTO:
-                continue
             return corpo
     return None
 
@@ -535,8 +582,8 @@ def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
             falhas.append(f"CLAUDE.md novo cita `.claude/rules/{nome}`, que não existe")
 
     # fatos sempre carregados: Contexto sem ponteiro e com os rótulos de antes
-    ctx_antes = _corpo_secao(antes, "contexto") or []
-    ctx_novo = _corpo_secao(novo, "contexto")
+    ctx_antes = _corpo_do_tipo(antes, CONTEXTO, linhas_kit) or []
+    ctx_novo = _corpo_do_tipo(novo, CONTEXTO, linhas_kit)
     if ctx_antes and ctx_novo is None:
         falhas.append("a seção `## Contexto` sumiu do CLAUDE.md novo")
     ctx_novo = ctx_novo or []
@@ -549,23 +596,45 @@ def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
         if r and not l[:1].isspace() and r not in rotulos_novos:
             falhas.append(f"rótulo do `## Contexto` sumiu: {l.strip()}")
 
-    # conservação: toda linha do antes tem destino conferido
-    saiu = set(m.saiu_do_kit)
-    fora_do_kit = sorted(saiu - linhas_kit)
+    # conservação, por CONTAGEM: cada ocorrência do antes casa com uma ocorrência do depois, ou com uma saída
+    # como do kit, ou é uma das duas transformações registradas do `## Contexto` (ponteiro → item; fragmento
+    # `— ver .claude/rules/x.md` tirado). Cabeçalho `## ` conta por presença (Contexto/Mapa repetido é somado).
+    saiu = Counter(m.saiu_do_kit)
+    fora_do_kit = sorted(set(saiu) - linhas_kit)
     if fora_do_kit:
         falhas.append("saiu como do kit, mas não está em linhas-do-kit.txt: " + " | ".join(fora_do_kit))
-    depois = {normalizar(l) for t in [novo, *regras_depois.values()] for l in t.split("\n")}
+    depois = Counter(normalizar(l) for t in [novo, *regras_depois.values()] for l in t.split("\n"))
     ponteiros_ok = {l for l in ctx_antes if _eh_ponteiro_rules(l) and _rotulo(l) in rotulos_novos
                     and all(f"`.claude/rules/{n}`" in corpo_indice for n in RE_ALVO_RULES.findall(l))}
+    fragmentos = {linha for linha, de, para in m.moveu
+                  if de == "CLAUDE.md › ## Contexto" and para.startswith(PARA_FRAGMENTO)}
+    com_fragmento = []
     origem = [("CLAUDE.md", antes)] + [(f".claude/rules/{n}", t) for n, t in regras_antes.items()]
     for nome, texto in origem:
         for l in texto.split("\n"):
             n = normalizar(l)
-            if not n or n in depois or (n in saiu and n in linhas_kit):
+            if not n:
                 continue
             if nome == "CLAUDE.md" and l in ponteiros_ok:
                 continue
-            falhas.append(f"conservação: linha sem destino ({nome}): {l.strip()}")
+            if nome == "CLAUDE.md" and l in fragmentos and l in ctx_antes:
+                com_fragmento.append(l)
+                continue
+            if nome == "CLAUDE.md" and l.startswith("## ") and depois[n] > 0:
+                continue
+            if depois[n] > 0:
+                depois[n] -= 1
+            elif saiu[n] > 0 and n in linhas_kit:
+                saiu[n] -= 1
+            else:
+                falhas.append(f"conservação: linha sem destino ({nome}): {l.strip()}")
+    for l in com_fragmento:
+        alvo = RE_FRAGMENTO.search(l)
+        fato = normalizar(RE_FRAGMENTO.sub("", l, count=1))
+        if alvo and f"`.claude/rules/{alvo.group(1)}`" in corpo_indice and depois[fato] > 0:
+            depois[fato] -= 1
+        else:
+            falhas.append(f"conservação: linha sem destino (CLAUDE.md): {l.strip()}")
 
     # ponto de volta
     tocados = ["CLAUDE.md"] + [f".claude/rules/{n}" for n in sorted(m.regras_novas)]

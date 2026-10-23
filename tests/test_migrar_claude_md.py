@@ -310,6 +310,140 @@ def test_regra_com_acento_no_nome_e_reconhecida_pelo_git(tmp_path):
     assert m.conferir(proj, mig) == []
 
 
+# --- projeto nascido do último molde antes da marca (7b0809b) -----------------------------------------
+
+MOLDE_PRE_MARCA = Path(__file__).resolve().parent / "fixtures" / "molde-7b0809b" / "CLAUDE.md"
+PREENCHER = [
+    ("# <Projeto> — <objetivo em 1 frase>", "# Cotador — calcula prêmio de seguro auto pra corretor"),
+    ("- **Infra:** <**MSIG** | **própria**> —", "- **Infra:** **MSIG** —"),
+    ("- **Stack/runtime:** <ex.: Python 3.x / Node> · **Como roda:** <CLI | serviço/porta | container | cron>",
+     "- **Stack/runtime:** Python 3.12 · **Como roda:** container, gunicorn na porta 8000"),
+    ("- **UI:** <não | web — ex.: FastAPI + Jinja; ver `.claude/rules/frontend.md`>",
+     "- **UI:** web — FastAPI + Jinja; ver `.claude/rules/frontend.md`"),
+    ("- **Integrações externas:** <sites / APIs / filas, ou \"nenhuma\">",
+     "- **Integrações externas:** API de tarifas da MSIG"),
+    ("- **Banco:** <não | qual> — ver `.claude/rules/banco-e-segredo.md`",
+     "- **Banco:** PostgreSQL 16 — ver `.claude/rules/banco-e-segredo.md`"),
+    ("- `<arquivo>` — <responsabilidade>", "- `tarifas/calculo.py` — regra de cálculo do prêmio"),
+    ("12. <regra específica do seu projeto…>", "12. **Nunca alterar a tabela `tarifa_base`** — é da atuária."),
+]
+SECOES_DO_KIT_PRE_MARCA = ("## Modo de trabalho", "## Contexto de janela", "## Regras críticas")
+
+
+def _molde_pre_marca_preenchido() -> str:
+    texto = MOLDE_PRE_MARCA.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    for de, para in PREENCHER:
+        assert de in texto, de
+        texto = texto.replace(de, para)
+    return texto
+
+
+def _projeto_molde_pre_marca(tmp_path, texto=None) -> Path:
+    regras = {p.name: p.read_bytes().decode("utf-8") for p in (REPO / "templates" / "rules").glob("*.md")}
+    return _projeto(tmp_path, texto or _molde_pre_marca_preenchido(), regras)
+
+
+def test_molde_pre_marca_preenchido_migra(tmp_path):
+    m = _mod()
+    texto = _molde_pre_marca_preenchido()
+    proj = _projeto_molde_pre_marca(tmp_path, texto)
+    mig = m.montar(proj, _linhas_kit(m))
+    assert m.conferir(proj, mig) == []
+    contexto = _secao(mig.claude_novo, "Contexto")
+    assert not [l for l in contexto if ".claude/rules/" in l]
+    assert "- **UI:** web — FastAPI + Jinja" in contexto
+    assert "- **Banco:** PostgreSQL 16" in contexto
+    assert any(de == "CLAUDE.md › ## Contexto" and "banco-e-segredo.md" in linha and "ponteiro" in para
+               for linha, de, para in mig.moveu)
+    # toda linha das seções do kit e dos comentários do molde saiu como do kit
+    secao = None
+    do_kit = []
+    for l in texto.split("\n"):
+        if l.startswith("## "):
+            secao = l
+        dentro = secao is None or secao.startswith(SECOES_DO_KIT_PRE_MARCA)
+        if l.strip() and dentro and not l.startswith("# ") and not l.startswith("12. "):
+            do_kit.append(l)
+    assert do_kit
+    for l in do_kit:
+        assert m.normalizar(l) in mig.saiu_do_kit, l
+        assert l not in mig.claude_novo.split("\n"), l
+    # as linhas do projeto ficam
+    for _, para in PREENCHER:
+        if ".claude/rules/" not in para:
+            assert para in mig.claude_novo, para
+    assert "12. **Nunca alterar a tabela `tarifa_base`**" in "\n".join(
+        _secao(mig.claude_novo, "Regras obrigatórias do projeto"))
+    indice = "\n".join(_secao(mig.claude_novo, "Índice de regras por tipo de arquivo"))
+    for nome in ("banco-e-segredo.md", "frontend.md", "rota-e-endpoint.md"):
+        assert indice.count(f"`.claude/rules/{nome}`") == 1
+
+
+def test_fragmento_ver_rules_sem_arquivo_reprova(tmp_path):
+    m = _mod()
+    linha = "- **Banco:** PostgreSQL 16 — ver `.claude/rules/banco-e-segredo.md`"
+    proj = _projeto(tmp_path, f"# Proj — x\n\n## Contexto\n{linha}\n", {})
+    mig = m.montar(proj, _linhas_kit(m))
+    falhas = m.conferir(proj, mig)
+    assert any(linha in f for f in falhas), falhas
+
+
+def test_conferir_so_aceita_o_fragmento_registrado(tmp_path):
+    """Tirar o fragmento sem registrar em `moveu` (ou tirar mais que o fragmento) reprova."""
+    m = _mod()
+    proj = _projeto_molde_pre_marca(tmp_path)
+    mig = m.montar(proj, _linhas_kit(m))
+    mig.moveu = [x for x in mig.moveu if "ponteiro" not in x[2]]
+    falhas = m.conferir(proj, mig)
+    assert any("conservação" in f and "banco-e-segredo.md" in f for f in falhas), falhas
+
+
+# --- seções de título parecido; linhas repetidas ------------------------------------------------------
+
+def test_secoes_de_titulo_parecido_nao_se_perdem(tmp_path):
+    m = _mod()
+    claude = ("# Proj — x\n\n## Contexto\n- **Infra:** MSIG\n\n## Contexto do negocio\n- X\n\n"
+              "## Mapa de arquivos\n- `a.py` — faz A\n\n## Mapa de arquivos extra\n- `b.py`\n")
+    proj = _projeto(tmp_path, claude, {})
+    mig = m.montar(proj, _linhas_kit(m))
+    novo = mig.claude_novo.split("\n")
+    for l in ("## Contexto", "- **Infra:** MSIG", "## Contexto do negocio", "- X", "## Mapa de arquivos",
+              "- `a.py` — faz A", "## Mapa de arquivos extra", "- `b.py`"):
+        assert l in novo, l
+    assert novo.index("## Contexto do negocio") < novo.index("## Mapa de arquivos extra")
+    assert m.conferir(proj, mig) == []
+
+
+def test_mesmo_titulo_duas_vezes_e_concatenado(tmp_path):
+    m = _mod()
+    claude = "# Proj — x\n\n## Contexto\n- **Infra:** MSIG\n\n## Mapa de arquivos\n- `a.py`\n\n## Contexto\n- **Banco:** PG\n"
+    proj = _projeto(tmp_path, claude, {})
+    mig = m.montar(proj, _linhas_kit(m))
+    contexto = _secao(mig.claude_novo, "Contexto")
+    assert "- **Infra:** MSIG" in contexto and "- **Banco:** PG" in contexto
+    assert mig.claude_novo.count("## Contexto\n") == 1
+    assert m.conferir(proj, mig) == []
+
+
+DUPLICADA = "- Toda alteração de tarifa passa pela atuária antes do deploy."
+
+
+def test_linha_repetida_em_duas_secoes_sobrevive(tmp_path):
+    m = _mod()
+    claude = (f"# Proj — x\n\n## Contexto\n- **Infra:** MSIG\n{DUPLICADA}\n\n"
+              f"## Notas da equipe\n{DUPLICADA}\n")
+    proj = _projeto(tmp_path, claude, {})
+    mig = m.montar(proj, _linhas_kit(m))
+    assert mig.claude_novo.split("\n").count(DUPLICADA) == 2
+    assert m.conferir(proj, mig) == []
+    # mutante: some uma das duas → a conservação por contagem pega
+    linhas = mig.claude_novo.split("\n")
+    linhas.remove(DUPLICADA)
+    mig.claude_novo = "\n".join(linhas)
+    falhas = m.conferir(proj, mig)
+    assert any("conservação" in f and "atuária" in f for f in falhas), falhas
+
+
 def test_linha_desconhecida_fica_por_duvida(tmp_path):
     m = _mod()
     original = (FIXTURE / "CLAUDE.md").read_bytes().decode("utf-8")
