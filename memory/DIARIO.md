@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-10-23
+
+- [regras-do-kit] do "sempre bate no limite" à 0.42.0: regras do kit pelo plugin, `## Contexto` por extenso, regra por tipo lida antes de gravar, migração que confere sozinha; pivô central: subir o teto → separar kit e projeto, e o índice medido nos 76 históricos do Whats antes de adotar (F-040, F-041) → sessions/2026-10-23-regras-do-kit-pelo-plugin.md
+
 ## 2026-10-21
 
 - [azure-ambiente] do "TerraForm?" ao MSS-UTILS em produção pelo pipeline (Bicep + `app_settings.py` + aprovação), 0.37.0 → 0.41.0; pivô central: 3 rodadas de permissão pra identidade errada → `object id` no log (F-039); homologação nova e nome `azure-ambiente` → sessions/2026-10-21-azure-ambiente.md

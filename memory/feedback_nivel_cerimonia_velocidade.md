@@ -23,3 +23,11 @@ inegociáveis — só o peso do planejamento varia. Além disso, `effortLevel` d
 `medium` (template + global do owner, que estava `xhigh`) — dial ortogonal, pede restart. Se ele
 pedir "rápido/leve", pense médio/mínimo; se "caprichado/crítico", alto. Relacionado a
 [[feedback-assumir-papel-especialista]].
+
+**2026-10-23 — quando o alto se paga:** na 0.42.0 (regras do kit pelo plugin + migração que reescreve o
+`CLAUDE.md` de todo projeto) o owner escolheu revisor por tarefa. As revisões pegaram 8 problemas sérios antes do
+merge: migração que travava pra sempre em projeto do molde anterior, seção "Contexto do negócio" engolida,
+conservação por conjunto (linha repetida sumia sem alarme), migração pela metade se um arquivo estivesse aberto,
+branch criada depois da gravação, regras do kit caladas por `CLAUDE.md` fora de UTF-8, regra vazia barrando
+gravação. Custo: ~3 h e três reclamações de demora. Alto vale pra mudança que mexe em todo projeto — desde que
+com aviso de progresso ([[feedback-avisar-progresso-em-execucao-longa]]).
