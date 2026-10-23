@@ -23,6 +23,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from _texto_kit import texto_do_kit
 
 import pytest
 
@@ -338,7 +339,7 @@ def test_documentado_no_readme_e_no_molde():
     assert "mss_publicacao_off" in readme, "README não documenta o escape do owner"
     assert "falha fechada" in readme, "README não explica o fail-closed desta cerca"
     assert "aprovação" in readme and "release/*" in readme, "README não explica o destino protegido e o ask"
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8").lower()
+    claude = texto_do_kit().lower()
     assert "git push" in claude and "hook" in claude, \
         "CLAUDE.md não diz que o push de homologação/produção é do owner com cerca por hook"
     assert "aprova" in claude, "CLAUDE.md não diz que o resto do git roda com a aprovação do owner"

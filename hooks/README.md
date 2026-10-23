@@ -1,5 +1,5 @@
-Nove hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Onze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os onze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -12,6 +12,8 @@ Os nove anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
+| `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
+| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
 
 ---
 
@@ -317,7 +319,9 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 acrescenta. O `doctor` media e o hook de abertura avisava, mas o conserto dependia de alguém rodar o rodízio — e o
 Whats chegou a 160 KB de partida. Aqui o conserto roda na própria gravação.
 
-Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo).
+Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo **e**
+o arquivo mudou agora: mtime dentro de `JANELA_S` = 120 s e `(tamanho, mtime_ns)` diferente do último visto nesta
+sessão, guardado no temp do SO — ler com `wc -c CLAUDE.md` ou `cat INDEX.md` cita o nome, mas não é gravação; comando cuja 1ª palavra é `git` — `git add CLAUDE.md`, `git commit` — nunca conta).
 Gravou `docs/superpowers/MAPA.md` ou `INDEX.md` e passou do teto → `rodizio_partida.py enxugar --aplicar`, que
 **move, nunca apaga**, confere a conservação e para assim que cabe: 1º o rodízio de sempre (blocos antigos e
 fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `## Fora de escopo` → `FORA-DE-ESCOPO.md`
@@ -325,8 +329,9 @@ fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `##
 → `EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim, que a trava lê); no MAPA, `## Conexões` →
 `CONEXOES.md` (fica a lista de nomes) e, se ainda não couber, só o bloco atual fica. Destino que já existe recebe
 prepend datado. O `additionalContext` diz o que foi pra onde e manda **reler antes do próximo Edit**; o que sobra
-acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10 KB: **só avisa** (escolher o
-destino de um bloco de regra é julgamento — F-029). Arquivo com conflito de merge não é tocado.
+acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10,0 KB: **só avisa** (escolher o
+destino de um bloco de regra é julgamento — F-029): com a marca das regras do kit manda mover um bloco inteiro com
+ponteiro; **sem** a marca manda rodar `/mss-spec:upgrade`. Arquivo com conflito de merge não é tocado.
 
 ## Garantias
 
@@ -362,13 +367,63 @@ Evento `SessionStart`. Mede em bytes, na raiz (`CLAUDE_PROJECT_DIR` › `cwd`): 
 `tests/test_orcamento_contexto.py` e do `rodizio_partida.py`; um teste trava os três). Algum acima →
 `additionalContext` (≤ 1.000 bytes) com o que estourou, o que ler de cada um (MAPA → `## Onde estamos`;
 INDEX → `## Em andamento`; o resto por `grep`), "backlog, fora de escopo e diário não são o estado atual"
-e "avise o owner e ofereça `/mss-spec:doctor`" + `systemMessage` de 1 linha. **Não move nada**: mover é
+e "avise o owner" com o conserto: `CLAUDE.md` sem a marca → `/mss-spec:upgrade`; com a marca → mover bloco com
+ponteiro; `/mss-spec:doctor` só quando estoura MAPA/INDEX/MEMORY. Tamanhos em KB com uma casa
+(`10,1 KB (teto 10,0 KB)`). + `systemMessage` de 1 linha. **Não move nada**: mover é
 decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
 
 ## Garantias
 
 - **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado. Tudo no teto → calado.
 - **Escape consciente só do owner:** `MSS_ORCAMENTO_OFF=1`.
+
+---
+
+# Hook ligado — regras do kit pelo plugin (`regras_do_kit.py`)
+
+**Por que existe:** as regras do kit (modo de trabalho · regras críticas) viviam coladas no `CLAUDE.md` de
+cada projeto — cópia que envelhece e não acompanha o plugin. Agora moram em `templates/regras-do-kit/`
+(`1-modo-de-trabalho.md` · `2-regras-criticas.md`) e este hook as injeta. O `CLAUDE.md` do projeto só carrega
+a **marca**, numa linha sozinha: `<!-- mss-spec:regras-do-kit -->`.
+
+Evento `SessionStart` (startup, resume, clear, compact), sem `matcher`. **Duas entradas** em `hooks.json`
+(`regras_do_kit.py --bloco 1` e `--bloco 2`): o Claude Code corta cada `additionalContext` em 10.000
+caracteres (acima disso o texto vira arquivo e só uma prévia de 2.000 chega ao modelo), então cada bloco é
+uma string própria, com limite de **9.000 caracteres** (`LIMITE`). Na raiz (`CLAUDE_PROJECT_DIR` › `cwd`):
+`CLAUDE.md` com a marca (vale com BOM e CRLF) → injeta o bloco; sem a marca → silêncio (projeto fora do kit
+não recebe nada).
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0, inclusive com entrada ou `--bloco` malformados.
+- **Falha visível (a exceção desta pasta):** os outros hooks falham ABERTO e calados; este não. Sem ele a
+  janela abre sem as regras e ninguém percebe. Depois de confirmada a marca, bloco ilegível, acima de
+  9.000 caracteres ou qualquer defeito → `systemMessage` de 1 linha (`regras do kit não carregaram — rode
+  /mss-spec:doctor`), **nunca** bloco truncado. Antes da marca, defeito → calado.
+- **Escape consciente só do owner:** `MSS_REGRAS_KIT_OFF=1`.
+
+---
+
+# Hook ligado — regra por tipo de arquivo antes de gravar (`regra_antes_de_gravar.py`)
+
+**Por que existe:** as regras de caminho do projeto (`.claude/rules/*.md`, frontmatter `paths:`) carregam
+quando o assistente **lê** um arquivo que casa. Quando ele **cria** um arquivo novo, ou edita sem ler antes,
+a regra não carrega — no Whats, `banco.md` faltou em 5 conversas que criaram arquivos em `sql/`.
+
+Evento `PreToolUse`, matcher `Write|Edit|MultiEdit`. O caminho a gravar, relativo à raiz do projeto
+(`CLAUDE_PROJECT_DIR` › `cwd`), é comparado com o `paths:` de cada `.claude/rules/*.md` (`**`, `*`, `?`;
+`\` vale `/`; maiúsculas não contam). Casou e a regra ainda não foi mostrada nesta sessão → **nega**, com o
+texto da regra (sem o frontmatter) no motivo e "repita a gravação"; a 2ª tentativa passa. Várias regras no
+mesmo arquivo → uma negação só, com todos os textos. O estado "já mostrada" fica no temp do SO
+(`mss_regra_antes_<sessão>.json`).
+
+Só age em projeto do kit: o `CLAUDE.md` da raiz precisa ter a marca `<!-- mss-spec:regras-do-kit -->`. As regras são lidas de `.claude/rules/` **com as subpastas** (como a migração faz); regra que ficou só com título e comentário HTML não nega. O `/compact` tira o texto da regra do contexto, então uma 2ª entrada `SessionStart` com `matcher: compact` roda `regra_antes_de_gravar.py --zerar`, que apaga o estado da sessão — a regra volta a ser mostrada.
+
+## Garantias
+
+- **Nunca trava por defeito próprio** — sai sempre 0. **Falha ABERTA**: frontmatter quebrado, regra ilegível
+  ou bug → silêncio. Caminho fora da raiz do projeto nunca casa; regra sem `paths:` é ignorada.
+- **Escape consciente só do owner:** `MSS_REGRA_OFF=1`.
 
 ---
 
@@ -391,6 +446,8 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
 | `capturar_nudge` | `lembrou` | — |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
+| `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
+| `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
 | `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
 

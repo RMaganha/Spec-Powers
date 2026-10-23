@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from _texto_kit import texto_do_kit
 
 import pytest
 
@@ -244,7 +245,7 @@ def test_documentado():
     readme = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "alerta_contexto.py" in readme and "MSS_ALERTA_CONTEXTO_OFF" in readme
     assert "MSS_JANELA_TOKENS" in readme and "MSS_ALERTA_CONTEXTO_PCT" in readme
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "75%" in claude and "bola de neve" in claude.lower()
     todo = (REPO / "commands" / "to-dolist.md").read_text(encoding="utf-8")
     assert "bola de neve" in todo.lower() and "trava:" in todo

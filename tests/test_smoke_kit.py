@@ -10,6 +10,7 @@ existem. O teste manual da junction é rodar /mss-spec:kickoff num projeto de te
 import json
 import re
 from pathlib import Path
+from _texto_kit import texto_do_kit
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -73,7 +74,7 @@ def test_seguranca_wiring():
     assert (REPO / "commands" / "seguranca.md").exists(), "falta commands/seguranca.md"
     kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
     assert "templates/SEGURANCA.md" in kickoff, "kickoff não copia SEGURANCA.md"
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "docs/SEGURANCA.md" in claude, "CLAUDE.md não referencia docs/SEGURANCA.md"
 
 
@@ -90,7 +91,7 @@ def test_todolist_gitignorada():
 def test_doctor_wiring():
     """Pré-vôo do doctor montado: comando existe e o CLAUDE.md manda rodar no início da 1ª tarefa."""
     assert (REPO / "commands" / "doctor.md").exists(), "falta commands/doctor.md"
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "Pré-vôo de ambiente" in claude, "CLAUDE.md não cita o pré-vôo de ambiente (doctor)"
 
 
@@ -128,7 +129,7 @@ def test_log_wiring():
     assert (REPO / "commands" / "log.md").exists(), "falta commands/log.md"
     kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
     gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "templates/logging.py" in kickoff, "kickoff não monta templates/logging.py"
     assert "/logs/" in gi, "templates/gitignore precisa ignorar /logs/ ancorado na raiz"
     # 0.20.0 — LOG_ATIVO/stdout são detalhe de config e moveram pro commands/log.md; no CLAUDE.md
@@ -170,7 +171,7 @@ def test_regras_branch_e_escopo_wiring():
     (2) um assunto por janela — ao surgir 2º assunto, NÃO age sobre ele e empurra pro to-dolist
     (desde a 0.26.0 é trava: hook `um_item_por_janela.py` + passo 0 do nova-feature; ver
     tests/test_hook_um_item_por_janela.py)."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
     todo = (REPO / "commands" / "to-dolist.md").read_text(encoding="utf-8")
     # (1) branch da principal
@@ -245,7 +246,7 @@ def test_mapa_contexto_wiring():
     mapa_tpl = REPO / "templates" / "MAPA.md"
     mapa_cmd = REPO / "commands" / "mapa.md"
     kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
 
     # CA5: template com as 3 seções + a de Conexões manda declarar do código real / não inventar
@@ -388,7 +389,7 @@ def test_captura_kickoff_scaffold():
 
 def test_captura_private_e_indice():
     """CLAUDE.md do projeto carrega: convenção <private>, ponteiro pro diário, e o índice-primeiro."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "<private>" in claude, "CLAUDE.md não documenta a convenção <private> (nunca vira memória)"
     assert "DIARIO.md" in claude, "CLAUDE.md não aponta o diário de sessão (memory/DIARIO.md)"
     assert "pasta inteira" in claude.lower(), \
@@ -448,16 +449,17 @@ def test_ancora_hook_registrado():
 
 
 def test_ancora_regra_no_claude_md():
-    """A regra dura (camada 1) viaja pra todo projeto pelo molde do CLAUDE.md — e a
-    última regra crítica continua sendo o placeholder do projeto (o upgrade renumera)."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    """A regra dura (camada 1) viaja pra todo projeto pelas regras do kit (blocos do plugin) — e o
+    molde do projeto segue com o placeholder da regra só do projeto."""
+    claude = texto_do_kit()
     low = claude.lower()
     assert "âncora" in low, "CLAUDE.md não define a âncora (projeto ativo)"
     assert "somente-leitura" in low, "CLAUDE.md não diz que outro projeto é somente-leitura"
     assert "um projeto por janela" in low, "CLAUDE.md não carrega a regra 'um projeto por janela'"
     assert "MSS_ANCORA_OFF" in claude, "CLAUDE.md não documenta o escape consciente da cerca"
-    assert "<regra específica do seu projeto…>" in claude, \
-        "o placeholder da regra do projeto sumiu — a regra nova tem que entrar ANTES dele"
+    molde = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "<regra só deste projeto" in molde, \
+        "o placeholder da regra do projeto sumiu do molde (## Regras obrigatórias do projeto)"
 
 
 def test_ancora_prosa_no_ponto_de_contagio():
@@ -479,7 +481,8 @@ def test_perguntar_nao_vasculhar():
     Mora no molde do CLAUDE.md (viaja pra todo projeto) e onde o kit manda abrir outro repo."""
     for rel in ("templates/CLAUDE.md", "skills/precedentes-msig/SKILL.md",
                 "commands/precedentes.md"):
-        low = (REPO / rel).read_text(encoding="utf-8").lower()
+        low = (texto_do_kit() if rel == "templates/CLAUDE.md"
+               else (REPO / rel).read_text(encoding="utf-8")).lower()
         assert "não vasculhe" in low or "não vasculhar" in low, \
             f"{rel} não carrega a regra 'pergunte, não vasculhe'"
         assert "pergunte" in low, f"{rel} não manda perguntar o caminho ao owner"
@@ -536,7 +539,7 @@ def test_frontend_wiring():
     assert (REPO / "commands" / "frontend.md").exists(), "falta commands/frontend.md"
     kickoff = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
     upgrade = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     nova = (REPO / "commands" / "nova-feature.md").read_text(encoding="utf-8")
     # costuras que já existiam (regressão-guarda)
     assert "templates/FRONTEND.md" in kickoff, "kickoff não copia templates/FRONTEND.md"
@@ -556,7 +559,7 @@ def test_comando_referenciado_existe_guardrail():
     inexistente nem chutado de memória. É o que impede a mesma confusão com qualquer comando
     (não só o frontend). Sempre-ativo (CLAUDE.md) e chega a projeto existente via upgrade (mescla).
     """
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     low = claude.lower()
     assert "disable-model-invocation" in claude, \
         "CLAUDE.md não explica por que o comando não aparece na lista (disable-model-invocation)"
@@ -588,7 +591,7 @@ def test_guardrail_executar_nao_invocar():
     regra tem que dizer: EXECUTE os passos de commands/<x>.md você mesmo, NÃO invoque a skill.
     Central no CLAUDE.md (chega ao Energy via upgrade) + nota no fecho do nova-feature
     (junction-live: alívio imediato no exato fluxo — captura de memória — que errou)."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     low = claude.lower()
     assert "falha ao executar a habilidade" in low, \
         "CLAUDE.md não nomeia o erro real (Falha ao executar a habilidade) que denuncia a invocação indevida"
@@ -718,7 +721,7 @@ def test_guardrail_skills_dir_instalado():
         "doctor não explica que o mss-spec pode estar instalado como skills-dir plugin"
     assert "plugin list" in low, \
         "doctor não aponta o `claude plugin list` como a checagem certa (não o installed_plugins.json)"
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "/mss-spec:doctor" in claude, "CLAUDE.md não manda diagnosticar a instalação pelo doctor"
 
 
@@ -886,7 +889,7 @@ def test_release_cobra_casos_abertos():
 def test_claude_md_carrega_corpus_e_gatilho():
     """CA11 — o molde que vai pra todo projeto aponta o corpus de falhas e a regra do gatilho.
     Uma linha cada: CLAUDE.md inchado faz o Code ignorar a instrução que importa."""
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     assert "docs/EVALS.md" in claude, "CLAUDE.md não aponta o corpus de falhas"
     assert "gatilho" in claude.lower(), "CLAUDE.md não explica que o índice de memória é por gatilho"
     assert ".claude/rules/" in claude, "CLAUDE.md não menciona as regras path-scoped"
@@ -1022,7 +1025,7 @@ def test_diagnostico_wiring():
     assert "somente-leitura" in low and "âncora" in low and "não conserte" in low,         "diagnostico.md manda abrir o precedente sem a fronteira da âncora (read-only; reporte)"
     assert "docs/EVALS.md" in diag, "diagnostico.md não fecha registrando o caso no corpus"
     # regra sempre-ativa no molde (é o único mecanismo vivo na hora 2 de uma sessão longa)
-    claude = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
+    claude = texto_do_kit()
     clow = claude.lower()
     assert "systematic-debugging" in claude, "CLAUDE.md não manda invocar a systematic-debugging no bug"
     assert "diff completo" in clow, "CLAUDE.md não carrega o diff-antes-de-pedir-evidência"
@@ -1102,7 +1105,7 @@ def test_recall_hook_documentado_e_registrado():
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
-    assert "Nove hooks" in doc, "a contagem do README ficou velha"
+    assert "Onze hooks" in doc, "a contagem do README ficou velha"
 
 
 def test_inventario_banco_wiring():
@@ -1345,3 +1348,83 @@ def test_azure_prd_licoes_da_1a_producao_real():
     assert "subnets/write" not in infra.replace("NÃO dar `subnets/write`", ""), "nunca pedir permissao de alterar a subnet"
     ambiente = (REPO / "templates" / "AMBIENTE.md").read_text(encoding="utf-8")
     assert "permissões da conexão do pipeline em produção" in ambiente.lower()
+
+
+# ---- regras do kit pelo plugin (0.42.0): fiação dos comandos ----------------
+MARCA_KIT = "<!-- mss-spec:regras-do-kit -->"
+
+
+def test_upgrade_migra_primeiro_e_sozinho():
+    """Projeto sem a marca: o upgrade roda a migração do CLAUDE.md PRIMEIRO e SOZINHA; com a marca, a
+    categoria 2 não reacrescenta seção do kit; branch + commit seguem a regra de git do PROJETO."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    low = up.lower()
+    for trecho in ("migrar_claude_md.py", MARCA_KIT, "primeiro", "nenhuma outra categoria",
+                   "regra de git do projeto", "--aplicar", "chore/migrar-claude-md", "git restore"):
+        assert trecho.lower() in low, f"upgrade.md sem {trecho!r}"
+    assert "não reacrescenta" in low and "seção do kit" in low, \
+        "upgrade.md não diz que, com a marca, a categoria 2 não reacrescenta seção do kit"
+    # referências velhas do molde antigo saíram
+    assert "a última das" not in low, "upgrade.md ainda fala da última das Regras críticas (molde antigo)"
+    assert "renumere" not in low, "upgrade.md ainda manda renumerar regra do kit (molde antigo)"
+
+
+def test_kickoff_grava_marca_sem_regra_do_kit():
+    kick = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
+    low = kick.lower()
+    assert MARCA_KIT in kick, "kickoff.md não cita a marca das regras do kit"
+    assert "regras do kit vêm do plugin" in low, "kickoff.md não diz que as regras do kit vêm do plugin"
+    assert "não copie" in low and "regra do kit" in low, "kickoff.md não proíbe copiar regra do kit pro CLAUDE.md"
+
+
+def test_analise_contexto_por_extenso():
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    assert "## Contexto" in an and "nunca ponteiro" in an, \
+        "analise.md não manda preencher o `## Contexto` por extenso (nunca ponteiro)"
+
+
+def test_doctor_checks_3_4_9():
+    doc = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    c3 = next(l for l in doc.splitlines() if l.startswith("3. "))
+    assert "vazia" in c3 and "ℹ" in c3 and "✗" in c3 and "nunca ✗" in c3, "check 3 deve contar só chave vazia, como ℹ, nunca ✗"
+    c4 = next(l for l in doc.splitlines() if l.startswith("4. "))
+    assert "a verificar (fora do escritório/VPN)" in c4, "check 4 sem 'a verificar (fora do escritório/VPN)'"
+    c9 = doc[doc.index("\n9. "):doc.index("\n10. ")]  # o check 9 inteiro (cabeça + sub-itens)
+    assert MARCA_KIT in c9 and "10.000" in c9 and "regras do kit" in c9.lower() and "9.000" in c9, \
+        "check 9 sem a marca, o teto 10.000 B e os blocos das regras do kit (≤ 9.000)"
+
+
+def test_compliance_confere_a_marca_nao_o_bloco_velho():
+    comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
+    assert MARCA_KIT in comp, "compliance.md não confere a marca das regras do kit"
+    assert "sem a marca" in comp.lower(), "compliance.md não diz que o bloco antigo só vale pra projeto sem a marca"
+
+
+def test_compliance_check_4_secao_de_regras_do_projeto_e_opcional():
+    """A migração omite `## Regras obrigatórias do projeto` quando fica vazia: marca presente sem ela é ✓."""
+    comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
+    check4 = next(l for l in comp.split("\n") if l.startswith("4. **Regras do kit no projeto**"))
+    assert "ausente" in check4 and "opcional" in check4 and "✓" in check4, \
+        "compliance.md check 4 não define marca presente + seção `## Regras obrigatórias do projeto` ausente"
+
+
+def test_upgrade_roda_o_script_com_proj_explicito():
+    """O script lê `--proj` (padrão: a pasta atual): o comando passa a raiz do projeto, não depende do shell."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    chamadas = [l for l in up.split("\n") if 'migrar_claude_md.py"' in l]
+    assert len(chamadas) == 2, chamadas
+    assert all('--proj "<raiz do projeto>"' in l for l in chamadas), chamadas
+
+
+def test_upgrade_branch_antes_da_migracao_na_ordem():
+    """A branch chore/migrar-claude-md nasce da principal ANTES do dry-run e do --aplicar; o commit vem depois.
+    Lido de cima pra baixo, o roteiro nunca grava a migracao na branch errada."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    pos_branch = up.index("chore/migrar-claude-md")
+    pos_dry = up.index("migrar_claude_md.py")
+    pos_aplicar = up.index('migrar_claude_md.py" --aplicar')
+    pos_commit = up.index("git add", pos_aplicar)
+    assert pos_branch < pos_dry < pos_aplicar < pos_commit, \
+        f"ordem errada no upgrade.md: branch={pos_branch} dry-run={pos_dry} --aplicar={pos_aplicar} commit={pos_commit}"
+    assert "git add" not in up[up.index("## Primeiro"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
+    assert "git branch --show-current" in up, "upgrade.md nao confere a branch antes de migrar (git reservado ao owner)"
