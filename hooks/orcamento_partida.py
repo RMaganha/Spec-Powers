@@ -11,8 +11,11 @@ Contrato:
 - mede em bytes, na raiz (`CLAUDE_PROJECT_DIR` › `cwd`), os quatro arquivos de `ARQUIVOS` — os
   mesmos tetos do `tests/test_orcamento_contexto.py` e do `templates/rodizio_partida.py` (teste trava);
 - tudo dentro do teto (ou ausente) → silêncio; algum acima → `additionalContext` (≤ 1.000 bytes) que
-  nomeia só o que estourou, diz o que ler de cada um e que backlog não é estado atual, +
-  `systemMessage` de 1 linha pro terminal;
+  nomeia só o que estourou (KB com uma casa: `10,1 KB (teto 10,0 KB)`), diz o que ler de cada um e que
+  backlog não é estado atual, + `systemMessage` de 1 linha pro terminal;
+- o conserto que o aviso manda depende do que estourou: `CLAUDE.md` SEM a marca das regras do kit →
+  `/mss-spec:upgrade` (migração: as regras do kit passam a vir do plugin); `CLAUDE.md` COM a marca → mover
+  bloco com ponteiro; `/mss-spec:doctor` só quando o estouro é MAPA/INDEX/MEMORY;
 - **falha ABERTA**: qualquer defeito → exit 0 calado.
 
 Escape consciente, só do owner: `MSS_ORCAMENTO_OFF=1`.
@@ -43,6 +46,8 @@ def _anotar(decisao, detalhe, evento):
 
 ENV_DESLIGA = "MSS_ORCAMENTO_OFF"
 TETO_TEXTO = 1000
+# cópia de hooks/regras_do_kit.py (hooks não importam um do outro; um teste trava a igualdade)
+MARCA = "<!-- mss-spec:regras-do-kit -->"
 
 # (caminho relativo à raiz, teto em bytes) — a ordem é a da partida
 ARQUIVOS = (
@@ -62,7 +67,17 @@ LEIA = {
 
 
 def _kb(n):
-    return f"{n / 1000:.0f} KB"
+    return f"{n / 1000:.1f} KB".replace(".", ",")
+
+
+def tem_marca(raiz):
+    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
+    try:
+        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8") as f:
+            texto = f.read().lstrip("\ufeff")
+    except (OSError, UnicodeError):
+        return False
+    return any(linha.strip() == MARCA for linha in texto.splitlines())
 
 
 def estouros(raiz):
@@ -77,15 +92,41 @@ def estouros(raiz):
     return saida
 
 
-def texto_do_aviso(lista):
+def conserto(lista, com_marca):
+    """O que o owner faz, conforme o que estourou (CLAUDE.md migrado ou não; o resto é com o doctor)."""
+    claude = any(rel == "CLAUDE.md" for rel, _, _ in lista)
+    outros = any(rel != "CLAUDE.md" for rel, _, _ in lista)
+    passos = []
+    if claude and not com_marca:
+        passos.append("rode `/mss-spec:upgrade` pra migrar o CLAUDE.md (regras do kit passam a vir do plugin)")
+    if claude and com_marca:
+        passos.append("CLAUDE.md: mover bloco com ponteiro, nunca apagar")
+    if outros:
+        passos.append("ofereça `/mss-spec:doctor` (conserto: mover bloco com ponteiro, nunca apagar)")
+    return "; ".join(passos)
+
+
+def _comando(lista, com_marca):
+    """Fecho curto do `systemMessage` (terminal)."""
+    claude = any(rel == "CLAUDE.md" for rel, _, _ in lista)
+    outros = any(rel != "CLAUDE.md" for rel, _, _ in lista)
+    partes = []
+    if claude:
+        partes.append("mova um bloco do CLAUDE.md" if com_marca else "rode /mss-spec:upgrade")
+    if outros:
+        partes.append("rode /mss-spec:doctor")
+    return " · ".join(partes)
+
+
+def texto_do_aviso(lista, com_marca=False):
     medidas = " · ".join(f"{rel.rsplit('/', 1)[-1]} {_kb(n)} (teto {_kb(t)})" for rel, n, t in lista)
     leia = "; ".join(LEIA[rel] for rel, _, _ in lista)
     return (
         f"[mss-spec] partida ACIMA do orçamento: {medidas}. "
         f"Não leia esses arquivos inteiros (nada de `cat`): {leia}; o resto por `grep` quando o assunto "
         "pedir. Item de backlog, fora de escopo ou diário antigo NÃO é o estado atual: não cite como "
-        "fato sem conferir no código ou perguntar ao owner. Na 1ª resposta, avise o owner em 1 linha e "
-        "ofereça `/mss-spec:doctor` (conserto: mover bloco com ponteiro, nunca apagar)."
+        "fato sem conferir no código ou perguntar ao owner. "
+        f"Avise o owner em 1 linha: {conserto(lista, com_marca)}."
     )
 
 
@@ -103,14 +144,15 @@ def responder(evento, ambiente=None):
         lista = estouros(raiz)
         if not lista:
             return None
-        texto = texto_do_aviso(lista)
+        com_marca = tem_marca(raiz)
+        texto = texto_do_aviso(lista, com_marca)
         if len(texto.encode("utf-8")) > TETO_TEXTO:
             return None                              # nunca injetar mais do que prometemos
         nomes = ", ".join(rel.rsplit("/", 1)[-1] for rel, _, _ in lista)
         _anotar("avisou", " ".join(f"{rel.rsplit('/', 1)[-1]}={n}" for rel, n, _ in lista), evento)
         return {
             "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": texto},
-            "systemMessage": f"[mss-spec] partida acima do orçamento: {nomes} — rode /mss-spec:doctor",
+            "systemMessage": f"[mss-spec] partida acima do orçamento: {nomes} — {_comando(lista, com_marca)}",
         }
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None

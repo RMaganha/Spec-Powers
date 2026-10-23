@@ -16,11 +16,24 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "teto_ao_gravar.py"
 LONGO = "detalhe " * 120
+MARCA = "<!-- mss-spec:regras-do-kit -->"
+
+
+@pytest.fixture(autouse=True)
+def _estado_no_tmp(tmp_path, monkeypatch):
+    """O estado por sessão do hook (temp do SO) fica isolado em cada teste."""
+    pasta = tmp_path / "temp-do-so"
+    pasta.mkdir()
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(pasta))
 
 
 def _mod():
@@ -52,6 +65,16 @@ def _projeto(tmp_path, index=None, mapa=None, claude=None):
 def _edit(raiz, rel="docs/superpowers/INDEX.md", tool="Edit"):
     return {"hook_event_name": "PostToolUse", "tool_name": tool, "cwd": str(raiz), "session_id": "s1",
             "tool_input": {"file_path": str(raiz / rel)}}
+
+
+def _shell(raiz, comando, tool="Bash"):
+    return {"hook_event_name": "PostToolUse", "tool_name": tool, "cwd": str(raiz), "session_id": "s1",
+            "tool_input": {"command": comando}}
+
+
+def _envelhecer(caminho, segundos=3600):
+    t = time.time() - segundos
+    os.utime(caminho, (t, t))
 
 
 def _ctx(saida):
@@ -105,12 +128,88 @@ def test_mapa_com_bloco_atual_gigante_pede_o_resumo(tmp_path):
     assert "resuma" in txt.lower() and "spec" in txt.lower()
 
 
-def test_claude_md_acima_do_teto_so_avisa(tmp_path):
-    claude = "# Proj\n\n" + ("- **Regra**: " + LONGO + "\n") * 14
+def test_claude_md_com_marca_teto_10000_so_avisa(tmp_path):
+    claude = "# Proj\n\n" + MARCA + "\n\n" + ("- **Regra**: " + LONGO + "\n") * 14
     raiz = _projeto(tmp_path, claude=claude)
     txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
     assert "CLAUDE.md" in txt and ".claude/rules/" in txt and "nunca comprima" in txt.lower()
+    assert "/mss-spec:upgrade" not in txt, "projeto já migrado não precisa de upgrade"
     assert (raiz / "CLAUDE.md").read_text(encoding="utf-8") == claude, "mexeu no CLAUDE.md sozinho"
+
+
+def test_claude_md_sem_marca_acima_do_teto_manda_upgrade(tmp_path):
+    claude = "# Proj\n\n" + ("- **Regra**: " + LONGO + "\n") * 14
+    raiz = _projeto(tmp_path, claude=claude)
+    txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
+    assert "/mss-spec:upgrade" in txt
+    assert ".claude/rules/" not in txt, "mandou mover bloco num projeto que ainda não migrou"
+    assert (raiz / "CLAUDE.md").read_text(encoding="utf-8") == claude, "mexeu no CLAUDE.md sozinho"
+
+
+def test_kb_com_uma_casa(tmp_path):
+    claude = MARCA + "\n" + "x" * (10500 - len(MARCA) - 1)
+    raiz = _projeto(tmp_path, claude=claude)
+    txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
+    assert "10,5 KB" in txt and "teto 10,0 KB" in txt
+
+
+# --- leitura pelo shell não é gravação -------------------------------------------------------
+
+def test_wc_c_em_claude_md_antigo_nao_dispara(tmp_path):
+    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)
+    _envelhecer(raiz / "CLAUDE.md")
+    assert _mod().responder(_shell(raiz, "wc -c CLAUDE.md"), {}) is None
+
+
+def test_cat_do_index_antigo_nao_roda_enxugar(tmp_path):
+    raiz = _projeto(tmp_path, index=_index_gordo())
+    idx = raiz / "docs" / "superpowers" / "INDEX.md"
+    _envelhecer(idx)
+    antes = idx.read_text(encoding="utf-8")
+    assert _mod().responder(_shell(raiz, "cat docs/superpowers/INDEX.md"), {}) is None
+    assert idx.read_text(encoding="utf-8") == antes
+    assert not (raiz / "docs" / "superpowers" / "BACKLOG.md").exists()
+
+
+def test_gravacao_por_shell_recente_dispara(tmp_path):
+    raiz = _projeto(tmp_path, index=_index_gordo())
+    saida = _mod().responder(_shell(raiz, "Set-Content docs/superpowers/INDEX.md -Value x", "PowerShell"), {})
+    assert saida is not None and "BACKLOG.md" in _ctx(saida)
+    idx = raiz / "docs" / "superpowers" / "INDEX.md"
+    assert len(idx.read_bytes()) <= 7000
+
+
+def test_mesma_versao_nao_dispara_duas_vezes(tmp_path):
+    raiz = _projeto(tmp_path, index=_index_gordo())
+    mod = _mod()
+    assert mod.responder(_edit(raiz), {}) is not None
+    assert mod.responder(_shell(raiz, "wc -c docs/superpowers/INDEX.md"), {}) is None
+
+
+def test_mesma_versao_do_claude_md_nao_avisa_duas_vezes(tmp_path):
+    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)
+    mod = _mod()
+    assert mod.responder(_edit(raiz, rel="CLAUDE.md"), {}) is not None
+    assert mod.responder(_shell(raiz, "wc -c CLAUDE.md"), {}) is None
+
+
+def test_nova_gravacao_depois_da_leitura_dispara_de_novo(tmp_path):
+    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)
+    mod = _mod()
+    assert mod.responder(_edit(raiz, rel="CLAUDE.md"), {}) is not None
+    (raiz / "CLAUDE.md").write_text(MARCA + "\n" + "y" * 10800, encoding="utf-8")
+    assert mod.responder(_shell(raiz, "echo y >> CLAUDE.md"), {}) is not None
+
+
+def test_mudou_agora_janela_e_estado(tmp_path):
+    mod = _mod()
+    assert mod.JANELA_S == 120
+    arq = tmp_path / "a.md"
+    arq.write_text("x", encoding="utf-8")
+    agora = time.time()
+    assert mod.mudou_agora(str(arq), "s1", agora) is True
+    assert mod.mudou_agora(str(arq), "s1", agora + 3600) is False       # fora da janela
+    assert mod.mudou_agora(str(tmp_path / "nao-existe.md"), "s1", agora) is False
 
 
 # --- AC2: escape, falha aberta, conflito ------------------------------------------------------

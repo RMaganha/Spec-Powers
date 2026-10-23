@@ -319,7 +319,9 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 acrescenta. O `doctor` media e o hook de abertura avisava, mas o conserto dependia de alguém rodar o rodízio — e o
 Whats chegou a 160 KB de partida. Aqui o conserto roda na própria gravação.
 
-Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo).
+Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo **e**
+o arquivo mudou agora: mtime dentro de `JANELA_S` = 120 s e `(tamanho, mtime_ns)` diferente do último visto nesta
+sessão, guardado no temp do SO — ler com `wc -c CLAUDE.md` ou `cat INDEX.md` cita o nome, mas não é gravação).
 Gravou `docs/superpowers/MAPA.md` ou `INDEX.md` e passou do teto → `rodizio_partida.py enxugar --aplicar`, que
 **move, nunca apaga**, confere a conservação e para assim que cabe: 1º o rodízio de sempre (blocos antigos e
 fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `## Fora de escopo` → `FORA-DE-ESCOPO.md`
@@ -327,8 +329,9 @@ fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `##
 → `EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim, que a trava lê); no MAPA, `## Conexões` →
 `CONEXOES.md` (fica a lista de nomes) e, se ainda não couber, só o bloco atual fica. Destino que já existe recebe
 prepend datado. O `additionalContext` diz o que foi pra onde e manda **reler antes do próximo Edit**; o que sobra
-acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10 KB: **só avisa** (escolher o
-destino de um bloco de regra é julgamento — F-029). Arquivo com conflito de merge não é tocado.
+acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10,0 KB: **só avisa** (escolher o
+destino de um bloco de regra é julgamento — F-029): com a marca das regras do kit manda mover um bloco inteiro com
+ponteiro; **sem** a marca manda rodar `/mss-spec:upgrade`. Arquivo com conflito de merge não é tocado.
 
 ## Garantias
 
@@ -364,7 +367,9 @@ Evento `SessionStart`. Mede em bytes, na raiz (`CLAUDE_PROJECT_DIR` › `cwd`): 
 `tests/test_orcamento_contexto.py` e do `rodizio_partida.py`; um teste trava os três). Algum acima →
 `additionalContext` (≤ 1.000 bytes) com o que estourou, o que ler de cada um (MAPA → `## Onde estamos`;
 INDEX → `## Em andamento`; o resto por `grep`), "backlog, fora de escopo e diário não são o estado atual"
-e "avise o owner e ofereça `/mss-spec:doctor`" + `systemMessage` de 1 linha. **Não move nada**: mover é
+e "avise o owner" com o conserto: `CLAUDE.md` sem a marca → `/mss-spec:upgrade`; com a marca → mover bloco com
+ponteiro; `/mss-spec:doctor` só quando estoura MAPA/INDEX/MEMORY. Tamanhos em KB com uma casa
+(`10,1 KB (teto 10,0 KB)`). + `systemMessage` de 1 linha. **Não move nada**: mover é
 decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
 
 ## Garantias

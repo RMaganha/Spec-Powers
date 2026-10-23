@@ -32,14 +32,23 @@ def _mod(caminho=HOOK, nome="orcamento_partida"):
     return mod
 
 
-def _projeto(tmp_path, claude=0, mapa=0, index=0, memory=0):
-    """Projeto com os arquivos da partida no tamanho pedido (0 = arquivo ausente)."""
+MARCA = "<!-- mss-spec:regras-do-kit -->"
+
+
+def _projeto(tmp_path, claude=0, mapa=0, index=0, memory=0, marca=False):
+    """Projeto com os arquivos da partida no tamanho pedido (0 = arquivo ausente).
+
+    `marca=True`: o CLAUDE.md leva a linha-marca (projeto já migrado) e ainda tem `claude` bytes."""
     for rel, n in (("CLAUDE.md", claude), ("docs/superpowers/MAPA.md", mapa),
                    ("docs/superpowers/INDEX.md", index), ("memory/MEMORY.md", memory)):
         if n:
             p = tmp_path / rel
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(b"x" * n)
+            corpo = b"x" * n
+            if rel == "CLAUDE.md" and marca:
+                cab = (MARCA + "\n").encode()
+                corpo = cab + b"x" * (n - len(cab))
+            p.write_bytes(corpo)
     return tmp_path
 
 
@@ -72,7 +81,7 @@ def test_numeros_do_whats_avisam_mapa_index_e_claude(tmp_path):
     for nome in ("CLAUDE.md", "MAPA.md", "INDEX.md"):
         assert nome in txt, f"não citou {nome} estourado"
     assert "MEMORY.md" not in txt, "citou o índice de memória, que está dentro do teto"
-    assert "60 KB" in txt and "teto 6 KB" in txt, "não deu bytes e teto do MAPA"
+    assert "60,1 KB" in txt and "teto 6,0 KB" in txt, "não deu bytes e teto do MAPA"
 
 
 def test_mapa_estourado_manda_ler_so_onde_estamos(tmp_path):
@@ -103,9 +112,46 @@ def test_aviso_manda_nao_ler_inteiro_e_avisar_o_owner(tmp_path):
 
 
 def test_texto_cabe_em_mil_bytes_com_tudo_estourado(tmp_path):
-    raiz = _projeto(tmp_path, claude=99999, mapa=99999, index=99999, memory=99999)
+    for marca in (False, True):
+        raiz = _projeto(tmp_path / str(marca), claude=99999, mapa=99999, index=99999, memory=99999, marca=marca)
+        txt = _contexto(_mod().responder(_evento(raiz), {}))
+        assert len(txt.encode("utf-8")) <= 1000, f"aviso com {len(txt.encode('utf-8'))} bytes (marca={marca})"
+
+
+def test_kb_com_uma_casa_decimal(tmp_path):
+    """10.096 B não pode sair 'CLAUDE.md 10 KB (teto 10 KB)' — contradiz a si mesmo."""
+    raiz = _projeto(tmp_path, claude=10096)
     txt = _contexto(_mod().responder(_evento(raiz), {}))
-    assert len(txt.encode("utf-8")) <= 1000, f"aviso com {len(txt.encode('utf-8'))} bytes"
+    assert "10,1 KB (teto 10,0 KB)" in txt
+
+
+def test_claude_sem_marca_acima_do_teto_manda_upgrade(tmp_path):
+    raiz = _projeto(tmp_path, claude=10500)
+    saida = _mod().responder(_evento(raiz), {})
+    txt = _contexto(saida)
+    assert "/mss-spec:upgrade" in txt
+    assert "/mss-spec:doctor" not in txt
+    assert "/mss-spec:doctor" not in saida["systemMessage"]
+
+
+def test_claude_com_marca_acima_do_teto_manda_mover_bloco(tmp_path):
+    raiz = _projeto(tmp_path, claude=10500, marca=True)
+    txt = _contexto(_mod().responder(_evento(raiz), {}))
+    assert "mover bloco" in txt and "/mss-spec:upgrade" not in txt
+    assert "/mss-spec:doctor" not in txt
+
+
+def test_doctor_so_quando_estoura_mapa_index_ou_memory(tmp_path):
+    for kw in ({"mapa": 20000}, {"index": 20000}, {"memory": 20000}):
+        txt = _contexto(_mod().responder(_evento(_projeto(tmp_path / next(iter(kw)), **kw)), {}))
+        assert "/mss-spec:doctor" in txt, kw
+
+
+def test_marca_igual_nos_hooks():
+    """Hooks não importam um do outro: a constante é copiada, e este teste trava as cópias."""
+    ref = _mod(REPO / "hooks" / "regras_do_kit.py", "regras_do_kit_ref").MARCA
+    assert _mod().MARCA == ref
+    assert _mod(REPO / "hooks" / "teto_ao_gravar.py", "teto_ao_gravar_ref").MARCA == ref
 
 
 def test_saida_e_do_evento_session_start_com_system_message(tmp_path):
