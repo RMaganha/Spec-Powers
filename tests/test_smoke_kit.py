@@ -1389,7 +1389,7 @@ def test_doctor_checks_3_4_9():
     assert "vazia" in c3 and "ℹ" in c3 and "✗" in c3 and "nunca ✗" in c3, "check 3 deve contar só chave vazia, como ℹ, nunca ✗"
     c4 = next(l for l in doc.splitlines() if l.startswith("4. "))
     assert "a verificar (fora do escritório/VPN)" in c4, "check 4 sem 'a verificar (fora do escritório/VPN)'"
-    c9 = next(l for l in doc.splitlines() if l.startswith("9. "))
+    c9 = doc[doc.index("\n9. "):doc.index("\n10. ")]  # o check 9 inteiro (cabeça + sub-itens)
     assert MARCA_KIT in c9 and "10.000" in c9 and "regras do kit" in c9.lower() and "9.000" in c9, \
         "check 9 sem a marca, o teto 10.000 B e os blocos das regras do kit (≤ 9.000)"
 
@@ -1398,3 +1398,17 @@ def test_compliance_confere_a_marca_nao_o_bloco_velho():
     comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
     assert MARCA_KIT in comp, "compliance.md não confere a marca das regras do kit"
     assert "sem a marca" in comp.lower(), "compliance.md não diz que o bloco antigo só vale pra projeto sem a marca"
+
+
+def test_upgrade_branch_antes_da_migracao_na_ordem():
+    """A branch chore/migrar-claude-md nasce da principal ANTES do dry-run e do --aplicar; o commit vem depois.
+    Lido de cima pra baixo, o roteiro nunca grava a migracao na branch errada."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    pos_branch = up.index("chore/migrar-claude-md")
+    pos_dry = up.index("migrar_claude_md.py")
+    pos_aplicar = up.index('migrar_claude_md.py" --aplicar')
+    pos_commit = up.index("git add", pos_aplicar)
+    assert pos_branch < pos_dry < pos_aplicar < pos_commit, \
+        f"ordem errada no upgrade.md: branch={pos_branch} dry-run={pos_dry} --aplicar={pos_aplicar} commit={pos_commit}"
+    assert "git add" not in up[up.index("## Primeiro"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
+    assert "git branch --show-current" in up, "upgrade.md nao confere a branch antes de migrar (git reservado ao owner)"

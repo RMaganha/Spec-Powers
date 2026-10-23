@@ -26,13 +26,13 @@ Abra o `CLAUDE.md` da raiz e procure a linha `<!-- mss-spec:regras-do-kit -->` (
 
 - **Tem a marca** → o projeto já migrou; pule esta seção e siga pras categorias.
 - **Não tem** → as regras do kit ainda estão copiadas no `CLAUDE.md`. Faça a migração **primeiro e sozinha**: **nenhuma outra categoria** (1, 2 ou 3) roda na mesma rodada — o `CLAUDE.md` muda de formato, e misturar esconderia a mudança no `git diff`.
+  0. **A branch, antes de tudo** (árvore limpa; com `--dry-run` no `$ARGUMENTS` pule este passo — preview não mexe em git): vá pra branch principal, atualize-a e crie `chore/migrar-claude-md` a partir dela, pra o `--aplicar` já gravar na branch certa. Quem executa segue a **regra de git do projeto** (a linha `Versionamento` do `## Contexto`, ou o documento que ela aponta):
+     - **Padrão do kit** — o assistente roda: trocar pra principal, atualizá-la (`git pull --ff-only`) e `git switch -c chore/migrar-claude-md`.
+     - **Projeto que reserva o git ao owner** — o assistente **não escreve no git**: entregue esses comandos **um por bloco** (principal · atualizar · `git switch -c chore/migrar-claude-md`) e, **antes de continuar**, confirme rodando `git branch --show-current` (só leitura) que a resposta é `chore/migrar-claude-md`; se não for, não siga.
   1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py"` (dry-run; a saída começa com "Prévia"). Mostre o relatório ao owner: quantas linhas saíram por serem do kit, quantas mudaram de lugar, quais ficaram por dúvida, e o aviso de teto se houver.
-  2. Saiu com falha (a saída lista o que não fechou; árvore suja nos arquivos que ele toca também é falha) → **nada foi gravado**: repasse a lista e pare. Com `--dry-run` no `$ARGUMENTS`, pare aqui de qualquer jeito.
-  3. Sem falha → rode o mesmo comando com `--aplicar`. Ele grava e para: **não mexe no git**.
-  4. Branch e commit seguem a **regra de git do projeto** (a linha `Versionamento` do `## Contexto`, ou o documento que ela aponta):
-     - **Padrão do kit** — o assistente faz: **antes do `--aplicar`** (árvore ainda limpa) vá pra branch principal e atualize-a; **depois**, abra `chore/migrar-claude-md` dali, `git add` **pelo nome** de cada arquivo que o script gravou (nunca `-A` nem `.`) e commite. Push só como a regra do projeto permitir.
-     - **Projeto que reserva o git ao owner** — o assistente **não roda nada de git**: entregue os comandos **um por bloco** (principal atualizada · `git switch -c chore/migrar-claude-md` · `git add <arquivo>` · `git commit`) e espere o owner dizer que rodou.
-     - Desfazer, antes de commitar: `git restore <os arquivos que o script gravou>`.
+  2. Saiu com falha (a saída lista o que não fechou; árvore suja nos arquivos que ele toca também é falha) → **nada foi gravado**: repasse a lista e pare (a branch criada fica; o owner a descarta se quiser). Com `--dry-run` no `$ARGUMENTS`, pare aqui de qualquer jeito.
+  3. Sem falha → rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py" --aplicar`. Ele grava e para: **não mexe no git**.
+  4. Commit, pela mesma regra de git do projeto: `git add` **pelo nome** de cada arquivo que o script gravou (nunca `-A` nem `.`) e `git commit` — o assistente roda no padrão do kit; no projeto que reserva o git ao owner, entregue os dois comandos um por bloco. Push só como a regra do projeto permitir. Desfazer, antes de commitar: `git restore <os arquivos que o script gravou>`.
   5. **Termine aqui** — commit feito (padrão do kit) ou pedido ao owner (git reservado a ele). As outras categorias ficam pra próxima rodada do `/mss-spec:upgrade`, já com a marca.
 
 Três categorias (projeto **com** a marca):
