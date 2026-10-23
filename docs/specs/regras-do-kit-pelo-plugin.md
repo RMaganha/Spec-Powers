@@ -1,7 +1,15 @@
 # Regras do kit pelo plugin — o `CLAUDE.md` do projeto só com o que é do projeto
 
 ## Estado atual
-**Desenho aprovado pra plano; nada construído.** Versão-alvo **0.42.0**. Caso novo **F-040** (`docs/EVALS.md`).
+**Construído na 0.42.0 (2026-10-23), na branch `feature/regras-do-kit-pelo-plugin`; falta o `upgrade` rodar em cada projeto** (o do Whats é do owner). Caso **F-040** (`docs/EVALS.md`, aberto até o Whats migrar).
+
+- **Camada 1:** as regras do kit moram em `templates/regras-do-kit/` (`1-modo-de-trabalho.md`, `2-regras-criticas.md`) e chegam em toda janela pelo `hooks/regras_do_kit.py` (SessionStart, duas entradas `--bloco 1/2` no `hooks/hooks.json`). Só age com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` da raiz; defeito vira `systemMessage` de 1 linha; escape `MSS_REGRAS_KIT_OFF`.
+- **Camada 2:** `templates/CLAUDE.md` é só do projeto (marca, regras obrigatórias, `## Contexto` por extenso, mapa, índice de regras por tipo). Teto da parte do projeto 10.000 B, como aviso.
+- **Camada 3:** `hooks/regra_antes_de_gravar.py` (PreToolUse `Write|Edit|MultiEdit`) nega uma vez por sessão por regra com o texto de `.claude/rules/*.md` cujo `paths:` casa; falha aberta; escape `MSS_REGRA_OFF`.
+- **Migração:** `templates/migrar_claude_md.py` (dry-run por padrão, `--aplicar`; subcomando `historico` regenera `templates/regras-do-kit/linhas-do-kit.txt`). Confere conservação por contagem de linhas, `## Contexto` sem ponteiro pra `.claude/rules/`, marca, índice e working tree limpo; nunca roda git de escrita; se a troca de arquivos falha no meio, restaura. O `/mss-spec:upgrade` roda a migração primeiro e sozinha, numa branch `chore/migrar-claude-md` aberta antes da prévia.
+- **Correções juntas:** `teto_ao_gravar.py` (leitura por shell não conta como gravação), `orcamento_partida.py` (uma casa decimal; projeto sem marca é mandado pro `upgrade`), `kickoff`, `analise`, `doctor` (checks 3, 4 e 9), `compliance`, `nova-feature`.
+- **Dogfood no Whats (2026-10-23, só leitura, dry-run):** exit 0, nenhuma falha; 20 linhas saem como do kit, 18 mudam de lugar, 3 ficam por dúvida; `CLAUDE.md` de 10.096 B passa a 9.624 B (a estimativa do desenho era ~9.000 B); aviso: `testes.md` ficou só com título/comentário e o item voltou pro `## Contexto`. Nada foi gravado no Whats (hashes e `git status` iguais aos de antes).
+- **Pendente:** rodar `/mss-spec:upgrade` na janela do Whats (e depois nos outros projetos); medir se o owner para de repetir fato de infra.
 
 ## Por quê
 O owner rodou o `/mss-spec:doctor` no Whats e o assistente se perdeu no `CLAUDE.md` "que sempre bate no limite",
@@ -201,3 +209,4 @@ Prova antes de qualquer projeto: testes com **cópias** do `CLAUDE.md` e do `.cl
 - 2026-10-23 — criado. Doctor no Whats: `CLAUDE.md` 10.096 B; o assistente puxado pra mexer no `CLAUDE.md` e no MAPA
   pelo `teto_ao_gravar.py` disparando em comando de leitura. Medição nas 76 conversas do Whats mostrou a cópia velha
   das regras do kit, os fatos de infra atrás de gatilho de arquivo (F-040) e a regra por tipo falhando ao criar.
+- 2026-10-23 — construído (0.42.0): camadas 1 a 3, migração, correções e comandos; dogfood em dry-run no Whats sem falha (`CLAUDE.md` 10.096 B → 9.624 B). Falta gravar nos projetos pelo `/mss-spec:upgrade`.
