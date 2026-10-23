@@ -82,8 +82,23 @@ def normalizar(linha: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+class NaoEhUtf8(Exception):
+    """Arquivo do projeto que não abre como UTF-8 (cp1252…): a migração para antes de gravar qualquer coisa."""
+
+    def __init__(self, arquivo):
+        super().__init__(str(arquivo))
+        self.arquivo = arquivo
+
+
+def _decodificar(p: Path) -> str:
+    try:
+        return p.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise NaoEhUtf8(p) from e
+
+
 def _ler(p: Path):
-    bruto = p.read_bytes().decode("utf-8")
+    bruto = _decodificar(p)
     eol = "\r\n" if "\r\n" in bruto else "\n"
     return bruto.replace("\r\n", "\n"), eol
 
@@ -397,7 +412,7 @@ def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
     if not arq.is_file():
         mig.falhas.append(f"não existe {arq}")
         return mig
-    bruto = arq.read_bytes().decode("utf-8")
+    bruto = _decodificar(arq)
     if any(l.strip() == MARCA for l in _lf(bruto).split("\n")):
         mig.claude_novo, mig.ja_migrado = bruto, True
         return mig
@@ -755,6 +770,10 @@ def relatorio(m: Migracao, falhas: list) -> str:
 
 # --- CLI ---------------------------------------------------------------------------------------------
 
+def _msg_nao_utf8(proj: Path, e: NaoEhUtf8) -> str:
+    return f"{_relativo(proj, e.arquivo)} não está em UTF-8: salve em UTF-8 e rode de novo. Nada foi gravado."
+
+
 def main(argv=None) -> int:
     for fluxo in (sys.stdout, sys.stderr):
         try:
@@ -780,6 +799,9 @@ def main(argv=None) -> int:
             print(relatorio(m, []))
             return 0
         falhas = conferir(proj, m, linhas_kit)
+    except NaoEhUtf8 as e:
+        print(_msg_nao_utf8(proj, e))
+        return 1
     except OSError as e:
         print(f"Nada foi gravado: não consegui ler {e.filename or proj} ({e.strerror or e}). Confira o caminho e rode de novo.")
         return 1
@@ -804,6 +826,9 @@ def main(argv=None) -> int:
     except RuntimeError as e:
         print("Migração reprovada — nada foi gravado.")
         print(relatorio(m, [str(e)]))
+        return 1
+    except NaoEhUtf8 as e:
+        print(_msg_nao_utf8(proj, e))
         return 1
     except OSError as e:                      # leitura antes de qualquer troca: nada mudou
         print(f"Nada foi gravado: não consegui ler {e.filename or proj} ({e.strerror or e}). Rode de novo.")

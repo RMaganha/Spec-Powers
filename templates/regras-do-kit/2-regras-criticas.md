@@ -1,4 +1,4 @@
-<!-- Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence. -->
+Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence.
 
 ## Regras críticas (nunca violar) — cada uma nasce de um bug ou decisão real
 1. **Registro/memória/notas NUNCA num `CLAUDE.md`** (instrução sempre-ativa; polui o contexto). Memória = `memory/` **dentro do repo**; a pasta nativa guarda só um ponteiro pra ela.

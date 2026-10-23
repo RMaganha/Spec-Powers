@@ -1400,6 +1400,22 @@ def test_compliance_confere_a_marca_nao_o_bloco_velho():
     assert "sem a marca" in comp.lower(), "compliance.md não diz que o bloco antigo só vale pra projeto sem a marca"
 
 
+def test_compliance_check_4_secao_de_regras_do_projeto_e_opcional():
+    """A migração omite `## Regras obrigatórias do projeto` quando fica vazia: marca presente sem ela é ✓."""
+    comp = (REPO / "commands" / "compliance.md").read_text(encoding="utf-8")
+    check4 = next(l for l in comp.split("\n") if l.startswith("4. **Regras do kit no projeto**"))
+    assert "ausente" in check4 and "opcional" in check4 and "✓" in check4, \
+        "compliance.md check 4 não define marca presente + seção `## Regras obrigatórias do projeto` ausente"
+
+
+def test_upgrade_roda_o_script_com_proj_explicito():
+    """O script lê `--proj` (padrão: a pasta atual): o comando passa a raiz do projeto, não depende do shell."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    chamadas = [l for l in up.split("\n") if 'migrar_claude_md.py"' in l]
+    assert len(chamadas) == 2, chamadas
+    assert all('--proj "<raiz do projeto>"' in l for l in chamadas), chamadas
+
+
 def test_upgrade_branch_antes_da_migracao_na_ordem():
     """A branch chore/migrar-claude-md nasce da principal ANTES do dry-run e do --aplicar; o commit vem depois.
     Lido de cima pra baixo, o roteiro nunca grava a migracao na branch errada."""

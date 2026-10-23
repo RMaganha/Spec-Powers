@@ -5,7 +5,7 @@
 
 - **Camada 1:** as regras do kit moram em `templates/regras-do-kit/` (`1-modo-de-trabalho.md`, `2-regras-criticas.md`) e chegam em toda janela pelo `hooks/regras_do_kit.py` (SessionStart, duas entradas `--bloco 1/2` no `hooks/hooks.json`). Só age com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` da raiz; defeito vira `systemMessage` de 1 linha; escape `MSS_REGRAS_KIT_OFF`.
 - **Camada 2:** `templates/CLAUDE.md` é só do projeto (marca, regras obrigatórias, `## Contexto` por extenso, mapa, índice de regras por tipo). Teto da parte do projeto 10.000 B, como aviso.
-- **Camada 3:** `hooks/regra_antes_de_gravar.py` (PreToolUse `Write|Edit|MultiEdit`) nega uma vez por sessão por regra com o texto de `.claude/rules/*.md` cujo `paths:` casa; falha aberta; escape `MSS_REGRA_OFF`.
+- **Camada 3:** `hooks/regra_antes_de_gravar.py` (PreToolUse `Write|Edit|MultiEdit`) nega uma vez por sessão por regra com o texto de `.claude/rules/*.md` cujo `paths:` casa; falha aberta; escape `MSS_REGRA_OFF`. Só age em projeto com a marca no `CLAUDE.md` da raiz; desce nas subpastas de `.claude/rules/`; regra que ficou só com título e comentário não nega; o `/compact` zera o estado da sessão (entrada `SessionStart` com `matcher: compact` rodando `regra_antes_de_gravar.py --zerar`), então a regra é mostrada de novo.
 - **Migração:** `templates/migrar_claude_md.py` (dry-run por padrão, `--aplicar`; subcomando `historico` regenera `templates/regras-do-kit/linhas-do-kit.txt`). Confere conservação por contagem de linhas, `## Contexto` sem ponteiro pra `.claude/rules/`, marca, índice e working tree limpo; nunca roda git de escrita; se a troca de arquivos falha no meio, restaura. O `/mss-spec:upgrade` roda a migração primeiro e sozinha, numa branch `chore/migrar-claude-md` aberta antes da prévia.
 - **Correções juntas:** `teto_ao_gravar.py` (leitura por shell não conta como gravação), `orcamento_partida.py` (uma casa decimal; projeto sem marca é mandado pro `upgrade`), `kickoff`, `analise`, `doctor` (checks 3, 4 e 9), `compliance`, `nova-feature`.
 - **Dogfood no Whats (2026-10-23, só leitura, dry-run):** exit 0, nenhuma falha; 20 linhas saem como do kit, 18 mudam de lugar, 3 ficam por dúvida; `CLAUDE.md` de 10.096 B passa a 9.624 B (a estimativa do desenho era ~9.000 B); aviso: `testes.md` ficou só com título/comentário e o item voltou pro `## Contexto`. Nada foi gravado no Whats (hashes e `git status` iguais aos de antes).
@@ -114,7 +114,7 @@ fatos de infra escondidos).
 - Hook novo **`hooks/regra_antes_de_gravar.py`** (`PreToolUse` em `Write|Edit|MultiEdit`): se o arquivo-alvo casa com o
   `paths:` de algum `.claude/rules/*.md` do projeto, **nega uma vez por sessão por regra**, com o texto da regra no
   motivo ("leia isto antes; repita a gravação"). Mesmo mecanismo da memória no comando (`docs/decisoes.md:43`).
-  Estado por sessão em `~/.claude/mss-spec/`, como o `um_item_por_janela.py`. Falha **aberta** (é rede: bug aqui não
+  Estado por sessão no temp do SO (`mss_regra_antes_<sessão>.json`), como o `hooks/_memoria_de_acao.py`. Falha **aberta** (é rede: bug aqui não
   pode travar gravação). Escape `MSS_REGRA_OFF=1`. Registro em `hooks/_registro.py`.
 - Custo aceito: 1 negação a mais na 1ª gravação de cada tipo por sessão, mesmo quando a regra já tinha carregado
   pela leitura (o hook não enxerga o contexto).

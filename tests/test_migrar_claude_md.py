@@ -784,6 +784,21 @@ def test_cli_restauracao_que_tambem_falha_manda_git_restore(tmp_path, monkeypatc
     assert _sem_temporarios(proj)
 
 
+@pytest.mark.parametrize("arquivo", ["CLAUDE.md", ".claude/rules/banco.md"])
+def test_cli_arquivo_fora_de_utf8_mensagem_curta_e_nada_gravado(tmp_path, capsys, arquivo):
+    m = _mod()
+    proj = _projeto_whats(tmp_path)
+    (proj / arquivo).write_bytes("# São Paulo\n".encode("cp1252"))
+    antes = _arquivos(proj)
+    for flags in ([], ["--aplicar"]):
+        codigo = m.main(["--proj", str(proj), *flags])
+        saida = capsys.readouterr().out
+        assert codigo == 1
+        assert f"{arquivo} não está em UTF-8: salve em UTF-8 e rode de novo. Nada foi gravado." in saida
+        assert "Traceback" not in saida
+    assert _arquivos(proj) == antes and _sem_temporarios(proj)
+
+
 def test_regra_com_bom_mantem_bom_no_comeco(tmp_path):
     m = _mod()
     claude = f"# Proj — teste\r\n\r\n## Contexto\r\n- **Infra:** própria.\r\n{PONTEIRO_COMO_RODA}\r\n"

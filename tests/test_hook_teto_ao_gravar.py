@@ -14,6 +14,7 @@ Propriedades:
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -151,6 +152,30 @@ def test_kb_com_uma_casa(tmp_path):
     raiz = _projeto(tmp_path, claude=claude)
     txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
     assert "10,5 KB" in txt and "teto 10,0 KB" in txt
+
+
+def test_kb_perto_do_teto_mostra_bytes(tmp_path):
+    """10.020 B arredondaria pra '10,0 KB (teto 10,0 KB)': mostra bytes quando o arredondado empata."""
+    claude = MARCA + "\n" + "x" * (10020 - len(MARCA) - 1)
+    raiz = _projeto(tmp_path, claude=claude)
+    txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
+    assert re.search(r"10\.0[2-4]\d B \(teto 10\.000 B\)", txt) and "10,0 KB" not in txt   # write_text no Windows põe CR
+
+
+def test_claude_md_em_cp1252_com_marca_nao_manda_upgrade(tmp_path):
+    raiz = _projeto(tmp_path)
+    (raiz / "CLAUDE.md").write_bytes((MARCA + "\nSão Paulo\n" + "x" * 10500).encode("cp1252"))
+    txt = _ctx(_mod().responder(_edit(raiz, rel="CLAUDE.md"), {}))
+    assert ".claude/rules/" in txt and "/mss-spec:upgrade" not in txt
+
+
+def test_git_add_e_commit_do_claude_md_nao_contam_como_gravacao(tmp_path):
+    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)        # mtime recente, versão nunca vista
+    mod = _mod()
+    assert mod.responder(_shell(raiz, "git add CLAUDE.md"), {}) is None
+    assert mod.responder(_shell(raiz, 'git commit -m "x" CLAUDE.md', "PowerShell"), {}) is None
+    assert mod.responder(_shell(raiz, "  git diff CLAUDE.md"), {}) is None
+    assert mod.responder(_shell(raiz, "echo x >> CLAUDE.md"), {}) is not None   # gravação de verdade segue valendo
 
 
 # --- leitura pelo shell não é gravação -------------------------------------------------------

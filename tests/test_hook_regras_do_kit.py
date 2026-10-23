@@ -104,6 +104,14 @@ def test_marca_na_1a_linha_com_bom_vale(tmp_path):
     assert _mod().responder(_evento(raiz), {}, 2) is not None
 
 
+def test_claude_md_em_cp1252_com_marca_ainda_injeta(tmp_path):
+    """CLAUDE.md salvo em cp1252 (acento fora de UTF-8) não desliga as regras: a marca é ASCII."""
+    raiz = _proj(tmp_path)
+    (raiz / "CLAUDE.md").write_bytes(("# São Paulo\n\n" + MARCA + "\n").encode("cp1252"))
+    assert _mod().tem_marca(str(raiz)) is True
+    assert "additionalContext" in _mod().responder(_evento(raiz), {})["hookSpecificOutput"]
+
+
 def test_tem_marca_direto(tmp_path):
     mod = _mod()
     assert mod.tem_marca(str(_projeto(tmp_path))) is True

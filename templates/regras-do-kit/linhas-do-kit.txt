@@ -127,7 +127,6 @@
 <!-- MODELO de CLAUDE.md — copie pra RAIZ do projeto e preencha os <...>. ENXUTO: entra em TODA sessão.
 <!-- Mantenha este arquivo curto. Se uma seção crescer demais, mova o detalhe para a spec da feature
 <!-- Mantenha este arquivo curto. Se uma seção crescer demais, mova o detalhe para a spec viva do assunto
-<!-- Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence. -->
 <!-- Teto 10 KB (o doctor avisa). Passou? Mova um BLOCO inteiro pro comando/rules/spec e deixe ponteiro —
 <!-- mss-spec:regras-do-kit -->
 <arquivo de `.claude/rules/`> — <assunto> — carrega ao tocar <padrões>
@@ -137,6 +136,7 @@ Detalhe de feature vai na spec viva por assunto (docs/specs/<assunto>.md); hist�
 Detalhe de feature vai na spec; histórico/memória NÃO entram aqui. -->
 Nunca commitar `.env` nem segredos; nunca hardcode de credencial.
 Regra de ouro: ENXUTO. Só o que o Claude NÃO infere do código (visão, como roda, convenções, regras).
+Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence.
 Teste de cada linha: "removendo isto, ele erraria?". Procedimento longo vai pro comando/rules/spec. -->
 Teste por linha: "sem isto, ele erraria?". Detalhe vai pro comando/rules/spec. -->
 Teto deste arquivo: 8 KB — o `/mss-spec:doctor` mede e avisa. -->

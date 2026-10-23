@@ -1,4 +1,4 @@
-<!-- Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence. -->
+Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLAUDE.md do projeto conflitar com esta, a regra do CLAUDE.md do projeto vence.
 
 ## Modo de trabalho (nunca violar)
 - **Idioma**: responda **sempre em pt-BR**, inclusive em slash-command sem texto.

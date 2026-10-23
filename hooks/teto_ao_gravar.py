@@ -87,18 +87,33 @@ def tocados(evento, raiz):
         comando = entrada.get("command")
         if not isinstance(comando, str):
             return []
+        if _e_git(comando):                          # `git add/commit/diff CLAUDE.md` cita o arquivo, não o grava
+            return []
         return [rel for rel in ALVOS if rel.rsplit("/", 1)[-1] in comando]
     return []
+
+
+def _e_git(comando):
+    """True se a 1ª palavra do comando é `git` (ou `git.exe`): comando de git nunca conta como gravação."""
+    palavras = comando.split()
+    return bool(palavras) and re.sub(r"\.exe$", "", palavras[0].replace("\\", "/").rsplit("/", 1)[-1].lower()) == "git"
 
 
 def _kb(n):
     return f"{n / 1000:.1f} KB".replace(".", ",")
 
 
+def _medida(n, teto):
+    """'10,5 KB (teto 10,0 KB)'; quando o arredondado empata com o teto mas passou dele, mostra bytes."""
+    if n > teto and _kb(n) == _kb(teto):
+        return f"{n:,} B (teto {teto:,} B)".replace(",", ".")
+    return f"{_kb(n)} (teto {_kb(teto)})"
+
+
 def _tem_marca(raiz):
     """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
     try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8") as f:
+        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
             texto = f.read().lstrip("\ufeff")
     except (OSError, UnicodeError):
         return False
@@ -195,7 +210,7 @@ def _agir(evento, raiz, alvos):
         caminho = os.path.join(raiz, "CLAUDE.md")
         n = os.path.getsize(caminho) if os.path.isfile(caminho) else 0
         if n > TETO_CLAUDE_MD:
-            medida = f"CLAUDE.md com {_kb(n)} (teto {_kb(TETO_CLAUDE_MD)})"
+            medida = f"CLAUDE.md com {_medida(n, TETO_CLAUDE_MD)}"
             if _tem_marca(raiz):
                 partes.append(f"{medida}: mova um bloco INTEIRO com ponteiro — regra de tipo de arquivo pra "
                               "`.claude/rules/<x>.md` com `paths:`, procedimento pra `docs/` — e nunca comprima a "

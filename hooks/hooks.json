@@ -24,6 +24,15 @@
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/regras_do_kit.py\" --bloco 2"
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/regra_antes_de_gravar.py\" --zerar"
+          }
+        ]
       }
     ],
     "PreToolUse": [

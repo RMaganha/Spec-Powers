@@ -70,10 +70,17 @@ def _kb(n):
     return f"{n / 1000:.1f} KB".replace(".", ",")
 
 
+def _medida(n, teto):
+    """'10,5 KB (teto 10,0 KB)'; quando o arredondado empata com o teto mas passou dele, mostra bytes."""
+    if n > teto and _kb(n) == _kb(teto):
+        return f"{n:,} B (teto {teto:,} B)".replace(",", ".")
+    return f"{_kb(n)} (teto {_kb(teto)})"
+
+
 def tem_marca(raiz):
     """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
     try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8") as f:
+        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
             texto = f.read().lstrip("\ufeff")
     except (OSError, UnicodeError):
         return False
@@ -119,7 +126,7 @@ def _comando(lista, com_marca):
 
 
 def texto_do_aviso(lista, com_marca=False):
-    medidas = " · ".join(f"{rel.rsplit('/', 1)[-1]} {_kb(n)} (teto {_kb(t)})" for rel, n, t in lista)
+    medidas = " · ".join(f"{rel.rsplit('/', 1)[-1]} {_medida(n, t)}" for rel, n, t in lista)
     leia = "; ".join(LEIA[rel] for rel, _, _ in lista)
     return (
         f"[mss-spec] partida ACIMA do orçamento: {medidas}. "

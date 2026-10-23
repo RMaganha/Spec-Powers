@@ -125,6 +125,19 @@ def test_kb_com_uma_casa_decimal(tmp_path):
     assert "10,1 KB (teto 10,0 KB)" in txt
 
 
+def test_kb_perto_do_teto_mostra_bytes(tmp_path):
+    """10.020 B não pode sair '10,0 KB (teto 10,0 KB)': quando o arredondado empata, mostra bytes."""
+    raiz = _projeto(tmp_path, claude=10020)
+    txt = _contexto(_mod().responder(_evento(raiz), {}))
+    assert "10.020 B (teto 10.000 B)" in txt and "10,0 KB" not in txt
+
+
+def test_claude_md_em_cp1252_com_marca_conta_como_migrado(tmp_path):
+    (tmp_path / "CLAUDE.md").write_bytes((MARCA + "\nSão Paulo\n" + "x" * 10500).encode("cp1252"))
+    txt = _contexto(_mod().responder(_evento(tmp_path), {}))
+    assert "mover bloco" in txt and "/mss-spec:upgrade" not in txt
+
+
 def test_claude_sem_marca_acima_do_teto_manda_upgrade(tmp_path):
     raiz = _projeto(tmp_path, claude=10500)
     saida = _mod().responder(_evento(raiz), {})
@@ -152,6 +165,7 @@ def test_marca_igual_nos_hooks():
     ref = _mod(REPO / "hooks" / "regras_do_kit.py", "regras_do_kit_ref").MARCA
     assert _mod().MARCA == ref
     assert _mod(REPO / "hooks" / "teto_ao_gravar.py", "teto_ao_gravar_ref").MARCA == ref
+    assert _mod(REPO / "hooks" / "regra_antes_de_gravar.py", "regra_antes_de_gravar_ref").MARCA == ref
 
 
 def test_saida_e_do_evento_session_start_com_system_message(tmp_path):

@@ -53,7 +53,7 @@ AVISO = "[mss-spec] regras do kit não carregaram — rode /mss-spec:doctor"
 def tem_marca(raiz):
     """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar BOM e `\\r`)."""
     try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8") as f:
+        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
             texto = f.read().lstrip("﻿")
     except (OSError, UnicodeError):
         return False

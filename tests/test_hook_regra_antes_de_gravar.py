@@ -42,17 +42,23 @@ def _temp_isolado(tmp_path, monkeypatch):
 
 
 def _regra(raiz, nome, paths, corpo="Texto da regra.\n", frontmatter=None):
-    pasta = Path(raiz) / ".claude" / "rules"
+    arquivo = Path(raiz) / ".claude" / "rules" / nome
+    pasta = arquivo.parent
     pasta.mkdir(parents=True, exist_ok=True)
     if frontmatter is None:
         itens = "".join(f'  - "{p}"\n' for p in paths)
         frontmatter = f"---\npaths:\n{itens}---\n" if paths else "---\ndescription: sem paths\n---\n"
-    (pasta / nome).write_text(frontmatter + "\n" + corpo, encoding="utf-8")
+    arquivo.write_text(frontmatter + "\n" + corpo, encoding="utf-8")
 
 
-def _projeto(tmp_path):
+MARCA = "<!-- mss-spec:regras-do-kit -->"
+
+
+def _projeto(tmp_path, marca=True):
+    """Projeto do kit (CLAUDE.md com a marca); `marca=False` = projeto fora do kit."""
     raiz = tmp_path / "proj"
     raiz.mkdir()
+    (raiz / "CLAUDE.md").write_text(("# Proj\n\n" + MARCA + "\n") if marca else "# Proj\n", encoding="utf-8")
     return raiz
 
 
@@ -117,7 +123,7 @@ def test_regras_do_projeto_aceita_crlf_e_bom(tmp_path):
     raiz = _projeto(tmp_path)
     pasta = raiz / ".claude" / "rules"
     pasta.mkdir(parents=True)
-    (pasta / "a.md").write_bytes("﻿---\r\npaths:\r\n  - \"**/*.sql\"\r\n---\r\n\r\n# A\r\n".encode("utf-8"))
+    (pasta / "a.md").write_bytes("﻿---\r\npaths:\r\n  - \"**/*.sql\"\r\n---\r\n\r\n# A\r\n\r\n- corpo da regra\r\n".encode("utf-8"))
     regras = _mod().regras_do_projeto(str(raiz))
     assert regras and regras[0][1] == ["**/*.sql"] and "# A" in regras[0][2]
 
@@ -126,7 +132,63 @@ def test_regras_do_projeto_sem_pasta_devolve_vazio(tmp_path):
     assert _mod().regras_do_projeto(str(_projeto(tmp_path))) == []
 
 
+def test_regras_do_projeto_desce_nas_subpastas(tmp_path):
+    raiz = _projeto(tmp_path)
+    _regra(raiz, "banco.md", ["**/*.sql"])
+    _regra(raiz, "ui/telas.md", ["**/*.html"], corpo="REGRA-DE-TELA\n")
+    nomes = [n for n, _, _ in _mod().regras_do_projeto(str(raiz))]
+    assert nomes == ["banco.md", "ui/telas.md"]
+
+
+def test_regra_em_subpasta_nega_com_o_caminho_da_regra(tmp_path):
+    raiz = _projeto(tmp_path)
+    _regra(raiz, "ui/telas.md", ["**/*.html"], corpo="REGRA-DE-TELA\n")
+    motivo = _motivo(_mod().responder(_evento(raiz, raiz / "a.html"), {}))
+    assert "REGRA-DE-TELA" in motivo and ".claude/rules/ui/telas.md" in motivo
+
+
+def test_regra_so_com_titulo_e_comentario_nao_nega(tmp_path):
+    """Forma do `testes.md` do Whats depois da migração: título + comentário, o conteúdo voltou pro CLAUDE.md."""
+    raiz = _projeto(tmp_path)
+    _regra(raiz, "testes.md", ["**/test_*.py"],
+           corpo="# Testes\n\n<!-- o conteúdo desta regra voltou pro `## Contexto` do CLAUDE.md -->\n")
+    _regra(raiz, "multi.md", ["**/test_*.py"], corpo="## Vazia\n\n<!-- linha 1\nlinha 2 -->\n\n")
+    assert _mod().responder(_evento(raiz, raiz / "tests" / "test_a.py"), {}) is None
+    _regra(raiz, "real.md", ["**/test_*.py"], corpo="# Testes\n\n<!-- c -->\n- use fixtures\n")
+    motivo = _motivo(_mod().responder(_evento(raiz, raiz / "tests" / "test_a.py"), {}))
+    assert "use fixtures" in motivo and "testes.md" not in motivo and "multi.md" not in motivo
+
+
 # --- decisão ----------------------------------------------------------------------------------
+
+def test_projeto_sem_a_marca_nao_nega(tmp_path):
+    raiz = _projeto(tmp_path, marca=False)
+    _regra(raiz, "banco.md", ["**/*.sql"])
+    assert _mod().responder(_evento(raiz, raiz / "a.sql"), {}) is None
+    (raiz / "CLAUDE.md").unlink()
+    assert _mod().responder(_evento(raiz, raiz / "a.sql"), {}) is None
+
+
+def test_marca_em_cp1252_ainda_vale(tmp_path):
+    raiz = _projeto(tmp_path, marca=False)
+    (raiz / "CLAUDE.md").write_bytes(("# São Paulo\n" + MARCA + "\n").encode("cp1252"))
+    _regra(raiz, "banco.md", ["**/*.sql"])
+    assert _mod().responder(_evento(raiz, raiz / "a.sql"), {}) is not None
+
+
+def test_zerar_apaga_o_estado_da_sessao(tmp_path):
+    raiz = _projeto(tmp_path)
+    _regra(raiz, "banco.md", ["**/*.sql"])
+    mod = _mod()
+    ev = _evento(raiz, raiz / "a.sql", sessao="compacta")
+    assert mod.responder(ev, {}) is not None and mod.responder(ev, {}) is None
+    mod.zerar("compacta")
+    assert mod.responder(ev, {}) is not None                       # depois do /compact a regra volta a valer
+    mod.zerar("nunca-existiu")                                      # sem estado: não levanta
+    outra = _evento(raiz, raiz / "a.sql", sessao="outra")
+    assert mod.responder(outra, {}) is not None
+    mod.zerar("compacta")
+    assert mod.responder(outra, {}) is None                         # só a sessão pedida foi zerada
 
 def test_write_de_sql_novo_nega_com_o_texto_da_regra(tmp_path):
     raiz = _projeto(tmp_path)
@@ -298,6 +360,28 @@ def test_processo_sai_zero_calado_com_entrada_malformada():
 
 
 # --- fiação -----------------------------------------------------------------------------------
+
+def test_processo_zerar_apaga_o_estado_e_sai_zero(tmp_path):
+    raiz = _projeto(tmp_path)
+    _regra(raiz, "banco.md", ["**/*.sql"])
+    env = {"CLAUDE_PROJECT_DIR": str(raiz), "MSS_REGISTRO_OFF": "1",
+           "TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path)}
+    ev = _evento(raiz, raiz / "a.sql", sessao="proc-z")
+    assert _rodar(json.dumps(ev), env).stdout                       # 1ª: nega
+    assert _rodar(json.dumps(ev), env).stdout == ""                 # 2ª: passa
+    sessao_start = {"hook_event_name": "SessionStart", "source": "compact", "session_id": "proc-z", "cwd": str(raiz)}
+    proc = subprocess.run([sys.executable, str(HOOK), "--zerar"], input=json.dumps(sessao_start),
+                          capture_output=True, text=True, encoding="utf-8", env={**os.environ, **env})
+    assert proc.returncode == 0 and proc.stdout == ""
+    assert _rodar(json.dumps(ev), env).stdout                       # voltou a negar
+
+
+def test_hooks_json_session_start_compact_zera_o_estado():
+    grupos = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]["SessionStart"]
+    achados = [g for g in grupos if any("regra_antes_de_gravar.py" in h["command"] for h in g["hooks"])]
+    assert len(achados) == 1 and achados[0].get("matcher") == "compact"
+    assert all("--zerar" in h["command"] and "CLAUDE_PLUGIN_ROOT" in h["command"] for h in achados[0]["hooks"])
+
 
 def test_hooks_json_pretooluse_write_edit_multiedit():
     grupos = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]["PreToolUse"]

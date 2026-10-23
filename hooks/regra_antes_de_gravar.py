@@ -11,6 +11,11 @@ Contrato:
   frontmatter) no motivo; a 2ª gravação passa. Várias regras no mesmo arquivo → uma negação só, com
   todos os textos, e todas ficam marcadas como mostradas;
 - caminho fora da raiz (`CLAUDE_PROJECT_DIR` › `cwd`) nunca casa; regra sem `paths:` é ignorada;
+- só age em projeto do kit: o `CLAUDE.md` da raiz precisa ter a marca `<!-- mss-spec:regras-do-kit -->`;
+- as regras vêm de `.claude/rules/**/*.md` (desce nas subpastas, como a migração); regra que ficou só com
+  título e comentário HTML não nega — não há o que mostrar;
+- `--zerar` (SessionStart `compact`): apaga o estado da sessão, porque o `/compact` tira o texto da regra
+  do contexto e ela precisa voltar a ser mostrada;
 - estado "já mostrada" no temp do SO (`mss_regra_antes_<sessao>.json`), como `_memoria_de_acao.py`;
 - **falha ABERTA** e exit 0 sempre: frontmatter quebrado, arquivo ilegível ou qualquer bug daqui →
   silêncio. Este hook nunca trava o trabalho por defeito próprio.
@@ -47,10 +52,23 @@ ENV_DESLIGA = "MSS_REGRA_OFF"
 ENV_RAIZ = "CLAUDE_PROJECT_DIR"
 TOOLS_DE_ESCRITA = ("Write", "Edit", "MultiEdit")
 PASTA_REGRAS = (".claude", "rules")
+# cópia de hooks/regras_do_kit.py (hooks não importam um do outro; um teste trava a igualdade)
+MARCA = "<!-- mss-spec:regras-do-kit -->"
 
 
 def _texto(valor):
     return valor.strip() if isinstance(valor, str) and valor.strip() else None
+
+
+def tem_marca(raiz):
+    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR).
+    `errors="replace"`: a marca é ASCII, então um CLAUDE.md fora de UTF-8 ainda a mostra."""
+    try:
+        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
+            texto = f.read().lstrip("﻿")
+    except OSError:
+        return False
+    return any(linha.strip() == MARCA for linha in texto.splitlines())
 
 
 # --- glob -------------------------------------------------------------------------------------
@@ -122,22 +140,30 @@ def _separar(conteudo):
     return paths, "\n".join(linhas[fim + 1:]).strip("\n")
 
 
+def _corpo_vazio(texto):
+    """True se, sem comentários HTML e sem títulos (`#`…`######`), não sobra nada — regra que a
+    migração esvaziou (ficou só o título e o comentário) não tem o que mostrar."""
+    texto = re.sub(r"<!--.*?(?:-->|\Z)", "", texto, flags=re.DOTALL)
+    return not any(l.strip() and not re.match(r"^\s{0,3}#{1,6}(\s|$)", l) for l in texto.split("\n"))
+
+
 def regras_do_projeto(raiz):
-    """[(nome do arquivo, padrões do `paths:`, texto sem frontmatter)] — só regras COM `paths:`.
-    Arquivo ilegível ou com frontmatter quebrado é pulado (falha aberta)."""
+    """[(nome = caminho dentro de `.claude/rules/` com `/`, padrões do `paths:`, texto sem frontmatter)]
+    — só regras COM `paths:` e com corpo; desce nas subpastas. Arquivo ilegível ou com frontmatter
+    quebrado é pulado (falha aberta)."""
     pasta = os.path.join(raiz, *PASTA_REGRAS)
-    try:
-        nomes = sorted(n for n in os.listdir(pasta) if n.lower().endswith(".md"))
-    except OSError:
-        return []
+    nomes = []
+    for dirpath, _, arquivos in os.walk(pasta):
+        base = os.path.relpath(dirpath, pasta).replace("\\", "/")
+        nomes += [n if base == "." else f"{base}/{n}" for n in arquivos if n.lower().endswith(".md")]
     regras = []
-    for nome in nomes:
+    for nome in sorted(nomes):
         try:
-            with open(os.path.join(pasta, nome), encoding="utf-8") as f:
+            with open(os.path.join(pasta, *nome.split("/")), encoding="utf-8") as f:
                 paths, texto = _separar(f.read())
         except Exception:                            # noqa: BLE001
             continue
-        if paths:
+        if paths and not _corpo_vazio(texto):
             regras.append((nome, paths, texto))
     return regras
 
@@ -214,7 +240,7 @@ def responder(evento, ambiente=None):
         return None
 
     rel = relativo_a_raiz(alvo, raiz, cwd)
-    if rel is None:
+    if rel is None or not tem_marca(raiz):           # projeto fora do kit: este hook não age
         return None
     casadas = [r for r in regras_do_projeto(raiz) if any(casa_glob(rel, p) for p in r[1])]
     if not casadas:
@@ -234,9 +260,20 @@ def responder(evento, ambiente=None):
     }}
 
 
+def zerar(sessao):
+    """Apaga o estado "já mostrada" da sessão (o `/compact` joga fora o texto das regras do contexto)."""
+    try:
+        os.remove(_estado(sessao))
+    except OSError:
+        pass
+
+
 def main():
     try:
         evento = json.load(sys.stdin)
+        if "--zerar" in sys.argv[1:]:                # SessionStart `compact`: a regra volta a valer
+            zerar(evento.get("session_id"))
+            sys.exit(0)
         saida = responder(evento)
         if saida is not None:
             # O motivo é pt-BR: força UTF-8 (no Windows o default é cp1252).

@@ -13,7 +13,7 @@ Os onze anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
-| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` nega uma vez, com o texto da regra no motivo; a 2ª gravação passa |
+| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
 
 ---
 
@@ -321,7 +321,7 @@ Whats chegou a 160 KB de partida. Aqui o conserto roda na própria gravação.
 
 Evento `PostToolUse` (Write/Edit/MultiEdit pelo `file_path`; Bash/PowerShell quando o comando cita o arquivo **e**
 o arquivo mudou agora: mtime dentro de `JANELA_S` = 120 s e `(tamanho, mtime_ns)` diferente do último visto nesta
-sessão, guardado no temp do SO — ler com `wc -c CLAUDE.md` ou `cat INDEX.md` cita o nome, mas não é gravação).
+sessão, guardado no temp do SO — ler com `wc -c CLAUDE.md` ou `cat INDEX.md` cita o nome, mas não é gravação; comando cuja 1ª palavra é `git` — `git add CLAUDE.md`, `git commit` — nunca conta).
 Gravou `docs/superpowers/MAPA.md` ou `INDEX.md` e passou do teto → `rodizio_partida.py enxugar --aplicar`, que
 **move, nunca apaga**, confere a conservação e para assim que cabe: 1º o rodízio de sempre (blocos antigos e
 fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `## Fora de escopo` → `FORA-DE-ESCOPO.md`
@@ -416,6 +416,8 @@ Evento `PreToolUse`, matcher `Write|Edit|MultiEdit`. O caminho a gravar, relativ
 texto da regra (sem o frontmatter) no motivo e "repita a gravação"; a 2ª tentativa passa. Várias regras no
 mesmo arquivo → uma negação só, com todos os textos. O estado "já mostrada" fica no temp do SO
 (`mss_regra_antes_<sessão>.json`).
+
+Só age em projeto do kit: o `CLAUDE.md` da raiz precisa ter a marca `<!-- mss-spec:regras-do-kit -->`. As regras são lidas de `.claude/rules/` **com as subpastas** (como a migração faz); regra que ficou só com título e comentário HTML não nega. O `/compact` tira o texto da regra do contexto, então uma 2ª entrada `SessionStart` com `matcher: compact` roda `regra_antes_de_gravar.py --zerar`, que apaga o estado da sessão — a regra volta a ser mostrada.
 
 ## Garantias
 
