@@ -42,6 +42,15 @@ pasta fora de repo e worktree do mesmo repo passam. Falha aberta; `MSS_ANCORA_OF
 
 **(7) Recall** — lê `docs/superpowers/FORA-DE-ESCOPO.md` (saiu da partida) e pula linha com status `pausada:`/`obsoleta:`.
 
+**(8) Forma do MAPA e do INDEX em toda gravação (0.44.0)** — três regras valem mesmo **abaixo** do teto (o resto do
+`enxugar` segue só acima): MAPA → item do `## Próximo passo` com mais de 300 bytes e título em negrito fica
+`N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)`, e o texto inteiro vai pro `PROXIMO-PASSO.md`
+(prepend datado); `## Conexões`, quando já existe `CONEXOES.md`, fica só com a linha de nomes e as linhas detalhadas
+vão pra lá (rodapé `---`/`Atualizado em` e comentário ficam no MAPA) · INDEX → linha `fechada` vai pro
+`INDEX-historico.md`. Arquivo já na forma não muda. O `CLAUDE.md` **não** entra (decisão do owner em 2026-10-27:
+o que se combinou em 2026-10-23 fica). Os comandos que escrevem no MAPA (`/mss-spec:mapa`, `nova-feature`) já escrevem
+na forma; o hook é a rede.
+
 Fora de escopo: **bloquear** a partida acima do teto (rede, não cerca — travar a janela por causa de um
 número apagaria o trabalho do dia) · o hook **mover** o `CLAUDE.md` sozinho (destino de regra é julgamento) · resumir o bloco atual do MAPA por
 script (é autoria) · a cerca do shell ver script com caminho escrito dentro dele ·
@@ -57,3 +66,7 @@ detectar "pedido com várias partes" por máquina (sem assinatura confiável; fi
   antigas"*) e pediu tratar a raiz na mesma janela, sem perder nada. O rodízio vira mecânico na gravação (o que foi
   feito à mão no Whats virou `enxugar`), a escrita em outro repositório pelo shell passa a ser negada (F-031) e o
   recall pula o que está vencido.
+- 2026-10-27 — 0.44.0: forma do MAPA e do INDEX aplicada em toda gravação, não só acima do teto (motivo: o Whats vivia
+  em 96–99,7% — MAPA 5.981/6.000, INDEX 5.635/7.000 — e o aviso não fechava; o owner quis o mesmo modo do MEMORY,
+  topo curto e detalhe sob demanda). Reabre o "para assim que cabe" de `docs/decisoes.md:40` só nesses três pontos.
+  O `CLAUDE.md` ficou fora por decisão do owner.

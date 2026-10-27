@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.44.0 — 2026-10-27 (MAPA e INDEX em dois níveis: topo curto, detalhe em arquivo próprio, em toda gravação)
+- **o que motivou:** no Whats o MAPA estava em 5.981 de 6.000 B e o INDEX em 5.635 de 7.000 B (medidos sem o `\r`). O rodízio só agia acima do teto e parava assim que cabia, então os dois viviam encostados no limite. O owner pediu o mesmo modo que resolveu o `memory/MEMORY.md` (31%): topo curto lido na abertura, detalhe aberto sob demanda.
+- feat(**rodizio_partida**): `enxugar` aplica a forma antes de olhar o teto: linha `fechada` → `INDEX-historico.md`; item do `## Próximo passo` com mais de 300 B e título em negrito → `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)` (texto inteiro em `PROXIMO-PASSO.md`, prepend datado); com `CONEXOES.md`, `## Conexões` só com a linha de nomes (comentário, "nenhuma"/`<a confirmar>` e o rodapé `---`/`Atualizado em` ficam no MAPA). Já na forma, nada muda; conservação conferida antes de gravar; CRLF preservado · `test_forma_*` (7 testes).
+- feat(**teto_ao_gravar**): roda a forma em toda gravação do MAPA/INDEX; abaixo do teto o aviso sai como "partida em dois níveis", sem dizer que estourou · `test_dentro_do_teto_fechada_sai_e_avisa_sem_falar_em_teto`.
+- docs(**mapa**, **nova-feature**, moldes `MAPA.md`/`INDEX.md`): quem escreve no Próximo passo já escreve 1 linha curta por item com o detalhe no `PROXIMO-PASSO.md`; a linha `fechada` sai sozinha do INDEX.
+- Simulado numa cópia do Whats (o Whats não foi tocado): MAPA 5.981 → 2.254 B (38%), INDEX 5.635 → 2.424 B (35%), `CLAUDE.md` 9.577 e `MEMORY.md` 1.859 sem mudança; 0 linha perdida; 2ª passada não grava nada.
+- **fora:** o `CLAUDE.md` (decisão do owner: o combinado de 2026-10-23 fica); a medida sem o `\r` nos hooks (outro card).
+
 ## 0.42.1 — 2026-10-23 (`/mss-spec:mapa` deixa o detalhe das Conexões no `CONEXOES.md`)
 - **o que motivou:** o MAPA do Whats estourou o teto (6.113 de 6.000 B) e a janela de lá encurtou a redação pra caber. Medido: Conexões = 3.073 B de 5.995. O rodízio da partida já tinha movido o detalhe pra `CONEXOES.md` ("no MAPA fica a lista de nomes"), mas o passo 3 do `/mss-spec:mapa` mandava escrever rota, arquivo e variável no MAPA — a cada reconciliação o detalhe voltava.
 - fix(**mapa**): com `docs/superpowers/CONEXOES.md`, o detalhe é reconciliado lá e o MAPA fica com uma linha de nomes no formato do rodízio (`- Detalhe em [CONEXOES.md](CONEXOES.md) … Conexões: A · B.`); linha detalhada que sobrar no MAPA vai pro `CONEXOES.md` (mover, nunca apagar) · `test_mapa_com_conexoes_md_deixa_so_os_nomes`.

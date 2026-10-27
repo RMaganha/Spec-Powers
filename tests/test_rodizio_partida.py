@@ -311,3 +311,114 @@ def test_enxugar_nao_mexe_em_arquivo_com_conflito_de_merge(tmp_path):
     raiz = _projeto(tmp_path, index="<<<<<<< HEAD\n" + _index_gordo() + "=======\n>>>>>>> x\n")
     rels = mod.enxugar(raiz, hoje="2026-09-23", aplicar=True)
     assert not rels["index"].ok and not rels["index"].gravou
+
+
+# --- forma em toda gravação (0.44.0): mesmo ABAIXO do teto -----------------------------------
+
+def _mapa_whats():
+    """Molde do MAPA real do Whats (2026-10-27): perto do teto, mas abaixo — antes nada se movia."""
+    longo = "medir de novo com tráfego real " * 12
+    return ("# Mapa de contexto — Proj\n\n## Onde estamos\n\n📍 **2026-10-27 — retomada** validada.\n\n"
+            "## Próximo passo\n\n"
+            "1. ⬜ **Pendências de 23/10** (`to-dolist.md`): opção A.\n"
+            f"2. ⬜ **AC5 do pool**: com ≥ 30 respostas, {longo}\n"
+            f"3. ⬜ sem título em negrito {longo}\n\n"
+            "## Conexões\n\n"
+            "- → Chatwoot: abre a conversa de handoff (`services/chatwoot.py`)\n"
+            "- ← n8n: recebe o anexo (`POST /whatsapp/anexo`)\n"
+            "- Detalhe (contratos, tokens, topologia local × Azure): [CONEXOES.md](CONEXOES.md)\n\n"
+            "---\nAtualizado em 2026-10-27 (V15.2 em produção).\n")
+
+
+def _com_conexoes(raiz):
+    sp = raiz / "docs" / "superpowers"
+    (sp / "CONEXOES.md").write_text("# Conexões — Proj\n\n- detalhe antigo\n", encoding="utf-8")
+    return sp
+
+
+def test_forma_item_longo_do_proximo_passo_vira_titulo_com_ponteiro(tmp_path):
+    mod = _mod()
+    original = _mapa_whats()
+    raiz = _projeto(tmp_path, mapa=original)
+    assert len(original.encode()) < mod.TETO_MAPA
+    rels = mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    assert rels["mapa"].ok, rels["mapa"].problemas
+    sp = raiz / "docs" / "superpowers"
+    mapa = (sp / "MAPA.md").read_text(encoding="utf-8")
+    assert "2. ⬜ **AC5 do pool** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)\n" in mapa
+    assert "1. ⬜ **Pendências de 23/10** (`to-dolist.md`): opção A.\n" in mapa, "mexeu em item curto"
+    assert "3. ⬜ sem título em negrito" in mapa, "item sem título em negrito não tem o que deixar"
+    detalhe = (sp / "PROXIMO-PASSO.md").read_text(encoding="utf-8")
+    assert "**AC5 do pool**: com ≥ 30 respostas" in detalhe and "2026-10-27" in detalhe
+    todas = _todas(raiz)
+    assert not [l for l in original.split("\n") if l.strip() and l not in todas]
+
+
+def test_forma_conexoes_so_nomes_quando_ha_conexoes_md(tmp_path):
+    mod = _mod()
+    original = _mapa_whats()
+    raiz = _projeto(tmp_path, mapa=original)
+    sp = _com_conexoes(raiz)
+    rels = mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    assert rels["mapa"].ok, rels["mapa"].problemas
+    mapa = (sp / "MAPA.md").read_text(encoding="utf-8")
+    assert ("- Detalhe em [CONEXOES.md](CONEXOES.md) (contratos, tokens, topologia), movido em 2026-10-27. "
+            "Conexões: → Chatwoot · ← n8n.") in mapa
+    assert "services/chatwoot.py" not in mapa
+    assert mapa.rstrip("\n").endswith("---\nAtualizado em 2026-10-27 (V15.2 em produção)."), "rodapé saiu do MAPA"
+    conexoes = (sp / "CONEXOES.md").read_text(encoding="utf-8")
+    assert "services/chatwoot.py" in conexoes and "- detalhe antigo" in conexoes
+    todas = _todas(raiz)
+    assert not [l for l in original.split("\n") if l.strip() and l not in todas]
+
+
+def test_forma_conexoes_sem_conexoes_md_e_abaixo_do_teto_nao_mexe(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path, mapa=_mapa_whats())
+    mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    mapa = (raiz / "docs" / "superpowers" / "MAPA.md").read_text(encoding="utf-8")
+    assert "services/chatwoot.py" in mapa
+    assert not (raiz / "docs" / "superpowers" / "CONEXOES.md").exists()
+
+
+def test_forma_conexoes_do_molde_nao_move_comentario_nem_nenhuma(tmp_path):
+    mod = _mod()
+    molde = (REPO / "templates" / "MAPA.md").read_text(encoding="utf-8")
+    raiz = _projeto(tmp_path, mapa=molde)
+    sp = _com_conexoes(raiz)
+    mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    assert (sp / "MAPA.md").read_text(encoding="utf-8") == molde
+
+
+def test_forma_index_fechada_sai_mesmo_abaixo_do_teto(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path)
+    assert len(INDEX.encode()) < mod.TETO_INDEX
+    rels = mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    assert rels["index"].ok and rels["index"].gravou
+    sp = raiz / "docs" / "superpowers"
+    idx = (sp / "INDEX.md").read_text(encoding="utf-8")
+    assert "relatório" not in idx and "- [formatação](../specs/formatacao.md) — juntar linhas — aberta" in idx
+    assert "pausada: aguardando layout" in idx and "login social" in idx
+    assert "relatório" in (sp / "INDEX-historico.md").read_text(encoding="utf-8")
+
+
+def test_forma_ja_aplicada_nao_muda_nada(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path, mapa=_mapa_whats())
+    _com_conexoes(raiz)
+    mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    antes = {p.name: p.read_bytes() for p in (raiz / "docs" / "superpowers").glob("*.md")}
+    rels = mod.enxugar(raiz, hoje="2026-10-28", aplicar=True)
+    depois = {p.name: p.read_bytes() for p in (raiz / "docs" / "superpowers").glob("*.md")}
+    assert depois == antes and not any(r.gravou for r in rels.values())
+
+
+def test_forma_preserva_crlf(tmp_path):
+    mod = _mod()
+    raiz = _projeto(tmp_path)
+    sp = raiz / "docs" / "superpowers"
+    (sp / "MAPA.md").write_bytes(_mapa_whats().replace("\n", "\r\n").encode("utf-8"))
+    mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
+    bruto = (sp / "MAPA.md").read_bytes()
+    assert b"PROXIMO-PASSO.md" in bruto and b"\n" not in bruto.replace(b"\r\n", b"")

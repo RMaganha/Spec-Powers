@@ -11,7 +11,11 @@ janela — o `doctor` avisava, ninguém movia. Dry-run por padrão; `--aplicar` 
 toda linha movida reapareceu no histórico. Se o MAPA ainda estourar depois do rodízio, o excesso é o
 bloco ATUAL e isso é conteúdo (edição do owner) — o script diz, não corta.
 
-`enxugar`: `mapa` + `index` e, se ainda passar do teto, a 2ª etapa (F-030 — o que o owner moveu à mão no
+`enxugar`: 1º a FORMA, que vale em toda gravação, mesmo abaixo do teto (0.44.0 — o Whats vivia em 96–99,7% e o
+          aviso não fechava): INDEX → linha `fechada` pro INDEX-historico.md; MAPA → item do `## Próximo passo`
+          com mais de LINHA_CURTA e título em negrito vira `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md]`
+          (texto inteiro lá) e, havendo CONEXOES.md, `## Conexões` fica só com a linha de nomes. Já na forma →
+          nada muda. Depois, só se ainda passar do teto: `mapa` + `index` e a 2ª etapa (F-030 — o que o owner moveu à mão no
           Whats), parando assim que cabe: INDEX → `## Backlog` → BACKLOG.md · `## Fora de escopo` →
           FORA-DE-ESCOPO.md · `## Assuntos existentes` → ASSUNTOS-EXISTENTES.md · linha longa de `## Em andamento`
           → EM-ANDAMENTO.md (fica nome/link — ponteiro — status VERBATIM, que o hook lê); MAPA → corpo de
@@ -328,29 +332,94 @@ def _nomes_de_conexao(linhas: list) -> list:
     return [l[2:].split(":", 1)[0].split(" (")[0].strip() for l in linhas if l.startswith("- ")]
 
 
+def _sem_brancos_repetidos(linhas: list) -> list:
+    out = []
+    for l in linhas:
+        if not l.strip() and out and not out[-1].strip():
+            continue
+        out.append(l)
+    return out
+
+
 def _tirar_conexoes(texto: str, hoje: str):
-    novas, saem = [], []
+    """(texto novo, linhas que saem, linhas trocadas). Sai cada item `- ` (com as linhas de continuação) até o
+    rodapé `---`; ficam comentário, "nenhuma"/`<a confirmar>` e o rodapé. O ponteiro no formato do rodízio é
+    reescrito com os nomes somados (vai em "trocadas", pra conservação); outro ponteiro pro CONEXOES.md sai junto."""
+    novas, saem, trocadas = [], [], []
     for titulo, linhas in secoes(texto):
         if titulo is None or not titulo.strip().lower().startswith("conex"):
             novas += linhas
             continue
-        corpo = linhas[1:]
-        ponteiro = [l for l in corpo if "](CONEXOES.md)" in l]
-        mover = _aparar([l for l in corpo if "](CONEXOES.md)" not in l])
+        ficam, mover, nomes, lugar = [], [], [], None
+        em_comentario = em_item = rodape = False
+        for l in linhas[1:]:
+            if rodape or l.strip() == "---":
+                rodape = True
+                ficam.append(l)
+                continue
+            if em_comentario or l.lstrip().startswith("<!--"):
+                em_comentario = "-->" not in l
+                em_item = False
+                ficam.append(l)
+                continue
+            if em_item and l[:1] in (" ", "\t") and l.strip():
+                mover.append(l)
+                continue
+            em_item = False
+            if not l.startswith("- "):
+                ficam.append(l)
+                continue
+            if "](CONEXOES.md)" in l and "Conexões: " in l:
+                trocadas.append(l)
+                nomes += [n.strip() for n in l.split("Conexões: ", 1)[1].rstrip().rstrip(".").split(" · ")]
+            elif re.match(r"- (nenhuma|<a confirmar>)", l.strip().lower()):
+                ficam.append(l)
+                continue
+            elif "](CONEXOES.md)" not in l:
+                nomes += [n for n in _nomes_de_conexao([l]) if n not in nomes]
+                mover.append(l)
+                em_item = True
+            else:
+                mover.append(l)
+            lugar = len(ficam) if lugar is None else lugar
         if not _nao_vazias(mover):
             novas += linhas
+            trocadas = [t for t in trocadas if t not in linhas]
             continue
-        nomes = []
-        if ponteiro and "Conexões: " in ponteiro[0]:
-            nomes = [n.strip() for n in ponteiro[0].split("Conexões: ", 1)[1].rstrip().rstrip(".").split(" · ")]
-        for n in _nomes_de_conexao(mover):
-            if n and n not in nomes:
-                nomes.append(n)
         saem += mover
         linha = (f"- Detalhe em [CONEXOES.md](CONEXOES.md) (contratos, tokens, topologia), movido em {hoje}. "
-                 "Conexões: " + " · ".join(nomes) + ".")
-        novas += [linhas[0], "", linha, ""]
-    return "\n".join(novas), saem
+                 "Conexões: " + " · ".join(dict.fromkeys(n for n in nomes if n)) + ".")
+        novas += [linhas[0]] + _sem_brancos_repetidos(ficam[:lugar] + [linha] + ficam[lugar:])
+    return "\n".join(novas), saem, trocadas
+
+
+RE_ITEM_PASSO = re.compile(r"^(?P<pre>(?:\d+\.|[-*])\s+(?:[^\s*]+\s+)?)(?P<titulo>\*\*[^*]+\*\*)")
+PROXIMO_PASSO = "PROXIMO-PASSO.md"
+
+
+def _encurtar_proximo_passo(texto: str):
+    """Item de `## Próximo passo` com mais de LINHA_CURTA bytes (contando as linhas de continuação) e título em
+    negrito no começo → `<número> <marca> **título** — detalhe em [PROXIMO-PASSO.md]`. Sem título, não mexe."""
+    novas, saem = [], []
+    for titulo, linhas in secoes(texto):
+        if titulo is None or titulo.strip().lower() not in ("próximo passo", "proximo passo"):
+            novas += linhas
+            continue
+        i = 0
+        while i < len(linhas):
+            l = linhas[i]
+            fim = i + 1
+            while fim < len(linhas) and linhas[fim][:1] in (" ", "\t") and linhas[fim].strip():
+                fim += 1
+            m = RE_ITEM_PASSO.match(l)
+            item = linhas[i:fim]
+            if m and PROXIMO_PASSO not in l and _bytes("\n".join(item)) > LINHA_CURTA:
+                novas.append(f"{m.group('pre')}{m.group('titulo')} — detalhe em [{PROXIMO_PASSO}]({PROXIMO_PASSO})")
+                saem += item + [""]
+            else:
+                novas += item
+            i = fim
+    return "\n".join(novas), _aparar(saem)
 
 
 def _gravar_destino(path: Path, h1: str, hoje: str, origem: str, linhas: list, eol: str) -> None:
@@ -367,14 +436,60 @@ def _conserva(antes: str, depois: str, movidas: list) -> list:
     return [l for l in _nao_vazias(antes.split("\n")) if l not in ficam]
 
 
+H1_CONEXOES = "# Conexões — o detalhe de cada integração"
+
+
+def _mover(proj: Path, nome: str, texto: str, atual: str, destinos: list, hoje: str, eol: str,
+           trocadas=()) -> Relatorio:
+    """Confere a conservação e grava os destinos e o arquivo; qualquer linha sem destino → nada é gravado."""
+    rel = Relatorio(bytes_antes=_bytes(texto))
+    movidas = [l for _, _, ls in destinos for l in ls]
+    perdidas = _conserva(texto, atual, movidas + list(trocadas))
+    if perdidas:
+        rel.problemas.append("conservação falhou — linhas que sumiriam: " + " | ".join(p[:60] for p in perdidas[:3]))
+        return rel
+    if not atual.endswith("\n"):
+        atual += "\n"
+    for arquivo, h1, linhas in destinos:
+        _gravar_destino(Path(proj).joinpath(*SP, arquivo), h1, hoje, nome, linhas, eol)
+        rel.passos.append(f"{len(_nao_vazias(linhas))} linha(s) → {arquivo}")
+    if destinos:
+        _gravar(Path(proj).joinpath(*SP, nome), atual, eol)
+        rel.gravou = True
+    rel.movidas = len(_nao_vazias(movidas))
+    rel.bytes_depois = _bytes(atual)
+    return rel
+
+
+def forma(proj: Path, qual: str, hoje: str) -> Relatorio:
+    """O que vale em TODA gravação, mesmo abaixo do teto (0.44.0): INDEX → `fechada` pro INDEX-historico.md;
+    MAPA → item longo do Próximo passo pro PROXIMO-PASSO.md e, havendo CONEXOES.md, Conexões só com os nomes."""
+    if qual == "index":
+        r = rodizio_index(proj, hoje=hoje, aplicar=True)
+        r.avisos = []
+        if r.movidas:
+            r.passos.append(f"{r.movidas} linha(s) fechadas → INDEX-historico.md")
+        return r
+    alvo = Path(proj).joinpath(*SP, "MAPA.md")
+    texto, eol = _ler(alvo)
+    atual, saem = _encurtar_proximo_passo(texto)
+    destinos = [(PROXIMO_PASSO, "# Próximo passo — o texto completo de cada item", saem)] if saem else []
+    trocadas = []
+    if Path(proj).joinpath(*SP, "CONEXOES.md").is_file():
+        atual, saem, trocadas = _tirar_conexoes(atual, hoje)
+        if saem:
+            destinos.append(("CONEXOES.md", H1_CONEXOES, saem))
+    if not destinos:
+        return Relatorio(bytes_antes=_bytes(texto), bytes_depois=_bytes(texto))
+    return _mover(proj, "MAPA.md", texto, atual, destinos, hoje, eol, trocadas)
+
+
 def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
     """2ª etapa, sempre gravando (o `enxugar` é quem decide dry-run). Para assim que o arquivo cabe."""
     teto, nome = (TETO_INDEX, "INDEX.md") if qual == "index" else (TETO_MAPA, "MAPA.md")
-    rel = Relatorio()
     alvo = Path(proj).joinpath(*SP, nome)
     texto, eol = _ler(alvo)
-    rel.bytes_antes = _bytes(texto)
-    atual, destinos = texto, []
+    atual, destinos, trocadas = texto, [], []
     if qual == "index":
         for chave, arquivo, descricao in SECOES_INDEX:
             if _bytes(atual) <= teto:
@@ -387,24 +502,12 @@ def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
             if saem:
                 destinos.append(("EM-ANDAMENTO.md", "# Em andamento — o texto completo de cada linha", saem))
     elif _bytes(atual) > teto:
-        atual, saem = _tirar_conexoes(atual, hoje)
+        atual, saem, trocadas = _tirar_conexoes(atual, hoje)
         if saem:
-            destinos.append(("CONEXOES.md", "# Conexões — o detalhe de cada integração", saem))
-    movidas = [l for _, _, ls in destinos for l in ls]
-    perdidas = _conserva(texto, atual, movidas)
-    if perdidas:
-        rel.problemas.append("conservação falhou — linhas que sumiriam: " + " | ".join(p[:60] for p in perdidas[:3]))
+            destinos.append(("CONEXOES.md", H1_CONEXOES, saem))
+    rel = _mover(proj, nome, texto, atual, destinos, hoje, eol, trocadas)
+    if not rel.ok:
         return rel
-    if not atual.endswith("\n"):
-        atual += "\n"
-    for arquivo, h1, linhas in destinos:
-        _gravar_destino(Path(proj).joinpath(*SP, arquivo), h1, hoje, nome, linhas, eol)
-        rel.passos.append(f"{len(_nao_vazias(linhas))} linha(s) → {arquivo}")
-    if destinos:
-        _gravar(alvo, atual, eol)
-        rel.gravou = True
-    rel.movidas = len(_nao_vazias(movidas))
-    rel.bytes_depois = _bytes(atual)
     if rel.bytes_depois > teto:
         rel.avisos.append(f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto}) depois de tudo que é mecânico: "
                           "o excesso é conteúdo vivo — mova o detalhe pra spec do assunto (nunca apague)")
@@ -424,7 +527,15 @@ def _enxugar_gravando(proj: Path, hoje: str) -> dict:
         if _conflito(texto):
             rel.problemas.append(f"{nome} tem marcador de conflito de merge — não mexo até o merge ser resolvido")
             continue
-        if _bytes(texto) <= teto:
+        r0 = forma(proj, qual, hoje)
+        rel.problemas += r0.problemas
+        if not r0.ok:
+            continue
+        rel.passos += r0.passos
+        rel.gravou = r0.gravou
+        if _bytes(_ler(alvo)[0]) <= teto:
+            rel.bytes_depois = _bytes(_ler(alvo)[0])
+            rel.movidas = sum(int(p.split(" ", 1)[0]) for p in rel.passos)
             continue
         r1 = etapa1(proj, hoje=hoje, aplicar=True)
         rel.problemas += r1.problemas

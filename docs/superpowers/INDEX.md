@@ -6,6 +6,7 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
+- [partida em dois níveis](../specs/partida-no-orcamento.md) — MAPA e INDEX com topo curto e detalhe em arquivo próprio, em toda gravação — em andamento: 0.44.0 pronta na branch, falta o merge do owner
 
 ## A fazer (ordem)
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria

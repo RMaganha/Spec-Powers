@@ -11,9 +11,11 @@ Contrato:
   pelo `file_path`; Bash/PowerShell quando o comando cita o nome do arquivo **e** o arquivo mudou agora
   (`mudou_agora`: mtime dentro de `JANELA_S` e `(tamanho, mtime_ns)` diferente do último visto nesta sessão) —
   ler (`wc -c CLAUDE.md`, `cat INDEX.md`) cita o arquivo mas não é gravação;
-- MAPA/INDEX acima do teto → `templates/rodizio_partida.py enxugar --aplicar` (move, nunca apaga, com
-  conservação conferida; para assim que cabe) + `additionalContext` dizendo o que foi pra onde e pra
-  reler antes do próximo Edit; se o que sobra é conteúdo vivo, pede o resumo pra spec;
+- MAPA/INDEX gravados → `templates/rodizio_partida.py enxugar --aplicar` (move, nunca apaga, com
+  conservação conferida): a forma vale sempre (0.44.0 — `fechada` sai do INDEX; item longo do Próximo passo
+  e, havendo CONEXOES.md, o detalhe das Conexões saem do MAPA); o resto só acima do teto, e para assim que
+  cabe. `additionalContext` diz o que foi pra onde e pra reler antes do próximo Edit; se o que sobra acima
+  do teto é conteúdo vivo, pede o resumo pra spec;
 - `CLAUDE.md` acima de 10,0 KB → só avisa (F-029: nunca comprimir): com a marca das regras do kit, manda
   mover um bloco inteiro com ponteiro; sem a marca, manda rodar `/mss-spec:upgrade` (migração);
 - arquivo com conflito de merge → não toca e avisa;
@@ -197,11 +199,12 @@ def responder(evento, ambiente=None):
 
 def _agir(evento, raiz, alvos):
     """O que fazer com os ALVOS gravados: enxugar MAPA/INDEX e avisar do CLAUDE.md."""
-    partes, detalhes = [], []
+    partes, detalhes, acima = [], [], False
     if any(a != "CLAUDE.md" for a in alvos):
         motor = _motor()
         for qual, r in motor.enxugar(Path(raiz), aplicar=True).items():
             nome = "MAPA.md" if qual == "mapa" else "INDEX.md"
+            acima = acima or r.bytes_antes > (motor.TETO_MAPA if qual == "mapa" else motor.TETO_INDEX)
             if r.passos:
                 partes.append(f"{nome} {_kb(r.bytes_antes)} → {_kb(r.bytes_depois)}: " + " · ".join(r.passos))
                 detalhes.append(f"{nome}={r.bytes_antes}->{r.bytes_depois}")
@@ -210,6 +213,7 @@ def _agir(evento, raiz, alvos):
         caminho = os.path.join(raiz, "CLAUDE.md")
         n = os.path.getsize(caminho) if os.path.isfile(caminho) else 0
         if n > TETO_CLAUDE_MD:
+            acima = True
             medida = f"CLAUDE.md com {_medida(n, TETO_CLAUDE_MD)}"
             if _tem_marca(raiz):
                 partes.append(f"{medida}: mova um bloco INTEIRO com ponteiro — regra de tipo de arquivo pra "
@@ -222,14 +226,16 @@ def _agir(evento, raiz, alvos):
     if not partes:
         return None
     moveu = any("→" in p for p in partes)
-    texto = ("[mss-spec] teto da partida (F-030): " + " | ".join(partes)
+    # abaixo do teto, quem moveu foi a forma do MAPA/INDEX (0.44.0) — o aviso não diz que estourou
+    rotulo = "teto da partida" if acima else "partida em dois níveis"
+    texto = (f"[mss-spec] {rotulo} (F-030): " + " | ".join(partes)
              + (". Nada foi apagado (o `git diff` mostra). Releia o arquivo antes do próximo Edit nele — o texto "
                 "mudou de lugar." if moveu else "")
              + " Avise o owner em 1 linha.")
     _anotar("moveu" if moveu else "avisou", " ".join(detalhes)[:200], evento)
     return {
         "hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": texto},
-        "systemMessage": "[mss-spec] teto da partida: " + " | ".join(p[:120] for p in partes)[:300],
+        "systemMessage": f"[mss-spec] {rotulo}: " +" | ".join(p[:120] for p in partes)[:300],
     }
 
 
