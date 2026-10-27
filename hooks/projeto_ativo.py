@@ -10,8 +10,8 @@ Contrato:
   precedentes — leitura nunca é barrada; Bash/PowerShell está fora de escopo por decisão do
   owner: heurística de shell dá falso positivo e ainda assim é furada);
 - **nega** escrita fora da âncora, dizendo pra abrir uma janela na raiz do outro projeto;
-- **libera** temp do SO, `~/.claude` e worktree do MESMO repo (o kit manda usar worktree, e
-  worktree fica fora da pasta do projeto);
+- **libera** temp do SO, `~/.claude` e worktree do MESMO repo (worktree não é "outro projeto";
+  gravar nele é negado por outra cerca, a `sem_worktree.py`, desde a 0.46.0);
 - **falha ABERTA** onde importa: entrada malformada, âncora indeterminável ou bug daqui → libera
   e sai 0. Cerca com defeito não pode parar o trabalho legítimo dentro do próprio projeto.
   **Exceção**: a sonda de worktree falha FECHADA (sem git não existe worktree a liberar — ver

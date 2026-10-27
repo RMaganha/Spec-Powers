@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.46.0 — 2026-10-27 (nunca trabalhar em worktree, nunca abrir conversa a partir de outra)
+- **o que motivou:** a conversa da 0.44.0 abriu sozinha `.claude/worktrees/partida-em-dois-niveis` — o aviso do próprio kit mandava ("abra esta num worktree") — e deixou 2 commits e memória fora da `main`; e duas conversas abertas a partir de outra ficaram penduradas uma na outra na barra lateral. O owner não usa nenhum dos dois.
+- feat(**sem_worktree**): hook novo, ligado. `WorktreeCreate` falha sempre (porta única do Claude Code: `EnterWorktree`, subagente/workflow isolado, sessão de fundo); `PreToolUse` nega `EnterWorktree`, `Agent` com `isolation: "worktree"`, escrita dentro de um worktree e `start_session`/`hand_off_to_session` (manda entregar o texto pronto pra colar; o owner abre pelo +); `SessionStart` avisa quando a conversa começa dentro de um worktree. Escape `MSS_WORKTREE_OFF=1` (menos no `WorktreeCreate`).
+- feat(**git_publicacao**): 5ª cerca — nega `git worktree add` e comando que grava dentro de um worktree.
+- fix(**um_item_por_janela**, **nova-feature**): o aviso de "outra feature aberta" parou de mandar abrir worktree; pasta na branch de outra feature → parar e perguntar ao owner.
+- docs: spec `docs/specs/nunca-trabalhar-em-worktree.md`; memória `memory/feedback_nunca_worktree_nem_conversa_filha.md`; README dos hooks, LEIA-ME e roteiro sem a recomendação de worktree.
+- **fora:** apagar worktrees que já existem; o `CLAUDE.md` dos projetos.
+
 ## 0.45.0 — 2026-10-27 (bug e dúvida entram pelo kit, que chama o superpowers por baixo)
 - **o que motivou:** nas 4 últimas conversas do Whats, os 3 incidentes foram direto à `superpowers:systematic-debugging` — a regra 11 mandava isso — e o `/mss-spec:diagnostico` (travado, só o owner chamava) nunca entrou, nem com o owner dizendo "novamente perdido". No `nova-feature` de 26/10 o assistente leu a memória certa, desenhou certo e a abandonou quando o owner contestou. A memória do repo foi lida nas 4 conversas (106 leituras, nenhuma da pasta nativa): o furo era a porta de entrada.
 - feat(**bug**): `/mss-spec:bug` — sem a trava, o assistente entra sozinho quando o owner descreve um erro. Mostra o que a memória já diz antes da 1ª hipótese (até 5 linhas com `arquivo:linha`), chama a `systematic-debugging`, escala pro `diagnostico` com 2 rodadas sem causa, corrige com teste que reproduz, manda pro `nova-feature` se virar feature; o fecho só oferece captura e caso.

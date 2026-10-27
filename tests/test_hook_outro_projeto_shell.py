@@ -103,7 +103,8 @@ def test_worktree_do_mesmo_repo_nao_e_outro_projeto(cenario, tmp_path):
     ancora, _, _ = cenario
     wt = tmp_path / "wt"
     _git("worktree", "add", "-q", str(wt), "-b", "feature/y", cwd=ancora)
-    tipo, _ = _avaliar(f'git -C "{wt}" commit -m x', ancora)
+    # gravar em worktree é negado por OUTRA cerca desde a 0.46.0 (test_hook_sem_worktree.py); aqui só esta
+    tipo, _ = _avaliar(f'git -C "{wt}" commit -m x', ancora, MSS_WORKTREE_OFF="1")
     assert tipo is None
 
 

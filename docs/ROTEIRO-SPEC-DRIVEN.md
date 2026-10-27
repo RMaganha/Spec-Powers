@@ -15,7 +15,7 @@ Não há hooks nem gates próprios — as skills do superpowers auto-ativam e **
 | Provar antes de "pronto" | `verification-before-completion` (evidência antes de afirmar) |
 | Tratar bug com método | `systematic-debugging` |
 | Revisar antes de integrar | `requesting-code-review` / `receiving-code-review` |
-| Isolar e fechar | `using-git-worktrees` / `finishing-a-development-branch` |
+| Fechar | `finishing-a-development-branch` (o `using-git-worktrees` não se usa: nunca worktree — `hooks/sem_worktree.py`) |
 
 O kit só adiciona o que falta: **atalhos nomeados** + um **`CLAUDE.md`** certo + **`settings.json`** correto.
 

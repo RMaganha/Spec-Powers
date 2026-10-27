@@ -39,6 +39,9 @@ o código de saída de um pipe é o do último comando, e o `&&` só olha esse. 
 comando tem o pytest (como comando, não como texto) com a saída num `|` e um `git commit` depois,
 sem `pipefail`. Modo de falha PRÓPRIO — **ABERTA** (commit vermelho se reverte; push não) — e
 escape próprio: `MSS_PIPE_TESTE_OFF=1`. Uma cerca não liga nem desliga a outra.
+
+5ª cerca, também aqui: **worktree no shell** (0.46.0) — nega `git worktree add` e comando que grava dentro
+de um worktree; escape `MSS_WORKTREE_OFF=1`. As portas do Claude Code ficam no `sem_worktree.py`.
 """
 import json
 import os
@@ -450,6 +453,39 @@ def _decidir_outro_projeto(evento, comando, ambiente, cwd):
     return None, None
 
 
+# ------------------------------------------------------------------ 5ª cerca: worktree no shell (0.46.0)
+# O owner não usa worktree (`hooks/sem_worktree.py` fecha as portas do Claude Code). Pelo shell: `git worktree
+# add` é negado sempre (só o texto do comando — falha FECHADA) e gravar dentro de um worktree também, pelos
+# mesmos alvos da 3ª cerca (falha ABERTA: "está dentro?" ilegível → libera). Escape: `MSS_WORKTREE_OFF`.
+
+ENV_WORKTREE_DESLIGA = "MSS_WORKTREE_OFF"
+_WORKTREE_ADD = re.compile(_INICIO + _ENV + _GIT + r"worktree\s+add" + _FIM)
+_ONDE_TRABALHAR = ("O owner não usa worktree: trabalhe na pasta principal do projeto, numa branch saída da `main`. "
+                   "A pasta principal está na branch de outra feature? PARE e pergunte ao owner — não contorne.")
+MOTIVO_WORKTREE_ADD = ("[mss-spec] BLOQUEADO — criar worktree pelo shell:\n  {comando}\n\n" + _ONDE_TRABALHAR
+                       + " Escape consciente (só o owner decide): {env}=1.")
+MOTIVO_WORKTREE_GRAVA = ("[mss-spec] BLOQUEADO — este comando grava dentro de um worktree ({rotulo}):\n  {raiz}\n\n"
+                         + _ONDE_TRABALHAR + " Escape consciente (só o owner decide): {env}=1.")
+
+
+def _decidir_worktree(comando, ambiente, cwd):
+    """(motivo, detalhe) ou (None, None)."""
+    if _texto(ambiente.get(ENV_WORKTREE_DESLIGA)):
+        return None, None
+    if _WORKTREE_ADD.search(comando):
+        return MOTIVO_WORKTREE_ADD.format(comando=comando[:200], env=ENV_WORKTREE_DESLIGA), "git worktree add"
+    try:
+        from sem_worktree import dentro_de_worktree
+        for caminho, rotulo in _alvos_de_escrita(comando, cwd):
+            raiz = dentro_de_worktree(caminho)
+            if raiz:
+                return (MOTIVO_WORKTREE_GRAVA.format(rotulo=rotulo, raiz=raiz, env=ENV_WORKTREE_DESLIGA),
+                        f"grava em worktree ({rotulo})")
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, None
+    return None, None
+
+
 # ------------------------------------------------------------------ 4ª verificação: memória do comando (F-034)
 # Memória com `gatilho_comando:` (regex) vale pro que o assistente vai RODAR — o recall só casa o prompt do owner.
 # Casou → nega UMA vez por sessão com a memória no motivo; repetir o comando passa. Falha ABERTA.
@@ -492,6 +528,10 @@ def avaliar(evento, ambiente=None, git_destino=None):
         return None, None                            # nada a avaliar → nada a negar
     cwd = _texto(evento.get("cwd")) or os.getcwd()
     tipo, motivo, detalhe = _decidir_publicacao(comando, ambiente, cwd, git_destino)
+    if tipo != NEGA:
+        motivo_wt, detalhe_wt = _decidir_worktree(comando, ambiente, cwd)
+        if motivo_wt is not None:                    # negar vence perguntar
+            tipo, motivo, detalhe = NEGA, motivo_wt, detalhe_wt
     if tipo != NEGA:
         motivo_outro, detalhe_outro = _decidir_outro_projeto(evento, comando, ambiente, cwd)
         if motivo_outro is not None:                 # negar vence perguntar

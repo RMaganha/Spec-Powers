@@ -5,6 +5,10 @@
 
 ## 2026-10-27 — fechadas
 
+- [nunca trabalhar em worktree](../specs/nunca-trabalhar-em-worktree.md) — trava: nem worktree, nem conversa aberta a partir de outra — fechada
+
+## 2026-10-27 — fechadas
+
 - [partida em dois níveis](../specs/partida-no-orcamento.md) — MAPA e INDEX com topo curto e detalhe em arquivo próprio, em toda gravação — fechada: 0.44.0 na `main`
 - [bug e dúvida pelo kit](../specs/bug-e-duvida.md) — bug e dúvida entram pelo kit (`/mss-spec:bug`, `/mss-spec:duvida`, `diagnostico` destravado), que chama o superpowers por baixo — fechada: 0.45.0 na `main`
 

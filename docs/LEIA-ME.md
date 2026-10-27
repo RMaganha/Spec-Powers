@@ -97,8 +97,9 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 - `CLAUDE.md` = só regras/fatos sempre-verdadeiros; nunca journal/registro.
 
 ## Branch / git
-`nova-feature` **não** cria branch nem worktree. Se quiser isolamento, peça explicitamente
-(superpowers `using-git-worktrees`) antes ou durante a feature.
+`nova-feature` abre a branch da feature a partir da `main`, **na pasta principal**. **Nunca worktree, nunca
+conversa aberta a partir de outra** — o hook `hooks/sem_worktree.py` nega (0.46.0); conversa nova você abre
+pelo **+** e cola o texto pronto que o assistente entrega.
 
 ## Skill de precedentes
 O plugin traz a skill `precedentes-msig` (em `skills/`), que dispara sozinha quando você vai
@@ -142,13 +143,14 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   o chat que já abriu uma feature **não abre outra** enquanto ela estiver aberta (`/mss-spec:nova-feature`
   de outro assunto é **bloqueado**; retomar a mesma passa; `fechada` ou `pausada: <motivo>` marcado por
   você à mão libera). **Chat novo sempre abre** — se o `docs/superpowers/INDEX.md` tiver feature aberta
-  de outro chat, ele só **avisa** e lembra do worktree (duas features na mesma pasta trocam a branch).
+  de outro chat, ele só **avisa** que duas features na mesma pasta trocam a branch (pasta na branch de outra feature →
+  o assistente para e pergunta a você).
   Mesmo acidente: a janela de uma feature virou três assuntos. Falha aberta; escape `MSS_UM_ITEM_OFF=1`.
 - **Âncora do projeto ativo** — a rede que **bloqueia** escrita fora: o hook `hooks/projeto_ativo.py` (ligado
   por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
   referência **somente-leitura** — você lê o código dele pelo `precedentes` e traz o padrão pra cá.
   Nasceu de acidente real: um *"olha como o projeto B fez isso"* virou o assistente adotando o B como
-  projeto de trabalho e **quebrando o B**. Libera temp, `~/.claude` e worktree do mesmo repo; escape
+  projeto de trabalho e **quebrando o B**. Libera temp e `~/.claude` (worktree é negado pelo `sem_worktree.py`); escape
   consciente `MSS_ANCORA_OFF=1`; falha aberta. Detalhes e o canário em `hooks/README.md`.
 - **Auto-teste** — `python -m pytest tests/ -q` (acima): pega referência morta antes de commitar.
 - **Rollback = git** — não há comando de "desfazer". Como `kickoff` e `upgrade` só mexem em arquivos versionados sob árvore de trabalho limpa, `git restore`/descartar a branch já reverte. Sem comando dedicado de propósito (YAGNI).
