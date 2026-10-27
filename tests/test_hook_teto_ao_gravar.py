@@ -101,6 +101,19 @@ def test_dentro_do_teto_fica_calado(tmp_path):
     assert _mod().responder(_edit(raiz), {}) is None
 
 
+def test_dentro_do_teto_fechada_sai_e_avisa_sem_falar_em_teto(tmp_path):
+    """0.44.0: a forma vale em toda gravação — `fechada` sai do INDEX mesmo com o arquivo pequeno."""
+    raiz = _projeto(tmp_path, index="# Índice\n\n## Em andamento\n- [a](../specs/a.md) — x — aberta\n"
+                                     "- [b](../specs/b.md) — y — fechada: no ar\n")
+    saida = _mod().responder(_edit(raiz), {})
+    sp = raiz / "docs" / "superpowers"
+    assert "[b]" not in (sp / "INDEX.md").read_text(encoding="utf-8")
+    assert "[b]" in (sp / "INDEX-historico.md").read_text(encoding="utf-8")
+    txt = _ctx(saida)
+    assert "INDEX-historico.md" in txt and "releia" in txt.lower()
+    assert "teto" not in txt.lower(), "abaixo do teto, o aviso não pode dizer que estourou"
+
+
 def test_gravacao_de_outro_arquivo_nao_dispara(tmp_path):
     raiz = _projeto(tmp_path, index=_index_gordo())
     antes = (raiz / "docs" / "superpowers" / "INDEX.md").read_text(encoding="utf-8")

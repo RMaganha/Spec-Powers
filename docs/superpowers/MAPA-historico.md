@@ -4,6 +4,12 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-27 — saiu do rodízio do MAPA (ao abrir `feature/partida-em-dois-niveis`)
+
+**Onde estamos:** `main` — **0.41.0** (`3f71a8a`): `/mss-spec:azure-ambiente` (era `azure-prd`) cria a homologação e a produção espelho pelo pipeline `<PROJETO>-INFRA`; MSS-UTILS em produção desde 2026-10-20. Captura em `chore/captura-azure-ambiente`, integrada em `3301af6`.
+
+**Próximo passo:** **Integrar a captura do azure-ambiente** (feito em `3301af6`). **Projeto novo sem homologação** ("Pipeline de deploy em HTML") pelo `/mss-spec:azure-ambiente`. **No MSS-UTILS (janela de lá):** testar produção (roteiro §10), fechar a `feature/azure-prd`, criar `CADASTROCORRETOR_CONEXAO_SQL=PRD` em produção; pipeline `MSS-UTILS-PROD` pendente. **Kit:** F-033 reincidiu → reavaliar o hook `Stop` medindo a resposta; observar o F-035.
+
 ## 2026-10-15 — saiu do rodízio do MAPA (v0.34.1, ao abrir `feature/azure-prd`)
 `main` — **v0.34.1 publicada** (`215f75c`, em dia com o `origin/main`). Nesta leva (caso F-030 a F-034): a partida **não volta a crescer** — o `teto_ao_gravar.py` roda o `rodizio_partida.py enxugar` a cada gravação de MAPA/INDEX acima do teto, movendo e nunca apagando, e o `orcamento_partida.py` avisa na abertura; a trava do `nova-feature` ignora `## Backlog`; **um projeto não grava em outro** pelo shell (3ª cerca do `git_publicacao.py`, por identidade de repositório, com o comando pronto pra colar na janela de lá); o recall não injeta diário nem linha `pausada:`/`obsoleta:` e lê o `FORA-DE-ESCOPO.md`; no molde, "Comando pra eu rodar = passo a passo" e "Responda só o que eu pedi". Suíte 676.
 

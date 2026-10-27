@@ -17,7 +17,9 @@ o `/mss-spec:mapa` regenera isto sozinho.>
 ## Próximo passo
 <a próxima ação concreta pra retomar o trabalho, em 1-3 linhas. É o coração anti-amnésia: o que estava
 prestes a fazer quando a janela anterior fechou. Ex.: "falta o teste do caminho de erro e rodar a suíte
-antes de fechar a feature". Escrito pelos comandos do fluxo e confirmado por você.>
+antes de fechar a feature". Escrito pelos comandos do fluxo e confirmado por você. Lista de itens: 1 linha
+curta por item, `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)`; item de mais de 300 bytes
+vai sozinho pro `PROXIMO-PASSO.md` ao gravar.>
 
 ## Conexões
 <!-- As integrações de RUNTIME deste projeto com OUTROS projetos MSIG (o que trabalha junto — não é o
