@@ -16,5 +16,11 @@ deixa a `main` vermelha — aconteceu na v0.11.0 (rodei a suíte antes do bump, 
 [[feedback_nao_encerrar_com_pergunta]] só no espírito de "verifique antes de declarar pronto":
 **qualquer bump/edição pós-suíte pede re-rodar a suíte**.
 
+**Com outra branch aberta (2026-10-27):** se uma branch não integrada já pegou a próxima versão, pegue a
+seguinte — a partida em dois níveis saiu 0.44.0 porque a 0.43.0 era da `feature/bug-e-duvida`. As duas mexem
+nos mesmos arquivos (`plugin.json`, `marketplace.json`, `CHANGELOG.md`, `docs/superpowers/MAPA.md`,
+`MAPA-historico.md`, `INDEX.md`) e a que entrar por último conflita: ela recebe a `main`, resolve e sobe a
+versão dela acima da que já entrou (versão nunca anda pra trás na `main`).
+
 Relacionado: [[project_marketplace_relative_path_serve_git_e_local]] (o mesmo `marketplace.json`
 serve add por pasta local e por URL git).
