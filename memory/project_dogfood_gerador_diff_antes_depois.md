@@ -33,6 +33,12 @@ E rode o gerador **do jeito que o comando roda** (`--proj .`, sem argumento), n�
 chama: o caminho relativo é uma entrada que a fixture nunca exercita.
 O que o diff revelar vira teste antes de fechar.
 
+Valeu de novo na **0.44.0** (`templates/rodizio_partida.py`), por outro caminho: o teste foi montado
+**copiando o MAPA real do Whats** (fixture `_mapa_whats()` em `tests/test_rodizio_partida.py`) e pegou dois
+defeitos antes de qualquer simulação — o rodapé `---`/"Atualizado em" iria parar no `CONEXOES.md`, e uma linha
+antiga de ponteiro pro `CONEXOES.md`, fora do formato, travaria a gravação na conferência de linhas. Depois, a
+simulação numa **cópia** do Whats (o original intocado, conferido por hash) mediu o ganho real.
+
 Relacionado: [[feedback_testar_js_gerado_node_check]] (suíte verde ≠ saída correta — lá o parse do JS,
 aqui o conteúdo do que foi extraído) e [[project_parse_md_do_kit_descartar_comentario]] (o outro achado
 da mesma rodada).

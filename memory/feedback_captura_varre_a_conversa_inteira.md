@@ -20,6 +20,12 @@ preciso… nunca podemos deixar passar nada!!!"*. Na 2ª passada ainda saiu uma 
 contagem baixa de reclamações, e só então apareceu que o item adiado "hook `Stop` medindo a resposta" tinha a
 condição de reabertura cumprida.
 
+**Medir depois de gravar (2026-10-27):** a captura escreve no INDEX, que entra em toda janela. Na partida em
+dois níveis a linha nova levou o INDEX do kit a 7.208 de 7.000 B e o `test_index_so_com_tarefa_viva` falhou:
+rode a suíte antes do commit. Na mesma captura, a 1ª passada deixou de apontar o item adiado com condição
+cumprida (o hook `Stop`) e registrou como escrito um guardrail que não existia: confira no arquivo
+cada guardrail citado antes de gravar.
+
 **How to apply:** no modo `capturar` do `/mss-spec:memory`, antes do rascunho: lista numerada dos itens da
 conversa (início ao fim), com a fala exata e o lar de cada um; depois, os índices pra não duplicar. Parente de
 [[feedback-diagnostico-disciplinado]] (evidência antes de concluir).

@@ -6,10 +6,10 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [partida em dois níveis](../specs/partida-no-orcamento.md) — MAPA e INDEX com topo curto e detalhe em arquivo próprio, em toda gravação — em andamento: 0.44.0 pronta na branch, falta o merge do owner
-- [bug e dúvida pelo kit](../specs/bug-e-duvida.md) — bug e dúvida entram pelo kit (`/mss-spec:bug`, `/mss-spec:duvida`, `diagnostico` destravado), que chama o superpowers por baixo — aberta
 
 ## A fazer (ordem)
+1. nunca trabalhar em worktree — o owner não usa; em 2026-10-27 uma conversa abriu um sozinha e deixou commits e memória fora da `main` — aberta
+2. fora de escopo quer dizer "não agora, nesta conversa", não "nunca" — o item fica anotado (data, motivo), pode ir pro to-dolist e volta quando o owner decidir; o `FORA-DE-ESCOPO.md` do kit está num formato que a busca não lê (0 itens) — aberta
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
 7. cobertura C#/.NET na análise — `Program`/`Startup`, controllers, `.csproj`, rotas (o `bpmn` e o `mapa-neural` seguem só Python) — pausada: nasce depois do dogfood do item 6
