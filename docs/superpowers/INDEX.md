@@ -8,7 +8,6 @@
 ## Em andamento
 
 ## A fazer (ordem)
-1. nunca trabalhar em worktree — o owner não usa; em 2026-10-27 uma conversa abriu um sozinha e deixou commits e memória fora da `main` — aberta
 2. fora de escopo quer dizer "não agora, nesta conversa", não "nunca" — o item fica anotado (data, motivo), pode ir pro to-dolist e volta quando o owner decidir; o `FORA-DE-ESCOPO.md` do kit está num formato que a busca não lê (0 itens) — aberta
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

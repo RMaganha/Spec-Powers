@@ -1,11 +1,11 @@
-Onze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os onze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Doze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
+Os doze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) |
-| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (worktree) |
+| `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (pasta em outra feature → parar e perguntar) |
 | `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
@@ -14,6 +14,7 @@ Os onze anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 | `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
+| `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
 
 ---
 
@@ -39,8 +40,8 @@ mas cerca **não instalada** não cerca nada. O custo de o hook não disparar é
 - **temp do SO** (`TEMP`/`TMP`/`TMPDIR`) e **`~/.claude`** — scratchpad e config global não são "outro
   projeto". *Ressalva honesta: com o kit instalado por junction em `~/.claude/skills/`, a cerca não
   protege o próprio kit — que é versionado, então o git é o rollback.*
-- **worktree do MESMO repo** — comparando o `git rev-parse --git-common-dir`; sem isso, a cerca
-  quebraria o fluxo `superpowers:using-git-worktrees` que o próprio kit recomenda;
+- **worktree do MESMO repo** — comparando o `git rev-parse --git-common-dir` (não é "outro projeto");
+  gravar dentro de worktree é negado por outra cerca, a `sem_worktree.py` (0.46.0);
 - **`MSS_ANCORA_OFF=1`** — escape consciente, decisão do owner.
 
 ## Garantias
@@ -178,8 +179,8 @@ e "Fora de escopo" são ignorados).
   outra → **bloqueia o prompt** e manda abrir **um chat novo** (lá passa), ou continuar Y, ou o owner
   marcar Y `pausada: <motivo>` à mão, ou mandar o assunto novo pro `/mss-spec:to-dolist adicionar`;
 - **chat novo** (ou Y encerrada) com feature aberta de **outro** chat no INDEX → **passa com aviso**
-  listando as abertas e lembrando do **worktree** (duas features na mesma pasta trocam a branch uma
-  da outra) — `systemMessage` pro terminal + `additionalContext` pro assistente repassar no Desktop;
+  listando as abertas e lembrando que duas features na mesma pasta trocam a branch uma da outra (pasta
+  na branch de outra feature → **parar e perguntar ao owner**; nunca worktree nem outra conversa) — `systemMessage` pro terminal + `additionalContext` pro assistente repassar no Desktop;
 - o **nome** é só o resto da linha do comando (as linhas de baixo são contexto; comando sozinho na
   linha = sem nome); a linha do chat é achada **só pelo nome**, por palavra inteira (`ui` não casa com `guia`; nome de 1 palavra só casa igual), e **encerrada** só se toda linha que casa estiver `fechada`/`pausada` (a `v1` fechada não encerra a `v2` nem a `busca vetorial hibrida` abertas). Linha nova em que nenhum nome contém o outro **não** é atribuída ao chat — o INDEX não diz qual chat a escreveu. Sem linha pelo nome, a feature do chat só conta como encerrada se nada está aberto no INDEX e alguma linha fechou desde a abertura; senão bloqueia dizendo que não achou a linha (custo aceito: título do passo 3 sem que um nome contenha o outro + outra feature aberta → o chat sai por chat novo);
 - **a mesma** (por nome ou pelo slug da spec, sem acento/caixa), **sem nome**, **sem `session_id`**,
@@ -348,11 +349,32 @@ publicação: **nega** o comando que **grava** num repositório git **diferente*
 (`add`, `commit`, `checkout`, `switch`, `branch <nome>`, `merge`, `rebase`, `reset`, `stash`, `tag <nome>`, `push`…)
 na pasta de `-C` › último `cd` › cwd; `--proj <dir>` junto de `--aplicar`; `>`/`>>`/`tee` pra dentro dele (corpo de
 heredoc não conta). "Outro projeto" é **identidade de repositório**, não heurística de caminho: pasta fora de repo
-(Downloads, temp) e worktree do mesmo repo passam; leitura (`status`, `log`, `diff`, `branch --show-current`,
+(Downloads, temp) e worktree do mesmo repo passam (worktree é negado pela 5ª cerca, abaixo); leitura (`status`, `log`, `diff`, `branch --show-current`,
 `tag --list`) passa. A mensagem traz a raiz do outro projeto e o **comando verbatim** pra colar numa janela aberta
 lá (decisão do owner: negar sempre e entregar o comando). Negar vence o "pedir aprovação" do merge. **Falha
 ABERTA**; escape = o da âncora, `MSS_ANCORA_OFF=1`. **Brecha declarada:** script que grava com o caminho escrito
 DENTRO dele não aparece no comando.
+
+---
+
+# Hook ligado — nunca worktree, nunca conversa a partir de outra (`sem_worktree.py`, 0.46.0)
+
+**Por que existe:** em 2026-10-27 a conversa da 0.44.0 abriu sozinha `.claude/worktrees/partida-em-dois-niveis` —
+o aviso do kit mandava ("abra esta num worktree") — e deixou 2 commits e memória fora da `main`; e duas conversas
+abertas a partir de outra ficaram penduradas uma na outra na barra lateral. O owner não usa nenhum dos dois.
+
+- `WorktreeCreate` → **falha sempre** (porta única de criação do Claude Code: `EnterWorktree`, subagente/workflow
+  com `isolation: "worktree"`, sessão de fundo). O hook **substitui** a criação, então o escape não vale aqui;
+- `PreToolUse` → **nega** `EnterWorktree` (entrar num que já existe), `Agent` com `isolation: "worktree"`, escrita
+  com o alvo dentro de um worktree, e `mcp__ccd_session__start_session`/`hand_off_to_session` — a mensagem manda
+  entregar o **texto pronto pra colar** e o owner abre a conversa pelo **+**;
+- `SessionStart` → **avisa** quando a conversa já começa dentro de um worktree;
+- **5ª cerca no `git_publicacao.py`** (shell): nega `git worktree add` e comando que grava dentro de um worktree.
+
+## Garantias
+- "Dentro de um worktree" é lido do arquivo `.git` (`gitdir:` em `…/worktrees/…`), sem rodar o git; submódulo não conta.
+- Criar/entrar/abrir conversa nega sempre; "está dentro?" **falha ABERTA** (ilegível → libera).
+- Escape consciente, só do owner: `MSS_WORKTREE_OFF=1` (menos no `WorktreeCreate`). Spec `docs/specs/nunca-trabalhar-em-worktree.md`.
 
 ---
 

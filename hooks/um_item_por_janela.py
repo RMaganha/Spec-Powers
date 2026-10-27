@@ -21,7 +21,8 @@ Contrato:
   diferente, ou ela ainda não nasceu): encerrada só se nada está aberto e alguma linha fechou desde
   a abertura — senão bloqueia dizendo que não achou a linha;
 - **passa com aviso** quando o INDEX tem feature `aberta`/`em andamento` de outro assunto (outro
-  chat) — lista-as e lembra do worktree: duas features na mesma pasta trocam a branch uma da outra;
+  chat) — lista-as e lembra que duas features na mesma pasta trocam a branch uma da outra: pasta na
+  branch de outra feature → parar e perguntar ao owner (nunca worktree nem outra conversa — 0.46.0);
 - **passa** calado no resto: retomar a própria (casa por nome ou pelo slug da spec, sem
   acento/caixa), sem nome, sem `session_id`, projeto sem INDEX;
 - **falha ABERTA**: entrada malformada, estado ilegível ou bug aqui → libera e sai 0 (apagar o
@@ -87,8 +88,10 @@ AVISO = (
     "[mss-spec] Aviso — um item por janela: este chat fica com `{pedida}`, e há outra(s) feature(s) "
     "aberta(s) neste projeto (docs/superpowers/INDEX.md):\n{lista}\n"
     "Se outro chat está trabalhando numa delas NESTA MESMA pasta, as branches se trocam por baixo "
-    "uma da outra (caso F-022) — abra esta num worktree (superpowers:using-git-worktrees). Linha "
-    "parada há tempo? O owner troca o status dela por `pausada: <motivo>` à mão."
+    "uma da outra (caso F-022). Antes de trocar de branch, confira `git status -sb`: a pasta está na "
+    "branch de outra feature? PARE e pergunte ao owner — nunca abra worktree nem outra conversa pra "
+    "contornar (o owner não usa). Linha parada há tempo? O owner troca o status dela por "
+    "`pausada: <motivo>` à mão."
 )
 PRO_ASSISTENTE = "Abra a resposta repassando este aviso ao owner, antes do passo 1:\n"
 

@@ -8,7 +8,7 @@ prompt (2026-09-24). Desde a 0.34.0 conta por CHAT (`session_id`): o hook lembra
 chat abriu (`~/.claude/mss-spec/um-item-janelas.json`) e só bloqueia o MESMO chat pedindo outra.
 
 Propriedades:
-- chat sem feature → passa (e grava a dele); outras abertas no INDEX → passa com AVISO (worktree);
+- chat sem feature → passa (e grava a dele); outras abertas no INDEX → passa com AVISO (parar e perguntar);
 - chat com feature Y ainda aberta pedindo X → bloqueia; Y de novo → passa (retomar não é misturar);
   Y `fechada`/`pausada` (no INDEX ou no INDEX-historico) → passa e o chat fica com X;
 - só age no comando de abrir feature — qualquer outro prompt passa calado;
@@ -113,14 +113,14 @@ def test_chat_novo_passa_mesmo_com_outra_aberta(tmp_path):
     assert _mod().decidir(ev, ambiente=_amb(tmp_path)) is None, "chat novo bloqueado — a regra é por chat"
 
 
-def test_chat_novo_com_outra_aberta_avisa_e_lembra_worktree(tmp_path):
+def test_chat_novo_com_outra_aberta_avisa_e_manda_perguntar(tmp_path):
     raiz = _projeto(tmp_path, INDEX_COM_ABERTA)
     decisao, texto = _mod().avaliar(_evento("/mss-spec:nova-feature login por SSO", raiz, sessao="c1"),
                                     ambiente=_amb(tmp_path))
     assert decisao == "avisa"
     assert "formatação da resposta no WhatsApp" in texto, "aviso não lista a outra aberta"
     assert "relatório mensal" not in texto, "listou feature fechada como aberta"
-    assert "worktree" in texto.lower(), "aviso não lembra do worktree (duas features na mesma pasta)"
+    assert "pergunte ao owner" in texto.lower(), "aviso não manda parar e perguntar (pasta em outra feature)"
     assert "pausada" in texto.lower(), "aviso não ensina a limpar linha parada (pausada: <motivo>)"
 
 
@@ -490,7 +490,7 @@ def test_processo_avisa_pro_assistente_e_pro_terminal(tmp_path):
     assert proc.returncode == 0, proc.stderr
     saida = json.loads(proc.stdout)
     assert saida["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
-    assert "worktree" in saida["hookSpecificOutput"]["additionalContext"].lower()
+    assert "pergunte ao owner" in saida["hookSpecificOutput"]["additionalContext"].lower()
     assert "formatação da resposta no WhatsApp" in saida["systemMessage"]
     assert "decision" not in saida, "aviso não pode bloquear"
 
@@ -586,7 +586,7 @@ def test_segunda_camada_em_prosa():
     assert "aberta" in low and "index.md" in low
     assert "pausada" in low, "nova-feature.md não ensina a saída honesta (pausada: <motivo>)"
     assert "esta conversa" in low and "worktree" in low, \
-        "passo 0 ainda conta por projeto — a regra é por chat, com aviso de worktree"
+        "passo 0 ainda conta por projeto — a regra é por chat (e nunca worktree)"
     assert "feature nova só quando não há feature aberta" not in low, "passo 0 com a regra antiga"
     claude = texto_do_kit()
     assert "É alerta, não trava" not in claude, "CLAUDE.md ainda trata 2º assunto como alerta"

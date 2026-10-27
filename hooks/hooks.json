@@ -26,6 +26,14 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/sem_worktree.py\""
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {
@@ -42,6 +50,15 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/projeto_ativo.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "EnterWorktree|Agent|Write|Edit|MultiEdit|NotebookEdit|mcp__ccd_session__start_session|mcp__ccd_session__hand_off_to_session",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/sem_worktree.py\""
           }
         ]
       },
@@ -97,6 +114,16 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/alerta_contexto.py\""
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/sem_worktree.py\""
           }
         ]
       }

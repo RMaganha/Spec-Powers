@@ -396,4 +396,4 @@ def test_hooks_json_pretooluse_write_edit_multiedit():
 def test_documentado_no_readme():
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "regra_antes_de_gravar.py" in doc and "MSS_REGRA_OFF" in doc
-    assert "Onze hooks" in doc
+    assert "Doze hooks" in doc

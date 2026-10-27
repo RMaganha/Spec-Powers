@@ -29,7 +29,8 @@ Y não está `fechada`/`pausada: <motivo>` (no INDEX ou no `INDEX-historico.md`;
 valendo — a linha nasce no passo 3) e o pedido é outra: manda abrir **chat novo**, continuar Y, o
 owner marcar Y `pausada` à mão ou `to-dolist adicionar`. **Chat novo** com feature `aberta`/`em
 andamento` de outro assunto no INDEX (fora de `## Backlog` e "Fora de escopo") → **passa com aviso**
-(lista + worktree: duas features na mesma pasta trocam a branch uma da outra), via `systemMessage` +
+(lista + duas features na mesma pasta trocam a branch uma da outra: pasta na branch de outra feature →
+parar e perguntar ao owner, nunca worktree nem outra conversa — 0.46.0), via `systemMessage` +
 `additionalContext`. A mesma (nome ou slug, sem acento/caixa), sem nome, sem `session_id`, sem INDEX →
 passa calado. **Falha ABERTA** (estado ilegível → vazio). Escape só do owner: `MSS_UM_ITEM_OFF=1`.
 
@@ -72,3 +73,4 @@ não do kit — complemento opcional do owner) · escape por argumento do assist
 - 2026-09-25 — (2) a ligação chat → linha do INDEX passa a ser só pelo nome, por palavra inteira, a que casa melhor vence (motivo: a revisão de código reproduziu 7 cenários — o chat seguia travado depois de fechar a própria feature quando o passo 3 gravava título diferente do digitado, e o casamento por pedaço de texto deixava a `v1` fechada ou um `UI` fechado encerrar a feature aberta do chat, soltando o F-022). Junto: comando sozinho na linha não grava o parágrafo como nome, chave `chat + projeto`, retomar renova a validade, `.tmp` órfão removido.
 - 2026-09-25 — (2) sai a "foto do INDEX" que atribuía ao chat as linhas nascidas depois da abertura (motivo: a 2ª revisão reproduziu o chat preso pela linha aberta do vizinho na mesma pasta e o chat A "retomando" a feature do chat B — o INDEX não diz qual chat escreveu a linha). Fica o que dá pra afirmar: linha pelo nome; sem ela, encerrada só se nada está aberto e algo fechou desde a abertura. Brechas aceitas e declaradas: reabrir feature já `fechada` conta como encerrada até o passo 3 reabrir a linha; comando sem nome na linha passa calado; retomar por subconjunto aceita a feature vizinha (`exportar pdf` × `exportar pdf assinado`).
 - 2026-09-25 — (2) "encerrada" passa a olhar toda linha que casa pelo nome, não só a que casa melhor (motivo: 3ª revisão — evoluir feature já fechada: a v1 `busca vetorial` fechada, nome exato, encerrava a `busca vetorial hibrida` aberta do próprio chat e o F-022 passava). Custo aceito: linha aberta do vizinho que case pelo nome segura o chat.
+- 2026-10-27 — (2) o aviso deixa de mandar abrir worktree: pasta na branch de outra feature → parar e perguntar ao owner (motivo: o aviso "abra esta num worktree" levou a conversa da 0.44.0 a abrir um sozinha; o owner não usa worktree). Trava própria em `docs/specs/nunca-trabalhar-em-worktree.md`.
