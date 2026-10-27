@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.45.0 — 2026-10-27 (bug e dúvida entram pelo kit, que chama o superpowers por baixo)
+- **o que motivou:** nas 4 últimas conversas do Whats, os 3 incidentes foram direto à `superpowers:systematic-debugging` — a regra 11 mandava isso — e o `/mss-spec:diagnostico` (travado, só o owner chamava) nunca entrou, nem com o owner dizendo "novamente perdido". No `nova-feature` de 26/10 o assistente leu a memória certa, desenhou certo e a abandonou quando o owner contestou. A memória do repo foi lida nas 4 conversas (106 leituras, nenhuma da pasta nativa): o furo era a porta de entrada.
+- feat(**bug**): `/mss-spec:bug` — sem a trava, o assistente entra sozinho quando o owner descreve um erro. Mostra o que a memória já diz antes da 1ª hipótese (até 5 linhas com `arquivo:linha`), chama a `systematic-debugging`, escala pro `diagnostico` com 2 rodadas sem causa, corrige com teste que reproduz, manda pro `nova-feature` se virar feature; o fecho só oferece captura e caso.
+- feat(**duvida**): `/mss-spec:duvida` — sem a trava. Responde da memória, das specs e do código, com fonte ou "não sei"; não edita arquivo; encaminha pro `bug`, `nova-feature` ou `to-dolist` em 1 linha.
+- feat(**diagnostico**): destravado e chamado pelo `bug`; a descrição diz quando entrar.
+- feat(**regras do kit**): regra 11 aponta o `/mss-spec:bug` e o `/mss-spec:duvida`; regra nova no modo de trabalho — owner contestou algo que a memória diz → mostre a memória antes de mudar código ou desenho; a regra do "execute os passos na mão" ganha a exceção dos comandos que aparecem na lista · `test_bug_e_duvida_wiring`.
+- docs: spec `docs/specs/bug-e-duvida.md`; `docs/specs/diagnostico.md` atualizada; LEIA-ME lista os dois comandos.
+
 ## 0.44.0 — 2026-10-27 (MAPA e INDEX em dois níveis: topo curto, detalhe em arquivo próprio, em toda gravação)
 - **o que motivou:** no Whats o MAPA estava em 5.981 de 6.000 B e o INDEX em 5.635 de 7.000 B (medidos sem o `\r`). O rodízio só agia acima do teto e parava assim que cabia, então os dois viviam encostados no limite. O owner pediu o mesmo modo que resolveu o `memory/MEMORY.md` (31%): topo curto lido na abertura, detalhe aberto sob demanda.
 - feat(**rodizio_partida**): `enxugar` aplica a forma antes de olhar o teto: linha `fechada` → `INDEX-historico.md`; item do `## Próximo passo` com mais de 300 B e título em negrito → `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)` (texto inteiro em `PROXIMO-PASSO.md`, prepend datado); com `CONEXOES.md`, `## Conexões` só com a linha de nomes (comentário, "nenhuma"/`<a confirmar>` e o rodapé `---`/`Atualizado em` ficam no MAPA). Já na forma, nada muda; conservação conferida antes de gravar; CRLF preservado · `test_forma_*` (7 testes).

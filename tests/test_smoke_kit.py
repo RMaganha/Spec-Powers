@@ -1059,6 +1059,64 @@ def test_diagnostico_wiring():
     assert "F-015" in evals, "docs/EVALS.md não registra o caso F-015"
 
 
+def _frontmatter(md):
+    texto = md.read_text(encoding="utf-8")
+    return texto.split("---", 2)[1] if texto.startswith("---") else ""
+
+
+def test_bug_e_duvida_wiring():
+    """Bug e dúvida entram PELO KIT, que chama o superpowers por baixo (2026-10-27). Nas 4 conversas
+    do Whats, os 3 incidentes foram direto pra superpowers:systematic-debugging — a regra 11 mandava
+    isso — e o `/mss-spec:diagnostico` (travado: só o owner chamava) nunca entrou, nem com o owner
+    dizendo "novamente perdido". No nova-feature, o assistente leu a memória certa e a abandonou
+    quando o owner contestou. Guardrail: `bug`/`duvida`/`diagnostico` SEM a trava (o assistente
+    entra sozinho), regra 11 aponta o `bug`, e regra sempre-ativa da memória contestada."""
+    bug = REPO / "commands" / "bug.md"
+    duvida = REPO / "commands" / "duvida.md"
+    assert bug.exists(), "falta commands/bug.md"
+    assert duvida.exists(), "falta commands/duvida.md"
+    # AC1: os três sem a trava — o assistente consegue entrar sozinho
+    for nome in ("bug", "duvida", "diagnostico"):
+        fm = _frontmatter(REPO / "commands" / f"{nome}.md")
+        assert "description:" in fm, f"{nome}.md sem description (é por ela que o assistente escolhe)"
+        assert "disable-model-invocation" not in fm, \
+            f"{nome}.md travado: o assistente não consegue chamá-lo sozinho e o superpowers passa na frente"
+    # AC3: o bug lê a memória ANTES de hipótese, chama o superpowers, escala pro diagnostico, vira feature
+    b = bug.read_text(encoding="utf-8")
+    blow = b.lower()
+    assert "memory/MEMORY.md" in b and "docs/EVALS.md" in b and "MAPA.md" in b, \
+        "bug.md não manda ler o destilado (MAPA → memória → EVALS) antes de hipótese"
+    assert "antes da 1ª hipótese" in blow, "bug.md não põe a memória ANTES da 1ª hipótese"
+    assert "systematic-debugging" in b, "bug.md não chama a superpowers:systematic-debugging"
+    assert "mss-spec:diagnostico" in b and "2 rodadas" in blow, \
+        "bug.md não escala pro diagnostico depois de 2 rodadas sem causa"
+    assert "teste que reproduz" in blow, "bug.md não exige o teste que reproduz o bug antes da correção"
+    assert "/mss-spec:nova-feature" in b, "bug.md não manda bug que virou feature pro nova-feature"
+    assert "mostre a memória" in blow, "bug.md não protege a memória quando o owner contesta"
+    # AC4: a dúvida responde com fonte ou "não sei", não mexe em arquivo, e encaminha
+    d = duvida.read_text(encoding="utf-8")
+    dlow = d.lower()
+    assert "memory/MEMORY.md" in d and "MAPA.md" in d, "duvida.md não manda ler o destilado"
+    assert "não sei" in dlow, "duvida.md não permite 'não sei' quando não há fonte"
+    assert "não edite" in dlow, "duvida.md não proíbe mexer em arquivo"
+    assert "/mss-spec:bug" in d and "/mss-spec:nova-feature" in d, \
+        "duvida.md não encaminha pro bug ou pro nova-feature quando a resposta revela um"
+    # diagnostico sabe que agora é chamado pelo bug
+    diag = (REPO / "commands" / "diagnostico.md").read_text(encoding="utf-8")
+    assert "/mss-spec:bug" in diag, "diagnostico.md não diz que o bug o chama"
+    # AC2 + AC5: regra 11 aponta o bug; memória contestada é regra sempre-ativa
+    kit = texto_do_kit()
+    klow = kit.lower()
+    regra11 = next(l for l in kit.splitlines() if l.startswith("11."))
+    assert "/mss-spec:bug" in regra11, "regra 11 ainda manda bug direto ao superpowers, sem passar pelo kit"
+    assert "/mss-spec:duvida" in kit, "regras do kit não apontam a dúvida pro /mss-spec:duvida"
+    assert "mostre a memória" in klow, "regras do kit não carregam 'memória contestada → mostre a memória'"
+    # o owner descobre os comandos
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:bug" in leiame and "/mss-spec:duvida" in leiame, "LEIA-ME não lista bug e duvida"
+    assert (REPO / "docs" / "specs" / "bug-e-duvida.md").exists(), "falta a spec viva docs/specs/bug-e-duvida.md"
+
+
 def test_bpmn_wiring():
     """Desenho BPMN montado: gerador testável em templates/, comando aponta o script, declara as
     DUAS saídas (texto pro assistente + desenho pro humano) e a saída derivada FORA do git —

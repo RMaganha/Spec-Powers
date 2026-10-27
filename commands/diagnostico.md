@@ -1,12 +1,11 @@
 ---
-description: Trilho disciplinado de diagnóstico — corta o loop de hipóteses; diff contra o precedente que funciona ANTES de pedir evidência ao owner; fato do owner não se re-litiga
+description: Trilho disciplinado de diagnóstico — use quando um bug não fechou em 2 rodadas, ou o owner disser que o assistente está perdido, teimoso ou repetindo hipótese. Corta o loop; diff contra o precedente que funciona ANTES de pedir evidência ao owner; fato do owner não se re-litiga
 argument-hint: "[sintoma: ex. 503 na nuvem, conexão que não fecha, teste vermelho sem causa]"
-disable-model-invocation: true
 ---
 
-Trilho de diagnóstico pra falha que **não fecha** — o owner invoca quando vê o assistente em loop
-("teimoso"), e o assistente **auto-propõe** ao bater a regra crítica de diagnóstico do `CLAUDE.md`
-(2 rodadas sem causa). Sintoma em foco: **$ARGUMENTS**.
+Trilho de diagnóstico pra falha que **não fecha**. Três entradas: o **`/mss-spec:bug`** o chama no
+passo 3 (2 rodadas sem causa); o assistente **entra sozinho** ao bater a regra crítica 11; e o owner
+o invoca quando vê o assistente em loop ("teimoso"). Sintoma em foco: **$ARGUMENTS**.
 
 Origem (por que este comando existe): 2026-08-26, deploy do MSS-SSC na Azure — **6 rodadas de owner
 perdidas num 503** listando hipóteses de plataforma, quando um diff contra o projeto de referência
