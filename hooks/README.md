@@ -154,7 +154,7 @@ pytest … | …` (a palavra como texto) e o teste **depois** do commit. PowerSh
 - **Modo de falha PRÓPRIO — ABERTA**: bug aqui → libera. Commit vermelho se reverte; push não — por
   isso a cerca de publicação segue FECHADA e é avaliada primeiro. Uma não liga nem desliga a outra.
 - **Escape próprio, só do owner:** `MSS_PIPE_TESTE_OFF=1`.
-- Não é "hook de pre-commit bloqueante" (fora de escopo no INDEX): não roda teste nem trava commit —
+- Não é "hook de pre-commit bloqueante" (`#fora-de-escopo` no `to-dolist.md`): não roda teste nem trava commit —
   só recusa o comando que **esconde** o resultado do teste.
 
 ---
@@ -172,7 +172,7 @@ guarda qual feature cada chat abriu em `~/.claude/mss-spec/um-item-janelas.json`
 fora de qualquer repo; chat parado há mais de 30 dias sai — retomar renova; `MSS_UM_ITEM_ESTADO` troca
 o caminho). No `<cwd>/docs/superpowers/INDEX.md`, **aberta** é a
 linha com status `aberta` ou `em andamento` (`fechada` e `pausada: <motivo>` não contam; `## Backlog`
-e "Fora de escopo" são ignorados).
+é ignorado, e a seção "Fora de escopo" do formato antigo também, só até o `upgrade` converter o projeto).
 
 - **este chat já abriu a feature Y**, Y não está `fechada`/`pausada` (no INDEX ou no
   `INDEX-historico.md`; fora do INDEX Y segue valendo — a linha só nasce no passo 3) e o pedido é
@@ -326,7 +326,7 @@ sessão, guardado no temp do SO — ler com `wc -c CLAUDE.md` ou `cat INDEX.md` 
 Gravou `docs/superpowers/MAPA.md` ou `INDEX.md` e passou do teto → `rodizio_partida.py enxugar --aplicar`, que
 **move, nunca apaga**, confere a conservação e para assim que cabe: 1º o rodízio de sempre (blocos antigos e
 fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `## Fora de escopo` → `FORA-DE-ESCOPO.md`
-(que o recall passa a ler) · `## Assuntos existentes` → `ASSUNTOS-EXISTENTES.md` · linha longa de `## Em andamento`
+(formato antigo, só até o `upgrade` converter pro `to-dolist.md`; o recall não lê) · `## Assuntos existentes` → `ASSUNTOS-EXISTENTES.md` · linha longa de `## Em andamento`
 → `EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim, que a trava lê); no MAPA, `## Conexões` →
 `CONEXOES.md` (fica a lista de nomes) e, se ainda não couber, só o bloco atual fica. Destino que já existe recebe
 prepend datado. O `additionalContext` diz o que foi pra onde e manda **reler antes do próximo Edit**; o que sobra

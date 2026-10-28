@@ -11,7 +11,7 @@
 - `test_commands_tem_frontmatter` — todo comando tem frontmatter com `description`
 - `test_compose_templates_sao_yaml_validos` — os dois compose templates parseiam como YAML (com `<servico>` substituído)
 - `test_seguranca_wiring` — SEGURANCA.md + comando existem, kickoff copia, CLAUDE.md referencia
-- `test_todolist_gitignorada` — `/to-dolist.md` ancorado no `templates/gitignore`
+- (0.47.0) o to-dolist vai pro git — o antigo `test_todolist_gitignorada` virou `test_todolist_vai_pro_git_no_molde_e_no_kit` em `tests/test_fora_de_escopo_no_to_dolist.py`
 - `test_doctor_wiring` — comando doctor existe e o CLAUDE.md manda rodar o pré-vôo na 1ª tarefa
 - `test_robustez_plugin_root_wiring` — doctor e kickoff citam o fallback de resolução do plugin (`plugins/cache`)
 - `test_regra_senhas_wiring` — banco oferece variável de ambiente e SEGURANCA documenta App Settings
@@ -140,6 +140,12 @@
 - `test_escape_*` (×3) / `test_bug_na_cerca_do_pipe_*` (×2) — `MSS_PIPE_TESTE_OFF` próprio; uma cerca não liga nem desliga a outra; bug aqui libera (ABERTA) sem abrir a de publicação
 - `test_processo_nega_pelos_dois_protocolos` / `test_documentado_no_readme` — deny + exit 2 via subprocess; README
 
+`tests/test_fora_de_escopo_no_to_dolist.py` — fora de escopo = "não agora", linha `#fora-de-escopo` no to-dolist (0.47.0):
+- `test_todolist_vai_pro_git_no_molde_e_no_kit` / `test_comando_todolist_fala_do_formato_novo` / `test_captura_roteia_nao_agora_pro_todolist` / `test_molde_do_index_sem_secao_fora_de_escopo`
+- `test_nenhum_texto_vivo_diz_que_fora_de_escopo_e_proibicao` — comandos, hooks, moldes, LEIA-ME e COMO-FUNCIONA sem "NÃO fazer"
+- `test_kit_converteu_o_proprio_fora_de_escopo` — sem `FORA-DE-ESCOPO.md` nem seção no INDEX; cada linha no formato combinado
+- (em `tests/test_hook_recall_memoria.py`) `test_recall_nao_cita_fora_de_escopo_sozinho` — a busca não lê to-dolist nem `FORA-DE-ESCOPO.md`
+
 `tests/test_hook_registro.py` — registro local dos hooks (`hooks/_registro.py`):
 - `test_hook_que_age_grava_uma_linha` (×7) — cada hook, quando age, grava 1 linha com hook/decisão/detalhe/sessão
 - `test_nunca_grava_o_texto_do_prompt_nem_do_comando` (×7) — segredo falso no comando, prompt e caminho não aparece
@@ -155,4 +161,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-09-25 · branch feature/memoria-na-acao (memória na hora da ação · rotas não pedidas) · 731 passed
+**Último 100% verde:** 2026-10-28 · branch feature/fora-de-escopo-no-to-dolist (fora de escopo vira item do to-dolist) · 999 passed

@@ -339,11 +339,10 @@ RE_IDENT = re.compile(r"`([^`]+)`|\b([A-Za-z0-9]+(?:[_.][A-Za-z0-9]+)+)\b|\b([a-
 RE_TOKEN = re.compile(r"[a-z0-9_]{4,}")
 RE_LINHA_DIARIO = re.compile(r"^- \[([^\]]+)\]\s*(.*?)(?:→\s*(sessions/\S+))?\s*$")
 RE_LINHA_EVALS = re.compile(r"^\| (F-\d{3}) \|")
-PRIO = {"memoria": 0, "indice": 1, "evals": 2, "decisao": 3, "fora": 4, "diario": 5}
+PRIO = {"memoria": 0, "indice": 1, "evals": 2, "decisao": 3, "diario": 5}
 # linha marcada como vencida não é injetada: o que é velho não pode voltar como fato (F-030)
 # — só como STATUS (início da linha ou segmento após " — "), não citada entre crases numa explicação
 RE_VENCIDA = re.compile(r"(?:^|[—–]\s*|^- \s*)\**(?:obsoleta|pausada)\s*:")
-FORA_DE_ESCOPO = ("docs", "superpowers", "FORA-DE-ESCOPO.md")
 
 
 @dataclass
@@ -422,13 +421,8 @@ def fontes(proj: Path, diario: bool = True) -> list:
         for n, l in enumerate(texto.split("\n"), 1):
             if re.match(r"^- \d{4}-\d{2}-\d{2}", l):
                 out.append(Fonte(l, f"docs/decisoes.md:{n} — {_corta(l[2:])}", PRIO["decisao"]))
-    fora = proj.joinpath(*FORA_DE_ESCOPO)          # saiu da partida (F-030); o anti-re-litígio chega por aqui
-    if fora.is_file():
-        texto, _ = _ler(fora)
-        rel = "/".join(FORA_DE_ESCOPO)
-        for n, l in enumerate(texto.split("\n"), 1):
-            if l.startswith("- ") and not l.startswith("- Movido para ["):
-                out.append(Fonte(l, f"{rel}:{n} — {_corta(l[2:])}", PRIO["fora"]))
+    # fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist (0.47.0): nem o
+    # `to-dolist.md` nem o `FORA-DE-ESCOPO.md` antigo entram aqui — a busca roda a cada mensagem e repetia o item
     dia = memdir / "DIARIO.md"
     if diario and dia.is_file():
         texto, _ = _ler(dia)

@@ -138,17 +138,22 @@ def test_hook_registrado_em_user_prompt_submit():
     assert any("um_item_por_janela.py" in c for c in comandos), "não pode derrubar a cerca que já existia"
 
 
-def test_recall_le_o_fora_de_escopo_que_saiu_da_partida(tmp_path):
-    """F-030: o "Fora de escopo" saiu do INDEX (não é mais lido na partida); o anti-re-litígio passa
-    a chegar pelo recall — quando o prompt propõe de novo o que já foi recusado."""
+def test_recall_nao_cita_fora_de_escopo_sozinho(tmp_path):
+    """0.47.0: fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist. A busca
+    rodava a cada mensagem e repetia o item como se fosse proibição — não lê o to-dolist nem o
+    `FORA-DE-ESCOPO.md` antigo (de projeto ainda não convertido pelo upgrade)."""
     raiz = _projeto(tmp_path)
     sp = raiz / "docs" / "superpowers"
     sp.mkdir(parents=True)
     (sp / "FORA-DE-ESCOPO.md").write_text(
         "# Fora de escopo\n\n- **Redis para o handoff no WhatsApp** — descartado em 2026-07-30: a memória de "
         "sessão do servidor já resolve o handoff\n", encoding="utf-8")
+    (raiz / "to-dolist.md").write_text(
+        "- Redis para o handoff no WhatsApp #fora-de-escopo (decidido: 2026-07-30, a memória de sessão do "
+        "servidor já resolve o handoff)\n", encoding="utf-8")
     saida = _mod().responder(_evento("vamos colocar redis pra guardar o handoff do whatsapp", raiz), {})
-    assert saida and "docs/superpowers/FORA-DE-ESCOPO.md:3" in saida["hookSpecificOutput"]["additionalContext"]
+    texto = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
+    assert "FORA-DE-ESCOPO.md" not in texto and "to-dolist.md" not in texto, texto
 
 
 def test_recall_pula_linha_pausada_ou_obsoleta(tmp_path):

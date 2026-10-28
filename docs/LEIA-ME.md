@@ -73,8 +73,8 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | `/mss-spec:bpmn` | Desenha os **processos do projeto em BPMN lendo o código** (estático, por `ast`): um diagrama por porta de entrada + drill-down por subprocesso, rótulo em pt-BR, renderizado pelo **bpmn-js** (bpmn.io, vendorizado) — `docs/bpmn.html` (desenho) + `docs/bpmn/*.bpmn` (abrem no **Bizagi**) + `docs/bpmn.md` (texto pro assistente), fora do git |
 | `/mss-spec:inventario-banco` | **Inventário somente-leitura do banco vivo (SQL Server):** catálogo, corpo de procedure/function/view/trigger, jobs e linked servers; cruza cada nome com o código (*citado no código* × *só no banco* × *sem citação* — que **não** significa "pode apagar"). O `/mss-spec:analise` dispara sozinho; este comando regenera. `docs/banco.md` fora do git + `docs/banco/*.sql` versionados, segredo mascarado |
 | `/mss-spec:modo <nível>` | Alterna o nível de cerimônia do fluxo: mínimo · médio (padrão) · alto |
-| `/mss-spec:memory <modo>` | Memória do projeto: `resgatar` a nativa (`~/.claude/...`) pro `memory/` do repo (não-destrutivo) · `capturar` a sessão em decisões (incl. "não fazer") + diário datado (`memory/sessions/` + `DIARIO.md`) |
-| `/mss-spec:to-dolist <ação>` | Caixa de captura pessoal (adicionar/listar/feito), visível em qualquer branch, fora do git |
+| `/mss-spec:memory <modo>` | Memória do projeto: `resgatar` a nativa (`~/.claude/...`) pro `memory/` do repo (não-destrutivo) · `capturar` a sessão em decisões (incl. "não agora" → `to-dolist` `#fora-de-escopo`) + diário datado (`memory/sessions/` + `DIARIO.md`) |
+| `/mss-spec:to-dolist <ação>` | Caixa de captura (adicionar/listar/feito) e lugar do que ficou "pra depois": linha com `#fora-de-escopo` ("não agora", nunca proibição); `listar #fora-de-escopo` mostra só esses. Vai pro git |
 | `/mss-spec:plano-teste` | Roda o plano de teste base (pytest); se 100% verde, vira o novo baseline anti-regressão |
 | `/mss-spec:seguranca` | Audita AppSec (OWASP + baseline MSIG) e corrige com seu OK; relatório HTML ordenado crítico→fácil |
 | `/mss-spec:compliance` | Audita a aderência às convenções do kit (estrutura, docs, memória, gitignore); só reporta ✓/✗ |
@@ -91,7 +91,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 
 ## Memória e estado (não poluir o CLAUDE.md)
 - **Aprendizados (fatos)** → `memory/` (por-tópico, índice em `memory/MEMORY.md`), dentro do repo, versionado.
-- **Decisões e diário de sessão** → gravados pelo `/mss-spec:memory capturar` ao fechar um assunto: decisões transversais em `docs/decisoes.md`, o "não fazer" na seção **Fora de escopo** do `INDEX.md`, e um **diário datado** em `memory/sessions/<data>-<assunto>.md` (índice `memory/DIARIO.md`), com foco nos *pivôs* — anti-re-litígio e barato de reler. Trechos `<private>` nunca viram memória.
+- **Decisões e diário de sessão** → gravados pelo `/mss-spec:memory capturar` ao fechar um assunto: decisões transversais em `docs/decisoes.md`, o que ficou "pra depois" no `to-dolist.md` com a tag `#fora-de-escopo` ("não agora"; o assistente não cita sozinho), e um **diário datado** em `memory/sessions/<data>-<assunto>.md` (índice `memory/DIARIO.md`), com foco nos *pivôs* — anti-re-litígio e barato de reler. Trechos `<private>` nunca viram memória.
 - **Tarefas** → spec **viva por assunto** em `docs/specs/<assunto>.md` (Estado atual + Histórico); planos datados/efêmeros em `docs/superpowers/plans/`; índice em `docs/superpowers/INDEX.md`.
 - Todos: índice barato lido no início; arquivos abertos **sob demanda**; `Grep`/`Glob` de fallback.
 - `CLAUDE.md` = só regras/fatos sempre-verdadeiros; nunca journal/registro.
@@ -121,7 +121,7 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   Também volta a resposta com rotas alternativas que ninguém pediu, e a que casa o `gatilho_resposta:` de uma memória;
   o comando que casa o `gatilho_comando:` de uma memória é negado uma vez por sessão (`MSS_MEMORIA_ACAO_OFF=1`).
 - **Teto ao gravar** — o hook `hooks/teto_ao_gravar.py` (ligado, **não bloqueia**): gravou `MAPA.md`/`INDEX.md` e passou
-  do teto → o excesso sai na hora pra arquivo próprio com ponteiro (`BACKLOG.md`, `FORA-DE-ESCOPO.md`, `EM-ANDAMENTO.md`,
+  do teto → o excesso sai na hora pra arquivo próprio com ponteiro (`BACKLOG.md`, `FORA-DE-ESCOPO.md` do formato antigo, `EM-ANDAMENTO.md`,
   `CONEXOES.md`…), movendo e nunca apagando. E a cerca de publicação passa a **negar** gravar em OUTRO repositório
   pelo shell, com o comando pronto pra colar na janela dele. Escapes `MSS_TETO_OFF=1` e `MSS_ANCORA_OFF=1`.
 - **Orçamento da partida** — o hook `hooks/orcamento_partida.py` (ligado por padrão, **não bloqueia**) mede, ao abrir

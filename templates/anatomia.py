@@ -163,7 +163,7 @@ LANE_PARTIDA = [
      "`regras_do_kit.py`, em dois blocos (modo de trabalho · regras críticas).",
      ["templates/CLAUDE.md", "templates/regras-do-kit/1-modo-de-trabalho.md",
       "templates/regras-do-kit/2-regras-criticas.md"]),
-    ("Ritual de partida", "O assistente lê MAPA (onde estamos) → INDEX (aberto + fora de escopo) → "
+    ("Ritual de partida", "O assistente lê MAPA (onde estamos) → INDEX (aberto) →"
      "índice de memória POR GATILHO — destilado antes da fonte.",
      ["templates/MAPA.md", "templates/INDEX.md", "templates/MEMORY.md"]),
     ("Ponteiro na pasta nativa", "O índice que o Claude Code auto-carrega aponta pro memory/MEMORY.md "
@@ -178,7 +178,7 @@ LANE_FECHO = [
     ("2 · seguranca", "Só se a entrega mexeu em rota/endpoint (authz, entrada validada, Bearer).",
      ["commands/seguranca.md"]),
     ("3 · memory capturar", "Destila a sessão: decisões (incl. negativas), pivôs → diário, falha → "
-     "EVALS, escopo → fora-de-escopo. Pede OK antes de gravar; chama o mapa no final.",
+     "EVALS, \"não agora\" → to-dolist #fora-de-escopo. Pede OK antes de gravar; chama o mapa no final.",
      ["commands/memory.md", "commands/mapa.md"]),
     ("4 · release → finishing", "Gate ✓/✗: testes · versão nos 2 manifestos · CHANGELOG · specs "
      "coerentes · convenções · corpus · working tree. Verde → merge/PR; push só a pedido.",
@@ -201,9 +201,12 @@ MATRIZ = [
      ["commands/mapa.md", "commands/nova-feature.md"]),
     ("docs/superpowers/INDEX.md",
      {"partida": "L", "nova-feature / divergir": "LE status", "analise": "E semeia",
-      "kickoff / upgrade": "E backlog", "memory capturar": "E fora-de-escopo",
+      "kickoff / upgrade": "E backlog",
       "mapa / mapa-neural": "L", "doctor / release": "L"},
      ["commands/nova-feature.md", "commands/analise.md"]),
+    ("to-dolist.md (raiz, versionado)",
+     {"memory capturar": "E #fora-de-escopo", "mapa / mapa-neural": "L"},
+     ["commands/to-dolist.md", "commands/memory.md"]),
     ("docs/specs/ (spec viva por assunto)",
      {"nova-feature / divergir": "LE dono", "analise": "E c/ evidência",
       "memory capturar": "E histórico", "doctor / release": "L coerência"},

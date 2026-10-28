@@ -467,7 +467,7 @@ def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
                 decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220], data=_data(dec)))
         if decs:
             filhos.append(_no("decisões (%d)" % len(decs), filhos=_cortar(decs, limite)))
-    # to-dolist pessoal (fora do git; só entra se existir) — captura rápida do owner
+    # to-dolist (raiz, versionado desde a 0.47.0; só entra se existir) — captura rápida e o #fora-de-escopo
     # (sem filtro de `<placeholder>` aqui: item de verdade cita a sintaxe de comando com `<algo>`)
     todo = proj / "to-dolist.md"
     if todo.exists():

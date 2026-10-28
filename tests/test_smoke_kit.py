@@ -78,16 +78,6 @@ def test_seguranca_wiring():
     assert "docs/SEGURANCA.md" in claude, "CLAUDE.md não referencia docs/SEGURANCA.md"
 
 
-def test_todolist_gitignorada():
-    """to-dolist.md (captura local do /mss-spec:to-dolist) ignorada e ANCORADA na raiz.
-
-    O padrão tem que ser `/to-dolist.md` (com barra): sem ela, casaria por nome e ignoraria
-    também `commands/to-dolist.md` — o próprio arquivo do comando não subiria pro git.
-    """
-    gi = (REPO / "templates" / "gitignore").read_text(encoding="utf-8")
-    assert "/to-dolist.md" in gi, "templates/gitignore precisa ignorar /to-dolist.md ancorado na raiz"
-
-
 def test_doctor_wiring():
     """Pré-vôo do doctor montado: comando existe e o CLAUDE.md manda rodar no início da 1ª tarefa."""
     assert (REPO / "commands" / "doctor.md").exists(), "falta commands/doctor.md"
@@ -370,7 +360,7 @@ def test_captura_memory_dois_modos():
     assert "nativa" in mem.lower(), "memory.md: modo resgatar (memória nativa → repo) sumiu"
     # capturar roteia pras 3 camadas
     assert "docs/decisoes.md" in mem, "capturar não roteia decisão transversal pro decisoes.md"
-    assert "Fora de escopo" in mem, "capturar não roteia decisão 'não fazer' pro INDEX (Fora de escopo)"
+    assert "#fora-de-escopo" in mem, "capturar não roteia decisão 'não agora' pro to-dolist (#fora-de-escopo)"
     assert "memory/sessions/" in mem, "capturar não grava o resumo em memory/sessions/"
     assert "DIARIO.md" in mem, "capturar não indexa no memory/DIARIO.md"
     assert "MEMORY.md" in mem, "capturar não indexa fato durável no MEMORY.md"

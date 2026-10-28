@@ -497,13 +497,13 @@ li{margin-bottom:6px}
     <div class="node-head"><span class="node-idx">C13</span><span class="node-name">memory</span><span class="node-type">memória do projeto · NOVO: captura</span></div>
     <div class="node-body">
       <p class="plain">Guarda os aprendizados e as <strong>decisões</strong> do projeto junto com o código — inclusive as decisões de <em>não</em> fazer algo, pra ninguém repropor semanas depois o que já foi descartado.</p>
-      <p>Tem dois modos. <strong><code>resgatar</code></strong> traz pra dentro do repositório a memória que ficou numa pasta "volátil" do Claude e a torna durável (versionada com o código). <strong><code>capturar</code></strong> (novo) <strong>destila a conversa</strong> ao fechar um assunto e distribui pros lugares certos: as decisões transversais, o que se decidiu <em>não</em> fazer, e um <strong>diário de sessão</strong> datado — um resumo curto do que se conversou e, sobretudo, dos <strong>pivôs</strong> (o que se cogitou, por que mudou de ideia, pra onde foi). Sempre com o seu <strong>OK antes de gravar</strong>; trechos marcados <code>&lt;private&gt;</code> nunca viram memória.</p>
+      <p>Tem dois modos. <strong><code>resgatar</code></strong> traz pra dentro do repositório a memória que ficou numa pasta "volátil" do Claude e a torna durável (versionada com o código). <strong><code>capturar</code></strong> (novo) <strong>destila a conversa</strong> ao fechar um assunto e distribui pros lugares certos: as decisões transversais, o que ficou <em>pra depois</em> (vai pro <a class="gl" href="#c-todolist">to-dolist</a> com a etiqueta <code>#fora-de-escopo</code>), e um <strong>diário de sessão</strong> datado — um resumo curto do que se conversou e, sobretudo, dos <strong>pivôs</strong> (o que se cogitou, por que mudou de ideia, pra onde foi). Sempre com o seu <strong>OK antes de gravar</strong>; trechos marcados <code>&lt;private&gt;</code> nunca viram memória.</p>
       <p>O diário mora em <code>memory/sessions/</code> com um índice datado (<code>memory/DIARIO.md</code>) — barato de reler: abre-se só a entrada do dia/assunto, nunca a pasta toda. O fecho da <code>nova-feature</code> já chama o <code>capturar</code> sozinho; um gatilho automático opcional (desligado por padrão) pode lembrar de rodá-lo em conversas longas.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:memory resgatar
   → guarda no repo a memória volátil do Claude (não-destrutivo)
 /mss-spec:memory capturar
-  → decisões (incl. "não fazer") + diário da sessão, com seu OK</code></pre>
+  → decisões (incl. "não agora") + diário da sessão, com seu OK</code></pre>
       <div class="label-row"><span class="pill ok">anti-perda</span><span class="pill warn">decisões + diário · NOVO</span><span class="pill graph">anti-re-litígio</span></div>
     </div>
   </div>
@@ -511,12 +511,14 @@ li{margin-bottom:6px}
   <div class="node" id="c-todolist">
     <div class="node-head"><span class="node-idx">C14</span><span class="node-name">to-dolist</span><span class="node-type">bloco de recados</span></div>
     <div class="node-body">
-      <p class="plain">Um bloco de recados pessoal que aparece em qualquer parte do trabalho.</p>
-      <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Fica <strong>visível em qualquer <a class="gl" href="#g-branch">branch</a></strong> e é só seu (não vai pro compartilhamento). É também o destino da regra <strong>um assunto por janela</strong>: quando um segundo tema aparece no meio de uma tarefa, o assistente <em>alerta</em> e sugere anotá-lo aqui para tratá-lo depois, numa nova conversa.</p>
+      <p class="plain">Um bloco de recados do projeto, guardado junto com o código.</p>
+      <p>Surgiu uma ideia fora do que você está fazendo agora? Em vez de sair do foco, anote: <code>adicionar</code>, veja tudo com <code>listar</code>, e o item sai quando <code>feito</code>. Vai pro <a class="gl" href="#g-branch">git</a>, então não se perde ao trocar de máquina — só que um item anotado numa branch aparece na principal depois do merge. É também o destino da regra <strong>um assunto por janela</strong>: quando um segundo tema aparece no meio de uma tarefa, o assistente <em>alerta</em> e sugere anotá-lo aqui para tratá-lo depois, numa nova conversa.</p>
+      <p>E é o lugar do que ficou <strong>pra depois</strong>: uma linha com a etiqueta <code>#fora-de-escopo</code>, a data e o motivo. Quer dizer "não agora", nunca "proibido" — volta quando você decidir. O assistente não traz esses itens sozinho; eles aparecem quando você pede.</p>
       <div class="subhead">Exemplo</div>
       <pre><code>/mss-spec:to-dolist adicionar "enviar e-mail de boas-vindas ao cliente"
-/mss-spec:to-dolist adicionar "saber qual cliente leu a mensagem"</code></pre>
-      <div class="label-row"><span class="pill ok">em qualquer branch</span><span class="pill graph">pessoal</span><span class="pill warn">um assunto por janela</span></div>
+/mss-spec:to-dolist adicionar "disparo em massa #fora-de-escopo"
+/mss-spec:to-dolist listar #fora-de-escopo</code></pre>
+      <div class="label-row"><span class="pill ok">no git</span><span class="pill graph">pra depois</span><span class="pill warn">um assunto por janela</span></div>
     </div>
   </div>
 
