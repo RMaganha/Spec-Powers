@@ -15,6 +15,9 @@ Duas regras do owner, de 2026-10-27:
 2. **Nunca abrir uma conversa a partir de outra.** Quando o trabalho pedir conversa nova, **entregue o texto pronto
    pra colar** ([[feedback_texto_pronto_pra_colar]]) e o owner abre a conversa pelo **+** e cola. Vale pra iniciar,
    propor ou passar adiante uma conversa.
+3. **Não mexer na organização das conversas do app sem pedido** (soltar uma conversa da outra, mover de grupo,
+   arquivar). Em 2026-10-28 soltei a conversa da feature 1 desta e ela saiu do grupo "Plugin - Default Project":
+   *"a conversa sumiu voce sozinho deletou ela"*. Não estava apagada, só fora do grupo.
 
 **Why:** em 2026-10-27 uma conversa (0.44.0) abriu sozinha o worktree `.claude/worktrees/partida-em-dois-niveis`
 porque a pasta principal estava na `feature/bug-e-duvida`; deixou 2 commits e memória fora da `main` (limpo em

@@ -18,6 +18,12 @@ literalmente no terminal da infra (*"de onde vem esse cole-aqui, não está clar
 que os comandos do chamado já viessem *"com o id certo"*. Ele também pediu que esses textos virassem padrão do
 kit (*"esse texto deve estar no plugin também"*).
 
+**Texto pra conversa nova (2026-10-28):** antes do texto, diga em linguagem simples o que vai mudar e como
+conserta, com a causa e `arquivo:linha`. Todo fato do texto é conferido agora, nunca copiado de outra conversa
+(F-044). Diga o escopo com todas as letras: "mexe só no kit; outros projetos são só para LER; quem leva pra eles
+é o `/mss-spec:upgrade`". Frase do owner com duas leituras vai verbatim e você pergunta antes de montar o texto.
+Owner: *"não ficou claro o que isso vai fazer e como ele irá consertar, só há um texto para ler e mais nada"*.
+
 **How to apply:** vale em qualquer comando que delegue ação a terceiros. No `/mss-spec:azure-ambiente` já mora
 na regra 10 da condução, no texto do aprovador (etapa 6) e no chamado `templates/azure-ambiente/permissoes-infra.md`
 (com o código real da conexão). Parente de [[feedback_comando_pro_owner_passo_a_passo]] (o formato dos comandos
