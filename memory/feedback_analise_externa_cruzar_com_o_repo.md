@@ -1,7 +1,7 @@
 ---
 name: feedback_analise_externa_cruzar_com_o_repo
 description: Análise do kit feita por outra IA (sem acesso ao repo) se avalia item a item contra decisoes.md, o "Fora de escopo" do INDEX e o código — metade já existe ou contraria decisão tomada
-gatilho: quando o owner trouxer análise, review ou sugestões sobre o kit feitas por outra IA ou por terceiro
+gatilho: quando o owner trouxer análise, review ou sugestões sobre o kit feitas por outra IA ou por terceiro, ou um texto/plano vindo de outra conversa
 metadata:
   type: feedback
 ---
@@ -16,6 +16,10 @@ cortado (runtime declarativo = config nova; recall semântico). Das ~25 sugestõ
 **Why:** quem analisa sem o repo não vê as decisões negativas — e a sugestão mais sedutora costuma
 ser justamente uma delas. O owner confirmou o formato: tabela sugestão × nosso cenário × veredito
 (✅/🟡/❌), com o motivo de cada ❌ citando a decisão.
+
+**Vale também pro texto que outra conversa do Claude entregou (2026-10-28):** 5 fatos e um plano; conferidos
+um a um, 1 estava desatualizado e a premissa central era falsa (F-044). O owner confia no que foi conferido, não
+no que foi colado.
 
 **How to apply:** pra cada sugestão, antes de opinar: (1) já existe? (Grep no código/docs);
 (2) contraria `docs/decisoes.md` ou o "Fora de escopo" do INDEX?; (3) tem caso real que doeu
