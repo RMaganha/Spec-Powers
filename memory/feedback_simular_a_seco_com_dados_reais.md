@@ -20,3 +20,5 @@ corrige; prosa só convence.
 com saída no scratchpad; mostre antes/depois em bytes e um teste com casos reais; diga o que a simulação
 NÃO prova (casamento por palavra é mais burro que o modelo). Nunca grave no projeto — a âncora é a regra 8.
 Relacionado: [[feedback_medir_antes_de_afirmar_ganho]], [[feedback_medir_a_partida_inteira_nao_o_arquivo_acusado]].
+
+- Confirmado de novo em 2026-10-28 (0.48.0): ler o to-dolist real do Whats antes do desenho mostrou que "linha por linha" não servia (926 linhas, só 108 começam com "- "); o desenho virou "um recado por linha", e a prévia nos 3 projetos, sem gravar nada, conferiu a soma antes do código ir para a branch.

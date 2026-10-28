@@ -11,7 +11,7 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 
 | id | data | gatilho | classe | guardrail | status |
 |---|---|---|---|---|---|
-| F-001 | 2026-07-24, 2026-07-30 | quando faltar um caminho/nome que o owner tem na cabeça | memória não carregou | `templates/CLAUDE.md` (pergunte, não vasculhe) · `test_perguntar_nao_vasculhar` | fechado |
+| F-001 | 2026-07-24, 2026-07-30, 2026-10-28 | quando faltar um caminho/nome que o owner tem na cabeça | memória não carregou | `templates/CLAUDE.md` (pergunte, não vasculhe) · `test_perguntar_nao_vasculhar` | fechado |
 | F-002 | 2026-07-31 | quando gerar o mapa de um projeto cujo framework não foi declarado | premissa não-dita | `templates/mapa_neural.py` (rota por conteúdo) · `test_extrai_rota_flask` | fechado |
 | F-003 | 2026-07-31 | quando o kit for gravar algo sobre infra (rede, proxy, CA, banco) | premissa não-dita | `commands/kickoff.md` (pergunta a infra) · `test_infra_pergunta_no_kickoff` | fechado |
 | F-004 | 2026-07-30 | quando a tarefa citar outro projeto como referência | premissa não-dita | regra crítica 8 + hook `PreToolUse` · `test_bloqueia_outro_repo` | fechado |
@@ -53,6 +53,31 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-040 | 2026-10-23 | quando um fato do projeto que o owner cita em conversa (infra, como roda, ambiente) for movido pra fora do `CLAUDE.md`, ou quando regra do kit for copiada no `CLAUDE.md` do projeto | fato de infra atrás de gatilho de arquivo + cópia velha das regras do kit: o assistente "perdeu a memória" e o owner repetia nome do Web App e porta | regras do kit entregues pelo plugin (`hooks/regras_do_kit.py`, só com a marca); `templates/migrar_claude_md.py` mantém o `## Contexto` por extenso e confere a conservação linha a linha antes de gravar; regra por tipo de arquivo lida antes de gravar (`hooks/regra_antes_de_gravar.py`) · `test_whats_contexto_sem_ponteiro_para_rules` + `test_whats_conservacao` + `test_blocos_reais_cabem_no_limite` + `test_write_de_sql_novo_nega_com_o_texto_da_regra` | aberto |
 | F-041 | 2026-10-23 | quando a tarefa rodar por subagentes (plano de várias tarefas, revisão por tarefa) ou passar de ~10 min sem mensagem ao owner | progresso invisível: a lista de tarefas parada e quase 1 hora sem aviso pareceram trabalho travado | memória `feedback_avisar_progresso_em_execucao_longa` (lista avançada no turno em que a tarefa fecha; 1 linha por retorno com o que falta e quanto tempo) · sem teste | aberto |
 | F-044 | 2026-10-28 | quando escrever ou receber um texto pra colar numa conversa nova | premissa não conferida atravessa de uma conversa pra outra e vira plano lá | nenhum · sem teste | aberto |
+| F-045 | 2026-10-28 | quando o owner citar outra conversa ("em outro chat você disse…") | resposta sem fonte sobre o que está gravado na máquina | memória feedback_ler_a_outra_conversa_antes_de_nao_sei (gatilho_resposta) · sem teste | aberto |
+| F-046 | 2026-10-28 | quando pedir ao owner uma decisão que muda o comportamento em mais de uma peça | owner decide sem ver tudo o que a escolha afeta | nenhum · sem teste | aberto |
+
+### F-046 — a pergunta de decisão listou só parte do que a escolha mudava (aberto)
+
+- **Falhou:** na pergunta "o kit segue lendo o formato antigo até o upgrade?" listei 3 peças (o hook do teto, a
+  trava de uma feature por conversa, o doctor); a busca automática, que eu já tinha mudado na 0.47.0, ficou de
+  fora. O owner respondeu sem saber dela, e a outra conversa explicou a mesma pergunta de outro jeito.
+- **Verdade:** quando a pergunta lista o que a escolha afeta, lista tudo, inclusive o que já foi decidido de outro
+  jeito; senão a resposta vale pra menos do que parece.
+- **Guardrail:** nenhum. O que funcionou depois: mostrar a divergência com a fonte e perguntar de novo (o owner
+  decidiu: a busca fica como está, `docs/decisoes.md:51`).
+- **Teste:** nenhum.
+
+### F-045 — "não sei" sobre outra conversa sem ler a transcrição (aberto)
+
+- **Falhou:** o owner: *"em outro chat você disse uma coisa aqui diz outra"*; respondi que não sabia o que a outra
+  conversa disse, "porque não tenho acesso a ela". O owner: *"está no projeto as outras conversas e memoria, como
+  não sabe???"*.
+- **Verdade:** as conversas ficam em `~/.claude/projects/<pasta>/*.jsonl`. Lida a `6eb8f8d0`, apareceu uma
+  divergência real: ela recomendou "Sim, até o upgrade" dizendo que a busca seguiria lendo os 115 itens do
+  `FORA-DE-ESCOPO.md` do Whats, e a 0.47.0 tinha tirado essa leitura (vira o F-046).
+- **Guardrail:** memória `feedback_ler_a_outra_conversa_antes_de_nao_sei` com `gatilho_resposta` (a resposta que
+  diz "não sei / não tenho acesso … outra conversa" volta uma vez).
+- **Teste:** nenhum.
 
 ### F-044 — texto de passagem leva premissa não conferida (aberto)
 

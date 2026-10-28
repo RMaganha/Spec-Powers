@@ -6,7 +6,6 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [upgrade converte o fora de escopo e o to-dolist](../specs/fora-de-escopo-no-to-dolist.md) — o `upgrade` leva cada projeto pro desenho do kit sem perder nada; o `doctor` aponta quem falta — aberta
 
 ## A fazer (ordem)
 5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
