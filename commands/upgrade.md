@@ -35,6 +35,19 @@ Abra o `CLAUDE.md` da raiz e procure a linha `<!-- mss-spec:regras-do-kit -->` (
   4. Commit, pela mesma regra de git do projeto: `git add` **pelo nome** de cada arquivo que o script gravou (nunca `-A` nem `.`) e `git commit` — o assistente roda no padrão do kit; no projeto que reserva o git ao owner, entregue os dois comandos um por bloco. Push só como a regra do projeto permitir. Desfazer, antes de commitar: `git restore <os arquivos que o script gravou>`.
   5. **Termine aqui** — commit feito (padrão do kit) ou pedido ao owner (git reservado a ele). As outras categorias ficam pra próxima rodada do `/mss-spec:upgrade`, já com a marca.
 
+## Segundo: to-dolist e fora de escopo no formato antigo → conversão, sozinha
+
+Desde a 0.47.0, "fora de escopo" quer dizer **"não agora"** e é uma linha do `to-dolist.md` com a tag `#fora-de-escopo`; o to-dolist vai pro git (`docs/decisoes.md`, 2026-10-28). Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/converter_to_dolist.py" checar --proj "<raiz do projeto>"` (só lê).
+
+- **"no desenho do kit"** → pule esta seção e siga pras categorias.
+- **Achou formato antigo** (seção "Fora de escopo" no INDEX, `docs/superpowers/FORA-DE-ESCOPO.md`, `.gitignore` ignorando o to-dolist, to-dolist fora do formato) → converta **primeiro e sozinha**: nenhuma categoria roda na mesma rodada. **Nunca perder nada** é a regra: em dois tempos, cada um com o seu commit.
+  0. **A branch** (árvore limpa; com `--dry-run` pule): principal atualizada → `chore/to-dolist-desenho-do-kit`, pela **regra de git do projeto**, igual ao passo 0 da migração acima (no projeto que reserva o git ao owner, entregue os comandos um por bloco e confira com `git branch --show-current`).
+  1. **Tempo 1 — o to-dolist entra no git como está.** `converter_to_dolist.py liberar --proj "<raiz>"` (prévia) mostra as linhas que saem do `.gitignore`; com `--aplicar` ele grava. Commit **só** de `.gitignore` e `to-dolist.md`, pelo nome, com o arquivo **exatamente como estava**: é o "antes" que o git guarda — o upgrade promete voltar atrás pelo git (fim deste comando), e o to-dolist estava fora dele. Sem to-dolist no projeto, só o `.gitignore`.
+  2. **Tempo 2 — prévia.** `converter_to_dolist.py converter --proj "<raiz>"` (não grava). Mostre ao owner o que a saída traz: a **soma** (linhas de origem = recados convertidos + títulos usados + lista do fim + marcação) e **3 linhas reais** como estão e como vão ficar. O que a conversão faz: recado (item com as linhas que continuam embaixo) vira **uma linha**, com o título da seção na frente e a data dele; fora de escopo vira `- <item> #fora-de-escopo (decidido: <data>, <texto inteiro>)`; sem data → a data de hoje; `DD/MM/AAAA` → `AAAA-MM-DD`; ordem pela data, a mais antiga em cima; riscado/FEITA/CONCLUÍDO, data sem ano, parágrafo solto, citação, tabela e código vão **sem mudar uma letra** pra uma lista no fim, pro owner decidir. A seção do INDEX e o `FORA-DE-ESCOPO.md` saem. Saiu `PROBLEMA` → nada é gravado: repasse e pare. Com `--dry-run`, pare aqui.
+  3. **Só com o OK do owner** nas 3 linhas: `converter … --aplicar`. Ele confere de novo (to-dolist já no git, arquivos limpos, soma) e só então grava; não mexe no git.
+  4. Commit dos arquivos que ele gravou/apagou (`to-dolist.md`, `docs/superpowers/INDEX.md`, `docs/superpowers/FORA-DE-ESCOPO.md`), pelo nome e pela regra de git do projeto. Diga ao owner quantas linhas ficaram na **lista do fim** (abaixo do comentário `<!-- upgrade: linhas que a conversão não soube converter … -->`): ele decide cada uma — reescrever no formato, `/mss-spec:to-dolist feito <n>` ou deixar. Desfazer: `git revert` do commit do tempo 2 (o tempo 1 tem o original).
+  5. **Termine aqui.** As categorias ficam pra próxima rodada do `/mss-spec:upgrade`.
+
 Três categorias (projeto **com** a marca):
 
 1. **Arquivos só-do-kit (referência) — atualiza sozinho, sem perguntar.** São iguais em todo projeto; substitua pela versão nova do template:
@@ -43,7 +56,7 @@ Três categorias (projeto **com** a marca):
    - `.claude/rules/*.md` ← `templates/rules/` (regras path-scoped; **só acrescente as que faltam** — **nunca sobrescreva** a que existe, ela é do projeto — e não recrie a que o projeto apagou de propósito por não se aplicar)
    - `docs/FRONTEND.md` ← `templates/FRONTEND.md` (só se o projeto tem UI web)
    - `docker-compose.yml` · `docker-compose.office.yml` · `Dockerfile` · `.dockerignore` ← `templates/docker/` (só se o projeto usa Docker)
-   - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou)
+   - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou — a única saída é a do `/to-dolist.md`, e só pelo `liberar` da seção acima)
    - **Índice de memória plano** (`memory/MEMORY.md` com linhas `- [Título](arquivo.md)` e sem `memory/indice/`): **não sobrescreva**; mostre `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" dividir` em dry-run (tabela família × bytes) e peça OK antes do `--aplicar` — move, não apaga
 
    **Freio da infra própria — o que é MSIG não entra em projeto que não é MSIG.** Leia a linha `**Infra:**` do Contexto do `CLAUDE.md` antes desta categoria. Se for **infra própria**, os arquivos da infra corporativa **não são criados nem atualizados**: `docker-compose.office.yml`, `certs/corp-ca.pem` e o proxy no `.env`; e o `docker-compose.yml` base, se existir, **não** ganha a rede externa `mitiai_network`. Sem esse freio o upgrade **reintroduz** sozinho, a cada rodada, exatamente o que o `kickoff` deixou de fora (a categoria 1 sobrescreve sem perguntar).

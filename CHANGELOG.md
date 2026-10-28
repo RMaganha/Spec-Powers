@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.48.0 — 2026-10-28 (o upgrade converte o to-dolist e o fora de escopo dos projetos, sem perder nada)
+- **o que motivou:** a 0.47.0 mudou o desenho no kit, mas o `commands/upgrade.md` não sabia levar os projetos pra ele e o `doctor` só conferia o ambiente. Lido sem gravar: o to-dolist do Whats tem 926 linhas (só 108 começam com "- "), fora do git; o Energy e o Transportes têm a seção no INDEX (58 e 113 linhas); o Whats, 116 itens no `FORA-DE-ESCOPO.md` com motivo de um parágrafo.
+- feat(**converter_to_dolist**): `templates/converter_to_dolist.py` — `checar` (só lê), `liberar` (tira o to-dolist do `.gitignore`) e `converter` (recado com as linhas de baixo vira 1 linha com o título da seção e a data dele; fora de escopo vira `#fora-de-escopo (decidido: <data>, <texto inteiro>)`; sem data → a do dia; `DD/MM/AAAA` → `AAAA-MM-DD`; ordem pela data; riscado/FEITA/CONCLUÍDO, data sem ano, parágrafo, citação, tabela e código vão intactos pra uma lista no fim). Soma de linhas e palavras de cada recado conferidas; `--aplicar` só grava com o to-dolist no git e os arquivos limpos; CRLF/BOM preservados · `tests/test_converter_to_dolist.py` (21 testes).
+- feat(**upgrade**): seção "Segundo: to-dolist e fora de escopo no formato antigo", sozinha na rodada e em dois tempos — commit do to-dolist como está, depois prévia com a soma e 3 linhas reais, OK do owner, conversão e commit.
+- feat(**doctor**): check 10 roda o `checar` e aponta o que falta converter (⚠, nunca ✗); a versão do kit passa a ser o check 11.
+- Prévia nos três projetos, sem gravar: Whats 1.066 linhas de origem (601 convertidas, 292 na lista), Energy 68 (5 na lista), Transportes 134 (19 na lista); soma batendo.
+- **fora:** rodar o upgrade nos projetos (o owner roda, em cada um); tirar do kit o código do formato antigo (depois de todos convertidos).
+
 ## 0.47.0 — 2026-10-28 (fora de escopo vira item do to-dolist com a tag #fora-de-escopo)
 - **o que motivou:** o mesmo conteúdo vivia em 3 lugares e formatos (blocos `> ` no `FORA-DE-ESCOPO.md` do kit, que a busca não lia; linhas `- ` no Whats; seção do INDEX no Transportes e no Energy); a busca roda a cada mensagem e repetia o item; três textos diziam "NÃO fazer" sem "naquele momento" e o assistente tratou como proibição — *"naquela data eu não iria fazer agora eu vou!"*. Decisão do owner em `docs/decisoes.md` (2026-10-28).
 - feat(**to-dolist**): é o único lugar do "fora de escopo", que quer dizer "não agora" — `- <o que ficou para depois> #fora-de-escopo (decidido: AAAA-MM-DD, motivo curto)`; `adicionar … #fora-de-escopo` pergunta o motivo se faltar; `listar #fora-de-escopo` mostra só esses. O `to-dolist.md` **vai pro git** (molde `templates/gitignore` e o kit não o ignoram mais; o `compliance` deixou de exigir); custo: item anotado numa branch só aparece na `main` depois do merge.
