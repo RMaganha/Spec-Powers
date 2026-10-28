@@ -129,7 +129,9 @@ def _status(item):
 
 def _secao_ignorada(titulo):
     """Backlog e 'Fora de escopo' não são feature aberta: backlog é o que ainda não começou (F-030 —
-    34 itens `aberta` de backlog travavam o nova-feature pra sempre)."""
+    34 itens `aberta` de backlog travavam o nova-feature pra sempre). A seção 'Fora de escopo' é do
+    formato antigo (desde a 0.47.0 o item vive no to-dolist com `#fora-de-escopo`) — fica até o upgrade
+    converter o projeto."""
     t = normalizar(titulo)
     return t.startswith("backlog") or "fora de escopo" in t
 

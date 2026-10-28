@@ -193,7 +193,7 @@ def test_index_so_com_tarefa_viva():
     assert (REPO / "docs" / "superpowers" / "INDEX-historico.md").exists(), \
         "falta docs/superpowers/INDEX-historico.md (tarefas fechadas, lidas sob demanda)"
     txt = p.read_text(encoding="utf-8")
-    assert "Fora de escopo" in txt, "a seção anti-re-litígio 'Fora de escopo' TEM que ficar no índice vivo"
+    assert "## Fora de escopo" not in txt, "fora de escopo mora no to-dolist com a tag #fora-de-escopo (0.47.0)"
 
 
 def test_moldes_documentam_o_teto():

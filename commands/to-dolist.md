@@ -1,6 +1,6 @@
 ---
-description: Caixa de captura rápida (to-do) visível em qualquer branch — adicionar/listar/feito num to-dolist.md local, fora do git
-argument-hint: "[adicionar <texto> | listar | feito <n>]"
+description: Caixa de captura rápida (to-do) e lugar do que ficou "pra depois" (#fora-de-escopo) — adicionar/listar/feito no to-dolist.md da raiz, versionado
+argument-hint: "[adicionar <texto> [#fora-de-escopo] | listar [#fora-de-escopo] | feito <n>]"
 disable-model-invocation: true
 ---
 
@@ -12,16 +12,23 @@ Caixa de captura de ideias/ajustes que surgem **fora do contexto** da tarefa atu
 
 Também é o destino da **bola de neve** — quando, pra fechar o assunto A, aparece o assunto B que "precisa ser entendido antes". Só **entender** B cabe na janela, e por **subagente** (lê em janela separada, devolve o resumo). **Mexer** em B vem pra cá — `adicionar <B> (trava: <A>)` — e a janela segue em A, ou para. E é o destino do que sobra quando o hook `alerta_contexto.py` avisa que a janela passou de **75%**: fecha-se A, anota-se o resto aqui e `/clear`.
 
-A lista vive em **`to-dolist.md` na raiz do projeto** (não na pasta do plugin) e é **ignorada pelo git** de propósito: por não ser rastreada, o git não a toca ao trocar de branch — então ela aparece em **qualquer branch**. É pessoal, local e não versionada.
+E é o **único lugar do "fora de escopo"**, que quer dizer **"não agora"**: decidido numa conversa, numa data, com um motivo; volta quando o owner decidir — **nunca é proibição**. Uma linha por item, com a tag:
+
+```
+- <o que ficou para depois> #fora-de-escopo (decidido: AAAA-MM-DD, motivo curto)
+```
+
+Motivo longo vai pro `docs/decisoes.md`. **Você nunca cita um item `#fora-de-escopo` sozinho** — nem a busca automática o lê: ele aparece quando o owner pede (`listar #fora-de-escopo`).
+
+A lista vive em **`to-dolist.md` na raiz do projeto** (não na pasta do plugin) e **vai pro git**, pra não se perder ao trocar de máquina. Custo: item anotado numa branch só aparece na `main` depois do merge.
 
 Interprete `$ARGUMENTS`:
 
-1. **`adicionar <texto>`** — acrescente uma linha no fim de `to-dolist.md` (crie o arquivo na raiz se não existir): `- <texto> (add: <data de hoje, AAAA-MM-DD>)`. Confirme o que anotou. Garanta que o `.gitignore` da raiz ignora o arquivo com o padrão **ancorado** `/to-dolist.md` (com a barra — sem ela pegaria qualquer `to-dolist.md` em subpastas); adicione a linha se faltar. Essa lista nunca sobe pro git.
-2. **`listar`** — leia `to-dolist.md` e mostre os itens **numerados** (1..N), na ordem do arquivo. Se não existir ou estiver vazio, diga que a lista está vazia.
-3. **`feito <n>`** — remova a **n-ésima** linha da lista (numeração do `listar`). Confirme qual item saiu. Não arquive em outro canto — sai e pronto.
+1. **`adicionar <texto>`** — acrescente uma linha no fim de `to-dolist.md` (crie o arquivo na raiz se não existir): `- <texto> (add: <data de hoje, AAAA-MM-DD>)`. Se o texto traz **`#fora-de-escopo`**, a linha sai no formato acima — `- <texto> #fora-de-escopo (decidido: <data de hoje>, <motivo>)`; sem motivo no texto, **pergunte** antes de gravar. Confirme o que anotou.
+2. **`listar`** — leia `to-dolist.md` e mostre os itens **numerados** (1..N), na ordem do arquivo. **`listar #fora-de-escopo`** mostra só os que têm a tag, com a numeração do arquivo inteiro (a mesma do `feito`). Se não existir ou estiver vazio, diga que a lista está vazia.
+3. **`feito <n>`** — remova a **n-ésima** linha da lista (numeração do `listar`). Confirme qual item saiu. Não arquive em outro canto — sai e pronto. Item `#fora-de-escopo` que o owner decidiu fazer sai assim quando vira feature.
 
 Regras:
-- **Nunca commite `to-dolist.md`** nem rode `git add` nela — é local por design.
 - Não invente itens; mexa só no que o texto pedir.
 - É só captura rápida — não vira spec nem plano. Quando for realmente fazer um item: feature → `/mss-spec:nova-feature`; senão trate como bugfix/ajuste normal.
 

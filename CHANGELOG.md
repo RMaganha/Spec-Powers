@@ -2,6 +2,16 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.47.0 — 2026-10-28 (fora de escopo vira item do to-dolist com a tag #fora-de-escopo)
+- **o que motivou:** o mesmo conteúdo vivia em 3 lugares e formatos (blocos `> ` no `FORA-DE-ESCOPO.md` do kit, que a busca não lia; linhas `- ` no Whats; seção do INDEX no Transportes e no Energy); a busca roda a cada mensagem e repetia o item; três textos diziam "NÃO fazer" sem "naquele momento" e o assistente tratou como proibição — *"naquela data eu não iria fazer agora eu vou!"*. Decisão do owner em `docs/decisoes.md` (2026-10-28).
+- feat(**to-dolist**): é o único lugar do "fora de escopo", que quer dizer "não agora" — `- <o que ficou para depois> #fora-de-escopo (decidido: AAAA-MM-DD, motivo curto)`; `adicionar … #fora-de-escopo` pergunta o motivo se faltar; `listar #fora-de-escopo` mostra só esses. O `to-dolist.md` **vai pro git** (molde `templates/gitignore` e o kit não o ignoram mais; o `compliance` deixou de exigir); custo: item anotado numa branch só aparece na `main` depois do merge.
+- feat(**busca automática**): `templates/memoria_indice.py` não lê mais o `FORA-DE-ESCOPO.md` nem o to-dolist — o assistente não cita fora de escopo sozinho · `test_recall_nao_cita_fora_de_escopo_sozinho`.
+- feat(**memory capturar**, **nova-feature**): o "pra depois" da sessão vira linha `#fora-de-escopo` no to-dolist. Molde `templates/INDEX.md` sem a seção "Fora de escopo".
+- chore(**formato antigo, provisório até o upgrade**): `rodizio_partida.py`, `um_item_por_janela.py` e `doctor` ainda tratam a seção antiga do INDEX dos projetos não convertidos, marcados como formato antigo (escolha do owner).
+- chore(**kit**): os 61 itens do `docs/superpowers/FORA-DE-ESCOPO.md` viraram linhas do `to-dolist.md` (data = a da decisão em `docs/decisoes.md` quando ela existe, senão a do 1º commit que registrou o item; "motivo não registrado" onde nunca houve); o `.bpmn` do Bizagi saiu da lista (foi entregue depois). Arquivo e seção do INDEX apagados.
+- docs: spec `docs/specs/fora-de-escopo-no-to-dolist.md`; LEIA-ME, COMO-FUNCIONA, README dos hooks e painel de anatomia com o texto novo · `tests/test_fora_de_escopo_no_to_dolist.py` (6 testes).
+- **fora:** converter os outros projetos (doctor aponta, upgrade converte — próxima feature); o `CLAUDE.md` dos projetos.
+
 ## 0.46.0 — 2026-10-27 (nunca trabalhar em worktree, nunca abrir conversa a partir de outra)
 - **o que motivou:** a conversa da 0.44.0 abriu sozinha `.claude/worktrees/partida-em-dois-niveis` — o aviso do próprio kit mandava ("abra esta num worktree") — e deixou 2 commits e memória fora da `main`; e duas conversas abertas a partir de outra ficaram penduradas uma na outra na barra lateral. O owner não usa nenhum dos dois.
 - feat(**sem_worktree**): hook novo, ligado. `WorktreeCreate` falha sempre (porta única do Claude Code: `EnterWorktree`, subagente/workflow isolado, sessão de fundo); `PreToolUse` nega `EnterWorktree`, `Agent` com `isolation: "worktree"`, escrita dentro de um worktree e `start_session`/`hand_off_to_session` (manda entregar o texto pronto pra colar; o owner abre pelo +); `SessionStart` avisa quando a conversa começa dentro de um worktree. Escape `MSS_WORKTREE_OFF=1` (menos no `WorktreeCreate`).

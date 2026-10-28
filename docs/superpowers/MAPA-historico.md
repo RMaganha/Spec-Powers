@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-28 — saiu do MAPA (feature fora de escopo no to-dolist)
+
+**Onde estamos:** `feature/nunca-worktree` (saiu da `main` em `00998bc`, 0.45.0) — **0.46.0 pronta na branch; merge é do owner**: hook novo `sem_worktree.py` + 5ª cerca do `git_publicacao.py` — nunca worktree (criar, entrar, gravar dentro) e nunca conversa aberta a partir de outra (o assistente entrega o texto pronto e o owner abre pelo +). O aviso de "outra feature aberta" parou de mandar abrir worktree: pasta na branch de outra feature → parar e perguntar. Spec `docs/specs/nunca-trabalhar-em-worktree.md`.
+
 ## 2026-10-27 — saiu do rodízio do MAPA (0.46.0, nunca trabalhar em worktree)
 
 **Onde estamos:** `feature/bug-e-duvida-045` (saiu da `main` em `a394191`, 0.44.0) — **0.45.0 pronta na branch; merge é do owner**: a 0.43.0 (`b2491bb`, `feature/bug-e-duvida`) ficou fora da `main` quando a 0.44.0 foi integrada e foi reaplicada por cima dela — `/mss-spec:bug` e `/mss-spec:duvida` novos, `/mss-spec:diagnostico` destravado e chamado pelo `bug`, regra 11 aponta pro `bug`, regra "memória contestada → mostre a memória". Spec `docs/specs/bug-e-duvida.md`.

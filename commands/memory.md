@@ -49,7 +49,7 @@ Você vai **destilar esta sessão** e gravar o que é durável, pra parar de dep
 
 2. **Monte os rascunhos, roteando cada achado pro lar durável certo** (não crie destino novo):
    - **decisão transversal** ("X em vez de Y porque Z", arquitetura/lib/padrão) → 1 linha em **`docs/decisoes.md`**;
-   - **decisão de escopo** ("decidiu-se NÃO fazer W") → seção **"Fora de escopo"** do **`docs/superpowers/INDEX.md`** (é o insumo anti-re-litígio: semanas depois isso me impede de repropor o que já foi descartado);
+   - **decisão de escopo** ("W fica pra depois") → 1 linha no **`to-dolist.md`** da raiz: `- <W> #fora-de-escopo (decidido: <data>, <motivo curto>)` — quer dizer **"não agora"**, nunca proibição; volta quando o owner decidir (motivo longo → `docs/decisoes.md`). Você não cita esse item sozinho depois: ele aparece quando o owner pede (`/mss-spec:to-dolist listar #fora-de-escopo`);
    - **narrativa do assunto** ("tentou-se A, virou B") → **Histórico** da spec viva em `docs/superpowers/specs/`;
    - **falha que já aconteceu** (premissa **derrubada** pelo owner nesta sessão, reincidência de um erro antigo, bug silencioso que só apareceu no projeto real) → 1 caso em **`docs/EVALS.md`**: `id · data · gatilho · classe · guardrail · status`. **Sem guardrail, o caso entra `aberto`** — e aí ele ganha um bloco curto (`Falhou · Verdade · Guardrail · Teste`). Com guardrail **e teste**, entra `fechado` e vive só na linha da tabela. Nunca cite teste que não existe;
    - **o que DEU CERTO** (abordagem, ordem de ataque ou jeito de perguntar que o owner confirmou — não só correção) → mesma prateleira do aprendizado durável, abaixo. O acervo de acertos é metade do valor: sem ele, só sobra a lista do que evitar;

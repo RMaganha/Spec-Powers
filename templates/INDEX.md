@@ -1,4 +1,5 @@
-<!-- TETO: este índice é lido na PARTIDA — só tarefa ABERTA + a seção "Fora de escopo" (anti-re-litígio).
+<!-- TETO: este índice é lido na PARTIDA — só tarefa ABERTA. O que ficou "pra depois" é linha do `to-dolist.md`
+     com a tag `#fora-de-escopo`, não seção daqui.
      Tarefa que fecha SAI daqui para o `docs/superpowers/INDEX-historico.md`, lido sob demanda — o hook
      `teto_ao_gravar.py` move a linha `fechada` sozinho ao gravar, mesmo abaixo do teto. -->
 <!-- Índice de TAREFAS do projeto. O /mss-spec:kickoff SEMEIA aqui as necessidades levantadas na conversa
@@ -14,5 +15,3 @@
 ## Backlog
 <!-- Necessidade levantada, ainda não começada: 1 linha `aberta` por assunto. NÃO conta como feature aberta;
      ao virar feature, a linha sobe pra "Em andamento". Backlog não é o estado atual do projeto. -->
-
-## Fora de escopo — decidido NÃO fazer

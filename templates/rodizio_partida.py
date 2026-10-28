@@ -4,7 +4,8 @@
           2 primeiros blocos (atual + 1 anterior — o que templates/MAPA.md promete); do 3º em diante vão
           para docs/superpowers/MAPA-historico.md, em prepend datado. "Conexões" não se toca.
 `index` : linha de item com status `fechada` vai para docs/superpowers/INDEX-historico.md (prepend
-          datado). Ficam `aberta`, `em andamento`, `pausada: …`, a seção "Fora de escopo" inteira e cabeçalhos.
+          datado). Ficam `aberta`, `em andamento`, `pausada: …`, a seção "Fora de escopo" inteira (formato
+          antigo, até o upgrade converter pro to-dolist) e cabeçalhos.
 
 Por que: MAPA do Whats com 89.651 bytes (teto 6.000) e INDEX com 61.399 (teto 7.000) relidos em toda
 janela — o `doctor` avisava, ninguém movia. Dry-run por padrão; `--aplicar` grava depois de conferir que
@@ -16,7 +17,7 @@ bloco ATUAL e isso é conteúdo (edição do owner) — o script diz, não corta
           com mais de LINHA_CURTA e título em negrito vira `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md]`
           (texto inteiro lá) e, havendo CONEXOES.md, `## Conexões` fica só com a linha de nomes. Já na forma →
           nada muda. Depois, só se ainda passar do teto: `mapa` + `index` e a 2ª etapa (F-030 — o que o owner moveu à mão no
-          Whats), parando assim que cabe: INDEX → `## Backlog` → BACKLOG.md · `## Fora de escopo` →
+          Whats), parando assim que cabe: INDEX → `## Backlog` → BACKLOG.md · `## Fora de escopo` (formato antigo) →
           FORA-DE-ESCOPO.md · `## Assuntos existentes` → ASSUNTOS-EXISTENTES.md · linha longa de `## Em andamento`
           → EM-ANDAMENTO.md (fica nome/link — ponteiro — status VERBATIM, que o hook lê); MAPA → corpo de
           `## Conexões` → CONEXOES.md (fica a lista de nomes). Destino que já existe recebe prepend datado,
@@ -256,8 +257,9 @@ STATUS_ITEM = ("aberta", "em andamento", "pausada", "fechada")
 SECOES_INDEX = (           # (casa o título, arquivo, descrição do ponteiro) — nesta ordem, até caber
     ("backlog", "BACKLOG.md", "ideias ainda não começadas, fora da partida (não são o estado atual); item que "
      "vira feature SOBE pro `## Em andamento`"),
-    ("fora de escopo", "FORA-DE-ESCOPO.md", "decisões de NÃO fazer; consulte antes de propor algo novo "
-     "(o recall também lê este arquivo)"),
+    # formato antigo (0.47.0: o item vive no to-dolist com #fora-de-escopo) — fica até o upgrade converter
+    ("fora de escopo", "FORA-DE-ESCOPO.md", "o que ficou pra depois (\"não agora\", nunca proibição); formato "
+     "antigo — o `/mss-spec:upgrade` converte pro `to-dolist.md` com a tag `#fora-de-escopo`"),
     ("assuntos existentes", "ASSUNTOS-EXISTENTES.md", "o que o código já faz, 1 linha por assunto; abra quando "
      "o assunto pedir"),
 )
