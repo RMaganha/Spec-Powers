@@ -5,6 +5,10 @@
 
 ## 2026-10-28 — fechadas
 
+- [upgrade converte o fora de escopo e o to-dolist](../specs/fora-de-escopo-no-to-dolist.md) — o `upgrade` leva cada projeto pro desenho do kit sem perder nada; o `doctor` aponta quem falta — fechada
+
+## 2026-10-28 — fechadas
+
 - [fora de escopo vira item do to-dolist](../specs/fora-de-escopo-no-to-dolist.md) — "não agora", uma linha por item com a tag #fora-de-escopo, to-dolist no git — fechada
 
 ## 2026-10-27 — fechadas

@@ -64,3 +64,4 @@
 - `release` bloquear por caso aberto #fora-de-escopo (decidido: 2026-08-18, o ⚠ basta)
 - grafo semântico profundo (análise de tipos/chamadas) no mapa-neural #fora-de-escopo (decidido: 2026-07-20, o `/mss-spec:mapa-neural` cobre a fatia leve/heurística)
 - `mapa-neural` virar self-organizing map (vetor de features + treino) #fora-de-escopo (decidido: 2026-07-21, deps pesadas, resultado não-determinístico, ganho duvidoso com ~50 itens)
+- tirar do kit o código que ainda aceita o fora de escopo no formato antigo (`rodizio_partida.py`, `um_item_por_janela.py`, check do `doctor`) #fora-de-escopo (decidido: 2026-10-28, só depois de o /mss-spec:upgrade rodar no Whats, no Transportes e no Energy — escolha do owner "Sim, até o upgrade")

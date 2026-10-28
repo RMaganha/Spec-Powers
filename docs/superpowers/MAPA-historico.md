@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-28 — saiu do MAPA (captura da 0.48.0)
+
+**Onde estamos:** `main` — **0.47.0 mesclada (`44fb347`) e no remoto**; a captura da feature (diário, INDEX, MAPA) está num commit local na `main`, push é do owner: "fora de escopo" = "não agora", uma linha `#fora-de-escopo` no `to-dolist.md` (no git); a busca automática não lê mais; 61 itens do kit convertidos; formato antigo dos outros projetos aceito como provisório até o upgrade. Spec `docs/specs/fora-de-escopo-no-to-dolist.md`.
+
 ## 2026-10-28 — saiu do MAPA (abertura da feature upgrade converte o to-dolist)
 
 **Onde estamos:** `feature/fora-de-escopo-no-to-dolist` (saiu da `main` em `244d144`, 0.46.0, com a captura já mesclada) — **feature "fora de escopo vira item do to-dolist"** em andamento, spec `docs/specs/fora-de-escopo-no-to-dolist.md`. Desenho aprovado em 2026-10-28; formato antigo aceito como provisório até o upgrade.

@@ -5,6 +5,7 @@
 
 ## 2026-10-28
 
+- [upgrade-converte-to-dolist] 0.48.0: o upgrade converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com soma e 3 linhas reais → OK); pivô central: "linha por linha" virou "um recado por linha" depois de ler o Whats real; F-045/F-046 → sessions/2026-10-28-upgrade-converte-to-dolist.md
 - [fora-de-escopo-no-to-dolist] 0.47.0: "não agora" vira linha `#fora-de-escopo` no to-dolist (no git), a busca automática não lê mais, 61 itens do kit convertidos; pivô central: formato antigo dos outros projetos aceito como provisório até o upgrade (escolha do owner) → sessions/2026-10-28-fora-de-escopo-no-to-dolist.md
 
 ## 2026-10-23
