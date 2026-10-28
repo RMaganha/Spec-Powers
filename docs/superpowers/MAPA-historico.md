@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-28 — saiu do MAPA (/mss-spec:mapa depois do merge da captura)
+
+**Onde estamos:** `feature/upgrade-converte-to-dolist` (saiu da `main` em `41830b5`, 0.47.0) — **feature "upgrade converte o fora de escopo e o to-dolist"** em andamento, mesma conversa da 0.47.0; desenho aprovado em 2026-10-28 (recado vira 1 linha com o título da seção, texto do fora de escopo inteiro, riscado/FEITO vai pra lista do fim; to-dolist salvo no git como está antes de converter).
+
 ## 2026-10-28 — saiu do MAPA (captura da 0.48.0)
 
 **Onde estamos:** `main` — **0.47.0 mesclada (`44fb347`) e no remoto**; a captura da feature (diário, INDEX, MAPA) está num commit local na `main`, push é do owner: "fora de escopo" = "não agora", uma linha `#fora-de-escopo` no `to-dolist.md` (no git); a busca automática não lê mais; 61 itens do kit convertidos; formato antigo dos outros projetos aceito como provisório até o upgrade. Spec `docs/specs/fora-de-escopo-no-to-dolist.md`.
