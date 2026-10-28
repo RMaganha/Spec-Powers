@@ -146,6 +146,12 @@
 - `test_kit_converteu_o_proprio_fora_de_escopo` — sem `FORA-DE-ESCOPO.md` nem seção no INDEX; cada linha no formato combinado
 - (em `tests/test_hook_recall_memoria.py`) `test_recall_nao_cita_fora_de_escopo_sozinho` — a busca não lê to-dolist nem `FORA-DE-ESCOPO.md`
 
+`tests/test_converter_to_dolist.py` — o upgrade leva o to-dolist e o fora de escopo pro desenho do kit (0.48.0):
+- `test_checar_*` (×3) — aponta o formato antigo; projeto e kit no desenho não apontam nada
+- `test_liberar_*` / `test_recado_numerado_*` / `test_fora_de_escopo_mantem_o_texto_inteiro` / `test_negrito_no_meio_*` / `test_data_*` / `test_sem_data_*` / `test_ordem_*` / `test_linha_ja_no_formato_fica_igual`
+- `test_riscado_feito_e_data_incompleta_vao_pra_lista_sem_mudar` / `test_nenhuma_linha_some_a_soma_bate` / `test_index_perde_so_a_secao_*` / `test_exemplos_*`
+- `test_aplicar_recusa_*` (×2) / `test_aplicar_grava_depois_do_tempo_1` / `test_crlf_*` / `test_cli_previa_nao_grava` / `test_upgrade_e_doctor_chamam_o_conversor`
+
 `tests/test_hook_registro.py` — registro local dos hooks (`hooks/_registro.py`):
 - `test_hook_que_age_grava_uma_linha` (×7) — cada hook, quando age, grava 1 linha com hook/decisão/detalhe/sessão
 - `test_nunca_grava_o_texto_do_prompt_nem_do_comando` (×7) — segredo falso no comando, prompt e caminho não aparece
@@ -161,4 +167,4 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-10-28 · branch feature/fora-de-escopo-no-to-dolist (fora de escopo vira item do to-dolist) · 999 passed
+**Último 100% verde:** 2026-10-28 · branch feature/upgrade-converte-to-dolist (o upgrade converte o to-dolist e o fora de escopo) · 1020 passed

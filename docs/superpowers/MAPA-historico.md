@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-28 — saiu do MAPA (abertura da feature upgrade converte o to-dolist)
+
+**Onde estamos:** `feature/fora-de-escopo-no-to-dolist` (saiu da `main` em `244d144`, 0.46.0, com a captura já mesclada) — **feature "fora de escopo vira item do to-dolist"** em andamento, spec `docs/specs/fora-de-escopo-no-to-dolist.md`. Desenho aprovado em 2026-10-28; formato antigo aceito como provisório até o upgrade.
+
 ## 2026-10-28 — saiu do MAPA (0.47.0, fora de escopo no to-dolist)
 
 **Onde estamos:** `chore/captura-fora-de-escopo` (saiu da `main` em `4cbbdfb`, 0.46.0, igual ao remoto; nenhuma feature em andamento no INDEX) — **captura pronta na branch (`49317cf`); merge é do owner**: decidido que "fora de escopo" quer dizer "não agora" e vira item do `to-dolist.md` com a tag `#fora-de-escopo`, com o to-dolist no git; e que todo projeto segue o desenho do kit (o doctor aponta, o upgrade converte). Caso F-044 (texto de passagem leva premissa não conferida). Nenhum código mudou.
