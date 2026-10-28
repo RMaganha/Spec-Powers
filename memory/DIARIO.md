@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-10-28
+
+- [fora-de-escopo-no-to-dolist] 0.47.0: "não agora" vira linha `#fora-de-escopo` no to-dolist (no git), a busca automática não lê mais, 61 itens do kit convertidos; pivô central: formato antigo dos outros projetos aceito como provisório até o upgrade (escolha do owner) → sessions/2026-10-28-fora-de-escopo-no-to-dolist.md
+
 ## 2026-10-23
 
 - [regras-do-kit] do "sempre bate no limite" à 0.42.0: regras do kit pelo plugin, `## Contexto` por extenso, regra por tipo lida antes de gravar, migração que confere sozinha; pivô central: subir o teto → separar kit e projeto, e o índice medido nos 76 históricos do Whats antes de adotar (F-040, F-041) → sessions/2026-10-23-regras-do-kit-pelo-plugin.md
