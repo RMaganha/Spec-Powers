@@ -215,6 +215,91 @@ MOTIVO_MEMORIA = (
 )
 
 
+# F-047: a memória que veta um desenho casa com o que o assistente PROPÕE, não com o pedido do owner (o recall só
+# vê o pedido). No Whats a busca com o texto inteiro da proposta não trouxe nenhuma das memórias que a vetavam;
+# com o termo curto do tema (`build`, `arquivo novo`) trouxe as duas. Só resposta que propõe: relato passa.
+# Medido em 2.285 respostas reais: marca solta ("plano", "desenho") e tema solto ("build", "arquivo") devolviam
+# 314 — quase todo relato fala de arquivo. Só marca forte de proposta + frase de MUDANÇA no tema.
+RE_PROPOSTA = re.compile(r"(?i)\bcomo ficaria\b|\bminha recomenda|\brecomendo\b|\bproponho\b|\bsugiro\b"
+                         r"|\bpremissas\b|\bcrit[ée]rios de aceite\b")
+_PECA = r"(?:arquivos?|m[óo]dulos?|scripts?|bibliotecas?|depend[êe]ncias?|pacotes?|ferramentas?|etapas?)"
+TEMAS = (   # (nome do tema, termos curtos que vão pra busca do kit, a frase que mostra a mudança proposta)
+    ("build", ("build",), re.compile(r"(?i)\betapas? nov[ao]s?\b[^.\n]{0,60}\b(?:build|imagem|dockerfile)\b"
+                                     r"|\b(?:no|ao|do) (?:build|dockerfile)\b"
+                                     r"|\b(?:build|dockerfile)\b[^.\n]{0,30}\bganha\b")),
+    # "biblioteca nova", "etapa nova", "ferramenta nova" — a memória do owner fala em "arquivos novos" (Whats)
+    ("peça nova", ("arquivos novos", "biblioteca nova"),
+     re.compile(rf"(?i)\b{_PECA} nov[oa]s?\b|\bnov[oa]s? {_PECA}\b|\b(?:npm|pip) install\b")),
+    ("variável de ambiente", ("variavel de ambiente",),
+     re.compile(r"(?i)\bvari[áa]ve(?:l|is) (?:de ambiente )?nova|\bnovas? vari[áa]ve"
+                r"|\b(?:chave|flag) nova\b|\bnova (?:chave|flag)\b")),
+    ("rede/proxy", ("proxy",), re.compile(r"(?i)\bproxy\b|\bcertificado da\b|\bCA (?:da|corporativa)\b")),
+)
+POR_TEMA = 3
+MOTIVO_PROPOSTA = (
+    "[mss-spec] Antes de entregar — memória na hora da proposta (caso F-047): a resposta propõe mudança em "
+    "{temas} e não cita estas memórias do projeto sobre o tema:\n{lista}\n"
+    "Abra cada uma. Se alguma veta ou muda o desenho, refaça a proposta dizendo o que mudou; se nenhuma se "
+    "aplica, cite-as em 1 linha e entregue."
+)
+
+
+def _motor():
+    """`templates/memoria_indice.py` — o mesmo motor do recall (hooks/ e templates/ são irmãos)."""
+    import importlib.util
+    caminho = os.path.join(KIT, "templates", "memoria_indice.py")
+    spec = importlib.util.spec_from_file_location("memoria_indice", caminho)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _citada(ponteiro, texto_norm, norm):
+    """A resposta cita o ponteiro: pelo nome do arquivo (sem extensão), pelo `arquivo:linha` ou pelo título."""
+    onde, _, titulo = ponteiro.partition(" — ")
+    arquivo = onde.split(":")[0]
+    nome = os.path.splitext(os.path.basename(arquivo))[0]
+    if nome not in ("decisoes", "EVALS", "DIARIO") and norm(nome) in texto_norm:
+        return True
+    if ":" in onde and norm(onde) in texto_norm:
+        return True
+    return bool(titulo) and "indice/" in arquivo and norm(titulo) in texto_norm
+
+
+def memorias_da_proposta(texto, raiz, ja_vistas=()):
+    """[(tema, ponteiro)] — memória/subíndice/decisão do tema que a resposta propõe e não cita."""
+    if not os.path.isdir(os.path.join(raiz, "memory")):
+        return []
+    sem_codigo = RE_CERCADO.sub(" ", texto)
+    if not RE_PROPOSTA.search(sem_codigo):
+        return []
+    temas = [(nome, termos) for nome, termos, rx in TEMAS if rx.search(sem_codigo)]
+    if not temas:
+        return []
+    from pathlib import Path
+    motor = _motor()
+    norm = lambda s: " ".join(re.sub(r"[^a-z0-9]+", " ", motor._norm(s)).split())   # noqa: E731
+    texto_norm = norm(texto)
+    saida, vistos = [], set(ja_vistas)
+    for nome, termos in temas:
+        n = 0
+        for termo in termos:
+            minimo = len(motor.tokens(termo)[0])       # todas as palavras: "arquivos novos" não casa só "novos"
+            achados = [p for p in motor.casar(Path(raiz), termo, limite=POR_TEMA * 3, minimo=minimo, diario=False)
+                       if p.prio in (motor.PRIO["memoria"], motor.PRIO["indice"], motor.PRIO["decisao"])]
+            for p in achados:
+                chave = p.ponteiro.split(" — ")[0]
+                if n >= POR_TEMA or chave in vistos:
+                    continue
+                vistos.add(chave)
+                if _citada(p.ponteiro, texto_norm, norm):
+                    continue
+                saida.append((nome, p.ponteiro))
+                n += 1
+    return saida
+
+
 def _ultimo_prompt(transcript):
     """Último prompt de texto do owner no transcript (não resultado de ferramenta), ou ''."""
     if not _texto(transcript):
@@ -276,6 +361,19 @@ def decidir(evento, ambiente=None):
                     f"- `{n}` ({a}): {d}" for n, a, d, _ in achadas[:3])))
                 detalhes.append("memoria=" + ",".join(m[0] for m in achadas[:3]))
         except Exception:                            # noqa: BLE001 — memória quebrada não muda o resto
+            pass
+        try:
+            if not _texto(ambiente.get("MSS_MEMORIA_ACAO_OFF")):
+                import _memoria_de_acao as mem
+                sessao = evento.get("session_id")
+                da_proposta = memorias_da_proposta(texto, raiz, mem.ja_mostradas(sessao))
+                if da_proposta:
+                    mem.marcar(sessao, [p.split(" — ")[0] for _, p in da_proposta])
+                    temas = ", ".join(dict.fromkeys(t for t, _ in da_proposta))
+                    partes.append(MOTIVO_PROPOSTA.format(temas=temas, lista="\n".join(
+                        f"- {p}" for _, p in da_proposta)))
+                    detalhes.append(f"proposta={len(da_proposta)}")
+        except Exception:                            # noqa: BLE001 — busca quebrada não muda o resto
             pass
         if not partes:
             return None

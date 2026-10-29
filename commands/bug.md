@@ -27,8 +27,11 @@ sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga is
 depois disso vem hipótese.
 
 **2. Diagnóstico.** Invoque **`superpowers:systematic-debugging`** e siga a disciplina dela. Fato que
-o owner afirmou não se re-litiga. Precisa de evidência dele (print, log, consulta)? Cada pedido traz
-**um teste que discrimina** — nunca uma lista de hipóteses pra ele testar uma a uma.
+o owner afirmou não se re-litiga — inclusive o próprio sintoma: se o que você leu (conversa, log, código)
+não mostra o erro que ele relatou, **falta leitura**, não erro. Diga o que já leu, onde ainda não achou, e
+pergunte o que ele viu; nunca "não se perdeu" / "não errou" (caso F-047). Precisa de evidência dele (print,
+log, consulta)? Cada pedido traz **um teste que discrimina** — nunca uma lista de hipóteses pra ele testar
+uma a uma.
 
 **3. Não fechou em 2 rodadas** — ou o owner disse que você está perdido, teimoso ou repetindo? **Pare e
 invoque `mss-spec:diagnostico`** (o trilho completo: tabela de fatos do owner, diff contra o que
