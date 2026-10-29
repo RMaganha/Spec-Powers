@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-10-29 — fechadas
+
+- [memória na hora da proposta](../specs/fonte-ou-nao-sei.md) — a resposta que propõe mudança em build, dependência, arquivo novo, variável ou rede volta uma vez com as memórias do tema que ela não citou; sintoma do owner é fato — fechada
+
 ## 2026-10-28 — fechadas
 
 - [upgrade converte o fora de escopo e o to-dolist](../specs/fora-de-escopo-no-to-dolist.md) — o `upgrade` leva cada projeto pro desenho do kit sem perder nada; o `doctor` aponta quem falta — fechada

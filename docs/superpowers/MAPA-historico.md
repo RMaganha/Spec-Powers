@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-10-29 — saiu do MAPA (abertura da feature "memória na hora da proposta")
+
+**Onde estamos:** `chore/captura-upgrade-converte-to-dolist` (saiu da `main` em `6b8c34d`) — **0.48.0 mesclada e no remoto**: o `/mss-spec:upgrade` converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com a soma e 3 linhas reais → OK do owner → conversão) e o `/mss-spec:doctor` (check 10) aponta o que falta. Captura da conversa (F-045, F-046, diário) nesta branch; merge é do owner.
+
 ## 2026-10-28 — saiu do MAPA (/mss-spec:mapa depois do merge da captura)
 
 **Onde estamos:** `feature/upgrade-converte-to-dolist` (saiu da `main` em `41830b5`, 0.47.0) — **feature "upgrade converte o fora de escopo e o to-dolist"** em andamento, mesma conversa da 0.47.0; desenho aprovado em 2026-10-28 (recado vira 1 linha com o título da seção, texto do fora de escopo inteiro, riscado/FEITO vai pra lista do fim; to-dolist salvo no git como está antes de converter).

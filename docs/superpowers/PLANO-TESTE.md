@@ -167,4 +167,9 @@
 - `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
 - `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
-**Último 100% verde:** 2026-10-28 · branch feature/upgrade-converte-to-dolist (o upgrade converte o to-dolist e o fora de escopo) · 1020 passed
+`tests/test_hook_memoria_da_proposta.py` — memória na hora da proposta e sintoma do owner é fato (0.49.0, F-047):
+- `test_proposta_de_build_volta_com_as_memorias_que_a_vetam` / `test_memoria_fora_do_tema_nao_entra` / `test_proposta_que_cita_as_memorias_passa` — a proposta volta com as memórias do tema que não cita, e só essas
+- `test_volta_so_uma_vez_por_sessao` / `test_relato_que_so_menciona_build_passa` / `test_projeto_sem_memoria_passa` / `test_escape_do_owner` — uma vez por sessão; relato e projeto sem `memory/` passam; `MSS_MEMORIA_ACAO_OFF`
+- `test_resposta_que_contraria_o_relato_volta` (×3) / `test_frase_sobre_outra_coisa_passa` — "não se perdeu/não errou" com sujeito volta com a memória; "para não se perder" passa
+
+**Último 100% verde:** 2026-10-29 · branch feature/memoria-na-hora-da-proposta (memória na hora da proposta) · 1031 passed
