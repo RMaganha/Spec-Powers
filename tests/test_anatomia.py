@@ -62,13 +62,15 @@ def test_comandos_extraidos_do_frontmatter(anat):
 
 
 def test_hooks_e_rules_extraidos(anat):
-    """hooks.json diz o que está REGISTRADO; hooks/*.py fora dele aparecem como presentes e
-    não-registrados (o nudge opt-in). Rules vêm de templates/rules/ com seus paths:."""
+    """hooks.json diz o que está REGISTRADO; hooks/*.py fora dele apareceriam como presentes e
+    não-registrados (desde a 0.50.0 todos os hooks vêm registrados — o nudge deixou de ser opt-in, F-048).
+    Rules vêm de templates/rules/ com seus paths:."""
     hk = anat.hooks_do_kit(REPO)
     registrados = [h for h in hk if h["registrado"]]
     assert any("projeto_ativo" in h["arquivo"] for h in registrados), "cerca não aparece registrada"
-    assert any(not h["registrado"] and "capturar_nudge" in h["arquivo"] for h in hk), \
-        "nudge opt-in não aparece como presente-e-não-registrado"
+    assert any("capturar_nudge" in h["arquivo"] for h in registrados), \
+        "lembrete de captura não aparece registrado (voltou a ser opt-in?)"
+    assert any("kit_primeiro" in h["arquivo"] for h in registrados), "kit_primeiro não aparece registrado"
     rl = anat.rules_do_kit(REPO)
     assert {r["nome"] for r in rl} >= {"frontend", "banco-e-segredo", "rota-e-endpoint"}
     assert all(r["paths"] for r in rl), "rule sem paths: no frontmatter"

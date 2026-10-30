@@ -6,7 +6,7 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (pasta em outra feature → parar e perguntar) |
-| `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
+| `capturar_nudge.py` | `Stop` | **ligado por padrão** (0.50.0) | não (avisa o owner) | rede: conversa há 30 min sem captura → `systemMessage` ao owner: rode `/mss-spec:memory capturar` (memória e diário juntos); por sessão (F-048) |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
 | `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
@@ -245,43 +245,35 @@ não disparar.
 
 ---
 
-# Hook opt-in — nudge de captura de memória
+# Hook ligado — lembrete de captura (`capturar_nudge.py`)
 
-`capturar_nudge.py` é um hook **opt-in**, **desligado por padrão** e **não-bloqueante**. Ele **só cutuca** — nunca grava nada sozinho — pra lembrar de rodar `/mss-spec:memory capturar` quando faz tempo desde a última captura.
+`capturar_nudge.py` (evento `Stop`) avisa o **owner** quando a conversa anda há tempo sem captura de memória.
+**Não bloqueia** e **nunca grava** nada: o aviso sai como `systemMessage` ("rode `/mss-spec:memory capturar`"),
+porque é o owner quem digita o comando — e o comando grava a memória **e** o diário. A cobrança dura (memória
+gravada sem diário) é do `diario_junto.py`.
 
-**A fonte da verdade é o comando**, rodado no fecho da feature (o `nova-feature` já delega a ele). Este hook é só a **rede** pra quando o dev esquece de capturar no meio de uma conversa longa. **Se o hook não disparar, nada se perde** — o passo determinístico do fecho cobre.
+**Como decide (por sessão):** o 1º `Stop` da conversa só marca o começo. Passados 30 min
+(`MSS_CAPTURA_INTERVALO_S`, em segundos) sem nenhum Write em `memory/sessions/` no transcript → aviso, e
+remarca. Captura dentro do intervalo → calado e rearma a partir dela. `MSS_CAPTURA_INTERVALO_S=0` avisa em
+todo `Stop` (teste). Estado em `mss_captura_<sessao>.json` no temp do SO — duas conversas não se misturam.
 
-## Por que não vem ligado
+## Por que passou a vir ligado (0.50.0, F-048)
 
-O kit **não registra** este hook no `plugin.json` de propósito: hooks podem **falhar em silêncio** (não disparar sem erro visível), então depender deles seria frágil. Você habilita conscientemente, sabendo que é best-effort.
+Até a 0.49.0 era **opt-in e desligado** (decisão de 2026-07-30: "hooks podem falhar em silêncio; depender deles
+seria frágil"). A conversa da tarde de 2026-10-30 no Whats gravou EVALS e specs e encerrou **sem diário** — a
+captura dependia de alguém lembrar. O owner: *"sempre chamar o diário"*. Como o hook só avisa, falhar em
+silêncio custa um lembrete, não um dado; e o diário tem a cerca própria.
 
-## Como habilitar (no `settings.json` do seu projeto/usuário)
+## Como desligar ou ajustar
 
-Não existe hook nativo "a cada X minutos" no Claude Code — os eventos são por-evento. Os que mais se aproximam:
-
-- **`Stop`** — ao fim de cada resposta do assistente. Com o *throttle* embutido (arquivo de timestamp), o nudge só aparece a cada ~30 min de conversa (ajustável pela env `MSS_CAPTURA_INTERVALO_S`, em segundos).
-- **`PreCompact`** — antes de a conversa ser compactada (o momento em que contexto está prestes a se perder — ótimo pra capturar antes).
-
-Exemplo (registre o que quiser — só `Stop`, só `PreCompact`, ou os dois):
-
-```json
-{
-  "hooks": {
-    "Stop": [
-      { "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/capturar_nudge.py\"" } ] }
-    ],
-    "PreCompact": [
-      { "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/capturar_nudge.py\"" } ] }
-    ]
-  }
-}
-```
+- `MSS_CAPTURA_NUDGE_OFF=1` — escape consciente, só do owner.
+- `MSS_CAPTURA_INTERVALO_S=<segundos>` — intervalo (padrão 1800).
 
 ## Garantias
 
-- **Não grava** memória/diário/decisão — só imprime o lembrete (o `stdout` entra no contexto do assistente).
-- **Não bloqueia** — sai sempre com código 0.
-- **Throttle** — respeita `MSS_CAPTURA_INTERVALO_S` (padrão 1800s) via um timestamp em `%TEMP%`, pra não cutucar a cada mensagem.
+- **Não grava** memória/diário/decisão — só lembra.
+- **Não bloqueia** — sai sempre com código 0; **falha ABERTA** (defeito → calado).
+- Registra `lembrou` no registro local.
 
 ---
 

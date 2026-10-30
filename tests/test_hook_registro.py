@@ -116,8 +116,21 @@ def _cenario_alerta(tmp):
 
 def _cenario_nudge(tmp):
     return ("capturar_nudge.py",
-            {"hook_event_name": "Stop", "cwd": str(tmp), "session_id": "abcdef123456"},
-            {}, "lembrou", "")
+            {"hook_event_name": "Stop", "cwd": str(tmp), "session_id": "abcdef123456",
+             "last_assistant_message": SEGREDO},
+            {"MSS_CAPTURA_INTERVALO_S": "0"}, "lembrou", "intervalo=0")
+
+
+def _cenario_diario(tmp):
+    tmp.mkdir(parents=True, exist_ok=True)
+    t = tmp / "transcript.jsonl"
+    t.write_text(json.dumps({"type": "assistant", "message": {"content": [
+        {"type": "tool_use", "name": "Write", "input": {"file_path": str(tmp / "proj" / "docs" / "EVALS.md"),
+                                                        "content": SEGREDO}}]}}) + "\n", encoding="utf-8")
+    return ("diario_junto.py",
+            {"hook_event_name": "Stop", "cwd": str(tmp / "proj"), "session_id": "abcdef123456",
+             "stop_hook_active": False, "transcript_path": str(t)},
+            {}, "devolveu", "memoria_sem_diario=1")
 
 
 def _cenario_kit_primeiro(tmp):
@@ -161,9 +174,9 @@ def _cenario_citacoes(tmp):
 
 CENARIOS = [_cenario_publicacao, _cenario_pipe, _cenario_ancora, _cenario_um_item,
             _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento, _cenario_teto,
-            _cenario_citacoes, _cenario_kit_primeiro]
+            _cenario_citacoes, _cenario_kit_primeiro, _cenario_diario]
 IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto", "citacoes",
-       "kit_primeiro"]
+       "kit_primeiro", "diario"]
 
 
 def _preparar(cenario, tmp_path, env):
@@ -219,6 +232,7 @@ def test_nunca_grava_o_texto_do_prompt_nem_do_comando(cenario, tmp_path):
                              "last_assistant_message": "tudo certo, sem citação"}),
     ("kit_primeiro.py", {"hook_event_name": "PreToolUse", "tool_name": "Skill",
                          "tool_input": {"skill": "mss-spec:bug", "args": ""}}),
+    ("diario_junto.py", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}),
 ])
 def test_hook_que_passa_calado_nao_grava(hook, evento, tmp_path):
     arquivo = tmp_path / "registro-hooks.jsonl"

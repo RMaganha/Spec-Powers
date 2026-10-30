@@ -426,16 +426,21 @@ def test_captura_hook_throttle():
     assert mod.deve_cutucar(ultimo_ts=None, agora=1000.0, intervalo_s=1800) is True
 
 
-def test_captura_hook_optin_doc():
-    """Hook é OPT-IN, off por padrão, não-bloqueante, e só CUTUCA (não grava sozinho)."""
+def test_captura_hook_ligado_doc():
+    """0.50.0 (F-048): o lembrete vem LIGADO no Stop, por sessão, avisa o owner e só CUTUCA (não grava, não
+    bloqueia). Era opt-in até a 0.49.0 — a captura dependia de alguém lembrar, e a conversa da tarde de
+    2026-10-30 no Whats encerrou sem diário."""
     assert (REPO / "hooks" / "capturar_nudge.py").exists(), "falta hooks/capturar_nudge.py"
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     low = doc.lower()
-    assert "opt-in" in low or "desligado por padrão" in low, "hook não é documentado como opt-in/off por padrão"
-    assert "Stop" in doc and "PreCompact" in doc, "hook não documenta os eventos Stop/PreCompact"
+    assert "ligado por padrão" in low, "hook não é documentado como ligado por padrão"
     assert "/mss-spec:memory capturar" in doc, "hook não cutuca pra rodar /mss-spec:memory capturar"
     assert "não grava" in low or "nunca grava" in low, "hook não deixa claro que só cutuca (não grava)"
-    assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
+    assert "não bloqueia" in low or "não-bloqueante" in low or "nao bloqueia" in low, \
+        "hook não deixa claro que é não-bloqueante"
+    cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+    assert any("capturar_nudge.py" in h["command"] for g in cfg.get("Stop", []) for h in g["hooks"]), \
+        "o lembrete não está registrado no Stop do hooks.json"
 
 
 def test_ancora_hook_registrado():

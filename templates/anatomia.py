@@ -259,8 +259,8 @@ RISCOS = [
      ["memory/project_subprocess_texto_windows_quebra_git.md",
       "memory/feedback_testar_js_gerado_node_check.md"]),
     ("Hooks podem falhar em silêncio", "desenho consciente",
-     "A cerca é fail-open (bug não trava trabalho — mas também não cerca) e o nudge é opt-in. "
-     "Hook que não dispara = volta ao estado só-prosa, sem aviso.",
+     "A cerca é fail-open (bug não trava trabalho — mas também não cerca). Hook que não dispara = volta "
+     "ao estado só-prosa, sem aviso — e a devolução do Stop por exit 2 passou 5 semanas sem chegar (F-048).",
      "política em docs/decisoes.md; fallback de registro via settings.json no README dos hooks.",
      ["hooks/README.md", "hooks/projeto_ativo.py"]),
     ("Doc destilado pode mentir", "residual",
