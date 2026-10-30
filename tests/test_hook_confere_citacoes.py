@@ -149,9 +149,21 @@ def _rodar(ev):
                           encoding="utf-8", env=amb, timeout=30)
 
 
-def test_processo_devolve_com_exit_2_e_motivo_no_stderr(proj):
+def test_processo_devolve_pelo_contrato_do_stop(proj):
+    """F-048: exit 2 + stderr era lido como "Hook script appears to be missing" nesta máquina (o `setlocale`
+    do Git Bash põe "No such file or directory" no stderr de todo hook) — 40+ devoluções, nenhuma entregue.
+    O contrato do Stop é JSON `{"decision": "block", "reason": …}` no stdout com exit 0."""
     r = _rodar(_ev(proj, "Veja `services/nao.py`."))
-    assert r.returncode == 2 and "services/nao.py" in r.stderr
+    assert r.returncode == 0, r.stderr
+    saida = json.loads(r.stdout.strip().splitlines()[-1])
+    assert saida["decision"] == "block" and "services/nao.py" in saida["reason"]
+    assert not r.stderr.strip() or "setlocale" in r.stderr, "o motivo não pode ir pro stderr (vira 'script ausente')"
+
+
+def test_fonte_nao_devolve_por_exit_2():
+    src = (REPO / "hooks" / "confere_citacoes.py").read_text(encoding="utf-8")
+    assert "sys.exit(2)" not in src, "voltou o exit 2 — a devolução deixa de chegar (F-048)"
+    assert '"decision": "block"' in src
 
 
 def test_processo_calado_sai_zero(proj):

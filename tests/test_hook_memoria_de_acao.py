@@ -146,9 +146,12 @@ def test_resposta_curta_com_duas_opcoes_passa(proj, tmp_path):
     assert _stop(proj, "Rota 1: servidor. Rota 2: sua máquina. Qual vale?", tmp_path) is None
 
 
-def test_stderr_do_processo_sai_como_nos_outros_hooks(proj, tmp_path):
-    """Item 1: `print` comum no stderr, igual aos hooks que já aparecem certos ao vivo (o encoding explícito em
-    UTF-8 da 0.35.0 viraria `â€”` se o Claude Code lê na página de código do Windows — não sabemos qual lê)."""
+def test_devolucao_sai_pelo_contrato_do_stop_nao_pelo_stderr(proj, tmp_path):
+    """0.35.0 → 0.49.0: o motivo saía por `print` no stderr com exit 2. F-048 mostrou que nesta máquina isso
+    era lido como "Hook script appears to be missing" (o `setlocale` do Git Bash põe "No such file or
+    directory" no stderr de todo hook) e a devolução nunca chegava. Agora: JSON no stdout, exit 0, ASCII puro
+    (`json.dumps` escapa os acentos, então a página de código do console não importa)."""
     src = (REPO / "hooks" / "confere_citacoes.py").read_text(encoding="utf-8")
     assert "sys.stderr.buffer.write" not in src
-    assert "print(motivo, file=sys.stderr)" in src
+    assert "print(motivo, file=sys.stderr)" not in src
+    assert 'json.dumps({"decision": "block", "reason": motivo})' in src

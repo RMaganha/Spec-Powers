@@ -15,8 +15,11 @@ seja lida antes.
 
 **1. Leia o destilado antes de responder**, nesta ordem: `docs/superpowers/MAPA.md` →
 `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) →
-`docs/specs/<assunto>.md` (o "Estado atual") → `docs/decisoes.md`. Faltou? Abra o código que responde.
-Abra só o que o gatilho apontar, nunca a pasta inteira.
+`docs/specs/<assunto>.md` (o "Estado atual") → `docs/decisoes.md` → **`memory/DIARIO.md`** (as entradas
+dos **últimos 7 dias**; o `memory/sessions/…` só se o assunto bater) → e, se a pergunta cita **local,
+homologação, produção, servidor, variável ou App Setting**, a seção daquele ambiente em
+**`docs/AMBIENTES.md`**. Faltou? Abra o código que responde. Abra só o que o gatilho apontar, nunca a
+pasta inteira.
 
 **2. Responda com fonte ou diga "não sei".** Cada fato sai de um arquivo aberto nesta janela
 (`arquivo:linha`) ou do que o owner disse. Sem fonte, diga **"não sei"** e diga o que abriria ou

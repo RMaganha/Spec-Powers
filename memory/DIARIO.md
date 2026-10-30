@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-10-30
+
+- [kit-entra-primeiro] 0.50.0: o owner mandou olhar a conversa do Whats ("péssimo, não lê memória, chuta servidor"); a leitura achou 3 causas e uma 4ª escondida: a devolução do Stop nunca chegou nesta máquina (exit 2 + `setlocale` = "script ausente", 40+ vezes); saíram os hooks `kit_primeiro` e `diario_junto`, o Stop por JSON, o lembrete ligado, `docs/AMBIENTES.md` e o diário no passo 1; pivô central: o kit precisa de cerca, não de prosa — e hook se prova no transcript → sessions/2026-10-30-kit-entra-primeiro.md
+
 ## 2026-10-28
 
 - [upgrade-converte-to-dolist] 0.48.0: o upgrade converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com soma e 3 linhas reais → OK); pivô central: "linha por linha" virou "um recado por linha" depois de ler o Whats real; F-045/F-046 → sessions/2026-10-28-upgrade-converte-to-dolist.md

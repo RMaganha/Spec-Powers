@@ -339,7 +339,11 @@ RE_IDENT = re.compile(r"`([^`]+)`|\b([A-Za-z0-9]+(?:[_.][A-Za-z0-9]+)+)\b|\b([a-
 RE_TOKEN = re.compile(r"[a-z0-9_]{4,}")
 RE_LINHA_DIARIO = re.compile(r"^- \[([^\]]+)\]\s*(.*?)(?:→\s*(sessions/\S+))?\s*$")
 RE_LINHA_EVALS = re.compile(r"^\| (F-\d{3}) \|")
-PRIO = {"memoria": 0, "indice": 1, "evals": 2, "decisao": 3, "diario": 5}
+PRIO = {"memoria": 0, "ambientes": 0, "indice": 1, "evals": 2, "decisao": 3, "diario": 5}
+# docs/AMBIENTES.md (0.50.0, F-048): cada seção `## <ambiente>` casa pelo próprio nome (contado em dobro) e
+# por estas palavras genéricas — nunca pelo nome dos OUTROS ambientes, senão "produção" casaria com todas
+PALAVRAS_AMBIENTE = ("ambiente ambientes servidor host variável variavel valor valores app setting setting "
+                     "banco web url porta acesso acessa")
 # linha marcada como vencida não é injetada: o que é velho não pode voltar como fato (F-030)
 # — só como STATUS (início da linha ou segmento após " — "), não citada entre crases numa explicação
 RE_VENCIDA = re.compile(r"(?:^|[—–]\s*|^- \s*)\**(?:obsoleta|pausada)\s*:")
@@ -380,6 +384,34 @@ def tokens(texto: str):
 def _corta(s: str, n: int = 120) -> str:
     s = " ".join(s.split())
     return s if len(s) <= n else s[:n].rsplit(" ", 1)[0] + "…"
+
+
+def fontes_ambientes(proj: Path) -> list:
+    """Uma fonte por seção `## <ambiente>` de `docs/AMBIENTES.md` (0.50.0, F-048): o texto da seção (nomes,
+    variáveis, quem acessa) mais as palavras de ambiente; o ponteiro é a linha da seção."""
+    amb = Path(proj) / "docs" / "AMBIENTES.md"
+    if not amb.is_file():
+        return []
+    texto, _ = _ler(amb)
+    out, secao, inicio, corpo = [], None, 0, []
+
+    def fechar():
+        if secao and not secao.startswith("<"):
+            variaveis = re.findall(r"^\| `([^`]+)`", "\n".join(corpo), re.M)
+            out.append(Fonte(f"`{secao}` {secao} {PALAVRAS_AMBIENTE} " + " ".join(corpo),
+                             f"docs/AMBIENTES.md:{inicio} — ambiente {secao}: o que é, quem acessa o quê, "
+                             f"{len(variaveis)} variável(is) com valor",
+                             PRIO["ambientes"]))
+
+    for n, l in enumerate(texto.split("\n"), 1):
+        m = RE_SECAO.match(l)
+        if m:
+            fechar()
+            secao, inicio, corpo = m.group(1), n, []
+        elif secao is not None:
+            corpo.append(l)
+    fechar()
+    return out
 
 
 def fontes(proj: Path, diario: bool = True) -> list:
@@ -423,6 +455,7 @@ def fontes(proj: Path, diario: bool = True) -> list:
                 out.append(Fonte(l, f"docs/decisoes.md:{n} — {_corta(l[2:])}", PRIO["decisao"]))
     # fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist (0.47.0): nem o
     # `to-dolist.md` nem o `FORA-DE-ESCOPO.md` antigo entram aqui — a busca roda a cada mensagem e repetia o item
+    out.extend(fontes_ambientes(proj))
     dia = memdir / "DIARIO.md"
     if diario and dia.is_file():
         texto, _ = _ler(dia)

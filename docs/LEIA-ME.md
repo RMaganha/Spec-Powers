@@ -50,11 +50,22 @@ fica a uma linha de distância quando o dev sair do carregamento por symlink.
 
 ## Comandos
 
+**Por qual porta entrar?** Cinco portas cobrem tudo o que você pede numa conversa; o assistente entra sozinho
+na certa quando você descreve, e o hook `kit_primeiro.py` não deixa o superpowers passar na frente:
+
+| Você quer… | Porta |
+|---|---|
+| algo **quebrou**, parou ou funciona diferente do esperado | `/mss-spec:bug` |
+| **perguntar** como algo funciona, onde está, por quê | `/mss-spec:duvida` |
+| **comportamento novo**, ou mudar o que uma spec promete | `/mss-spec:nova-feature` |
+| o **dia a dia**: ajuste pequeno, operação, consulta, documentação, comando git | `/mss-spec:tarefa` |
+| entender um **projeto que já existe** e o kit não conhece | `/mss-spec:analise` |
+
 Na ordem de ciclo de vida (começar → montar base → construir → apoio → verificar/publicar → manter):
 
 | Comando | O que faz |
 |---|---|
-| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `docs/ESTRUTURA.md` (pastas em camadas), `docs/decisoes.md`, `config/logging.py`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
+| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `docs/AMBIENTES.md` (cada ambiente: o que é, quem acessa, variáveis com valores — segredo `*****`), `docs/ESTRUTURA.md` (pastas em camadas), `docs/decisoes.md`, `config/logging.py`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
 | `/mss-spec:analise` | **Projeto que já existe (brownfield):** lê o repo de verdade (inventário + leitura focada em entrypoints, rotas, `.sql`, config, UI, pipeline RAG/pgvector) e destila no dossiê `docs/ARQUITETURA.md` + contexto do `CLAUDE.md`, `MAPA.md` e INDEX (1 linha `existente` por assunto). **Não-destrutivo:** nunca toca em código, infra ou UI própria — o que já existe é registrado, não substituído |
 | `/mss-spec:doctor` | Pré-vôo do ambiente MSIG (proxy, CA, ODBC, rede docker, `.env`, superpowers, resolução do plugin) — veredito ✓/✗; só reporta. Roda manual e sozinho na 1ª tarefa |
 | `/mss-spec:ambiente` | Gera infra no padrão MSIG (docker-compose com `mitiai_network`; override de proxy do escritório) |
@@ -65,6 +76,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | `/mss-spec:precedentes <assunto>` | Consulta o catálogo do que já foi resolvido em outro projeto MSIG |
 | `/mss-spec:bug [sintoma]` | Porta de entrada pra bug, erro ou incidente: mostra o que a memória do projeto já diz antes da 1ª hipótese, chama a systematic-debugging, escala pro `diagnostico` com 2 rodadas sem causa, corrige com teste que reproduz. O assistente entra sozinho quando você descreve um erro |
 | `/mss-spec:duvida [pergunta]` | Porta de entrada pra dúvida sobre o projeto: responde a partir da memória, das specs e do código, com fonte, ou diz "não sei"; não mexe em arquivo. O assistente entra sozinho quando você pergunta |
+| `/mss-spec:tarefa [o que fazer]` | Porta de entrada pro **dia a dia**: ajuste pequeno, operação (script, carga, deploy), consulta, documentação, comando git — o que não é bug, dúvida, feature nova nem análise. Lê só o que a tarefa toca (MAPA, memória, spec, `docs/AMBIENTES.md`, diário), plano em até 5 linhas e seu OK (só leitura não espera), prova real antes de "pronto", fecho em 1 linha. O assistente entra sozinho quando você pede |
 | `/mss-spec:diagnostico [sintoma]` | Chamado pelo `bug` (ou por você) quando não fecha em 2 rodadas. Corta o loop de diagnóstico (o assistente "teimoso"): systematic-debugging + diff completo contra o precedente que funciona (boot incluso) ANTES de pedir evidência; fato do owner não se re-litiga; 1 pedido = 1 teste que discrimina |
 | `/mss-spec:mapa` | Lê/atualiza o mapa de contexto (`docs/superpowers/MAPA.md`): onde estamos · próximo passo · conexões com outros projetos MSIG — reconcilia com git/INDEX/código e grava |
 | `/mss-spec:mapa-neural` | Agrega as seções Conexões dos `MAPA.md` de todos os repos (via `MSIG_REPOS_DIR`) num índice de texto + um grafo HTML self-contained "o que vai pra onde" |

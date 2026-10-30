@@ -83,6 +83,10 @@ def test_doctor_wiring():
     assert (REPO / "commands" / "doctor.md").exists(), "falta commands/doctor.md"
     claude = texto_do_kit()
     assert "Pré-vôo de ambiente" in claude, "CLAUDE.md não cita o pré-vôo de ambiente (doctor)"
+    # F-048: o LC_ALL inválido fazia a devolução do Stop virar "script ausente"; e o AMBIENTES.md num lugar só
+    doc = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    assert "LC_ALL" in doc and "appears to be missing" in doc, "doctor não avisa o LC_ALL que engolia o Stop"
+    assert "docs/AMBIENTES.md" in doc and "Quem acessa" in doc, "doctor não confere o docs/AMBIENTES.md"
 
 
 def test_robustez_plugin_root_wiring():
@@ -426,16 +430,21 @@ def test_captura_hook_throttle():
     assert mod.deve_cutucar(ultimo_ts=None, agora=1000.0, intervalo_s=1800) is True
 
 
-def test_captura_hook_optin_doc():
-    """Hook é OPT-IN, off por padrão, não-bloqueante, e só CUTUCA (não grava sozinho)."""
+def test_captura_hook_ligado_doc():
+    """0.50.0 (F-048): o lembrete vem LIGADO no Stop, por sessão, avisa o owner e só CUTUCA (não grava, não
+    bloqueia). Era opt-in até a 0.49.0 — a captura dependia de alguém lembrar, e a conversa da tarde de
+    2026-10-30 no Whats encerrou sem diário."""
     assert (REPO / "hooks" / "capturar_nudge.py").exists(), "falta hooks/capturar_nudge.py"
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     low = doc.lower()
-    assert "opt-in" in low or "desligado por padrão" in low, "hook não é documentado como opt-in/off por padrão"
-    assert "Stop" in doc and "PreCompact" in doc, "hook não documenta os eventos Stop/PreCompact"
+    assert "ligado por padrão" in low, "hook não é documentado como ligado por padrão"
     assert "/mss-spec:memory capturar" in doc, "hook não cutuca pra rodar /mss-spec:memory capturar"
     assert "não grava" in low or "nunca grava" in low, "hook não deixa claro que só cutuca (não grava)"
-    assert "não bloqueia" in low or "não-bloqueante" in low, "hook não deixa claro que é não-bloqueante"
+    assert "não bloqueia" in low or "não-bloqueante" in low or "nao bloqueia" in low, \
+        "hook não deixa claro que é não-bloqueante"
+    cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+    assert any("capturar_nudge.py" in h["command"] for g in cfg.get("Stop", []) for h in g["hooks"]), \
+        "o lembrete não está registrado no Stop do hooks.json"
 
 
 def test_ancora_hook_registrado():
@@ -1031,6 +1040,9 @@ def test_diagnostico_wiring():
     # âncora no ponto de contágio: o diff abre outro projeto → read-only, reporte
     assert "somente-leitura" in low and "âncora" in low and "não conserte" in low,         "diagnostico.md manda abrir o precedente sem a fronteira da âncora (read-only; reporte)"
     assert "docs/EVALS.md" in diag, "diagnostico.md não fecha registrando o caso no corpus"
+    # F-048: o diário (7 dias) e os ambientes entram ANTES da tabela de fatos
+    assert "memory/DIARIO.md" in diag and "7 dias" in low, "diagnostico.md não lê o diário dos últimos 7 dias"
+    assert "docs/AMBIENTES.md" in diag, "diagnostico.md não lê a seção do ambiente citado em docs/AMBIENTES.md"
     # regra sempre-ativa no molde (é o único mecanismo vivo na hora 2 de uma sessão longa)
     claude = texto_do_kit()
     clow = claude.lower()
@@ -1077,6 +1089,9 @@ def test_bug_e_duvida_wiring():
     assert "memory/MEMORY.md" in b and "docs/EVALS.md" in b and "MAPA.md" in b, \
         "bug.md não manda ler o destilado (MAPA → memória → EVALS) antes de hipótese"
     assert "antes da 1ª hipótese" in blow, "bug.md não põe a memória ANTES da 1ª hipótese"
+    # F-048 (Whats, 2026-10-30): o diário nunca foi aberto e o nome do servidor foi chutado
+    assert "memory/DIARIO.md" in b and "7 dias" in blow, "bug.md não lê o diário dos últimos 7 dias no passo 1"
+    assert "docs/AMBIENTES.md" in b, "bug.md não lê a seção do ambiente citado em docs/AMBIENTES.md"
     assert "systematic-debugging" in b, "bug.md não chama a superpowers:systematic-debugging"
     assert "mss-spec:diagnostico" in b and "2 rodadas" in blow, \
         "bug.md não escala pro diagnostico depois de 2 rodadas sem causa"
@@ -1087,6 +1102,8 @@ def test_bug_e_duvida_wiring():
     d = duvida.read_text(encoding="utf-8")
     dlow = d.lower()
     assert "memory/MEMORY.md" in d and "MAPA.md" in d, "duvida.md não manda ler o destilado"
+    assert "memory/DIARIO.md" in d and "docs/AMBIENTES.md" in d, \
+        "duvida.md não lê o diário (7 dias) nem a seção do ambiente citado (F-048)"
     assert "não sei" in dlow, "duvida.md não permite 'não sei' quando não há fonte"
     assert "não edite" in dlow, "duvida.md não proíbe mexer em arquivo"
     assert "/mss-spec:bug" in d and "/mss-spec:nova-feature" in d, \
@@ -1105,6 +1122,46 @@ def test_bug_e_duvida_wiring():
     leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
     assert "/mss-spec:bug" in leiame and "/mss-spec:duvida" in leiame, "LEIA-ME não lista bug e duvida"
     assert (REPO / "docs" / "specs" / "bug-e-duvida.md").exists(), "falta a spec viva docs/specs/bug-e-duvida.md"
+
+
+def test_tarefa_wiring():
+    """A 5ª porta (F-048, 2026-10-30): o dia a dia — ajuste, operação, consulta, doc, git — não é bug, dúvida,
+    feature nova nem análise, e sem porta entrava direto pelo superpowers ou por nada; com o `kit_primeiro.py`
+    negando o superpowers sem comando do kit, precisava existir. Owner: "provavelmente será o mais usado"."""
+    cmd = REPO / "commands" / "tarefa.md"
+    assert cmd.exists(), "falta commands/tarefa.md"
+    fm = _frontmatter(cmd)
+    assert "description:" in fm and "disable-model-invocation" not in fm, \
+        "tarefa.md travado ou sem description: o assistente não entra sozinho"
+    t = cmd.read_text(encoding="utf-8")
+    low = t.lower()
+    # passo 0: as outras quatro portas, pra trocar quando não é tarefa
+    for porta in ("/mss-spec:bug", "/mss-spec:duvida", "/mss-spec:nova-feature", "/mss-spec:analise"):
+        assert porta in t, f"tarefa.md não encaminha pra {porta} quando não é tarefa"
+    # passo 1: lê só o que a tarefa toca — MAPA, memória, spec, ambientes, diário
+    for arq in ("docs/superpowers/MAPA.md", "memory/MEMORY.md", "docs/AMBIENTES.md", "memory/DIARIO.md"):
+        assert arq in t, f"tarefa.md não lê {arq}"
+    assert "estado atual" in low, "tarefa.md não olha o Estado atual da spec viva"
+    # passo 2: plano curto e OK; só leitura não espera
+    assert "5 linhas" in low and "ok" in low, "tarefa.md não pede plano curto + OK"
+    assert "só de leitura" in low and "não espera" in low, "tarefa.md não libera a tarefa só de leitura sem OK"
+    # passo 3-4: nível, teste, spec, ambiente, prova real
+    assert "/mss-spec:modo" in t and "antes e depois" in low, "tarefa.md não roda o teste que já cobre antes e depois"
+    assert "regra crítica 6" in low, "tarefa.md não atualiza a spec quando o Estado atual muda"
+    assert "owner acessa" in low or "owner acessam" in low, "tarefa.md não limita operação ao que o AMBIENTES.md diz que se acessa"
+    assert "saída" in low and "real" in low and "pronto" in low, "tarefa.md não exige a prova real antes de 'pronto'"
+    # passo 5: fecho em 1 linha, to-dolist e captura só oferecidos
+    assert "/mss-spec:to-dolist adicionar" in t and "/mss-spec:memory capturar" in t, \
+        "tarefa.md não encaminha o de fora pro to-dolist nem oferece a captura"
+    # a porta está na negativa do hook, na regra 11, na lista de invocáveis e no LEIA-ME
+    hook = (REPO / "hooks" / "kit_primeiro.py").read_text(encoding="utf-8")
+    assert "/mss-spec:tarefa" in hook, "a negativa do kit_primeiro não aponta a porta do dia a dia"
+    kit = texto_do_kit()
+    regra11 = next(l for l in kit.splitlines() if l.startswith("11."))
+    assert "/mss-spec:tarefa" in regra11, "regra 11 não aponta o /mss-spec:tarefa"
+    assert "`tarefa`" in kit, "a lista de comandos invocáveis das regras do kit não inclui o tarefa"
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:tarefa" in leiame and "porta" in leiame.lower(), "LEIA-ME não lista o tarefa nem a tabela de portas"
 
 
 def test_bpmn_wiring():
@@ -1170,7 +1227,7 @@ def test_recall_hook_documentado_e_registrado():
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
-    assert "Doze hooks" in doc, "a contagem do README ficou velha"
+    assert "Catorze hooks" in doc, "a contagem do README ficou velha"
 
 
 def test_inventario_banco_wiring():

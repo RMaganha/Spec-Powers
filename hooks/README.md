@@ -1,12 +1,12 @@
-Doze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os doze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Catorze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os catorze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
 | `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (pasta em outra feature → parar e perguntar) |
-| `capturar_nudge.py` | `Stop`/`PreCompact` | opt-in, off | não | rede: lembra de capturar memória |
+| `capturar_nudge.py` | `Stop` | **ligado por padrão** (0.50.0) | não (avisa o owner) | rede: conversa há 30 min sem captura → `systemMessage` ao owner: rode `/mss-spec:memory capturar` (memória e diário juntos); por sessão (F-048) |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
 | `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
@@ -15,6 +15,47 @@ Os doze anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 | `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
+| `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
+| `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
+
+---
+
+# Hook ligado — o kit entra primeiro
+
+`kit_primeiro.py` nega qualquer skill `superpowers:*` enquanto **nenhum comando do kit** tiver entrado na
+conversa. Entrar pelo kit é: o owner digitar `/mss-spec:<x>` (`UserPromptSubmit`), o assistente invocar
+`mss-spec:<x>` pela ferramenta `Skill`, ou ler `commands/<x>.md` do kit (`PreToolUse` em `Read` — é assim
+que rodam os comandos `disable-model-invocation`, como o `nova-feature`). O estado é **por sessão**
+(`mss_kit_primeiro_<sessao>.json` no temp do SO).
+
+**Por que existe (caso F-048):** na conversa "Validar mensagens WhatsApp em produção" (Whats, 2026-10-30),
+*"vamos tratar aqui mesmo o bug"* virou `superpowers:systematic-debugging` direto, sem o `/mss-spec:bug`; o
+passo 1 do bug (memória, spec e diário antes da 1ª hipótese) não aconteceu e a hipótese errada
+(`MITI_DEV_AUTH`) ocupou 23 minutos. A regra 11 e o `bug.md` (2026-10-27) já mandavam entrar pelo kit; o
+`superpowers:using-superpowers` manda "bug → systematic-debugging primeiro". Prosa contra prosa, ganhou a
+do superpowers — por isso cerca, não prosa. O superpowers continua sendo chamado, mas de dentro do comando
+do kit, no passo certo.
+
+**Formato da negativa:** o mesmo do `git_publicacao.py` (JSON `deny` no stdout + motivo no stderr + exit 2),
+que já funciona ao vivo. Falha aberta; escape só do owner: `MSS_KIT_PRIMEIRO_OFF=1`; registra `negou`.
+
+---
+
+# Hook ligado — diário junto da memória
+
+`diario_junto.py` (evento `Stop`) lê no transcript o que o assistente **gravou** nesta conversa. Gravou
+memória — `memory/<arquivo>.md` (fora `MEMORY.md`, `DIARIO.md` e subpastas como `indice/`), `docs/EVALS.md`
+ou `docs/decisoes.md` — e nenhum `memory/sessions/<data>-<assunto>.md`? A resposta **volta** pedindo o
+diário (JSON `block`, exit 0), com a lista do que foi gravado. Cobra **uma vez por arquivo de memória**:
+memória nova depois da cobrança cobra de novo; `stop_hook_active` deixa sair (nunca laço). Estado por sessão
+no temp do SO.
+
+**Por que existe (caso F-048):** a conversa da tarde de 2026-10-30 no Whats gravou `docs/EVALS.md` (F-093,
+F-094) e duas specs e encerrou sem diário — o problema que ficou aberto (resposta do especialista que não
+volta pro WhatsApp em produção) não ficou escrito em lugar nenhum. O owner: *"o diário tem que ser junto
+com a memória, assim que gravar ela"*. O `/mss-spec:memory capturar` já grava os dois; o hook cobra quando a
+memória foi gravada por fora dele. Falha aberta; escape só do owner: `MSS_DIARIO_JUNTO_OFF=1`; registra
+`devolveu`.
 
 ---
 
@@ -204,43 +245,35 @@ não disparar.
 
 ---
 
-# Hook opt-in — nudge de captura de memória
+# Hook ligado — lembrete de captura (`capturar_nudge.py`)
 
-`capturar_nudge.py` é um hook **opt-in**, **desligado por padrão** e **não-bloqueante**. Ele **só cutuca** — nunca grava nada sozinho — pra lembrar de rodar `/mss-spec:memory capturar` quando faz tempo desde a última captura.
+`capturar_nudge.py` (evento `Stop`) avisa o **owner** quando a conversa anda há tempo sem captura de memória.
+**Não bloqueia** e **nunca grava** nada: o aviso sai como `systemMessage` ("rode `/mss-spec:memory capturar`"),
+porque é o owner quem digita o comando — e o comando grava a memória **e** o diário. A cobrança dura (memória
+gravada sem diário) é do `diario_junto.py`.
 
-**A fonte da verdade é o comando**, rodado no fecho da feature (o `nova-feature` já delega a ele). Este hook é só a **rede** pra quando o dev esquece de capturar no meio de uma conversa longa. **Se o hook não disparar, nada se perde** — o passo determinístico do fecho cobre.
+**Como decide (por sessão):** o 1º `Stop` da conversa só marca o começo. Passados 30 min
+(`MSS_CAPTURA_INTERVALO_S`, em segundos) sem nenhum Write em `memory/sessions/` no transcript → aviso, e
+remarca. Captura dentro do intervalo → calado e rearma a partir dela. `MSS_CAPTURA_INTERVALO_S=0` avisa em
+todo `Stop` (teste). Estado em `mss_captura_<sessao>.json` no temp do SO — duas conversas não se misturam.
 
-## Por que não vem ligado
+## Por que passou a vir ligado (0.50.0, F-048)
 
-O kit **não registra** este hook no `plugin.json` de propósito: hooks podem **falhar em silêncio** (não disparar sem erro visível), então depender deles seria frágil. Você habilita conscientemente, sabendo que é best-effort.
+Até a 0.49.0 era **opt-in e desligado** (decisão de 2026-07-30: "hooks podem falhar em silêncio; depender deles
+seria frágil"). A conversa da tarde de 2026-10-30 no Whats gravou EVALS e specs e encerrou **sem diário** — a
+captura dependia de alguém lembrar. O owner: *"sempre chamar o diário"*. Como o hook só avisa, falhar em
+silêncio custa um lembrete, não um dado; e o diário tem a cerca própria.
 
-## Como habilitar (no `settings.json` do seu projeto/usuário)
+## Como desligar ou ajustar
 
-Não existe hook nativo "a cada X minutos" no Claude Code — os eventos são por-evento. Os que mais se aproximam:
-
-- **`Stop`** — ao fim de cada resposta do assistente. Com o *throttle* embutido (arquivo de timestamp), o nudge só aparece a cada ~30 min de conversa (ajustável pela env `MSS_CAPTURA_INTERVALO_S`, em segundos).
-- **`PreCompact`** — antes de a conversa ser compactada (o momento em que contexto está prestes a se perder — ótimo pra capturar antes).
-
-Exemplo (registre o que quiser — só `Stop`, só `PreCompact`, ou os dois):
-
-```json
-{
-  "hooks": {
-    "Stop": [
-      { "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/capturar_nudge.py\"" } ] }
-    ],
-    "PreCompact": [
-      { "hooks": [ { "type": "command", "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/capturar_nudge.py\"" } ] }
-    ]
-  }
-}
-```
+- `MSS_CAPTURA_NUDGE_OFF=1` — escape consciente, só do owner.
+- `MSS_CAPTURA_INTERVALO_S=<segundos>` — intervalo (padrão 1800).
 
 ## Garantias
 
-- **Não grava** memória/diário/decisão — só imprime o lembrete (o `stdout` entra no contexto do assistente).
-- **Não bloqueia** — sai sempre com código 0.
-- **Throttle** — respeita `MSS_CAPTURA_INTERVALO_S` (padrão 1800s) via um timestamp em `%TEMP%`, pra não cutucar a cada mensagem.
+- **Não grava** memória/diário/decisão — só lembra.
+- **Não bloqueia** — sai sempre com código 0; **falha ABERTA** (defeito → calado).
+- Registra `lembrou` no registro local.
 
 ---
 
@@ -306,6 +339,14 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 **Por que existe (F-035):** "não inventar fatos concretos" era só prosa. A doc da Anthropic sobre alucinação manda permitir o "não sei" e verificar cada afirmação contra a fonte; a parte que se verifica sem LLM é a citação. Evento `Stop`: lê `last_assistant_message` (ou a última resposta no transcript) e confere, fora de bloco de código, caminho em `crase` ou em link (com `:linha`, a linha tem de existir), `/mss-spec:<x>` e `F-0NN` (se o projeto tem `docs/EVALS.md`). Caminho vale no projeto ou no kit, inteiro ou como final de um caminho que existe; molde do kit (`docs/SEGURANCA.md` ← `templates/SEGURANCA.md`) conta. Não confere URL, glob, placeholder, texto com espaço, nem linha que **propõe** ("→", "criar", "novo", "vai para", "vira") ou **nega** ("não existe"). Achou o que não existe → **devolve a resposta uma vez** (exit 2, motivo no stderr em UTF-8); com `stop_hook_active` deixa sair. Medido em 121 respostas reais: 0 devolução nas sessões dentro do próprio projeto; as 7 que sobram são desta janela citando arquivos do Whats.
 
 **0.36.0 — mesma devolução, mais duas conferências:** resposta com ≥ 2 rotas alternativas ("Rota 1", "Opção A"…) acima de 300 palavras sem o pedido falar em opção (F-033; medido: só a do caso em 201 respostas reais) e resposta que casa o `gatilho_resposta:` de uma memória do projeto ou do kit (F-034; uma vez por sessão por memória). O lado do comando mora no `git_publicacao.py`: `gatilho_comando:` casou → nega uma vez por sessão, repetir passa (medido: 6 de 957 comandos, um por sessão, todos heredoc de Python com acento). Escape `MSS_MEMORIA_ACAO_OFF=1`. O motivo vai por `print` comum no stderr, como nos outros hooks.
+
+**0.50.0 — a devolução passa a sair pelo contrato do `Stop` (F-048):** JSON `{"decision": "block", "reason": …}`
+no stdout com **exit 0**. Até a 0.49.0 era `exit 2` + motivo no stderr, e nesta máquina isso **nunca chegou**: o Git
+Bash imprime `setlocale: LC_ALL: cannot change locale (enu): No such file or directory` no stderr de todo hook, e o
+Claude Code lê "No such file or directory" com exit 2 como *"Hook script appears to be missing"* — a devolução virava
+erro não-bloqueante. Medido nas transcrições (Whats e kit, 2026-09-25 a 2026-10-30): pelo menos 40 devoluções,
+nenhuma entregue. Os hooks com exit 0 + JSON sempre chegaram, com o mesmo stderr. O `doctor` avisa quando `LC_ALL`
+está assim.
 
 ## Garantias
 
@@ -466,7 +507,9 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `um_item_por_janela` | `bloqueou` · `avisou` | `abertas=N` |
 | `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
-| `capturar_nudge` | `lembrou` | — |
+| `capturar_nudge` | `lembrou` | `sem_captura_ha=31min` · `intervalo=0` |
+| `kit_primeiro` | `negou` | `superpowers:systematic-debugging` (a skill negada) — nunca o prompt |
+| `diario_junto` | `devolveu` | `memoria_sem_diario=2` (quantas memórias sem diário) |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
 | `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
