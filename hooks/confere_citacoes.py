@@ -12,9 +12,17 @@ Contrato:
   projeto tem `docs/EVALS.md`). Caminho relativo vale no projeto (`CLAUDE_PROJECT_DIR` › `cwd`) ou no kit;
   nome solto (`MAPA.md`) casa com qualquer arquivo de mesmo nome no projeto;
 - não confere URL, glob, placeholder (`<x>`, `${X}`, `{x}`) nem texto com espaço (é comando, não citação);
-- achou citação inexistente → **devolve a resposta UMA vez** (exit 2, motivo no stderr: o Claude continua e
-  corrige); com `stop_hook_active` verdadeiro, deixa sair — nunca laço;
+- achou citação inexistente → **devolve a resposta UMA vez** pelo contrato do `Stop`: JSON
+  `{"decision": "block", "reason": <motivo>}` no stdout e **exit 0** (o Claude continua e corrige); com
+  `stop_hook_active` verdadeiro, deixa sair — nunca laço;
 - **falha ABERTA**: defeito → exit 0 calado.
+
+**Por que JSON e exit 0, e não exit 2 + stderr (F-048):** até a 0.49.0 este hook devolvia com `exit 2` e o
+motivo no stderr. Nesta máquina o Git Bash imprime `setlocale: LC_ALL: cannot change locale (enu): No such
+file or directory` no stderr de TODO hook, e o Claude Code lê esse "No such file or directory" com exit 2
+como "Hook script appears to be missing": a devolução virou erro não-bloqueante. Medido nas transcrições do
+Whats e do kit de 2026-09-25 a 2026-10-30: pelo menos 40 devoluções, nenhuma entregue ao assistente. Os
+hooks com exit 0 + JSON (recall, regras do kit) sempre chegaram, com o mesmo stderr — por isso o contrato.
 
 Escape consciente, só do owner: `MSS_CITACOES_OFF=1`.
 """
@@ -391,10 +399,10 @@ def main():
     motivo = decidir(evento)
     if motivo is None:
         sys.exit(0)
-    # `print` comum, igual aos outros hooks que aparecem certos ao vivo: a doc não diz com que codificação o
-    # Claude Code lê o stderr, e forçar UTF-8 viraria `â€”` se ele lê na página de código do Windows
-    print(motivo, file=sys.stderr)
-    sys.exit(2)                                       # Stop: exit 2 devolve a resposta com o motivo
+    # Contrato do Stop: JSON no stdout e exit 0. `json.dumps` sem `ensure_ascii=False` deixa o texto em
+    # ASCII puro (acentos escapados), então a página de código do console não importa.
+    print(json.dumps({"decision": "block", "reason": motivo}))
+    sys.exit(0)
 
 
 if __name__ == "__main__":

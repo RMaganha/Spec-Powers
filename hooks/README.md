@@ -330,6 +330,14 @@ Claude Code). A % sai do transcript: a **última** mensagem do assistente fora d
 
 **0.36.0 — mesma devolução, mais duas conferências:** resposta com ≥ 2 rotas alternativas ("Rota 1", "Opção A"…) acima de 300 palavras sem o pedido falar em opção (F-033; medido: só a do caso em 201 respostas reais) e resposta que casa o `gatilho_resposta:` de uma memória do projeto ou do kit (F-034; uma vez por sessão por memória). O lado do comando mora no `git_publicacao.py`: `gatilho_comando:` casou → nega uma vez por sessão, repetir passa (medido: 6 de 957 comandos, um por sessão, todos heredoc de Python com acento). Escape `MSS_MEMORIA_ACAO_OFF=1`. O motivo vai por `print` comum no stderr, como nos outros hooks.
 
+**0.50.0 — a devolução passa a sair pelo contrato do `Stop` (F-048):** JSON `{"decision": "block", "reason": …}`
+no stdout com **exit 0**. Até a 0.49.0 era `exit 2` + motivo no stderr, e nesta máquina isso **nunca chegou**: o Git
+Bash imprime `setlocale: LC_ALL: cannot change locale (enu): No such file or directory` no stderr de todo hook, e o
+Claude Code lê "No such file or directory" com exit 2 como *"Hook script appears to be missing"* — a devolução virava
+erro não-bloqueante. Medido nas transcrições (Whats e kit, 2026-09-25 a 2026-10-30): pelo menos 40 devoluções,
+nenhuma entregue. Os hooks com exit 0 + JSON sempre chegaram, com o mesmo stderr. O `doctor` avisa quando `LC_ALL`
+está assim.
+
 ## Garantias
 
 - **Uma vez por turno**, nunca laço. **Falha ABERTA**. Sem citação inválida → calado, custo zero de token.
