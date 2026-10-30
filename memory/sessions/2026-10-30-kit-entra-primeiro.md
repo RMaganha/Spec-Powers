@@ -38,7 +38,9 @@ hooks e com o git do Whats.
 Branch `feature/kit-entra-primeiro`, 6 commits: `kit_primeiro.py` (+25 testes) · `confere_citacoes.py` por JSON
 · `diario_junto.py` + `_transcricao.py` (+29) · `capturar_nudge.py` ligado por sessão (+14) · `templates/AMBIENTES.md`
 + `kickoff`/`upgrade`/`doctor` + `memoria_indice.fontes_ambientes` + passo 1 dos três comandos (+11) · 0.50.0,
-CHANGELOG, EVALS F-048, 4 decisões, esta memória e este diário.
+CHANGELOG, EVALS F-048, 4 decisões, esta memória e este diário · depois do OK do owner, a 5ª porta
+`/mss-spec:tarefa` (`commands/tarefa.md`): o dia a dia, que ele disse que "provavelmente será o mais usado" — na
+negativa do hook, na regra 11, na lista de invocáveis e na tabela "por qual porta entrar" do `LEIA-ME`.
 
 ## Próximo
 Owner: merge da branch na `main` e push; `/mss-spec:upgrade` no Whats (nasce o `docs/AMBIENTES.md`, o owner

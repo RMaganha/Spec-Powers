@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/kit-entra-primeiro` (saiu da `main` em `755ba99`) — 0.50.0 pronta na branch, por mesclar (owner): hooks `kit_primeiro.py` (superpowers só por dentro do kit) e `diario_junto.py` (memória sem diário não sai), `confere_citacoes.py` devolvendo por JSON (a devolução do Stop nunca chegava nesta máquina), lembrete de captura ligado por sessão, `templates/AMBIENTES.md` + recall por seção, diário (7 dias) e ambiente no passo 1 de `bug`/`duvida`/`diagnostico`, `doctor` 12-13. Caso F-048 fechado; suíte inteira: 1.120 verdes (rodada completa com 4 vermelhos mecânicos — contagem de hooks, versão do marketplace, histórico das regras — consertados e reexecutados).
+`feature/kit-entra-primeiro` (saiu da `main` em `755ba99`) — 0.50.0 pronta na branch, por mesclar (owner): hooks `kit_primeiro.py` (superpowers só por dentro do kit) e `diario_junto.py` (memória sem diário não sai), `confere_citacoes.py` devolvendo por JSON (a devolução do Stop nunca chegava nesta máquina), lembrete de captura ligado por sessão, `templates/AMBIENTES.md` + recall por seção, diário (7 dias) e ambiente no passo 1 de `bug`/`duvida`/`diagnostico`, `doctor` 12-13, porta `/mss-spec:tarefa` pro dia a dia. Caso F-048 fechado; suíte inteira: 1.122 verdes (rodada completa depois do `/mss-spec:tarefa`).
 
 <!-- histórico do estado anterior -->
 `chore/captura-memoria-na-hora-da-proposta` (saiu da `main` em `103345b`) — captura da 0.49.0: decisão, aprendizado do arquivo CRLF e diário da sessão. A 0.49.0 (F-047: memória na hora da proposta + sintoma do owner é fato) está mesclada e enviada.

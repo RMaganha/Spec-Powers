@@ -76,11 +76,20 @@ def test_sequencia_real_do_whats(amb):
         "depois do bug, o superpowers continuou negado"
 
 
-def test_motivo_aponta_as_quatro_portas(amb):
+def test_motivo_aponta_as_cinco_portas(amb):
     motivo = _mod().decidir(_skill("superpowers:brainstorming", _nova()), amb)
-    for porta in ("/mss-spec:bug", "/mss-spec:nova-feature", "/mss-spec:duvida", "/mss-spec:analise"):
+    for porta in ("/mss-spec:bug", "/mss-spec:nova-feature", "/mss-spec:duvida", "/mss-spec:tarefa",
+                  "/mss-spec:analise"):
         assert porta in motivo, f"a negativa não aponta {porta}"
     assert "MSS_KIT_PRIMEIRO_OFF" in motivo, "a negativa não diz o escape do owner"
+
+
+def test_tarefa_do_dia_a_dia_e_entrada_pelo_kit(amb):
+    """A porta mais usada: `mss-spec:tarefa` conta como entrada e libera o superpowers que ela usar depois."""
+    mod, s = _mod(), _nova()
+    assert mod.decidir(_skill("mss-spec:tarefa", s), amb) is None
+    assert mod.decidir(_skill("superpowers:test-driven-development", s), amb) is None
+    assert (REPO / "commands" / "tarefa.md").exists(), "a porta /mss-spec:tarefa que a negativa aponta não existe"
 
 
 # --- AC2: as três formas de entrar pelo kit ---------------------------------------------------

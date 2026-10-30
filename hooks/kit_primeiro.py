@@ -56,8 +56,10 @@ MOTIVO = (
     "caso F-048). Nesta conversa nenhum comando do kit rodou ainda. Entre pela porta certa — ela lê a memória, "
     "a spec e o diário antes da 1ª hipótese e chama o superpowers no passo certo:\n"
     "- erro, falha, algo que parou ou mudou de comportamento → /mss-spec:bug\n"
-    "- mudança ou coisa nova → /mss-spec:nova-feature (leia commands/nova-feature.md e siga os passos)\n"
+    "- comportamento novo, ou que muda o que uma spec promete → /mss-spec:nova-feature (leia commands/nova-feature.md "
+    "e siga os passos)\n"
     "- pergunta sobre o projeto → /mss-spec:duvida\n"
+    "- tarefa do dia a dia (ajuste, operação, consulta, documentação, comando git) → /mss-spec:tarefa\n"
     "- projeto que já existia e o kit ainda não conhece → /mss-spec:analise\n"
     "Escape consciente, só do owner: MSS_KIT_PRIMEIRO_OFF=1."
 )

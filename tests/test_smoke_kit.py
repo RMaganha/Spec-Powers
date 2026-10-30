@@ -1124,6 +1124,46 @@ def test_bug_e_duvida_wiring():
     assert (REPO / "docs" / "specs" / "bug-e-duvida.md").exists(), "falta a spec viva docs/specs/bug-e-duvida.md"
 
 
+def test_tarefa_wiring():
+    """A 5ª porta (F-048, 2026-10-30): o dia a dia — ajuste, operação, consulta, doc, git — não é bug, dúvida,
+    feature nova nem análise, e sem porta entrava direto pelo superpowers ou por nada; com o `kit_primeiro.py`
+    negando o superpowers sem comando do kit, precisava existir. Owner: "provavelmente será o mais usado"."""
+    cmd = REPO / "commands" / "tarefa.md"
+    assert cmd.exists(), "falta commands/tarefa.md"
+    fm = _frontmatter(cmd)
+    assert "description:" in fm and "disable-model-invocation" not in fm, \
+        "tarefa.md travado ou sem description: o assistente não entra sozinho"
+    t = cmd.read_text(encoding="utf-8")
+    low = t.lower()
+    # passo 0: as outras quatro portas, pra trocar quando não é tarefa
+    for porta in ("/mss-spec:bug", "/mss-spec:duvida", "/mss-spec:nova-feature", "/mss-spec:analise"):
+        assert porta in t, f"tarefa.md não encaminha pra {porta} quando não é tarefa"
+    # passo 1: lê só o que a tarefa toca — MAPA, memória, spec, ambientes, diário
+    for arq in ("docs/superpowers/MAPA.md", "memory/MEMORY.md", "docs/AMBIENTES.md", "memory/DIARIO.md"):
+        assert arq in t, f"tarefa.md não lê {arq}"
+    assert "estado atual" in low, "tarefa.md não olha o Estado atual da spec viva"
+    # passo 2: plano curto e OK; só leitura não espera
+    assert "5 linhas" in low and "ok" in low, "tarefa.md não pede plano curto + OK"
+    assert "só de leitura" in low and "não espera" in low, "tarefa.md não libera a tarefa só de leitura sem OK"
+    # passo 3-4: nível, teste, spec, ambiente, prova real
+    assert "/mss-spec:modo" in t and "antes e depois" in low, "tarefa.md não roda o teste que já cobre antes e depois"
+    assert "regra crítica 6" in low, "tarefa.md não atualiza a spec quando o Estado atual muda"
+    assert "owner acessa" in low or "owner acessam" in low, "tarefa.md não limita operação ao que o AMBIENTES.md diz que se acessa"
+    assert "saída" in low and "real" in low and "pronto" in low, "tarefa.md não exige a prova real antes de 'pronto'"
+    # passo 5: fecho em 1 linha, to-dolist e captura só oferecidos
+    assert "/mss-spec:to-dolist adicionar" in t and "/mss-spec:memory capturar" in t, \
+        "tarefa.md não encaminha o de fora pro to-dolist nem oferece a captura"
+    # a porta está na negativa do hook, na regra 11, na lista de invocáveis e no LEIA-ME
+    hook = (REPO / "hooks" / "kit_primeiro.py").read_text(encoding="utf-8")
+    assert "/mss-spec:tarefa" in hook, "a negativa do kit_primeiro não aponta a porta do dia a dia"
+    kit = texto_do_kit()
+    regra11 = next(l for l in kit.splitlines() if l.startswith("11."))
+    assert "/mss-spec:tarefa" in regra11, "regra 11 não aponta o /mss-spec:tarefa"
+    assert "`tarefa`" in kit, "a lista de comandos invocáveis das regras do kit não inclui o tarefa"
+    leiame = (REPO / "docs" / "LEIA-ME.md").read_text(encoding="utf-8")
+    assert "/mss-spec:tarefa" in leiame and "porta" in leiame.lower(), "LEIA-ME não lista o tarefa nem a tabela de portas"
+
+
 def test_bpmn_wiring():
     """Desenho BPMN montado: gerador testável em templates/, comando aponta o script, declara as
     DUAS saídas (texto pro assistente + desenho pro humano) e a saída derivada FORA do git —
