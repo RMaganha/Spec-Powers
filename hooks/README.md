@@ -41,6 +41,24 @@ que já funciona ao vivo. Falha aberta; escape só do owner: `MSS_KIT_PRIMEIRO_O
 
 ---
 
+# Hook ligado — diário junto da memória
+
+`diario_junto.py` (evento `Stop`) lê no transcript o que o assistente **gravou** nesta conversa. Gravou
+memória — `memory/<arquivo>.md` (fora `MEMORY.md`, `DIARIO.md` e subpastas como `indice/`), `docs/EVALS.md`
+ou `docs/decisoes.md` — e nenhum `memory/sessions/<data>-<assunto>.md`? A resposta **volta** pedindo o
+diário (JSON `block`, exit 0), com a lista do que foi gravado. Cobra **uma vez por arquivo de memória**:
+memória nova depois da cobrança cobra de novo; `stop_hook_active` deixa sair (nunca laço). Estado por sessão
+no temp do SO.
+
+**Por que existe (caso F-048):** a conversa da tarde de 2026-10-30 no Whats gravou `docs/EVALS.md` (F-093,
+F-094) e duas specs e encerrou sem diário — o problema que ficou aberto (resposta do especialista que não
+volta pro WhatsApp em produção) não ficou escrito em lugar nenhum. O owner: *"o diário tem que ser junto
+com a memória, assim que gravar ela"*. O `/mss-spec:memory capturar` já grava os dois; o hook cobra quando a
+memória foi gravada por fora dele. Falha aberta; escape só do owner: `MSS_DIARIO_JUNTO_OFF=1`; registra
+`devolveu`.
+
+---
+
 # Hook ligado — cerca do projeto ativo (âncora)
 
 `projeto_ativo.py` é a **única camada que não depende de o assistente se comportar**. Evento
