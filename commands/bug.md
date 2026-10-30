@@ -21,7 +21,12 @@ bug aqui**: anote o estado no `docs/superpowers/MAPA.md`, ofereça `/mss-spec:to
 **1. O que a memória já diz — antes da 1ª hipótese.** Leia o destilado nesta ordem:
 `docs/superpowers/MAPA.md` → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` →
 a memória) → `docs/EVALS.md` (a falha já aconteceu?) → `docs/decisoes.md` e a spec viva do assunto
-(`docs/specs/<assunto>.md`). Abra só o que o gatilho apontar, nunca a pasta inteira. Mostre ao owner
+(`docs/specs/<assunto>.md`) → **`memory/DIARIO.md`** (as entradas dos **últimos 7 dias**: o que já foi
+conversado e o que ficou aberto; abra o `memory/sessions/<data>-<assunto>.md` só se o assunto bater) → e,
+se o sintoma cita **local, homologação, produção, servidor, variável ou App Setting**, a seção daquele
+ambiente em **`docs/AMBIENTES.md`** (nomes, valores, quem acessa o quê — nunca chute nome de servidor nem
+proponha passo num ambiente que o owner não acessa). Abra só o que o gatilho apontar, nunca a pasta
+inteira. Mostre ao owner
 **em até 5 linhas**, cada uma com `arquivo:linha`, o que já está escrito sobre esse sintoma: como o
 sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga isso em uma linha. Só
 depois disso vem hipótese.

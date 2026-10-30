@@ -17,7 +17,11 @@ este comando é a alavanca dele; a regra crítica é a do assistente.
 ## O trilho (na ordem; não pule)
 
 **0. Pare o loop.** Nada de nova hipótese nem novo pedido de evidência até cumprir os passos abaixo.
-Invoque `superpowers:systematic-debugging` (skill invocável de verdade) e siga a disciplina dela.
+Invoque `superpowers:systematic-debugging` (skill invocável de verdade) e siga a disciplina dela. Antes da
+tabela, leia **`memory/DIARIO.md`** (entradas dos **últimos 7 dias** — o que já foi conversado e o que ficou
+aberto) e, se o sintoma cita **local, homologação, produção, servidor, variável ou App Setting**, a seção
+daquele ambiente em **`docs/AMBIENTES.md`**: é dali que saem nome de servidor, valor de variável e quem
+acessa o quê (um passo num Portal que o owner não acessa é rodada perdida).
 
 **1. Tabela de fatos do owner.** Liste o que o owner **afirmou** nesta conversa (valor conferido,
 "funciona em X", print colado). **Fato afirmado pelo owner não se re-litiga**: se a sua leitura da

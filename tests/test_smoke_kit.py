@@ -83,6 +83,10 @@ def test_doctor_wiring():
     assert (REPO / "commands" / "doctor.md").exists(), "falta commands/doctor.md"
     claude = texto_do_kit()
     assert "Pré-vôo de ambiente" in claude, "CLAUDE.md não cita o pré-vôo de ambiente (doctor)"
+    # F-048: o LC_ALL inválido fazia a devolução do Stop virar "script ausente"; e o AMBIENTES.md num lugar só
+    doc = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
+    assert "LC_ALL" in doc and "appears to be missing" in doc, "doctor não avisa o LC_ALL que engolia o Stop"
+    assert "docs/AMBIENTES.md" in doc and "Quem acessa" in doc, "doctor não confere o docs/AMBIENTES.md"
 
 
 def test_robustez_plugin_root_wiring():
@@ -1036,6 +1040,9 @@ def test_diagnostico_wiring():
     # âncora no ponto de contágio: o diff abre outro projeto → read-only, reporte
     assert "somente-leitura" in low and "âncora" in low and "não conserte" in low,         "diagnostico.md manda abrir o precedente sem a fronteira da âncora (read-only; reporte)"
     assert "docs/EVALS.md" in diag, "diagnostico.md não fecha registrando o caso no corpus"
+    # F-048: o diário (7 dias) e os ambientes entram ANTES da tabela de fatos
+    assert "memory/DIARIO.md" in diag and "7 dias" in low, "diagnostico.md não lê o diário dos últimos 7 dias"
+    assert "docs/AMBIENTES.md" in diag, "diagnostico.md não lê a seção do ambiente citado em docs/AMBIENTES.md"
     # regra sempre-ativa no molde (é o único mecanismo vivo na hora 2 de uma sessão longa)
     claude = texto_do_kit()
     clow = claude.lower()
@@ -1082,6 +1089,9 @@ def test_bug_e_duvida_wiring():
     assert "memory/MEMORY.md" in b and "docs/EVALS.md" in b and "MAPA.md" in b, \
         "bug.md não manda ler o destilado (MAPA → memória → EVALS) antes de hipótese"
     assert "antes da 1ª hipótese" in blow, "bug.md não põe a memória ANTES da 1ª hipótese"
+    # F-048 (Whats, 2026-10-30): o diário nunca foi aberto e o nome do servidor foi chutado
+    assert "memory/DIARIO.md" in b and "7 dias" in blow, "bug.md não lê o diário dos últimos 7 dias no passo 1"
+    assert "docs/AMBIENTES.md" in b, "bug.md não lê a seção do ambiente citado em docs/AMBIENTES.md"
     assert "systematic-debugging" in b, "bug.md não chama a superpowers:systematic-debugging"
     assert "mss-spec:diagnostico" in b and "2 rodadas" in blow, \
         "bug.md não escala pro diagnostico depois de 2 rodadas sem causa"
@@ -1092,6 +1102,8 @@ def test_bug_e_duvida_wiring():
     d = duvida.read_text(encoding="utf-8")
     dlow = d.lower()
     assert "memory/MEMORY.md" in d and "MAPA.md" in d, "duvida.md não manda ler o destilado"
+    assert "memory/DIARIO.md" in d and "docs/AMBIENTES.md" in d, \
+        "duvida.md não lê o diário (7 dias) nem a seção do ambiente citado (F-048)"
     assert "não sei" in dlow, "duvida.md não permite 'não sei' quando não há fonte"
     assert "não edite" in dlow, "duvida.md não proíbe mexer em arquivo"
     assert "/mss-spec:bug" in d and "/mss-spec:nova-feature" in d, \
