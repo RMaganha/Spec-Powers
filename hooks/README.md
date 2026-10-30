@@ -507,7 +507,9 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `um_item_por_janela` | `bloqueou` · `avisou` | `abertas=N` |
 | `recall_memoria` | `injetou` | os ponteiros (`docs/decisoes.md:25`, `memory/x.md`) |
 | `alerta_contexto` | `avisou` | `faixa=85 pct=86 janela=1000000 modelo=claude-opus-5-5` |
-| `capturar_nudge` | `lembrou` | — |
+| `capturar_nudge` | `lembrou` | `sem_captura_ha=31min` · `intervalo=0` |
+| `kit_primeiro` | `negou` | `superpowers:systematic-debugging` (a skill negada) — nunca o prompt |
+| `diario_junto` | `devolveu` | `memoria_sem_diario=2` (quantas memórias sem diário) |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
 | `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |

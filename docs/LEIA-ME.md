@@ -54,7 +54,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 
 | Comando | O que faz |
 |---|---|
-| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `docs/ESTRUTURA.md` (pastas em camadas), `docs/decisoes.md`, `config/logging.py`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
+| `/mss-spec:kickoff "ideia"` | Constitui o projeto (green/brownfield): entrevista e gera `CLAUDE.md`, `memory/MEMORY.md`, `docs/superpowers/INDEX.md`, `docs/AMBIENTE.md`, `docs/AMBIENTES.md` (cada ambiente: o que é, quem acessa, variáveis com valores — segredo `*****`), `docs/ESTRUTURA.md` (pastas em camadas), `docs/decisoes.md`, `config/logging.py`, `.claude/settings.json`, `.gitignore` e — se tiver UI — `docs/FRONTEND.md` + `static/img/logo.png` |
 | `/mss-spec:analise` | **Projeto que já existe (brownfield):** lê o repo de verdade (inventário + leitura focada em entrypoints, rotas, `.sql`, config, UI, pipeline RAG/pgvector) e destila no dossiê `docs/ARQUITETURA.md` + contexto do `CLAUDE.md`, `MAPA.md` e INDEX (1 linha `existente` por assunto). **Não-destrutivo:** nunca toca em código, infra ou UI própria — o que já existe é registrado, não substituído |
 | `/mss-spec:doctor` | Pré-vôo do ambiente MSIG (proxy, CA, ODBC, rede docker, `.env`, superpowers, resolução do plugin) — veredito ✓/✗; só reporta. Roda manual e sozinho na 1ª tarefa |
 | `/mss-spec:ambiente` | Gera infra no padrão MSIG (docker-compose com `mitiai_network`; override de proxy do escritório) |
