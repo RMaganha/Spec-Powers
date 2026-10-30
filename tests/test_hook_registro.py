@@ -120,6 +120,14 @@ def _cenario_nudge(tmp):
             {}, "lembrou", "")
 
 
+def _cenario_kit_primeiro(tmp):
+    return ("kit_primeiro.py",
+            {"hook_event_name": "PreToolUse", "cwd": str(tmp), "session_id": "abcdef123456",
+             "tool_name": "Skill", "tool_input": {"skill": "superpowers:systematic-debugging",
+                                                  "args": f"senha {SEGREDO}"}},
+            {}, "negou", "superpowers:systematic-debugging")
+
+
 def _cenario_orcamento(tmp):
     proj = tmp / "proj"
     (proj / "docs" / "superpowers").mkdir(parents=True, exist_ok=True)
@@ -153,8 +161,9 @@ def _cenario_citacoes(tmp):
 
 CENARIOS = [_cenario_publicacao, _cenario_pipe, _cenario_ancora, _cenario_um_item,
             _cenario_recall, _cenario_alerta, _cenario_nudge, _cenario_orcamento, _cenario_teto,
-            _cenario_citacoes]
-IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto", "citacoes"]
+            _cenario_citacoes, _cenario_kit_primeiro]
+IDS = ["publicacao", "pipe", "ancora", "um_item", "recall", "alerta", "nudge", "orcamento", "teto", "citacoes",
+       "kit_primeiro"]
 
 
 def _preparar(cenario, tmp_path, env):
@@ -208,6 +217,8 @@ def test_nunca_grava_o_texto_do_prompt_nem_do_comando(cenario, tmp_path):
     ("orcamento_partida.py", {"hook_event_name": "SessionStart", "source": "startup"}),
     ("confere_citacoes.py", {"hook_event_name": "Stop", "stop_hook_active": False,
                              "last_assistant_message": "tudo certo, sem citação"}),
+    ("kit_primeiro.py", {"hook_event_name": "PreToolUse", "tool_name": "Skill",
+                         "tool_input": {"skill": "mss-spec:bug", "args": ""}}),
 ])
 def test_hook_que_passa_calado_nao_grava(hook, evento, tmp_path):
     arquivo = tmp_path / "registro-hooks.jsonl"

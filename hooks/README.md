@@ -1,5 +1,5 @@
-Doze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, opt-in).
-Os doze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Catorze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os catorze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -15,6 +15,29 @@ Os doze anotam no **registro local** cada vez que **agem** (seção no fim deste
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 | `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
+| `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · analise) (0.50.0, F-048) |
+| `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
+
+---
+
+# Hook ligado — o kit entra primeiro
+
+`kit_primeiro.py` nega qualquer skill `superpowers:*` enquanto **nenhum comando do kit** tiver entrado na
+conversa. Entrar pelo kit é: o owner digitar `/mss-spec:<x>` (`UserPromptSubmit`), o assistente invocar
+`mss-spec:<x>` pela ferramenta `Skill`, ou ler `commands/<x>.md` do kit (`PreToolUse` em `Read` — é assim
+que rodam os comandos `disable-model-invocation`, como o `nova-feature`). O estado é **por sessão**
+(`mss_kit_primeiro_<sessao>.json` no temp do SO).
+
+**Por que existe (caso F-048):** na conversa "Validar mensagens WhatsApp em produção" (Whats, 2026-10-30),
+*"vamos tratar aqui mesmo o bug"* virou `superpowers:systematic-debugging` direto, sem o `/mss-spec:bug`; o
+passo 1 do bug (memória, spec e diário antes da 1ª hipótese) não aconteceu e a hipótese errada
+(`MITI_DEV_AUTH`) ocupou 23 minutos. A regra 11 e o `bug.md` (2026-10-27) já mandavam entrar pelo kit; o
+`superpowers:using-superpowers` manda "bug → systematic-debugging primeiro". Prosa contra prosa, ganhou a
+do superpowers — por isso cerca, não prosa. O superpowers continua sendo chamado, mas de dentro do comando
+do kit, no passo certo.
+
+**Formato da negativa:** o mesmo do `git_publicacao.py` (JSON `deny` no stdout + motivo no stderr + exit 2),
+que já funciona ao vivo. Falha aberta; escape só do owner: `MSS_KIT_PRIMEIRO_OFF=1`; registra `negou`.
 
 ---
 
