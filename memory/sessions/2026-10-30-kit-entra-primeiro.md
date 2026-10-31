@@ -47,3 +47,6 @@ Owner: merge da branch na `main` e push; `/mss-spec:upgrade` no Whats (nasce o `
 preenche os valores — só ele os tem), depois Transportes e Energy; remover `LC_ALL=enu` das variáveis do Windows;
 no Whats, capturar a conversa da tarde de 30/10 (`/mss-spec:memory capturar` nela) — o problema do push do n8n em
 produção não está escrito em lugar nenhum.
+
+## Depois do merge — o guardião da junção (0.51.0)
+O owner perguntou o que é "refazer a junção" e pediu algo automático ("o aplicativo atualiza constantemente"). O guarda não pode ser hook do kit (se a junção some, o kit some): virou `templates/guardiao-da-juncao.ps1`, chamado pelo hook `SessionStart` do `~/.claude/settings.json` do usuário (gravado, com cópia) e por tarefa agendada que só o owner consegue registrar (o sandbox negou `Register-ScheduledTask`, `schtasks` e o COM). **Pivô:** a 1ª rodada de verdade falhou com os 8 testes verdes — `$PSScriptRoot` vazio no default do param; os testes passavam `-Alvo`. Lição: teste que passa o parâmetro não prova o padrão; entrou o teste sem `-Alvo` e o cálculo foi pro corpo. **Próximo:** owner registra a tarefa (comando no `hooks/README.md`) e confere o log; na próxima atualização do app, a linha `evidencia estado=…` do log é a captura que a pendência pedia.
