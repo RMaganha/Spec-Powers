@@ -22,3 +22,13 @@ antes de as regras nascerem. Com o filtro, sobraram as falhas reais (banco 5, te
 
 **How to apply:** script descartável no scratchpad, lendo os `.jsonl` como dado (`python -I`). Foi a medição que
 trocou a opinião ("o índice deve funcionar") por número antes do desenho — [[project-regra-por-tipo-carrega-ao-ler]].
+
+**Mais sinais no `.jsonl` (2026-10-30, F-048):** `"type": "attachment"` com `attachment.type` =
+`hook_additional_context` (o que um hook `UserPromptSubmit`/`SessionStart` **injetou** — o recall aparece aqui) ·
+`hook_non_blocking_error` com *"Hook script appears to be missing"* (devolução de `Stop` que o Claude Code
+**engoliu**: exit 2 + "No such file or directory" no stderr) · mensagem `user` começando com `Stop hook feedback:`
+(devolução **entregue**). Contar os dois últimos por data foi o que mostrou 40+ devoluções perdidas em 5 semanas.
+`<pasta>/<sessão>/custom-title.json` traz o título da conversa; a ferramenta `list_sessions` do app liga título →
+pasta do projeto, e o registro local (`~/.claude/mss-spec/registro-hooks.jsonl`, campo `sessao` = 8 primeiros
+caracteres do id) diz o que cada hook **achou** que fez — cruzar os dois é a prova. Relacionado:
+[[project_hook_stop_devolve_por_json_nao_por_exit_2]].

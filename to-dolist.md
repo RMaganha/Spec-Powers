@@ -68,3 +68,5 @@
 - `mapa-neural` virar self-organizing map (vetor de features + treino) #fora-de-escopo (decidido: 2026-07-21, deps pesadas, resultado não-determinístico, ganho duvidoso com ~50 itens)
 - tirar do kit o código que ainda aceita o fora de escopo no formato antigo (`rodizio_partida.py`, `um_item_por_janela.py`, check do `doctor`) #fora-de-escopo (decidido: 2026-10-28, só depois de o /mss-spec:upgrade rodar no Whats, no Transportes e no Energy — escolha do owner "Sim, até o upgrade")
 - Propor o gatilho ("quando abrir") para as memórias que não têm, nos projetos (Whats: 114 de 150) #fora-de-escopo (decidido: 2026-10-29, a conferência da proposta cobre o caso sem depender delas)
+- Guardião recriar a junção no instante exato da atualização do app #fora-de-escopo (decidido: 2026-10-30, não achamos onde o app grava a versão; hora em hora + a cada conversa cobre — `hooks/README.md`, seção "Fora do kit")
+- Atalho na pasta Inicializar (`shell:startup`) como fallback da tarefa agendada do guardião #fora-de-escopo (decidido: 2026-10-30, só se a política da máquina negar o registro ao owner; cobre só o logon)

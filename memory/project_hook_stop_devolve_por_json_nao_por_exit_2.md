@@ -23,5 +23,11 @@ sobre um hook que não entregava, e o owner viu "cada vez pior".
 JSON `permissionDecision` + exit 2, como está. Hook novo ou alterado só se declara funcionando depois de
 **achar a devolução no transcript ao vivo** (`attachment` com o motivo, ou a resposta corrigida logo depois),
 não pelo `registro-hooks.jsonl`. O `doctor` (check 12) avisa o `LC_ALL`; o conserto da variável é do owner.
+
+**Quando o conserto passa a valer (medido 2026-10-30):** o `hooks.json` é lido na **abertura** da conversa — hook
+novo ou matcher novo (`kit_primeiro`, `diario_junto`, o lembrete) só existe em **conversa nova**; já o `.py` de um
+hook registrado é executado a cada disparo, então consertar o arquivo vale **na mesma conversa** — foi assim que a
+devolução do `confere_citacoes.py` chegou às 20:06, na sessão em que fora consertado às 19:41, depois de três
+perdidas às 18:54, 19:17 e 19:24. Prova de hook novo = abrir conversa nova e achar a ação no transcript.
 Relacionado: [[project_hook_ask_aparece_no_desktop]], [[project_heredoc_grande_com_acento_quebra_no_git_bash]],
 [[reference-historico-mostra-o-que-carregou]].
