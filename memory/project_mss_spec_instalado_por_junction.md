@@ -36,3 +36,5 @@ janela nova **sem nada em `settings.json`** (global ou do projeto). Não é prec
 
 Relacionado: [[project_plugin_load_cross_marketplace]] (por que o load é via skills-dir/symlink, não
 dependência declarada), [[project_marketplace_relative_path_serve_git_e_local]].
+
+**Guardião (0.51.0, 2026-10-30):** a junção é recriada sozinha quando some ou aponta errado — `templates/guardiao-da-juncao.ps1`, chamado pelo hook `SessionStart` do `~/.claude/settings.json` do usuário e pela tarefa agendada de hora em hora (receita em `hooks/README.md`, seção "Fora do kit"). Log em `~/.claude/mss-spec/guardiao-juncao.log`. Ver [[project_pendencia_intermitencia_pos_update]].

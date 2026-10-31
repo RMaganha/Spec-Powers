@@ -20,6 +20,55 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 
 ---
 
+# Fora do kit — guardião da junção (`templates/guardiao-da-juncao.ps1`)
+
+Nesta máquina o kit é carregado por uma **junção** (`~/.claude/skills/mss-spec` → o clone do kit). O app se
+atualiza sozinho (`autoUpdatesChannel: latest`) e já derrubou a junção depois de uma atualização
+(`memory/project_pendencia_intermitencia_pos_update.md`); quando ela some, **o kit inteiro some — hooks
+inclusos**. Por isso este guarda não é um hook do `hooks.json`: vive fora do kit, em dois lugares que o
+sumiço não alcança.
+
+**O que faz:** confere que a junção existe, é junção, aponta pro clone e que `hooks/hooks.json` é alcançável.
+Tudo certo → uma linha `ok` no log `~/.claude/mss-spec/guardiao-juncao.log`, silêncio. Problema → **captura a
+evidência antes** (o que havia no lugar, a listagem de `skills/`), depois conserta: pasta real com conteúdo é
+**renomeada** para `mss-spec.bak-<data>` (nunca apagada), junção errada tem só o atalho removido (o destino não
+é tocado), junção nova é criada. Clone ausente → não cria nada, só registra. Exit 0 sempre.
+
+**1. A cada conversa** — hook `SessionStart` no `settings.json` do **usuário** (`~/.claude/settings.json`, não
+o do plugin): com `-Sessao`, o script imprime `systemMessage` só quando agiu ("junção refeita; feche e reabra
+esta conversa").
+
+```json
+"hooks": {
+  "SessionStart": [
+    { "hooks": [ { "type": "command",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Ronaldo/_Mitsui/Python/Spec-Powers/templates/guardiao-da-juncao.ps1\" -Sessao" } ] }
+  ]
+}
+```
+
+**2. No logon e a cada hora** — tarefa do Agendador do Windows, registrada uma vez **na sua janela do
+PowerShell** (o sandbox em que o Claude roda comandos não pode registrar tarefas: `Register-ScheduledTask`,
+`schtasks` e o COM do agendador devolvem "Acesso negado" — medido em 2026-10-30). Se a política da máquina negar
+também pra você, o fallback é um atalho na pasta Inicializar (`shell:startup`) chamando o script; aí só o logon
+fica coberto, e o hook da conversa continua valendo:
+
+```powershell
+$s = "C:\Ronaldo\_Mitsui\Python\Spec-Powers\templates\guardiao-da-juncao.ps1"
+$acao = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$s`""
+$logon = New-ScheduledTaskTrigger -AtLogOn
+$hora = New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Days 3650)
+$cfg = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 2) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName "mss-spec guardiao da juncao" -Action $acao -Trigger $logon,$hora -Settings $cfg -Description "Confere e recria a juncao ~/.claude/skills/mss-spec -> clone do kit" -Force
+```
+
+Conferir: `Get-ScheduledTask "mss-spec guardiao da juncao"` e a última linha do log. Limite honesto: o guarda
+não sabe o instante da atualização (o app não deixa a versão em lugar conhecido), então o buraco máximo é uma
+hora sem o kit com o app fechado — e nenhuma conversa inteira sem ele. Testes:
+`tests/test_guardiao_da_juncao.py` (rodam o script de verdade em pastas temporárias).
+
+---
+
 # Hook ligado — o kit entra primeiro
 
 `kit_primeiro.py` nega qualquer skill `superpowers:*` enquanto **nenhum comando do kit** tiver entrado na
