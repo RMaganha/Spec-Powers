@@ -20,52 +20,16 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 
 ---
 
-# Fora do kit — guardião da junção (`templates/guardiao-da-juncao.ps1`)
+# Fora do kit — a junção e as atualizações do app (sem guardião)
 
-Nesta máquina o kit é carregado por uma **junção** (`~/.claude/skills/mss-spec` → o clone do kit). O app se
-atualiza sozinho (`autoUpdatesChannel: latest`) e já derrubou a junção depois de uma atualização
-(`memory/project_pendencia_intermitencia_pos_update.md`); quando ela some, **o kit inteiro some — hooks
-inclusos**. Por isso este guarda não é um hook do `hooks.json`: vive fora do kit, em dois lugares que o
-sumiço não alcança.
-
-**O que faz:** confere que a junção existe, é junção, aponta pro clone e que `hooks/hooks.json` é alcançável.
-Tudo certo → uma linha `ok` no log `~/.claude/mss-spec/guardiao-juncao.log`, silêncio. Problema → **captura a
-evidência antes** (o que havia no lugar, a listagem de `skills/`), depois conserta: pasta real com conteúdo é
-**renomeada** para `mss-spec.bak-<data>` (nunca apagada), junção errada tem só o atalho removido (o destino não
-é tocado), junção nova é criada. Clone ausente → não cria nada, só registra. Exit 0 sempre.
-
-**1. A cada conversa** — hook `SessionStart` no `settings.json` do **usuário** (`~/.claude/settings.json`, não
-o do plugin): com `-Sessao`, o script imprime `systemMessage` só quando agiu ("junção refeita; feche e reabra
-esta conversa").
-
-```json
-"hooks": {
-  "SessionStart": [
-    { "hooks": [ { "type": "command",
-      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Ronaldo/_Mitsui/Python/Spec-Powers/templates/guardiao-da-juncao.ps1\" -Sessao" } ] }
-  ]
-}
-```
-
-**2. No logon e a cada hora** — tarefa do Agendador do Windows, registrada uma vez **na sua janela do
-PowerShell** (o sandbox em que o Claude roda comandos não pode registrar tarefas: `Register-ScheduledTask`,
-`schtasks` e o COM do agendador devolvem "Acesso negado" — medido em 2026-10-30). Se a política da máquina negar
-também pra você, o fallback é um atalho na pasta Inicializar (`shell:startup`) chamando o script; aí só o logon
-fica coberto, e o hook da conversa continua valendo:
-
-```powershell
-$s = "C:\Ronaldo\_Mitsui\Python\Spec-Powers\templates\guardiao-da-juncao.ps1"
-$acao = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$s`""
-$logon = New-ScheduledTaskTrigger -AtLogOn
-$hora = New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Days 3650)
-$cfg = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 2) -MultipleInstances IgnoreNew
-Register-ScheduledTask -TaskName "mss-spec guardiao da juncao" -Action $acao -Trigger $logon,$hora -Settings $cfg -Description "Confere e recria a juncao ~/.claude/skills/mss-spec -> clone do kit" -Force
-```
-
-Conferir: `Get-ScheduledTask "mss-spec guardiao da juncao"` e a última linha do log. Limite honesto: o guarda
-não sabe o instante da atualização (o app não deixa a versão em lugar conhecido), então o buraco máximo é uma
-hora sem o kit com o app fechado — e nenhuma conversa inteira sem ele. Testes:
-`tests/test_guardiao_da_juncao.py` (rodam o script de verdade em pastas temporárias).
+Nesta máquina o kit é carregado por uma **junção** (`~/.claude/skills/mss-spec` → o clone) e o app se atualiza
+sozinho; já aconteceu de a junção sumir depois de uma atualização
+(`memory/project_pendencia_intermitencia_pos_update.md`). A 0.51.0 trouxe um "guardião" (script PowerShell
+chamado por hook `SessionStart` e por tarefa agendada). **Retirado na 0.51.1 (2026-11-03): a Segurança da
+Informação da MSIG não permite scripts PowerShell nem tarefas agendadas na máquina do owner** — ao registrar a
+tarefa ele foi contactado pela infra. Nada do kit roda `.ps1` nem cria tarefa; o hook do `settings.json` do
+usuário foi removido. A alternativa (instalar o kit pelo marketplace local, sem junção, ou um hook Python de
+conferência) está em decisão — `docs/superpowers/MAPA.md`. Enquanto isso, kit sumido = check 1 do `doctor`.
 
 ---
 
