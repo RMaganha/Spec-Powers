@@ -17,6 +17,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# Logs de aplicação (/mss-spec:log) — arquivo rotativo é conveniência de DEV; em prod
+# vale o stdout. A barra inicial ANCORA na raiz (sem ela ignoraria qualquer pasta logs/).
+/logs/
+
 # Saídas de run do CI (item 12) — artefatos efêmeros do pipeline, NUNCA commitar.
 report.xml
 coverage.xml
