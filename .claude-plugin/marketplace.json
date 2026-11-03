@@ -6,10 +6,7 @@
     {
       "name": "mss-spec",
       "description": "Fluxo Spec-Driven MSIG sobre superpowers.",
-      "source": {
-        "source": "relative-path",
-        "path": "."
-      }
+      "source": "./"
     }
   ]
 }

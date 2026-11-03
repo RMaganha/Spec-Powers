@@ -332,8 +332,9 @@ def test_distribuicao_por_git_wiring():
     # AC1: plugin mss-spec com source relative-path (mesma raiz do marketplace) -> serve local + git
     plugin_entry = next(p for p in market["plugins"] if p["name"] == "mss-spec")
     src = plugin_entry["source"]
-    src_kind = src if isinstance(src, str) else src.get("source")
-    assert src_kind == "relative-path", "marketplace.json: plugin mss-spec não usa source relative-path"
+    # forma documentada (marketplace-reference): string "./" = raiz do marketplace; a forma-objeto
+    # {"source": "relative-path"} não consta mais dos docs (2026-11-03) e o marketplace oficial só usa a string
+    assert src in ("./", "."), f"marketplace.json: plugin mss-spec não usa source relativo em string: {src!r}"
 
     # AC2: allowlist cross-marketplace inclui o marketplace oficial (dep superpowers a 1 linha)
     allow = market.get("allowCrossMarketplaceDependenciesOn", [])

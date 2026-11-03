@@ -11,7 +11,7 @@ arquivo à mão.
 
 ## Instalação
 
-O mesmo `.claude-plugin/marketplace.json` (source `relative-path`) serve às **duas vias** abaixo: o
+O mesmo `.claude-plugin/marketplace.json` (source relativo `"./"`, a raiz do próprio marketplace) serve às **duas vias** abaixo: o
 Claude Code resolve o plugin na raiz do marketplace, seja ele adicionado por URL git (que ele clona) ou
 por pasta local. `mss-local` é o nome fixo da lojinha; escolha escopo `user` (vale em todos os projetos
 da máquina). Requer Claude Code **v2.1.140+**.
