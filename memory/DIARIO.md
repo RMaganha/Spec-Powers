@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-03
+
+- [guardiao-sem-script] 0.51.1: ao registrar a tarefa agendada do guardião, o owner foi contactado pela infra e pela Segurança da Informação — script PowerShell e tarefa agendada não são permitidos; hook do settings.json removido, .ps1 e testes fora do kit, memória vira política com gatilho_comando (F-050); pivô: automação na máquina do owner passa pela SI antes de existir; alternativa (marketplace local sem junção × hook Python) é escolha dele → sessions/2026-11-03-guardiao-sem-script.md
+
 ## 2026-10-30
 
 - [guardiao-da-juncao] 0.51.0: o owner perguntou o que é "refazer a junção" e pediu algo automático porque o app atualiza sempre; nasceu o guardião fora do kit (hook no settings.json do usuário + tarefa agendada), com captura de evidência; pivô: a 1ª rodada real falhou ($PSScriptRoot vazio) com os testes verdes — teste que passa o parâmetro não prova o padrão → sessions/2026-10-30-kit-entra-primeiro.md

@@ -1,8 +1,8 @@
 ---
 name: project_sandbox_do_claude_nao_registra_tarefa_agendada
-description: o sandbox em que o Claude roda comandos nesta máquina não registra tarefa agendada do Windows — Register-ScheduledTask, schtasks.exe e o COM Schedule.Service devolvem "Acesso negado" — e a ferramenta PowerShell pode ficar sem abrir processo (EPERM) depois; configuração de sistema é comando entregue ao owner, em passo a passo
-gatilho: quando precisar criar ou alterar tarefa agendada, serviço, variável de ambiente de máquina ou outra configuração do Windows pelo Claude
-gatilho_comando: (?i)Register-ScheduledTask|schtasks(\.exe)?\s+/create|ComObject\s+Schedule\.Service
+description: scripts PowerShell (.ps1) e tarefas agendadas NÃO SÃO PERMITIDOS pela Segurança da Informação na máquina do owner (2026-11-03) — nem pelo Claude, nem pelo owner; e o sandbox em que o Claude roda comandos não registra tarefa agendada do Windows — Register-ScheduledTask, schtasks.exe e o COM Schedule.Service devolvem "Acesso negado" — e a ferramenta PowerShell pode ficar sem abrir processo (EPERM) depois; configuração de sistema é comando entregue ao owner, em passo a passo
+gatilho: quando a solução pedir script PowerShell (.ps1), tarefa agendada, serviço, junção ou outra configuração persistente do Windows — pelo Claude ou pelo owner
+gatilho_comando: (?i)Register-ScheduledTask|schtasks(\.exe)?\s+/create|ComObject\s+Schedule\.Service|powershell(\.exe)?[^\n]*-File\s+\S*\.ps1|New-Item\s+-ItemType\s+Junction
 metadata:
   type: project
 ---
@@ -18,9 +18,12 @@ uv_spawn cmd.exe`) pelo resto da sessão; o **Bash** continuou normal, inclusive
 **Why:** não é falta de admin do owner, é o sandbox da ferramenta — insistir queima rodadas e pode derrubar a
 ferramenta PowerShell da sessão.
 
-**How to apply:** tarefa agendada, serviço, variável de **máquina**, política: **não tente** — entregue o comando
-ao owner em passo a passo (título em negrito, comando sozinho num bloco, o que conferir na saída) e deixe a
-conferência no fluxo (`Get-ScheduledTask "<nome>"`). O `gatilho_comando` acima faz o hook negar uma vez com esta
-memória no motivo. Se a ferramenta PowerShell ficar sem spawn, siga pelo Bash. Fallback sem agendador: atalho na
-pasta Inicializar (`shell:startup`), que cobre só o logon. Relacionado: [[project_mss_spec_instalado_por_junction]],
+**How to apply (revisto em 2026-11-03):** script `.ps1`, tarefa agendada, serviço, junção, atalho na pasta
+Inicializar ou qualquer outra persistência na máquina: **não execute e não proponha, nem como comando pro owner
+rodar** — a política da Segurança da Informação vale pra ele também (foi contactado ao registrar a tarefa). O
+`gatilho_comando` acima faz o hook negar uma vez com esta memória no motivo. Precisa de automação na máquina?
+A resposta é "isso passa pela SI antes", e o desenho espera. Se a ferramenta PowerShell ficar sem spawn, siga
+pelo Bash para o que é leitura. Relacionado: [[project_mss_spec_instalado_por_junction]],
 [[project_pendencia_intermitencia_pos_update]].
+
+**2026-11-03 — não é só o sandbox: é POLÍTICA.** O owner registrou a tarefa agendada do guardião (0.51.0) na janela dele e foi contactado pela infra e pela Segurança da Informação: scripts PowerShell e tarefas agendadas **não são permitidos** na máquina. Consequência: o assistente **não executa nem propõe** `.ps1`, `Register-ScheduledTask`, `schtasks`, COM do agendador, nem comandos de criar junção; o `gatilho_comando` acima nega esses comandos uma vez por sessão com esta memória no motivo. Automação na máquina do owner = pergunta à SI antes, nunca premissa (mesma família de F-003: infra é pergunta, não suposição). Python chamado pelos hooks do próprio app segue como está (roda há meses sem objeção) — mas qualquer mecanismo novo de persistência passa pela SI primeiro. Caso F-050.

@@ -40,11 +40,8 @@ qualquer** (ex.: `C:/ferramentas/mss-spec`, sem espaços/acentos) e aponte o mar
 Só o caminho antes de `mss-local` muda de máquina pra máquina.
 
 **Carregou por junção (`~/.claude/skills/mss-spec` → clone)?** O app se atualiza sozinho e já derrubou a junção;
-quando ela some, o kit inteiro some. Ligue o **guardião** uma vez: o hook `SessionStart` no seu
-`~/.claude/settings.json` e a tarefa agendada (logon + a cada hora), os dois rodando
-`templates/guardiao-da-juncao.ps1` — receita pronta em `hooks/README.md`, seção "Fora do kit — guardião da
-junção". Ele recria a junção quando some, guarda a evidência em `~/.claude/mss-spec/guardiao-juncao.log` e
-nunca apaga pasta real.
+quando ela some, o kit inteiro some. Nada de script ou tarefa agendada pra vigiar isso (a Segurança da Informação
+não permite): o sinal é o check 1 do `/mss-spec:doctor` e um `/mss-spec:` que some da lista.
 
 ### Pré-requisito: superpowers
 

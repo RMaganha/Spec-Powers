@@ -2,6 +2,12 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.51.1 — 2026-11-03 (guardião retirado: a Segurança da Informação não permite script nem tarefa agendada)
+- **o que motivou:** ao registrar a tarefa agendada da 0.51.0, o owner foi contactado pela infra e pela Segurança da Informação: scripts PowerShell e tarefas agendadas **não são permitidos** na máquina. *"não podemos usar … não pode mais executar esses comandos"*.
+- removido: `templates/guardiao-da-juncao.ps1`, `tests/test_guardiao_da_juncao.py`, o hook `SessionStart` do `~/.claude/settings.json` do owner (removido com cópia), a receita da tarefa no `hooks/README.md`, o guardião no check 1 do `doctor` e no `LEIA-ME`.
+- memória `project_sandbox_do_claude_nao_registra_tarefa_agendada`: vira política — `gatilho_comando` nega `.ps1`, tarefa agendada, COM do agendador e criação de junção, uma vez por sessão com a memória no motivo. Caso F-050.
+- **fora:** a alternativa sem script (instalar o kit pelo marketplace local, sem junção; ou hook Python só de conferência) é decisão do owner — ver `docs/superpowers/MAPA.md`.
+
 ## 0.51.0 — 2026-10-30 (guardião da junção)
 - **o que motivou:** o owner: *"o aplicativo atualiza constantemente!! teria que ser algo automático"*. O kit é carregado por junção (`~/.claude/skills/mss-spec` → clone) e o app (`autoUpdatesChannel: latest`) já a derrubou; quando ela some, o kit inteiro some, hooks inclusos — então o guarda tem de viver fora do kit. A pendência `project_pendencia_intermitencia_pos_update` pedia capturar o estado quebrado.
 - feat(**guardião da junção**, `templates/guardiao-da-juncao.ps1`): confere existência, tipo, destino e `hooks/hooks.json`; problema → captura a evidência no `~/.claude/mss-spec/guardiao-juncao.log` e recria; pasta real é renomeada (`mss-spec.bak-<data>`), nunca apagada; clone ausente → não cria nada. Exit 0 sempre. Chamado por hook `SessionStart` no `settings.json` do **usuário** (`-Sessao`: `systemMessage` só quando agiu) e por tarefa agendada (logon + a cada hora; registrada pelo owner — o sandbox do Claude não registra tarefas).
