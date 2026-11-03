@@ -10,8 +10,8 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
 | `alerta_contexto.py` | `UserPromptSubmit` + `PostToolUse` | **ligado por padrão** | não (só avisa) | rede: janela ≥ 75% → feche o assunto, to-dolist, `/clear` |
 | `confere_citacoes.py` | `Stop` | **ligado por padrão** | devolve a resposta **uma vez** | rede: a resposta cita arquivo/`:linha`, `/mss-spec:<x>` ou `F-0NN` que não existe no disco → volta pra corrigir ou dizer "não sei" (F-035) · também rotas alternativas não pedidas (F-033) e o `gatilho_resposta:` de uma memória (F-034) |
-| `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030) |
-| `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030) |
+| `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030); recado só pro assistente, uma vez por sessão (0.52.0) |
+| `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030); "avise o owner" só pra `CLAUDE.md`/`MEMORY.md` (0.52.0) |
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 | `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
@@ -384,7 +384,12 @@ fechadas pro histórico); depois, no INDEX, `## Backlog` → `BACKLOG.md` · `##
 → `EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim, que a trava lê); no MAPA, `## Conexões` →
 `CONEXOES.md` (fica a lista de nomes) e, se ainda não couber, só o bloco atual fica. Destino que já existe recebe
 prepend datado. O `additionalContext` diz o que foi pra onde e manda **reler antes do próximo Edit**; o que sobra
-acima do teto é conteúdo vivo e o hook pede o resumo pra spec. `CLAUDE.md` acima de 10,0 KB: **só avisa** (escolher o
+acima do teto é conteúdo vivo e o hook pede o resumo pra spec — **uma vez por sessão** por arquivo (0.52.0; chave
+`_avisados` do estado por sessão). **MAPA/INDEX é recado só pro assistente**: nunca "avise o owner", nunca
+`systemMessage` — o teto é o gatilho da separação em dois níveis, não um aviso pro owner (o Whats recebia o mesmo
+pedido em toda edição, 36× em 7 conversas; o MSS-SSC ouvia "avise o owner" abaixo do teto). O teto do MAPA e do INDEX
+conta só **conteúdo**: comentário `<!-- -->` não entra (`rodizio_partida.bytes_de_conteudo`). `CLAUDE.md` acima de
+10,0 KB: **só avisa**, uma vez por sessão, **com** "avise o owner" e `systemMessage` — o ato é dele (escolher o
 destino de um bloco de regra é julgamento — F-029): com a marca das regras do kit manda mover um bloco inteiro com
 ponteiro; **sem** a marca manda rodar `/mss-spec:upgrade`. Arquivo com conflito de merge não é tocado.
 
@@ -443,9 +448,12 @@ Evento `SessionStart`. Mede em bytes, na raiz (`CLAUDE_PROJECT_DIR` › `cwd`): 
 `tests/test_orcamento_contexto.py` e do `rodizio_partida.py`; um teste trava os três). Algum acima →
 `additionalContext` (≤ 1.000 bytes) com o que estourou, o que ler de cada um (MAPA → `## Onde estamos`;
 INDEX → `## Em andamento`; o resto por `grep`), "backlog, fora de escopo e diário não são o estado atual"
-e "avise o owner" com o conserto: `CLAUDE.md` sem a marca → `/mss-spec:upgrade`; com a marca → mover bloco com
-ponteiro; `/mss-spec:doctor` só quando estoura MAPA/INDEX/MEMORY. Tamanhos em KB com uma casa
-(`10,1 KB (teto 10,0 KB)`). + `systemMessage` de 1 linha. **Não move nada**: mover é
+e, **só quando o ato é do owner**, "avise o owner" com o conserto e `systemMessage` de 1 linha (0.52.0): `CLAUDE.md`
+sem a marca → `/mss-spec:upgrade`; com a marca → mover bloco com ponteiro; `MEMORY.md` → `/mss-spec:doctor` e
+`memoria_indice.py dividir` com o OK dele. MAPA/INDEX acima é tarefa do assistente (resumir o bloco vivo pra spec ao
+gravar): sem "avise o owner", sem `systemMessage`; e os dois são medidos **sem** os comentários `<!-- -->`
+(`rodizio_partida.bytes_de_conteudo`, cópia travada por teste). Tamanhos em KB com uma casa
+(`10,1 KB (teto 10,0 KB)`). **Não move nada**: mover é
 decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
 
 ## Garantias

@@ -33,6 +33,12 @@ def _b(p: Path) -> int:
     return len(p.read_text(encoding="utf-8").encode("utf-8"))
 
 
+def _conteudo(p: Path) -> int:
+    """Bytes sem os comentários `<!-- -->` (0.52.0: comentário do molde não é conteúdo da partida — a mesma medida do
+    `rodizio_partida.bytes_de_conteudo` e do hook `orcamento_partida.py`)."""
+    return len(re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.S).encode("utf-8"))
+
+
 def test_claude_md_dentro_do_orcamento():
     """H — o molde do CLAUDE.md entra em toda sessão de todo projeto: é o token mais caro do kit."""
     p = REPO / "templates" / "CLAUDE.md"
@@ -176,11 +182,12 @@ def test_regras_sempre_ativas_sobreviveram():
 
 def test_mapa_carrega_um_estado_anterior():
     """I — 79% do MAPA eram blocos de histórico relidos em toda partida. Fica 1; o resto sai."""
-    txt = (REPO / "docs" / "superpowers" / "MAPA.md").read_text(encoding="utf-8")
+    p = REPO / "docs" / "superpowers" / "MAPA.md"
+    txt = p.read_text(encoding="utf-8")
     blocos = txt.count("<!-- histórico do estado anterior -->")
     assert blocos <= 1, f"MAPA.md tem {blocos} blocos de histórico (limite 1 — o resto vai pro arquivo)"
-    n = len(txt.encode("utf-8"))
-    assert n <= TETO_MAPA, f"MAPA.md tem {n} bytes (teto {TETO_MAPA})"
+    n = _conteudo(p)
+    assert n <= TETO_MAPA, f"MAPA.md tem {n} bytes de conteúdo (teto {TETO_MAPA}; comentário não conta)"
     assert (REPO / "docs" / "superpowers" / "MAPA-historico.md").exists(), \
         "falta docs/superpowers/MAPA-historico.md (onde o histórico passa a viver, lido sob demanda)"
 
@@ -188,8 +195,8 @@ def test_mapa_carrega_um_estado_anterior():
 def test_index_so_com_tarefa_viva():
     """I — o índice lido na partida é o das tarefas ABERTAS; o histórico de fechadas sai."""
     p = REPO / "docs" / "superpowers" / "INDEX.md"
-    n = _b(p)
-    assert n <= TETO_INDEX, f"INDEX.md tem {n} bytes (teto {TETO_INDEX})"
+    n = _conteudo(p)
+    assert n <= TETO_INDEX, f"INDEX.md tem {n} bytes de conteúdo (teto {TETO_INDEX}; comentário não conta)"
     assert (REPO / "docs" / "superpowers" / "INDEX-historico.md").exists(), \
         "falta docs/superpowers/INDEX-historico.md (tarefas fechadas, lidas sob demanda)"
     txt = p.read_text(encoding="utf-8")

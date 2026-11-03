@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-03 — fechadas
+
+- [partida-no-orcamento](../specs/partida-no-orcamento.md) — o teto fala só com o assistente e conta só conteúdo; o upgrade nunca reescreve infra que existe ([upgrade](../specs/upgrade.md)) — fechada: 0.52.0 na branch `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra`, suíte 1.142 verdes, por mesclar
+
 ## 2026-10-29 — fechadas
 
 - [memória na hora da proposta](../specs/fonte-ou-nao-sei.md) — a resposta que propõe mudança em build, dependência, arquivo novo, variável ou rede volta uma vez com as memórias do tema que ela não citou; sintoma do owner é fato — fechada

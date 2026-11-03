@@ -23,8 +23,8 @@ Checks:
 8. **Ponteiro da memória nativa** (sempre, se o projeto tem `memory/MEMORY.md`) — o `MEMORY.md` da pasta nativa (`~/.claude/projects/<proj>/memory/MEMORY.md`) é o único índice **auto-carregado** no início da sessão. Ele aponta pro índice durável do repo (`memory/MEMORY.md`)? **✓** se contém esse ponteiro; **⚠** se tem conteúdo próprio (duas fontes divergindo — o durável pode estar fora da sessão sem ninguém notar; rode `/mss-spec:memory resgatar`); **ℹ** se a pasta nativa não existe. Confira também o índice do repo com `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" verificar` (topo ≤ 6 KB, ponteiros íntegros, toda memória com linha): **⚠** com a saída do script; índice ainda plano (sem `memory/indice/`) → **⚠** "rode `memoria_indice.py dividir` (dry-run) e me mostre a tabela".
 9. **Orçamento de contexto** (sempre) — mede o que o projeto enfia na janela **antes de qualquer trabalho útil** e reporta em **bytes** contra o teto:
    - `CLAUDE.md` (a parte do **projeto**: teto **10.000 B**, **⚠ e não trava** — é o único arquivo do projeto que entra em *toda* sessão; acima disso o conserto é mover um bloco inteiro com ponteiro, nunca comprimir a redação de uma regra; **a seção `## Contexto` nunca sai dele**)
-   - `docs/superpowers/MAPA.md` (**6 KB**, no máximo 1 estado anterior)
-   - `docs/superpowers/INDEX.md` (**7 KB**, só tarefa aberta)
+   - `docs/superpowers/MAPA.md` (**6 KB de conteúdo** — comentário `<!-- -->` não conta, desde a 0.52.0; no máximo 1 estado anterior)
+   - `docs/superpowers/INDEX.md` (**7 KB de conteúdo**, só tarefa aberta)
    - `memory/MEMORY.md` (**6 KB** — só o topo; os subíndices em `memory/indice/` carregam sob demanda)
    - `docs/EVALS.md`.
    - Some tudo e dê o total (~4 bytes ≈ 1 token).

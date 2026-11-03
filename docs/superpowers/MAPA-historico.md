@@ -4,6 +4,18 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-03 — rodízio de "Próximo passo" (fecho da `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra`)
+
+1. ⬜ **Owner: merge e push da 0.51.0** — `git switch main` · `git merge --no-ff feature/guardiao-da-juncao` · `git push origin main`.
+2. ⬜ **Owner: registrar a tarefa agendada do guardião** na sua janela do PowerShell (receita em `hooks/README.md`, seção "Fora do kit") e conferir com `Get-ScheduledTask "mss-spec guardiao da juncao"`; o log fica em `~/.claude/mss-spec/guardiao-juncao.log`.
+3. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — o owner roda, cada um na conversa daquele projeto; nasce o `docs/AMBIENTES.md` com os nomes que o projeto já tem e `falta preencher` no resto — os valores só o owner tem.
+4. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** — a tarde de 30/10 (token sem `MITI_DEV_AUTH`, push do n8n em produção não resolvido) não tem diário.
+5. ⬜ **No Whats: testar o `/mss-spec:bug`** — janela nova, descrever um erro sem digitar o comando: o hook `kit_primeiro.py` deve negar o superpowers e apontar a porta.
+
+## 2026-11-03 — rodízio de "Onde estamos" (abertura da `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra`)
+
+`feature/guardiao-da-juncao` (saiu da `main` em `ebd1a5c`) — 0.51.0 pronta na branch, por mesclar: o guardião da junção (`templates/guardiao-da-juncao.ps1`) recria `~/.claude/skills/mss-spec` quando some, com captura de evidência; hook `SessionStart` já gravado no `~/.claude/settings.json` do owner (cópia feita); a tarefa agendada (logon + hora em hora) **falta o owner registrar** — o sandbox do Claude não consegue. A 0.50.0 está mesclada e publicada (`8a6feaf`).
+
 ## 2026-10-29 — saiu do MAPA (abertura da feature "memória na hora da proposta")
 
 **Onde estamos:** `chore/captura-upgrade-converte-to-dolist` (saiu da `main` em `6b8c34d`) — **0.48.0 mesclada e no remoto**: o `/mss-spec:upgrade` converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com a soma e 3 linhas reais → OK do owner → conversão) e o `/mss-spec:doctor` (check 10) aponta o que falta. Captura da conversa (F-045, F-046, diário) nesta branch; merge é do owner.

@@ -13,11 +13,14 @@ Contrato:
   ler (`wc -c CLAUDE.md`, `cat INDEX.md`) cita o arquivo mas não é gravação;
 - MAPA/INDEX gravados → `templates/rodizio_partida.py enxugar --aplicar` (move, nunca apaga, com
   conservação conferida): a forma vale sempre (0.44.0 — `fechada` sai do INDEX; item longo do Próximo passo
-  e, havendo CONEXOES.md, o detalhe das Conexões saem do MAPA); o resto só acima do teto, e para assim que
-  cabe. `additionalContext` diz o que foi pra onde e pra reler antes do próximo Edit; se o que sobra acima
-  do teto é conteúdo vivo, pede o resumo pra spec;
-- `CLAUDE.md` acima de 10,0 KB → só avisa (F-029: nunca comprimir): com a marca das regras do kit, manda
-  mover um bloco inteiro com ponteiro; sem a marca, manda rodar `/mss-spec:upgrade` (migração);
+  e, havendo CONEXOES.md, o detalhe das Conexões saem do MAPA); o resto só acima do teto (medido SEM os
+  comentários `<!-- -->`, 0.52.0), e para assim que cabe. `additionalContext` diz o que foi pra onde e pra
+  reler antes do próximo Edit; se o que sobra acima do teto é conteúdo vivo, pede o resumo pra spec — **uma
+  vez por sessão** por arquivo (0.52.0). MAPA/INDEX é recado só pro ASSISTENTE: nunca "avise o owner", nunca
+  `systemMessage` — o teto é o gatilho da separação em dois níveis, não um aviso pro owner;
+- `CLAUDE.md` acima de 10,0 KB → só avisa (F-029: nunca comprimir), **uma vez por sessão**, com "avise o
+  owner" e `systemMessage` (o ato é dele): com a marca das regras do kit, manda mover um bloco inteiro com
+  ponteiro; sem a marca, manda rodar `/mss-spec:upgrade` (migração);
 - arquivo com conflito de merge → não toca e avisa;
 - **nunca bloqueia**; **falha ABERTA**: defeito → exit 0 calado.
 
@@ -56,6 +59,7 @@ JANELA_S = 120                       # gravação "agora" = mtime de até 2 min 
 # cópia de hooks/regras_do_kit.py (hooks não importam um do outro; um teste trava a igualdade)
 MARCA = "<!-- mss-spec:regras-do-kit -->"
 ALVOS = ("docs/superpowers/MAPA.md", "docs/superpowers/INDEX.md", "CLAUDE.md")
+CHAVE_AVISADOS = "_avisados"         # no estado por sessão: arquivos cujo aviso "acima do teto" já saiu (0.52.0)
 TOOLS_DE_ARQUIVO = ("Write", "Edit", "MultiEdit")
 TOOLS_DE_SHELL = ("Bash", "PowerShell")
 
@@ -136,6 +140,27 @@ def _ler_estado(sessao):
         return {}
 
 
+def _ja_avisou(sessao, nome):
+    """True se o aviso 'acima do teto' de `nome` (MAPA.md · INDEX.md · CLAUDE.md) já saiu nesta sessão (0.52.0:
+    uma vez por sessão por arquivo — o Whats recebia o mesmo pedido em toda edição)."""
+    lista = _ler_estado(sessao).get(CHAVE_AVISADOS)
+    return isinstance(lista, list) and nome in lista
+
+
+def _marcar_avisado(sessao, nome):
+    try:
+        estado = _ler_estado(sessao)
+        lista = estado.get(CHAVE_AVISADOS)
+        if not isinstance(lista, list):
+            lista = estado[CHAVE_AVISADOS] = []
+        if nome not in lista:
+            lista.append(nome)
+        with open(_arquivo_de_estado(sessao), "w", encoding="utf-8") as f:
+            json.dump(estado, f)
+    except Exception:                                # noqa: BLE001
+        pass
+
+
 def _versao(caminho):
     """[tamanho, mtime_ns] do arquivo, ou None se não existe."""
     try:
@@ -189,7 +214,7 @@ def responder(evento, ambiente=None):
         if not alvos:
             return None
         try:
-            return _agir(evento, raiz, alvos)
+            return _agir(evento, raiz, alvos, sessao)
         finally:
             for a in alvos:                          # a versão que o hook viu (já enxugada) não dispara de novo
                 marcar_visto(os.path.join(raiz, *a.split("/")), sessao)
@@ -197,9 +222,10 @@ def responder(evento, ambiente=None):
         return None
 
 
-def _agir(evento, raiz, alvos):
-    """O que fazer com os ALVOS gravados: enxugar MAPA/INDEX e avisar do CLAUDE.md."""
-    partes, detalhes, acima = [], [], False
+def _agir(evento, raiz, alvos, sessao):
+    """O que fazer com os ALVOS gravados: enxugar MAPA/INDEX (recado só pro assistente) e, no CLAUDE.md acima do
+    teto, avisar o owner. Todo aviso "acima do teto" sai UMA vez por sessão por arquivo (0.52.0)."""
+    partes, do_owner, detalhes, acima = [], [], [], False
     if any(a != "CLAUDE.md" for a in alvos):
         motor = _motor()
         for qual, r in motor.enxugar(Path(raiz), aplicar=True).items():
@@ -208,35 +234,43 @@ def _agir(evento, raiz, alvos):
             if r.passos:
                 partes.append(f"{nome} {_kb(r.bytes_antes)} → {_kb(r.bytes_depois)}: " + " · ".join(r.passos))
                 detalhes.append(f"{nome}={r.bytes_antes}->{r.bytes_depois}")
-            partes += r.problemas + r.avisos
-    if "CLAUDE.md" in alvos:
+            partes += r.problemas
+            if r.avisos and not _ja_avisou(sessao, nome):   # "ainda acima: conteúdo vivo" — uma vez por sessão
+                partes += r.avisos
+                _marcar_avisado(sessao, nome)
+    if "CLAUDE.md" in alvos and not _ja_avisou(sessao, "CLAUDE.md"):
         caminho = os.path.join(raiz, "CLAUDE.md")
         n = os.path.getsize(caminho) if os.path.isfile(caminho) else 0
         if n > TETO_CLAUDE_MD:
             acima = True
             medida = f"CLAUDE.md com {_medida(n, TETO_CLAUDE_MD)}"
             if _tem_marca(raiz):
-                partes.append(f"{medida}: mova um bloco INTEIRO com ponteiro — regra de tipo de arquivo pra "
-                              "`.claude/rules/<x>.md` com `paths:`, procedimento pra `docs/` — e nunca comprima a "
-                              "redação de uma regra (F-029). Não movi nada aqui: é julgamento.")
+                do_owner.append(f"{medida}: mova um bloco INTEIRO com ponteiro — regra de tipo de arquivo pra "
+                                "`.claude/rules/<x>.md` com `paths:`, procedimento pra `docs/` — e nunca comprima a "
+                                "redação de uma regra (F-029). Não movi nada aqui: é julgamento.")
             else:
-                partes.append(f"{medida}: rode `/mss-spec:upgrade` pra migrar o CLAUDE.md (as regras do kit passam "
-                              "a vir do plugin). Não movi nada aqui; nunca comprima a redação de uma regra (F-029).")
+                do_owner.append(f"{medida}: rode `/mss-spec:upgrade` pra migrar o CLAUDE.md (as regras do kit passam "
+                                "a vir do plugin). Não movi nada aqui; nunca comprima a redação de uma regra (F-029).")
             detalhes.append(f"CLAUDE.md={n}")
-    if not partes:
+            _marcar_avisado(sessao, "CLAUDE.md")
+    if not partes and not do_owner:
         return None
     moveu = any("→" in p for p in partes)
     # abaixo do teto, quem moveu foi a forma do MAPA/INDEX (0.44.0) — o aviso não diz que estourou
     rotulo = "teto da partida" if acima else "partida em dois níveis"
-    texto = (f"[mss-spec] {rotulo} (F-030): " + " | ".join(partes)
-             + (". Nada foi apagado (o `git diff` mostra). Releia o arquivo antes do próximo Edit nele — o texto "
-                "mudou de lugar." if moveu else "")
-             + " Avise o owner em 1 linha.")
+    texto = f"[mss-spec] {rotulo} (F-030): " + " | ".join(partes + do_owner)
+    if moveu:
+        texto += (". Nada foi apagado (o `git diff` mostra). Releia o arquivo antes do próximo Edit nele — o texto "
+                  "mudou de lugar.")
+    if partes:
+        texto += " MAPA/INDEX não é assunto pro owner: não o avise disso."
+    if do_owner:
+        texto += " O CLAUDE.md é ato dele: avise o owner em 1 linha."
     _anotar("moveu" if moveu else "avisou", " ".join(detalhes)[:200], evento)
-    return {
-        "hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": texto},
-        "systemMessage": f"[mss-spec] {rotulo}: " +" | ".join(p[:120] for p in partes)[:300],
-    }
+    saida = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": texto}}
+    if do_owner:                                     # linha de sistema só quando o ato é do owner (0.52.0)
+        saida["systemMessage"] = f"[mss-spec] {rotulo}: " + " | ".join(p[:120] for p in do_owner)[:300]
+    return saida
 
 
 def main():

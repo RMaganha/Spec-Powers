@@ -422,3 +422,16 @@ def test_forma_preserva_crlf(tmp_path):
     mod.enxugar(raiz, hoje="2026-10-27", aplicar=True)
     bruto = (sp / "MAPA.md").read_bytes()
     assert b"PROXIMO-PASSO.md" in bruto and b"\n" not in bruto.replace(b"\r\n", b"")
+
+
+def test_comentario_nao_conta_no_teto(tmp_path):
+    """0.52.0: comentário `<!-- -->` do molde não é conteúdo da partida — 5,0 KB de texto + 1,8 KB de guia cabem no
+    teto de 6 KB; o relatório mede conteúdo, e o aviso 'ainda acima' só sai pelo conteúdo."""
+    mod = _mod()
+    coment = "<!-- " + "guia " * 360 + "-->\n"                      # ~1.800 B, como o molde
+    corpo = "# Mapa de contexto — Proj\n\n## Onde estamos\n\n📍 " + "x" * 4900 + "\n\n## Próximo passo\n\n1. passo atual.\n"
+    raiz = _projeto(tmp_path, mapa=coment + corpo)
+    rel = mod.enxugar(raiz, hoje="2026-11-03", aplicar=False)["mapa"]
+    assert rel.ok and not rel.avisos, rel.avisos
+    assert rel.bytes_antes == mod.bytes_de_conteudo(coment + corpo) < mod.TETO_MAPA
+    assert mod.bytes_de_conteudo("a<!-- x\ny -->b") == 2

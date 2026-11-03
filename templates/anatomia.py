@@ -96,12 +96,15 @@ def rules_do_kit(kit: Path) -> list:
 
 
 def orcamento(proj: Path) -> list:
-    """Bytes reais × teto dos arquivos da partida que EXISTEM no projeto."""
+    """Bytes reais × teto dos arquivos da partida que EXISTEM no projeto. MAPA e INDEX contam só o conteúdo
+    (sem `<!-- -->`), a mesma medida do `rodizio_partida.bytes_de_conteudo` e do hook de abertura (0.52.0)."""
     saida = []
     for rel, teto in TETOS.items():
         p = Path(proj) / rel
         if p.exists():
-            saida.append({"arquivo": rel, "bytes": p.stat().st_size, "teto": teto})
+            n = (len(re.sub(r"<!--.*?-->", "", _ler(p), flags=re.S).encode("utf-8"))
+                 if rel.startswith("docs/superpowers/") else p.stat().st_size)
+            saida.append({"arquivo": rel, "bytes": n, "teto": teto})
     return saida
 
 
