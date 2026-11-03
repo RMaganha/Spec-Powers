@@ -11,8 +11,8 @@
 
 ## Próximo passo
 1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
-2. ⬜ **Owner: escolher a alternativa pra junção que some** — (A) instalar pelo marketplace local, sem junção nem script, ou (B) hook Python só de conferência; qualquer uma passa pela SI antes.
-3. ⬜ **Owner: merge e push da 0.51.1** — `git switch main` · `git merge --no-ff fix/guardiao-sem-script` · `git push origin main`.
+2. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md): instalar pelo app, conferir em conversa nova, só então tirar a junção, atualizar as memórias e o `doctor`.
+3. ⬜ **Owner: push da `main`** — `git push origin main` (0.51.1 + esta nota).
 4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — nasce o `docs/AMBIENTES.md` em cada um; os valores só o owner preenche.
 5. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
 
@@ -35,4 +35,4 @@
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-03 (0.51.1 na branch fix/guardiao-sem-script; guardião retirado por política da SI) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-03 (0.51.1 mesclada; escolha A: marketplace local sem junção, a executar em conversa nova) · regenerável com /mss-spec:mapa -->
