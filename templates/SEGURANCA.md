@@ -192,6 +192,34 @@ Isto é um lembrete, não um tratado — para exigência formal, consultar o tim
 - [ ] Restrição de rede (IP allowlist / VNet integration conforme exposição do app)
 - [ ] Managed identity para acesso ao banco, quando possível (evita credencial estática)
 
+## 14. Envio externo (e-mail, webhook, mensagem) — nasce em modo de teste
+
+**Risco**: e-mail, webhook ou mensagem **real** disparado durante um teste ou um dry-run mal feito; envio em
+massa pro destinatário errado; item que caiu num fallback sem ninguém saber (benchmark MSIG_Agentes,
+2026-11-06 — regra que o kit de agentes da equipe aprendeu com envio real em teste).
+
+**Regra MSIG**: todo código que envia pra fora nasce com **três modos, em flags separadas, e o padrão é o
+mais seguro**:
+- `--dry-run` (padrão): monta e **mostra** o resumo (destinatários, assunto, contagem, 1 exemplo de corpo); nada sai;
+- `--enviar`: envia só pro **destino de teste** configurado por variável de ambiente (ex.: `EMAIL_TESTE`,
+  `WEBHOOK_TESTE`) — nunca pro destinatário real;
+- `--enviar-real`: envia de verdade; exige o destino de produção **também** por variável, nunca hardcoded.
+
+Mais: **fallback nunca é silencioso** — se um item caiu no caminho alternativo (sem e-mail → manda pro
+gestor; API fora → fila), o item aparece **no log e no corpo/resumo** com o motivo; **envio em massa** (lista,
+planilha) pede o OK do owner com a contagem e 3 exemplos de destinatário antes do `--enviar-real`; cada
+envio tem **id idempotente** (chave do registro + data) pra reexecução não duplicar; destinatário e
+conteúdo **nunca entram em log com PII** (seção 12).
+
+**Como verificar**: o script/serviço de envio aceita as 3 flags e, sem flag, não chama a rede
+(teste com a função de envio mockada: 0 chamadas em dry-run; 1 chamada pro destino de teste em
+`--enviar`); `grep -rn "enviar_real\|--enviar-real"` acha o gate; o resumo lista os que caíram no fallback.
+
+```
+grep -rniE "(smtp|sendmail|requests\.post|httpx\.post|webhook)" --include=*.py . | grep -viE "test|dry"
+```
+Toda ocorrência fora de um módulo de envio com os 3 modos merece revisão.
+
 ## Modelo de auth — dois baldes
 
 | Balde | Quem chama | Proteção | Hoje (local) |
