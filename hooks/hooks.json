@@ -81,6 +81,15 @@
         ]
       },
       {
+        "matcher": "Bash|PowerShell|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/banco_producao.py\""
+          }
+        ]
+      },
+      {
         "matcher": "Skill|Read",
         "hooks": [
           {
@@ -119,6 +128,15 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/teto_ao_gravar.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/banco_producao.py\" --post"
           }
         ]
       },

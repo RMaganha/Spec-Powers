@@ -42,6 +42,8 @@
 - **O que é:** <ex.: Web App `<nome>-prod` (grupo `RG-…-PRD`, restrito à infra); Postgres `<servidor>-prod-br…`; branch `main` publica>
 - **Como o assistente lê:** <ex.: banco pelo túnel, chave `BANCO_PRD` do `sql/.env`, só leitura; nunca Kudu/Portal>
 - **Quem acessa:** owner: Portal <sim/não>, Kudu <sim/não>, banco <como> · infra: <o quê> · assistente: <só leitura pelo túnel>
+- **Hosts de produção (cerca):** `<host ou alias do banco de produção>`, `<outro>` — o hook `banco_producao.py` lê esta linha: comando ou consulta MCP que cita um deles pede o seu OK (leitura; um OK vale a tarefa) ou é negado (escrita). Sem a linha, ele usa todo host/alias em crase desta seção. Sem banco de produção: `nenhum`.
+- **Rotinas autorizadas em produção (só leitura):** `<caminho/do/script.py>` — rotina agendada que lê produção sem humano pra responder; o hook libera o comando que a invoca. Nenhuma: `nenhuma`.
 - **Lido por / quando:** <owner, AAAA-MM-DD>
 
 | Variável | Valor | Onde vive | Lido por / quando |

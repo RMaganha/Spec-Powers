@@ -54,6 +54,8 @@
 - **Quem acessa:** owner: push sim (`git push origin main`, do terminal dele) · assistente: só leitura — `git push`
   pra `main` é negado pelo hook `hooks/git_publicacao.py` (`memory/feedback_publicacao_e_ato_do_owner.md`) ·
   time: instala por URL (leitura).
+- **Hosts de produção (cerca):** nenhum — o kit não tem banco; o hook `hooks/banco_producao.py` fica calado aqui.
+- **Rotinas autorizadas em produção (só leitura):** nenhuma.
 - **Lido por / quando:** assistente, 2026-11-03 (de `docs/LEIA-ME.md`, `.gitlab-ci.yml`, `memory/feedback_publicacao_e_ato_do_owner.md`).
 
 Variáveis: nenhuma — o kit publicado não tem configuração própria; a versão vive nos dois manifestos
