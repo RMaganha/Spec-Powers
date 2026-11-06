@@ -1,13 +1,13 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **0.52.0 e 0.53.0 mescladas (`--no-ff`), por publicar**: 2026-11-06 entraram a branch do teto (o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). Conflitos resolvidos mantendo os dois lados (CHANGELOG, decisões, histórico do MAPA; versão 0.53.0). `git push origin main` é do owner.
+`main` — **0.53.0 publicada** (`origin/main` em `fd2d7fb`, push do owner em 2026-11-06): entraram a branch do teto (0.52.0 — o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (0.53.0 — benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). Os outros projetos só recebem a 0.53.0 depois da atualização do marketplace local no app.
 
 <!-- histórico do estado anterior -->
 `fix/guardiao-sem-script` (saiu da `main` em `a96c92f`) — 0.51.1 por mesclar: o guardião da junção (script `.ps1` + tarefa agendada) foi **retirado** — ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação: não permitido. Hook do `settings.json` do owner removido (cópia feita), `.ps1` e testes fora do kit, memória vira política com `gatilho_comando` (F-050). A junção que some com a atualização do app segue sem guarda: a alternativa é decisão do owner (marketplace local sem junção × hook Python de conferência), e passa pela SI antes.
 
 ## Próximo passo
-1. ⬜ **Owner: `git push origin main`** (0.52.0 + 0.53.0 mescladas) — depois, a atualização do marketplace local no app (decisão 2026-11-03), pra os outros projetos receberem o kit novo.
+1. ⬜ **Owner: atualizar o marketplace local no app** (decisão 2026-11-03) — é o que leva a 0.53.0 pros outros projetos; conferir numa conversa nova de outro projeto que o `/mss-spec:doctor` mostra 0.53.0.
 2. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
 3. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md).
 4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega.
@@ -38,4 +38,4 @@
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-06 (0.52.0 e 0.53.0 mescladas na main; push é do owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-06 (0.53.0 publicada em origin/main) · regenerável com /mss-spec:mapa -->
