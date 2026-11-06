@@ -112,6 +112,8 @@ def test_dentro_do_teto_fechada_sai_e_avisa_sem_falar_em_teto(tmp_path):
     txt = _ctx(saida)
     assert "INDEX-historico.md" in txt and "releia" in txt.lower()
     assert "teto" not in txt.lower(), "abaixo do teto, o aviso não pode dizer que estourou"
+    assert "avise o owner" not in txt.lower(), "abaixo do teto não é assunto pro owner (0.52.0)"
+    assert "systemMessage" not in saida, "linha de sistema só quando o ato é do owner (0.52.0)"
 
 
 def test_gravacao_de_outro_arquivo_nao_dispara(tmp_path):
@@ -138,8 +140,35 @@ def test_bash_que_nao_cita_nao_dispara(tmp_path):
 def test_mapa_com_bloco_atual_gigante_pede_o_resumo(tmp_path):
     mapa = "# Mapa\n\n## Onde estamos\n\n" + ("📍 " + LONGO + "\n") * 12 + "\n## Próximo passo\n\n1. x\n"
     raiz = _projeto(tmp_path, mapa=mapa)
-    txt = _ctx(_mod().responder(_edit(raiz, rel="docs/superpowers/MAPA.md", tool="Write"), {}))
+    saida = _mod().responder(_edit(raiz, rel="docs/superpowers/MAPA.md", tool="Write"), {})
+    txt = _ctx(saida)
     assert "resuma" in txt.lower() and "spec" in txt.lower()
+    assert "avise o owner" not in txt.lower() and "não é assunto pro owner" in txt.lower(), \
+        "resumir o bloco vivo é tarefa do assistente, não do owner (0.52.0)"
+    assert "systemMessage" not in saida, "linha de sistema só quando o ato é do owner (0.52.0)"
+
+
+def test_bloco_vivo_pede_o_resumo_uma_vez_por_sessao(tmp_path):
+    """0.52.0: o Whats recebia o mesmo pedido em TODA edição (36× em 7 conversas). Uma vez por sessão basta;
+    sessão nova pede de novo."""
+    mapa = "# Mapa\n\n## Onde estamos\n\n" + ("📍 " + LONGO + "\n") * 12 + "\n## Próximo passo\n\n1. x\n"
+    raiz = _projeto(tmp_path, mapa=mapa)
+    mod = _mod()
+    ev = _edit(raiz, rel="docs/superpowers/MAPA.md", tool="Write")
+    assert "resuma" in _ctx(mod.responder(ev, {})).lower()
+    assert mod.responder(ev, {}) is None, "2ª gravação na mesma sessão, ainda acima e nada a mover: silêncio"
+    assert "resuma" in _ctx(mod.responder(dict(ev, session_id="s2"), {})).lower(), "sessão nova avisa de novo"
+
+
+def test_claude_md_acima_avisa_o_owner_uma_vez_por_sessao(tmp_path):
+    """0.52.0: CLAUDE.md acima é ato do owner (upgrade ou mover bloco): avisa com linha de sistema, uma vez por sessão."""
+    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)
+    mod = _mod()
+    saida = mod.responder(_edit(raiz, rel="CLAUDE.md"), {})
+    assert "avise o owner" in _ctx(saida).lower() and "CLAUDE.md" in saida["systemMessage"]
+    (raiz / "CLAUDE.md").write_text(MARCA + "\n" + "y" * 10800, encoding="utf-8")
+    assert mod.responder(_edit(raiz, rel="CLAUDE.md"), {}) is None, "mesma sessão: já avisou"
+    assert mod.responder(dict(_edit(raiz, rel="CLAUDE.md"), session_id="s2"), {}) is not None
 
 
 def test_claude_md_com_marca_teto_10000_so_avisa(tmp_path):
@@ -232,11 +261,14 @@ def test_mesma_versao_do_claude_md_nao_avisa_duas_vezes(tmp_path):
 
 
 def test_nova_gravacao_depois_da_leitura_dispara_de_novo(tmp_path):
-    raiz = _projeto(tmp_path, claude=MARCA + "\n" + "x" * 10500)
+    """A versão vista não trava a seguinte: gravação nova pelo shell roda o enxugar de novo (0.52.0: no INDEX —
+    o CLAUDE.md passou a avisar uma vez por sessão)."""
+    raiz = _projeto(tmp_path, index=_index_gordo())
     mod = _mod()
-    assert mod.responder(_edit(raiz, rel="CLAUDE.md"), {}) is not None
-    (raiz / "CLAUDE.md").write_text(MARCA + "\n" + "y" * 10800, encoding="utf-8")
-    assert mod.responder(_shell(raiz, "echo y >> CLAUDE.md"), {}) is not None
+    assert mod.responder(_edit(raiz), {}) is not None
+    (raiz / "docs" / "superpowers" / "INDEX.md").write_text(
+        _index_gordo() + "- ideia-99 — " + LONGO + " — aberta\n", encoding="utf-8")
+    assert mod.responder(_shell(raiz, "echo y >> docs/superpowers/INDEX.md"), {}) is not None
 
 
 def test_mudou_agora_janela_e_estado(tmp_path):

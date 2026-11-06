@@ -725,6 +725,23 @@ def test_upgrade_respeita_preexistente():
     assert "brownfield" in low, "upgrade.md não trata o caso brownfield na categoria 1"
 
 
+def test_upgrade_nao_reescreve_infra_que_existe():
+    """0.52.0: projeto nascido do kit e já em homologação/produção não é brownfield nem infra própria — caía fora dos
+    dois freios e a categoria 1 reescrevia docker-compose/Dockerfile sozinha (cópia do MSS-SSC: 143 linhas só no
+    Dockerfile diferentes do molde). Infra que existe nunca é reescrita; a CA fica fora do freio (CA velha quebra o build)."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    low = up.lower()
+    partes = low.split("freio do que já roda", 1)
+    assert len(partes) == 2, "upgrade.md não tem o 'freio do que já roda' na categoria 1"
+    trecho = partes[1][:1500]
+    for arq in ("docker-compose.yml", "docker-compose.office.yml", "dockerfile", ".dockerignore"):
+        assert arq in trecho, f"o freio não cita {arq}"
+    assert "nunca" in trecho and "reescrit" in trecho and "revise à mão" in trecho, "o freio não diz 'nunca reescreve; diff e revise à mão'"
+    assert "certs/corp-ca.pem" in trecho and "/mss-spec:ambiente" in trecho, "o freio tem de dizer que a CA fica fora dele"
+    assert "não acrescente seção" in low, "docs/AMBIENTE.md que existe não pode ganhar seção do molde"
+    assert "sem questionário" in low, "docs/AMBIENTES.md nasce sem questionário"
+
+
 def test_guardrail_skills_dir_instalado():
     """Quarta (e última) face da família: o assistente disse "o plugin mss-spec não está
     instalado nesta máquina" — porque checou só o registro de marketplace/installed_plugins.json

@@ -9,8 +9,11 @@ metadata:
 ---
 
 No kit `mss-spec`, a **categoria 1 do `/mss-spec:upgrade`** substitui arquivos pelo molde **sem
-perguntar**: `docs/SEGURANCA.md`, `docs/ESTRUTURA.md`, `docs/FRONTEND.md`, os `docker-compose*`/
-`Dockerfile`/`.dockerignore` e o `.gitignore`. Logo: **nada específico do projeto pode morar neles** —
+perguntar**: `docs/SEGURANCA.md`, `docs/ESTRUTURA.md`, `docs/FRONTEND.md` e o `.gitignore` (acrescenta, não remove).
+Desde a 0.52.0 os `docker-compose*`/`Dockerfile`/`.dockerignore` **saíram** dessa lista: o upgrade só os cria quando
+faltam e **nunca reescreve** os que existem (freio "do que já roda", `docs/specs/upgrade.md` — o projeto nascido do
+kit e já em produção caía fora dos freios da infra própria e do brownfield). Logo: **nada específico do projeto pode
+morar nos arquivos de referência** —
 seria apagado no próximo upgrade. Conteúdo levantado/escrito pelo projeto vai em doc que o kit **não**
 sincroniza (ex.: `docs/ARQUITETURA.md`) ou em arquivo de **categoria 2** (mescla: `CLAUDE.md`,
 `AMBIENTE.md`, `MAPA.md`).

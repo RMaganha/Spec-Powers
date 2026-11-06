@@ -104,11 +104,35 @@ def test_aviso_diz_que_backlog_nao_e_estado_atual(tmp_path):
     assert "backlog" in txt and "não" in txt and "fato" in txt
 
 
-def test_aviso_manda_nao_ler_inteiro_e_avisar_o_owner(tmp_path):
+def test_aviso_manda_nao_ler_inteiro_e_nao_avisa_o_owner(tmp_path):
+    """0.52.0: MAPA/INDEX acima é tarefa do assistente (resumir o bloco vivo pra spec), não assunto pro owner."""
     raiz = _projeto(tmp_path, mapa=20000)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
+    saida = _mod().responder(_evento(raiz), {})
+    txt = _contexto(saida)
     assert "inteiro" in txt, "não disse pra não ler o arquivo inteiro"
-    assert "owner" in txt and "/mss-spec:doctor" in txt, "não mandou avisar o owner com o conserto"
+    assert "avise o owner" not in txt.lower() and "/mss-spec:doctor" not in txt, "MAPA acima não é assunto pro owner"
+    assert "resum" in txt.lower() and "spec" in txt.lower(), "não lembrou o assistente de resumir o bloco vivo pra spec"
+    assert "systemMessage" not in saida, "linha de sistema só quando o ato é do owner"
+
+
+def test_comentario_nao_conta_no_mapa_e_no_index(tmp_path):
+    """0.52.0: o molde traz 1.805 B de comentário no MAPA (30% do teto) — comentário não é conteúdo da partida."""
+    sp = tmp_path / "docs" / "superpowers"
+    sp.mkdir(parents=True)
+    coment = "<!-- " + "guia " * 360 + "-->\n"              # ~1.800 B, como o molde
+    (sp / "MAPA.md").write_text(coment + "x" * 5000, encoding="utf-8")
+    (sp / "INDEX.md").write_text(coment + "y" * 6000, encoding="utf-8")
+    assert _mod().responder(_evento(tmp_path), {}) is None, "6,8 KB no disco mas 5,0 KB de conteúdo: dentro do teto"
+    (sp / "MAPA.md").write_text("x" * 6100, encoding="utf-8")
+    assert "MAPA.md" in _contexto(_mod().responder(_evento(tmp_path), {})), "6,1 KB de conteúdo: avisa"
+
+
+def test_medida_igual_no_hook_e_no_rodizio():
+    """Hooks não importam do rodízio: a medida 'só conteúdo' é copiada, e este teste trava a cópia."""
+    rod = _mod(REPO / "templates" / "rodizio_partida.py", "rodizio_partida_ref")
+    hook = _mod()
+    for t in ("abc", "a<!-- x -->b", "<!-- a\nb -->c<!-- d -->", "sem fim <!-- aberto", "ação ✓ — ≤"):
+        assert hook._bytes_de_conteudo(t) == rod.bytes_de_conteudo(t), t
 
 
 def test_texto_cabe_em_mil_bytes_com_tudo_estourado(tmp_path):
@@ -154,10 +178,15 @@ def test_claude_com_marca_acima_do_teto_manda_mover_bloco(tmp_path):
     assert "/mss-spec:doctor" not in txt
 
 
-def test_doctor_so_quando_estoura_mapa_index_ou_memory(tmp_path):
-    for kw in ({"mapa": 20000}, {"index": 20000}, {"memory": 20000}):
-        txt = _contexto(_mod().responder(_evento(_projeto(tmp_path / next(iter(kw)), **kw)), {}))
-        assert "/mss-spec:doctor" in txt, kw
+def test_owner_e_doctor_so_quando_estoura_memory(tmp_path):
+    """0.52.0: do trio MAPA/INDEX/MEMORY só o MEMORY pede ato do owner (OK pro `memoria_indice.py dividir`)."""
+    saida = _mod().responder(_evento(_projeto(tmp_path / "m", memory=20000)), {})
+    txt = _contexto(saida)
+    assert "avise o owner" in txt.lower() and "/mss-spec:doctor" in txt and "dividir" in txt
+    assert "MEMORY.md" in saida["systemMessage"]
+    for kw in ({"mapa": 20000}, {"index": 20000}):
+        saida = _mod().responder(_evento(_projeto(tmp_path / next(iter(kw)), **kw)), {})
+        assert "/mss-spec:doctor" not in _contexto(saida) and "systemMessage" not in saida, kw
 
 
 def test_marca_igual_nos_hooks():
@@ -169,10 +198,11 @@ def test_marca_igual_nos_hooks():
 
 
 def test_saida_e_do_evento_session_start_com_system_message(tmp_path):
-    raiz = _projeto(tmp_path, mapa=20000)
+    """A linha de sistema existe só quando o ato é do owner (0.52.0): aqui, o MEMORY.md; MAPA junto não entra nela."""
+    raiz = _projeto(tmp_path, mapa=20000, memory=20000)
     saida = _mod().responder(_evento(raiz), {})
     assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-    assert "MAPA.md" in saida["systemMessage"]
+    assert "MEMORY.md" in saida["systemMessage"] and "MAPA.md" not in saida["systemMessage"]
 
 
 def test_prefere_claude_project_dir_ao_cwd(tmp_path):

@@ -5,6 +5,7 @@
 
 ## 2026-11-03
 
+- [teto-so-pro-assistente] 0.52.0: o owner, cansado do "alerta do MAPA no limite de 6k" em toda conversa e do upgrade refazendo infra nos projetos em produção; diagnóstico pelo `/mss-spec:bug`, simulação em cópias do Whats e do MSS-SSC antes do código (reproduziu 36 repetições e derrubou a premissa dos comentários do molde — F-051); o teto passa a falar só com o assistente, uma vez por sessão, MAPA/INDEX medidos sem comentário, e o upgrade nunca reescreve os 4 arquivos do Docker que existem — [sessão](sessions/2026-11-03-teto-so-pro-assistente.md)
 - [guardiao-sem-script] 0.51.1: ao registrar a tarefa agendada do guardião, o owner foi contactado pela infra e pela Segurança da Informação — script PowerShell e tarefa agendada não são permitidos; hook do settings.json removido, .ps1 e testes fora do kit, memória vira política com gatilho_comando (F-050); pivô: automação na máquina do owner passa pela SI antes de existir; alternativa (marketplace local sem junção × hook Python) é escolha dele → sessions/2026-11-03-guardiao-sem-script.md
 
 ## 2026-10-30

@@ -138,7 +138,7 @@ def rodizio_mapa(proj: Path, hoje=None, aplicar: bool = False, manter: int = MAN
         rel.problemas.append(f"não existe {mapa}")
         return rel
     texto, eol = _ler(mapa)
-    rel.bytes_antes = len(texto.encode("utf-8"))
+    rel.bytes_antes = _bytes(texto)
     novas, movidos = [], []
     for titulo, linhas in secoes(texto):
         if titulo is None or titulo.strip().lower() not in SECOES_ROTATIVAS:
@@ -156,7 +156,7 @@ def rodizio_mapa(proj: Path, hoje=None, aplicar: bool = False, manter: int = MAN
     novo = "\n".join(novas)
     if not novo.endswith("\n"):
         novo += "\n"
-    rel.bytes_depois = len(novo.encode("utf-8"))
+    rel.bytes_depois = _bytes(novo)
     # conservação: toda linha não vazia que saiu está no que vai pro histórico; nada além disso sumiu
     saiu = sorted(_nao_vazias([l for _, c in movidos for l in c]))
     perdidas = sorted(_nao_vazias(texto.split("\n")))
@@ -216,7 +216,7 @@ def rodizio_index(proj: Path, hoje=None, aplicar: bool = False) -> Relatorio:
         rel.problemas.append(f"não existe {idx}")
         return rel
     texto, eol = _ler(idx)
-    rel.bytes_antes = len(texto.encode("utf-8"))
+    rel.bytes_antes = _bytes(texto)
     ficam, saem, abertas = [], [], 0
     for titulo, linhas in secoes(texto):
         fora = titulo is not None and "fora de escopo" in titulo.lower()
@@ -231,7 +231,7 @@ def rodizio_index(proj: Path, hoje=None, aplicar: bool = False) -> Relatorio:
     if not novo.endswith("\n"):
         novo += "\n"
     rel.movidas = len(saem)
-    rel.bytes_depois = len(novo.encode("utf-8"))
+    rel.bytes_depois = _bytes(novo)
     originais = sorted(_nao_vazias(texto.split("\n")))
     depois = sorted(_nao_vazias(novo.split("\n")) + saem)
     if originais != depois:
@@ -267,8 +267,15 @@ NOTA_MOVIDO = ("<!-- Movido da partida pelo rodizio_partida.py (caso F-030 do ki
                "demanda. Nada foi apagado — só saiu do que toda janela lê. -->")
 
 
+def bytes_de_conteudo(texto: str) -> int:
+    """Bytes do que é CONTEÚDO da partida: comentário `<!-- -->` não conta (0.52.0 — o molde traz 1.805 B de guia
+    no MAPA, 30% do teto, e 1.108 B no INDEX). É a medida de todo teto de MAPA/INDEX: aqui, no hook
+    `orcamento_partida.py` (cópia travada por teste), no `tests/test_orcamento_contexto.py` e no `anatomia.py`."""
+    return len(re.sub(r"<!--.*?-->", "", texto, flags=re.S).encode("utf-8"))
+
+
 def _bytes(texto: str) -> int:
-    return len(texto.encode("utf-8"))
+    return bytes_de_conteudo(texto)
 
 
 def _conflito(texto: str) -> bool:
@@ -511,8 +518,8 @@ def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
     if not rel.ok:
         return rel
     if rel.bytes_depois > teto:
-        rel.avisos.append(f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto}) depois de tudo que é mecânico: "
-                          "o excesso é conteúdo vivo — mova o detalhe pra spec do assunto (nunca apague)")
+        rel.avisos.append(f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto} B de conteúdo) depois de tudo que é "
+                          "mecânico: o excesso é conteúdo vivo — mova o detalhe pra spec do assunto (nunca apague)")
     return rel
 
 
@@ -560,9 +567,9 @@ def _enxugar_gravando(proj: Path, hoje: str) -> dict:
                 rel.gravou = True
         rel.bytes_depois = _bytes(_ler(alvo)[0])
         rel.avisos = [] if rel.bytes_depois <= teto else [
-            f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto}) depois de tudo que é mecânico: o excesso é "
-            "conteúdo vivo" + (" (o bloco atual)" if qual == "mapa" else " (linhas de tarefa aberta)") +
-            " — resuma e mova o detalhe pra spec do assunto; nunca apague"]
+            f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto} B de conteúdo; comentário não conta) depois de tudo "
+            "que é mecânico: o excesso é conteúdo vivo" + (" (o bloco atual)" if qual == "mapa" else " (linhas de tarefa aberta)")
+            + " — resuma e mova o detalhe pra spec do assunto; nunca apague"]
         rel.movidas = sum(int(p.split(" ", 1)[0]) for p in rel.passos)
     return out
 
@@ -600,7 +607,7 @@ def main(argv=None) -> int:
         rels = enxugar(proj, aplicar=a.aplicar)
         for qual, r in rels.items():
             teto = TETO_MAPA if qual == "mapa" else TETO_INDEX
-            print(f"{qual}: {r.bytes_antes} → {r.bytes_depois} bytes (teto {teto})"
+            print(f"{qual}: {r.bytes_antes} → {r.bytes_depois} bytes de conteúdo (teto {teto}; comentário não conta)"
                   + (": " + " · ".join(r.passos) if r.passos else ""))
             for x in r.problemas + r.avisos:
                 print("aviso:", x)
@@ -612,7 +619,7 @@ def main(argv=None) -> int:
     if not rel.ok:
         print("NÃO aplicado:\n- " + "\n- ".join(rel.problemas))
         return 1
-    print(f"{a.modo}: {rel.bytes_antes} → {rel.bytes_depois} bytes (teto {teto}); linhas movidas: {rel.movidas}")
+    print(f"{a.modo}: {rel.bytes_antes} → {rel.bytes_depois} bytes de conteúdo (teto {teto}); linhas movidas: {rel.movidas}")
     for av in rel.avisos:
         print("aviso:", av)
     print("GRAVADO." if rel.gravou else "DRY-RUN — nada gravado. Rode com --aplicar para gravar.")

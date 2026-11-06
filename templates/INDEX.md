@@ -1,4 +1,4 @@
-<!-- TETO: este índice é lido na PARTIDA — só tarefa ABERTA. O que ficou "pra depois" é linha do `to-dolist.md`
+<!-- TETO: este índice é lido na PARTIDA — só tarefa ABERTA (7 KB de conteúdo; comentário como este não conta). O que ficou "pra depois" é linha do `to-dolist.md`
      com a tag `#fora-de-escopo`, não seção daqui.
      Tarefa que fecha SAI daqui para o `docs/superpowers/INDEX-historico.md`, lido sob demanda — o hook
      `teto_ao_gravar.py` move a linha `fechada` sozinho ao gravar, mesmo abaixo do teto. -->
