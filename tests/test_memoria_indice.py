@@ -283,6 +283,71 @@ def test_citacoes_cli_lista_e_sai_1(tmp_path, capsys):
     assert mod.main(["citacoes", "--proj", str(raiz)]) == 0
 
 
+# --- procedimento (benchmark MSIG_Agentes 2026-11-06, item 1) -------------------------------------------
+
+PROC_OK = ("**Passos:**\n"
+           "1. conferir a planilha — quem: assistente — como: `tools/ler_planilha.py` — para se: houver linha sem apólice\n"
+           "2. gerar os `.sql` — quem: assistente — como: `tools/gerar_cancelamento.py`\n"
+           "3. executar em homologação — quem: owner — como: SSMS\n"
+           "**Ferramentas:** `tools/gerar_cancelamento.py`\n"
+           "**Saída:** um `.sql` por lote em `Scripts/`, pro owner executar\n")
+
+
+def _proc(raiz, nome="cancelar-apolices-da-planilha.md", corpo=PROC_OK, gatilho="quando pedirem para cancelar apólices de uma planilha"):
+    fm = f"---\nname: {nome[:-3]}\ndescription: cancelamento em lote a partir de planilha\n"
+    if gatilho:
+        fm += f"gatilho: {gatilho}\n"
+    fm += "metadata:\n  type: procedimento\n---\n\n"
+    (raiz / "memory" / nome).write_text(fm + corpo, encoding="utf-8")
+
+
+def test_frontmatter_le_type_aninhado_em_metadata(tmp_path):
+    mod = _mod()
+    (tmp_path / "m.md").write_text("---\nname: m\nmetadata:\n  type: procedimento\n---\ncorpo\n", encoding="utf-8")
+    assert mod.frontmatter(tmp_path / "m.md")["type"] == "procedimento"
+    assert mod.corpo(tmp_path / "m.md") == "\ncorpo\n"
+
+
+def test_validar_procedimento_formato():
+    """Lá o `gravar --procedimento` recusa se faltar Gatilho/Passos/Ferramentas/Saída. Aqui o gatilho é o do
+    frontmatter; o corpo precisa das 3 marcas e de ≥ 2 passos numerados."""
+    mod = _mod()
+    assert mod.validar_procedimento(PROC_OK) == []
+    erros = mod.validar_procedimento("**Passos:**\n1. só um passo\n**Saída:** x\n")
+    assert any("Ferramentas" in e for e in erros) and any("menos de 2 passos" in e for e in erros)
+    assert mod.validar_procedimento("texto solto sem nada") and len(mod.validar_procedimento("texto solto sem nada")) == 3
+
+
+def test_verificar_acusa_procedimento_fora_do_formato_e_sem_gatilho(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    _proc(raiz, "app-setting-faltando-cai-no-default.md", corpo="**Passos:**\n1. um\n", gatilho=None)
+    probs = mod.verificar(raiz / "memory")
+    assert any(p.startswith("procedimento sem `gatilho:`") for p in probs), probs
+    assert any(p.startswith("procedimento fora do formato") and "Ferramentas" in p for p in probs), probs
+    _proc(raiz, "app-setting-faltando-cai-no-default.md")
+    assert not [p for p in mod.verificar(raiz / "memory") if p.startswith("procedimento")]
+
+
+def test_recall_aponta_procedimento_com_prefixo_prioridade_e_instrucao(tmp_path):
+    """O ponteiro vem com `PROCEDIMENTO`, ganha o desempate sobre memória comum, e a injeção traz a instrução
+    de ler inteiro e seguir 'passo k/N' — sem passar do teto de 600 bytes."""
+    mod = _mod()
+    raiz = tmp_path / "proj"
+    (raiz / "memory").mkdir(parents=True)
+    (raiz / "memory" / "MEMORY.md").write_text("# topo\n", encoding="utf-8")
+    _proc(raiz)
+    _mem(raiz, "planilha-de-apolices-tem-zero-a-esquerda.md", "cancelar apólices de uma planilha: o número vem com zero à esquerda",
+         gatilho="quando ler apólices de uma planilha para cancelar")
+    ponteiros = mod.casar(raiz, "cancelar as apólices da planilha que a Luciana mandou", limite=3)
+    assert ponteiros and ponteiros[0].ponteiro.startswith("PROCEDIMENTO memory/cancelar-apolices-da-planilha.md"), ponteiros
+    texto = mod.formatar_injecao(ponteiros)
+    assert "PROCEDIMENTO memory/cancelar-apolices-da-planilha.md" in texto
+    assert "passo k/N" in texto and "feitos × pendentes" in texto
+    assert len(texto.encode("utf-8")) <= 600
+    # sem procedimento entre os ponteiros, a instrução não aparece
+    assert "passo k/N" not in mod.formatar_injecao([mod.Ponteiro(3, 0, "memory/x.md — y")])
+
+
 def test_fila_lista_memorias_sem_gatilho(tmp_path):
     mod, raiz = _dividido(tmp_path)
     fila = mod.fila(raiz / "memory")

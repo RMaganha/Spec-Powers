@@ -108,7 +108,44 @@ def frontmatter(p: Path) -> dict:
         mm = re.match(r"^([a-z_]+):\s*(.*)$", l)
         if mm:
             campos[mm.group(1)] = mm.group(2).strip()
+            continue
+        mt = re.match(r"^\s+type:\s*(.*)$", l)          # `metadata:\n  type: procedimento`
+        if mt and "type" not in campos:
+            campos["type"] = mt.group(1).strip()
     return campos
+
+
+def corpo(p: Path) -> str:
+    """O markdown depois do frontmatter ('' se não há arquivo/frontmatter)."""
+    try:
+        texto, _ = _ler(p)
+    except (OSError, UnicodeDecodeError):
+        return ""
+    m = RE_FRONT.match(texto)
+    return texto[m.end():] if m else texto
+
+
+# ------------------------------------------------------------------ procedimento (benchmark MSIG_Agentes, item 1)
+# Passo a passo ensinado uma vez vira memória `type: procedimento`: gatilho no frontmatter (como toda memória),
+# corpo com **Passos:** numerados (quem · como · para se), **Ferramentas:** e **Saída:**. O `verificar` recusa
+# formato errado; o recall aponta com o prefixo PROCEDIMENTO e manda ler inteiro e seguir "passo k/N".
+TIPO_PROCEDIMENTO = "procedimento"
+RE_PASSO = re.compile(r"^\s*\d+[.)]\s+\S", re.M)
+MARCAS_PROCEDIMENTO = ("**Passos:**", "**Ferramentas:**", "**Saída:**")
+INSTRUCAO_PROCEDIMENTO = ("- procedimento casou → leia o arquivo INTEIRO antes de agir, siga os passos na ordem "
+                          "anunciando `Seguindo [[slug]] — passo k/N`, e feche com feitos × pendentes "
+                          "(inclusive os de terceiros)")
+
+
+def validar_procedimento(texto_corpo: str) -> list:
+    """Erros de formato de um procedimento ('' = ok). Marcas obrigatórias e pelo menos 2 passos numerados."""
+    erros = [f"falta a marca `{m}`" for m in MARCAS_PROCEDIMENTO if m not in texto_corpo]
+    if "**Passos:**" in texto_corpo:
+        depois = texto_corpo.split("**Passos:**", 1)[1]
+        fim = min([depois.find(m) for m in MARCAS_PROCEDIMENTO if m != "**Passos:**" and m in depois] or [len(depois)])
+        if len(RE_PASSO.findall(depois[:fim])) < 2:
+            erros.append("menos de 2 passos numerados em **Passos:** (`1. <ação> — quem: … — como: …`)")
+    return erros
 
 
 # ------------------------------------------------------------------ parse
@@ -303,6 +340,11 @@ def verificar(memdir: Path, aplicar: bool = False) -> list:
             if motivo:
                 probs.append(f"gatilho fraco em {md.name}: {motivo} — o recall nunca vai casar; "
                              f"diga a condição observável (tela, arquivo, comando, erro)")
+        if not fm.get("obsoleta") and fm.get("type") == TIPO_PROCEDIMENTO:
+            if not fm.get("gatilho"):
+                probs.append(f"procedimento sem `gatilho:` em {md.name} — sem gatilho ele nunca chega ao assistente")
+            for erro in validar_procedimento(corpo(md)):
+                probs.append(f"procedimento fora do formato em {md.name}: {erro}")
     for a, b, motivo in duplicatas(memdir):
         probs.append(f"possível duplicata: {a} × {b} — {motivo}; atualize uma e marque a outra `obsoleta:`")
     contagem = {}
@@ -458,7 +500,7 @@ RE_IDENT = re.compile(r"`([^`]+)`|\b([A-Za-z0-9]+(?:[_.][A-Za-z0-9]+)+)\b|\b([a-
 RE_TOKEN = re.compile(r"[a-z0-9_]{4,}")
 RE_LINHA_DIARIO = re.compile(r"^- \[([^\]]+)\]\s*(.*?)(?:→\s*(sessions/\S+))?\s*$")
 RE_LINHA_EVALS = re.compile(r"^\| (F-\d{3}) \|")
-PRIO = {"memoria": 0, "ambientes": 0, "indice": 1, "evals": 2, "decisao": 3, "diario": 5}
+PRIO = {"procedimento": -1, "memoria": 0, "ambientes": 0, "indice": 1, "evals": 2, "decisao": 3, "diario": 5}
 # docs/AMBIENTES.md (0.50.0, F-048): cada seção `## <ambiente>` casa pelo próprio nome (contado em dobro) e
 # por estas palavras genéricas — nunca pelo nome dos OUTROS ambientes, senão "produção" casaria com todas
 PALAVRAS_AMBIENTE = ("ambiente ambientes servidor host variável variavel valor valores app setting setting "
@@ -545,8 +587,11 @@ def fontes(proj: Path, diario: bool = True) -> list:
             continue
         texto = " ".join(x for x in (fm.get("name"), fm.get("description"), fm.get("gatilho")) if x)
         if texto.strip():
-            out.append(Fonte(texto, f"memory/{md.name} — {_corta(fm.get('gatilho') or fm.get('description') or '')}",
-                             PRIO["memoria"], md.name))
+            gancho = _corta(fm.get("gatilho") or fm.get("description") or "")
+            if fm.get("type") == TIPO_PROCEDIMENTO:
+                out.append(Fonte(texto, f"PROCEDIMENTO memory/{md.name} — {gancho}", PRIO["procedimento"], md.name))
+            else:
+                out.append(Fonte(texto, f"memory/{md.name} — {gancho}", PRIO["memoria"], md.name))
     indices = list((memdir / SUBDIR).glob("*.md")) if (memdir / SUBDIR).is_dir() else [memdir / "MEMORY.md"]
     for sub in sorted(indices):
         if not sub.is_file():
@@ -618,12 +663,19 @@ def formatar_injecao(ponteiros: list, teto: int = TETO_INJECAO) -> str:
     if not ponteiros:
         return ""
     txt = "[mss-spec recall] casou com o seu prompt — abra antes de agir:"
+    # procedimento casou: a instrução de "ler inteiro e seguir passo k/N" entra junto, dentro do teto
+    com_procedimento = any(p.ponteiro.startswith("PROCEDIMENTO ") for p in ponteiros)
+    reserva = len(("\n" + INSTRUCAO_PROCEDIMENTO).encode("utf-8")) if com_procedimento else 0
     for p in ponteiros:
         cand = txt + "\n- " + p.ponteiro
-        if len(cand.encode("utf-8")) > teto:
+        if len(cand.encode("utf-8")) + reserva > teto:
             break
         txt = cand
-    return txt if "\n- " in txt else ""
+    if "\n- " not in txt:
+        return ""
+    if com_procedimento and "PROCEDIMENTO " in txt:
+        txt += "\n" + INSTRUCAO_PROCEDIMENTO
+    return txt
 
 
 # ------------------------------------------------------------------ CLI

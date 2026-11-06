@@ -29,7 +29,8 @@ proponha passo num ambiente que o owner não acessa). Abra só o que o gatilho a
 inteira. Mostre ao owner
 **em até 5 linhas**, cada uma com `arquivo:linha`, o que já está escrito sobre esse sintoma: como o
 sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga isso em uma linha. Só
-depois disso vem hipótese.
+depois disso vem hipótese. **O recall apontou um `PROCEDIMENTO`?** Leia-o **inteiro** e siga na ordem,
+anunciando `Seguindo [[slug]] — passo k/N`; no fim, feitos × pendentes (inclusive os de terceiros).
 
 **1b. Solução conhecida vem primeiro.** Se o que você leu descreve o **mesmo sintoma** (mesma mensagem
 de erro, mesma tela, mesmo passo) e traz contorno ou correção, a resposta **abre com esse contorno em 1 a

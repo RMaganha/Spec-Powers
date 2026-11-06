@@ -68,6 +68,23 @@ DIARIO_WHATS = ("# Diário\n"
 PROMPT_DEPLOY = "preciso publicar no azure de produção o webhook do whatsapp, deploy da main"
 
 
+def test_procedimento_casado_vem_com_a_instrucao_de_seguir(tmp_path):
+    """Benchmark MSIG_Agentes (2026-11-06), item 1: lá um hook casa o pedido com o Gatilho do procedimento e
+    injeta o aviso ANTES de o agente começar — regra só em texto já tinha falhado. Aqui o recall faz o mesmo:
+    ponteiro com prefixo PROCEDIMENTO + instrução de ler inteiro e seguir 'passo k/N'."""
+    mod = _mod()
+    raiz = _projeto(tmp_path)
+    (raiz / "memory" / "cancelar-apolices-da-planilha.md").write_text(
+        "---\nname: cancelar-apolices-da-planilha\ndescription: cancelamento em lote a partir de planilha\n"
+        "gatilho: quando pedirem para cancelar apólices de uma planilha\nmetadata:\n  type: procedimento\n---\n"
+        "**Passos:**\n1. a — quem: assistente — como: x\n2. b — quem: owner — como: y\n**Ferramentas:** nenhuma\n**Saída:** z\n",
+        encoding="utf-8")
+    saida = mod.responder(_evento("cancelar as apólices da planilha que chegou hoje", raiz), {})
+    ctx = saida["hookSpecificOutput"]["additionalContext"]
+    assert "PROCEDIMENTO memory/cancelar-apolices-da-planilha.md" in ctx and "passo k/N" in ctx
+    assert len(ctx.encode("utf-8")) <= 600
+
+
 def test_hook_nao_injeta_diario_de_sessao(tmp_path):
     """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o
     assistente tratou o passado como estado atual. O `CLAUDE.md` já diz: diário é sob demanda."""

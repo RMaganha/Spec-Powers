@@ -20,9 +20,19 @@
          description: 1 linha objetiva — usada pra decidir relevância
          gatilho: quando <condição observável que faz esta memória valer a leitura>
          metadata:
-           type: user | feedback | project | reference
+           type: user | feedback | project | reference | procedimento
          ---
      e corpo curto (para feedback/project: regra/fato + **Why:** + **How to apply:**).
+     - `procedimento` = passo a passo ENSINADO (sequência "primeiro… depois… se X, pede pra Y…", ou script
+       deixado como exemplo). Gatilho = as frases de como o pedido chega. Corpo, nesta ordem (o
+       `memoria_indice.py verificar` recusa fora do formato):
+           **Passos:**
+           1. <ação> — quem: assistente|owner|<pessoa/equipe> — como: <ferramenta/comando> — para se: <condição>
+           2. …
+           **Ferramentas:** `<caminho no repo de um gerador/modelo>` (ou "nenhuma") — um modelo, nunca um script por caso
+           **Saída:** o que é entregue e para quem
+       O recall aponta com o prefixo PROCEDIMENTO: ler INTEIRO, seguir na ordem anunciando
+       `Seguindo [[slug]] — passo k/N`, fechar com feitos × pendentes (inclusive os de terceiros).
      - Memória superada ganha `obsoleta: <data> — superada por [[slug]]` e SAI do subíndice.
      - Gatilho que é ARQUIVO ("quando editar HTML de aplicação") merece virar também regra path-scoped
        em `.claude/rules/` — o Claude Code carrega sozinho. Ver `templates/rules/`.

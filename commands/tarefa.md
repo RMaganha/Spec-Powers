@@ -28,7 +28,10 @@ mentir depois dela. Virou outra coisa no meio? Pare e troque de porta, dizendo e
 se existir (`docs/specs/<assunto>.md`, "Estado atual") → **`docs/AMBIENTES.md`**, se a tarefa cita local,
 homologação, produção, servidor, variável ou App Setting (nome, valor, quem acessa o quê — nunca chute, nunca
 proponha passo num ambiente que o owner não acessa) → **`memory/DIARIO.md`** (últimos 7 dias), se o assunto já
-apareceu. Nunca a pasta inteira.
+apareceu. Nunca a pasta inteira. **O recall apontou um `PROCEDIMENTO`?** Leia o arquivo **inteiro** antes de
+qualquer passo e siga na ordem, anunciando `Seguindo [[slug]] — passo k/N`; passo de outra pessoa vira item
+explícito de pendência; no fim, liste feitos × pendentes. O caso divergiu do procedimento? Diga onde e
+pergunte — nunca improvise outro caminho calado.
 
 **2. Plano em até 5 linhas, e o OK do owner:** o que muda · em que arquivos · como você vai **provar** (teste,
 consulta, tela, `git status`) · o que **não** muda. Fato que falta e muda o plano → **pergunte antes**, uma

@@ -1572,6 +1572,21 @@ def test_bug_solucao_conhecida_vem_primeiro():
         f"ordem errada: memória={pos_memoria} contorno={pos_contorno} diagnóstico={pos_diag}"
 
 
+def test_procedimento_como_tipo_de_memoria_wiring():
+    """Benchmark MSIG_Agentes (2026-11-06), item 1: o molde da memória declara o tipo `procedimento` e o formato
+    (Passos · Ferramentas · Saída), o `memory capturar` roteia passo a passo ensinado pra ele, e `tarefa`/`bug`
+    mandam ler inteiro e seguir 'passo k/N' quando o recall aponta um PROCEDIMENTO."""
+    molde = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "| procedimento" in molde and "**Passos:**" in molde and "**Ferramentas:**" in molde and "**Saída:**" in molde
+    assert "passo k/N" in molde
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    assert "`type: procedimento`" in mem and "passo a passo ensinado" in mem.lower()
+    assert "um gerador/modelo versionado no repo" in mem, "memory.md não exige modelo/gerador em vez de script por caso"
+    for nome in ("tarefa", "bug"):
+        txt = " ".join((REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8").split())
+        assert "`PROCEDIMENTO`" in txt and "passo k/N" in txt, f"{nome}.md não segue o procedimento apontado pelo recall"
+
+
 def test_regras_do_kit_pii_fora_da_memoria_reputacao_e_nao_narrar():
     """Benchmark MSIG_Agentes (2026-11-06), itens 13, 6 e 11 — três regras de uma linha nos blocos que o
     plugin injeta em toda janela:
