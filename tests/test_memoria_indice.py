@@ -192,6 +192,97 @@ def test_verificar_acusa_topo_acima_do_teto(tmp_path):
     assert any("teto" in pr for pr in mod.verificar(raiz / "memory"))
 
 
+# --- qualidade do que foi gravado (benchmark MSIG_Agentes 2026-11-06, itens 7, 8 e 9) ------------------
+
+def _mem(raiz, nome, desc, gatilho=None, corpo="corpo\n", name=None):
+    fm = f"---\nname: {name or nome[:-3]}\ndescription: {desc}\n"
+    if gatilho:
+        fm += f"gatilho: {gatilho}\n"
+    fm += "metadata:\n  type: project\n---\n\n"
+    (raiz / "memory" / nome).write_text(fm + corpo, encoding="utf-8")
+
+
+def test_gatilho_fraco_curto_ou_generico_e_bom_passa():
+    """Item 7: lá o `agente-criar` recusa `quando_usar` curto/genérico porque é por ele que o roteador escolhe;
+    aqui o gatilho é o roteamento do recall. Curto (< 15 chars sem o 'quando') ou com < 2 palavras úteis → fraco."""
+    mod = _mod()
+    assert mod.gatilho_fraco("quando precisar")                       # 8 chars
+    assert mod.gatilho_fraco("sempre que for necessário fazer isso")  # só stopwords/curtas → 0-1 útil
+    assert mod.gatilho_fraco("quando bumpar a versão do kit") == ""
+    assert mod.gatilho_fraco("quando gerar HTML com JS inline") == ""
+    assert mod.gatilho_fraco("quando editar HTML, CSS ou JS de aplicação") == ""
+
+
+def test_verificar_acusa_gatilho_fraco_e_ignora_obsoleta(tmp_path):
+    mod, raiz = _dividido(tmp_path)
+    _mem(raiz, "app-setting-faltando-cai-no-default.md", "desc", gatilho="quando precisar")
+    _mem(raiz, "chatwoot-deduplica-contato-por-telefone.md", "desc", gatilho="quando x")
+    (raiz / "memory" / "chatwoot-deduplica-contato-por-telefone.md").write_text(
+        "---\nname: chatwoot\ndescription: desc\ngatilho: quando x\nobsoleta: 2026-11-06 — superada\n---\n", encoding="utf-8")
+    probs = mod.verificar(raiz / "memory")
+    fracos = [p for p in probs if p.startswith("gatilho fraco")]
+    assert len(fracos) == 1 and "app-setting-faltando-cai-no-default.md" in fracos[0] and "recall nunca vai casar" in fracos[0]
+
+
+def test_verificar_acusa_duplicata_por_name_e_por_descricao(tmp_path):
+    """Item 8: lá o `gravar` avisa 'mesma tag, título diferente' (a duplicata que mais aconteceu). Aqui: mesmo
+    `name:` em dois arquivos, ou descrições com ≥ 80% das palavras em comum."""
+    mod, raiz = _dividido(tmp_path)
+    _mem(raiz, "app-setting-faltando-cai-no-default.md",
+         "App Setting ausente no Azure cai no valor default do settings sem avisar", gatilho="quando faltar App Setting")
+    _mem(raiz, "chatwoot-deduplica-contato-por-telefone.md",
+         "App Setting ausente no Azure cai no valor default do settings sem avisar ninguém",
+         gatilho="quando faltar App Setting no Azure", name="app-setting-faltando-cai-no-default")
+    probs = mod.verificar(raiz / "memory")
+    dups = [p for p in probs if p.startswith("possível duplicata")]
+    assert any("mesmo `name:" in p for p in dups), probs
+    assert any("descrições quase iguais" in p for p in dups), probs
+    assert all("obsoleta" in p for p in dups)
+
+
+def test_verificar_sem_falso_positivo_nas_memorias_do_kit():
+    """As 69+ memórias deste repo são o corpus real: nenhuma tem gatilho fraco nem duplicata."""
+    probs = _mod().verificar(REPO / "memory")
+    assert not [p for p in probs if p.startswith(("gatilho fraco", "possível duplicata"))], probs
+
+
+def test_citacoes_mortas_lista_so_o_que_nao_existe(tmp_path):
+    """Item 9: lá o `doctor` lista script citado no KB que não existe em nenhum `tools/` do kit (código que ficou
+    só na máquina de alguém). Aqui: caminho em crase, fora de bloco de código, que não existe no projeto nem no
+    kit. Placeholder, exemplo de uma letra, molde do kit e memória obsoleta ficam de fora."""
+    mod = _mod()
+    raiz = tmp_path / "proj"
+    (raiz / "memory").mkdir(parents=True)
+    (raiz / "docs" / "specs").mkdir(parents=True)
+    (raiz / "app").mkdir()
+    (raiz / "app" / "main.py").write_text("x", encoding="utf-8")
+    _mem(raiz, "viva.md", "d", gatilho="quando rodar o serviço local", corpo=(
+        "cite `app/main.py:12` (existe) e `app/sumiu.py` (não) e `NOTAS-ANTIGAS.md` (nome solto, não existe)\n"
+        "placeholder `<arquivo>.py`, `${X}/a.py`, exemplo `x.sql`, molde `docs/ARQUITETURA.md`\n"
+        "```\n`dentro/de/cerca.py`\n```\n"))
+    _mem(raiz, "velha.md", "d", gatilho="quando nada", corpo="`tambem/sumiu.py`\n")
+    (raiz / "memory" / "velha.md").write_text(
+        "---\nname: velha\ndescription: d\nobsoleta: 2026-11-06 — superada\n---\n`tambem/sumiu.py`\n", encoding="utf-8")
+    (raiz / "docs" / "specs" / "s.md").write_text("# s\n`hooks/regras_do_kit.py` (do kit, existe) · `docs/nada.md`\n",
+                                                  encoding="utf-8")
+    mortas = mod.citacoes_mortas(raiz)
+    assert sorted(c for _, c in mortas) == ["NOTAS-ANTIGAS.md", "app/sumiu.py", "docs/nada.md"], mortas
+    # frontmatter de 7 linhas + 1 em branco: o corpo começa na linha 9 (com gatilho)
+    assert ("memory/viva.md:9", "app/sumiu.py") in mortas and ("docs/specs/s.md:2", "docs/nada.md") in mortas
+
+
+def test_citacoes_cli_lista_e_sai_1(tmp_path, capsys):
+    mod = _mod()
+    raiz = tmp_path / "proj"
+    (raiz / "memory").mkdir(parents=True)
+    _mem(raiz, "m.md", "d", corpo="`nao/existe.py`\n")
+    assert mod.main(["citacoes", "--proj", str(raiz)]) == 1
+    saida = capsys.readouterr().out
+    assert "citações mortas (1)" in saida and "memory/m.md:8: `nao/existe.py`" in saida and "obsoleta:" in saida
+    (raiz / "memory" / "m.md").write_text("---\nname: m\ndescription: d\n---\nsem citação\n", encoding="utf-8")
+    assert mod.main(["citacoes", "--proj", str(raiz)]) == 0
+
+
 def test_fila_lista_memorias_sem_gatilho(tmp_path):
     mod, raiz = _dividido(tmp_path)
     fila = mod.fila(raiz / "memory")

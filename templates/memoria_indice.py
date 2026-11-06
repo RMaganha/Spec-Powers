@@ -6,11 +6,15 @@ Subíndice (`memory/indice/<familia>.md`): 1 linha por memória, aberto só quan
 Por que: o índice plano cresce 1 linha por memória; num projeto grande (93 memórias no Whats) passou de
 25 KB (~6.400 tokens em TODA janela) e o kit mandou podar — contra a decisão "mover, nunca apagar".
 Este script MOVE: `dividir` é dry-run por padrão, verifica conservação byte a byte e só grava com
-`--aplicar`. `verificar` audita o par topo+subíndices; `fila` lista o que falta de conteúdo (memória
-sem `gatilho:`); `buscar` acha ponteiros por termo — o mesmo motor `casar()` que o hook de recall usa.
+`--aplicar`. `verificar` audita o par topo+subíndices — e, desde o benchmark MSIG_Agentes (2026-11-06),
+acusa **gatilho fraco** (curto/genérico: o recall nunca casa) e **possível duplicata** (mesmo `name:` ou
+descrições quase iguais); `citacoes` lista caminho citado em memória/spec que não existe mais; `fila` lista o
+que falta de conteúdo (memória sem `gatilho:`); `buscar` acha ponteiros por termo — o mesmo motor `casar()`
+que o hook de recall usa.
 
 Uso:  python memoria_indice.py dividir  [--proj DIR] [--aplicar]
       python memoria_indice.py verificar [--proj DIR] [--aplicar]   (--aplicar corrige o N do topo)
+      python memoria_indice.py citacoes  [--proj DIR]
       python memoria_indice.py fila      [--proj DIR]
       python memoria_indice.py buscar    "<termo>" [--proj DIR] [--limite N]
 """
@@ -289,10 +293,18 @@ def verificar(memdir: Path, aplicar: bool = False) -> list:
             probs.append(f"linha acima de {TETO_LINHA} bytes em {sub.name}:{n}")
     for md in _memorias(memdir):
         onde = por_arquivo.get(md.name, [])
-        if not onde and not frontmatter(md).get("obsoleta"):
+        fm = frontmatter(md)
+        if not onde and not fm.get("obsoleta"):
             probs.append(f"{md.name} sem linha em nenhum subíndice (memória invisível)")
         if len(onde) > 1:
             probs.append(f"{md.name} tem mais de uma linha: {', '.join(onde)}")
+        if not fm.get("obsoleta") and fm.get("gatilho"):
+            motivo = gatilho_fraco(fm["gatilho"])
+            if motivo:
+                probs.append(f"gatilho fraco em {md.name}: {motivo} — o recall nunca vai casar; "
+                             f"diga a condição observável (tela, arquivo, comando, erro)")
+    for a, b, motivo in duplicatas(memdir):
+        probs.append(f"possível duplicata: {a} × {b} — {motivo}; atualize uma e marque a outra `obsoleta:`")
     contagem = {}
     for sub, _, _ in linhas:
         contagem[sub.stem] = contagem.get(sub.stem, 0) + 1
@@ -309,6 +321,113 @@ def verificar(memdir: Path, aplicar: bool = False) -> list:
     if aplicar and novo_topo != topo:
         _gravar(idx, novo_topo, eol)
     return probs
+
+
+# ------------------------------------------------------------------ qualidade do que foi gravado
+# Benchmark MSIG_Agentes (2026-11-06): lá o `agente-criar` recusa texto de roteamento fraco, o `gravar` avisa
+# duplicata (mesma tag, título diferente) e o `doctor` lista script citado no KB que não existe no kit.
+# Aqui o gatilho É o roteamento do recall, a duplicata é memória que o owner reescreveu em vez de atualizar, e a
+# citação morta é caminho que mudou depois da memória — as três entram no `verificar`/`citacoes`.
+GATILHO_MIN_CHARS = 15        # depois de tirar "quando/ao/sempre que"
+GATILHO_MIN_TOKENS = 2        # palavras úteis (≥ 4 letras, sem stopwords)
+DUP_MIN_TOKENS = 4
+DUP_JACCARD = 0.8
+RE_INICIO_GATILHO = re.compile(r"^(quando|ao|na|no|em|sempre que|se)\s+", re.I)
+RE_CITACAO = re.compile(r"`([^`\s]+?\.(?:py|md|json|ya?ml|sql|html?|js|tsx?|ps1|txt|toml|cfg|ini|css|csv|bat|sh))"
+                        r"(?::\d+)?`")
+PASTAS_CITACOES = ("memory", "docs/specs")
+PASTAS_IGNORADAS = {".git", "node_modules", ".venv", "__pycache__", "dist", "build"}
+KIT = Path(__file__).resolve().parents[1]
+
+
+def gatilho_fraco(gatilho: str) -> str:
+    """Motivo (str) se o gatilho é curto ou genérico demais pra casar com um prompt; '' se está bom."""
+    g = RE_INICIO_GATILHO.sub("", (gatilho or "").strip())
+    if len(g) < GATILHO_MIN_CHARS:
+        return f"{len(g)} caracteres (mínimo {GATILHO_MIN_CHARS})"
+    uteis, _ = tokens(g)
+    if len(uteis) < GATILHO_MIN_TOKENS:
+        return f"{len(uteis)} palavra(s) útil(eis) (mínimo {GATILHO_MIN_TOKENS})"
+    return ""
+
+
+def duplicatas(memdir: Path) -> list:
+    """[(arquivo a, arquivo b, motivo)] — mesmo `name:` em dois arquivos, ou descrições quase iguais."""
+    mems = [(md.name, frontmatter(md)) for md in _memorias(Path(memdir))]
+    mems = [(n, fm) for n, fm in mems if not fm.get("obsoleta")]
+    out, por_name = [], {}
+    for n, fm in mems:
+        if fm.get("name"):
+            por_name.setdefault(fm["name"], []).append(n)
+    for name, arqs in por_name.items():
+        for outro in arqs[1:]:
+            out.append((arqs[0], outro, f"mesmo `name: {name}`"))
+    descs = [(n, tokens(fm.get("description", ""))[0]) for n, fm in mems]
+    for i, (a, ta) in enumerate(descs):
+        for b, tb in descs[i + 1:]:
+            if len(ta) >= DUP_MIN_TOKENS and len(tb) >= DUP_MIN_TOKENS:
+                jac = len(ta & tb) / len(ta | tb)
+                if jac >= DUP_JACCARD:
+                    out.append((a, b, f"descrições quase iguais ({int(jac * 100)}% das palavras)"))
+    return out
+
+
+def _nomes_de_arquivo(raiz: Path) -> set:
+    try:
+        return {p.name for p in raiz.rglob("*") if not PASTAS_IGNORADAS & set(p.parts)}
+    except OSError:
+        return set()
+
+
+def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
+    """[(arquivo:linha, citação)] de todo caminho em crase, fora de bloco de código, que não existe no projeto
+    nem no kit. Caminho com separador resolve relativo ao projeto (ou ao kit); nome solto vale se existe algum
+    arquivo com esse nome. Placeholder (`<x>`, `${X}`, `{x}`, `*`) não é citação. Memória `obsoleta:` fica fora."""
+    proj = Path(proj)
+    nomes = {}
+
+    def existe(cit: str) -> bool:
+        if any(x in cit for x in ("<", "${", "{", "*")):
+            return True
+        c = cit.replace("\\", "/")
+        if c.startswith("~/"):                      # caminho da casa do usuário (ex.: `~/.claude/...`)
+            return (Path.home() / c[2:]).exists()
+        p = Path(c)
+        if p.is_absolute() and not c.startswith("/"):
+            return p.exists()
+        while c.startswith(("./", "/")):
+            c = c[2:] if c.startswith("./") else c[1:]
+        nome = c.rsplit("/", 1)[-1]
+        if len(nome.rsplit(".", 1)[0]) <= 1:        # `x.sql`, `x.md`: exemplo, não citação
+            return True
+        if not nomes:
+            nomes["todos"] = _nomes_de_arquivo(proj) | _nomes_de_arquivo(KIT)
+            nomes["moldes"] = _nomes_de_arquivo(KIT / "templates")
+        if "/" in c:
+            # molde do kit (`docs/ARQUITETURA.md`, `docs/SEGURANCA.md`): nasce no projeto pelo kickoff/upgrade
+            return (proj / c).exists() or (KIT / c).exists() or nome in nomes["moldes"]
+        return nome in nomes["todos"]
+
+    out = []
+    for pasta in pastas:
+        base = proj / pasta
+        if not base.is_dir():
+            continue
+        for md in sorted(base.glob("*.md")):
+            if md.name in INDICES or frontmatter(md).get("obsoleta"):
+                continue
+            texto, _ = _ler(md)
+            cerca = False
+            for n, l in enumerate(texto.split("\n"), 1):
+                if l.strip().startswith("```"):
+                    cerca = not cerca
+                    continue
+                if cerca:
+                    continue
+                for m in RE_CITACAO.finditer(l):
+                    if not existe(m.group(1)):
+                        out.append((f"{pasta}/{md.name}:{n}", m.group(0).strip("`")))
+    return out
 
 
 def fila(memdir: Path) -> dict:
@@ -515,7 +634,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("modo", choices=["dividir", "verificar", "fila", "buscar"])
+    ap.add_argument("modo", choices=["dividir", "verificar", "fila", "buscar", "citacoes"])
     ap.add_argument("termo", nargs="?", default="")
     ap.add_argument("--proj", default=".", help="raiz do projeto (default: diretório atual)")
     ap.add_argument("--aplicar", action="store_true", help="grava (sem isto é dry-run)")
@@ -542,6 +661,16 @@ def main(argv=None) -> int:
             print("problemas:\n- " + "\n- ".join(probs))
             return 1
         print("índice de memória: ok (topo + subíndices consistentes)")
+        return 0
+    if a.modo == "citacoes":
+        mortas = citacoes_mortas(proj)
+        if mortas:
+            print(f"citações mortas ({len(mortas)}) — caminho citado em memória/spec que não existe no projeto nem no kit:")
+            for onde, cit in mortas:
+                print(f"  - {onde}: `{cit}`")
+            print("corrija o caminho, ou marque a memória `obsoleta:` se o que ela descreve não existe mais.")
+            return 1
+        print("citações: ok (todo caminho citado em memory/ e docs/specs/ existe)")
         return 0
     if a.modo == "fila":
         f = fila(memdir)
