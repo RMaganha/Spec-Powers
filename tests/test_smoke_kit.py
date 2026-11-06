@@ -1587,6 +1587,23 @@ def test_procedimento_como_tipo_de_memoria_wiring():
         assert "`PROCEDIMENTO`" in txt and "passo k/N" in txt, f"{nome}.md não segue o procedimento apontado pelo recall"
 
 
+def test_dicionario_e_conceitos_no_dossie_wiring():
+    """Benchmark MSIG_Agentes (2026-11-06), item 4: o molde do dossiê ganha o dicionário de dados por assunto
+    (tabelas · chaves · query de localização · armadilhas, confirmado no catálogo) e os conceitos de negócio
+    (definição · no dado · armadilhas · relacionados); `analise` preenche só o confirmado; `tarefa`/`bug` oferecem
+    a seção no fecho."""
+    tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
+    assert "[#dic-<assunto>]" in tpl and "**Armadilhas:**" in tpl and "**Confirmado em:**" in tpl
+    assert "[#conc-<termo>]" in tpl and "**No dado:**" in tpl and "**Relacionados:**" in tpl
+    assert "nunca inferida" in tpl, "o molde não diz que toda tabela/coluna do dicionário é confirmada no catálogo"
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    assert "dicionário de dados por assunto e conceitos de negócio" in an and "nunca inferido" in an
+    for nome in ("tarefa", "bug"):
+        txt = " ".join((REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8").split())
+        assert "[#dic-<assunto>]" in txt and "[#conc-<termo>]" in txt and "docs/ARQUITETURA.md" in txt, \
+            f"{nome}.md não oferece dicionário/conceito no fecho"
+
+
 def test_regras_do_kit_pii_fora_da_memoria_reputacao_e_nao_narrar():
     """Benchmark MSIG_Agentes (2026-11-06), itens 13, 6 e 11 — três regras de uma linha nos blocos que o
     plugin injeta em toda janela:

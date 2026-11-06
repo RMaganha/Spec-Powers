@@ -54,4 +54,6 @@ falhou, com a saída; nunca "deve ter funcionado".
 **5. Fecho em 1 linha** — o que mudou e onde — e pare. Apareceu assunto de fora? **Não faça**: ofereça
 `/mss-spec:to-dolist adicionar <assunto>`. Houve decisão, aprendizado ou armadilha? Ofereça
 `/mss-spec:memory capturar` (grava a memória **e** o diário da sessão juntos; o hook `diario_junto.py` cobra
-se um sair sem o outro). O owner conduz o ritmo: nada de pergunta não pedida no fim.
+se um sair sem o outro). **Descobriu tabela, coluna-chave, join, query de localização ou conceito de negócio
+que não estava mapeado?** Ofereça a seção `[#dic-<assunto>]` (5.1) ou `[#conc-<termo>]` (9) do
+`docs/ARQUITETURA.md` — só o que foi **confirmado** no catálogo/código, nunca inferido. O owner conduz o ritmo: nada de pergunta não pedida no fim.

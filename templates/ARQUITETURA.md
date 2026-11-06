@@ -47,6 +47,20 @@
 - **Credencial do inventário:** <servidor · base · ambiente · `get_connection.py` de qual projeto (caminho, nunca valor) | variável `MSS_INVENTARIO_CONN`>
 - > "Sem citação" não significa "pode apagar" — significa "não encontrei citação textual".
 
+### 5.1 Dicionário de dados por assunto (cresce com o uso)
+<!-- Benchmark MSIG_Agentes (2026-11-06): consulta NOVA sobre dados sem mapa vira tentativa-e-erro de nome de
+     coluna, e cada rodada custa contexto. Uma seção curta por ASSUNTO (não por tabela), com as colunas-chave,
+     os joins e a query de localização mais comum. Toda tabela/coluna aqui foi CONFIRMADA no catálogo
+     (`sys.columns` / `INFORMATION_SCHEMA` / `\d`), nunca inferida. Nasce no fecho de uma tarefa ou bug que
+     descobriu tabela, chave, join ou query de localização — com o OK do owner. O inventário mecânico
+     (`docs/banco.md`) lista tudo; este é o mapa de quem usa. Sem assunto mapeado ainda? Deixe só o molde. -->
+#### [#dic-<assunto>] <Assunto> — <o que cobre>
+- **Tabelas:** `<tabela>` (`<col-chave>`, `<col>`) · `<tabela>` (…)
+- **Chaves:** `<a.col>` = `<b.col>` · …
+- **Query "<pergunta comum>":** `SELECT … FROM … WHERE <col> = '<valor>'`
+- **Armadilhas:** <tipo texto com zero à esquerda · convenção de nome (`cod_*` × `CD_*`) · exceção conhecida>
+- **Confirmado em:** <catálogo de qual ambiente, data>
+
 ## 6. IA / RAG (só se o projeto tiver)
 <!-- Apague a seção se não se aplica. Nada de valor default chutado: se o top_k/dimensão não
      está no código, é Lacuna. -->
@@ -71,5 +85,17 @@
 ## 8. Lacunas (o que NÃO sei)
 - **Não deu pra inferir:** <pergunta ao owner — 1 linha cada>
 - **Não foi lido (amostragem):** <pastas/arquivos que ficaram fora da leitura focada, e por quê>
+
+## 9. Conceitos de negócio (cresce com o uso)
+<!-- Benchmark MSIG_Agentes (2026-11-06): spec é "como fazer", EVALS é "o que deu errado"; o CONCEITO ("apólice
+     emitida", "cancelamento por endosso", "documento = contrato + emissão") só existia dentro de um caso, e quem
+     chegava por outra pergunta reconstruía a definição caçando em tabela. Uma seção curta por termo. Toda
+     afirmação "no dado" foi confirmada no banco antes de entrar. Nasce no fecho de tarefa/bug que explicou ou
+     usou um conceito não mapeado — com o OK do owner. -->
+#### [#conc-<termo>] <Termo> — <o que é, em 1 linha>
+- **Definição:** <1-2 frases, nas palavras do negócio>
+- **No dado:** <como reconhecer: tabela, coluna, valor — ex.: `tip_emis='13'` e `sts_emis='06'`>
+- **Armadilhas:** <o que parece mas não é — ex.: `sts_emis='13'` é recusa, não cancelamento>
+- **Relacionados:** [#conc-<outro>] · [#dic-<assunto>] · `docs/specs/<assunto>.md`
 
 <!-- Regenerável: rode /mss-spec:analise de novo. Ele reconcilia sem apagar o que o owner escreveu. -->

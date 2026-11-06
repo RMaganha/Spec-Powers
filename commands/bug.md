@@ -71,4 +71,6 @@ nova), **pare**: isso não é bug. Diga ao owner e siga pelo **`/mss-spec:nova-f
 **7. Fecho — só o que o owner pedir.** Ofereça em 1 linha, sem rodar sozinho: registrar a armadilha
 (sintoma → causa → correção) na memória pelo `/mss-spec:memory capturar` e, se o assistente alongou
 o diagnóstico (hipótese repetida, fato do owner contestado, memória ignorada), o caso no
-`docs/EVALS.md`. Testar em homologação antes de fechar é escolha dele.
+`docs/EVALS.md`. O diagnóstico descobriu tabela, chave, join ou conceito de negócio não mapeado? Ofereça a
+seção `[#dic-<assunto>]`/`[#conc-<termo>]` do `docs/ARQUITETURA.md` (só o confirmado no catálogo). Testar em
+homologação antes de fechar é escolha dele.
