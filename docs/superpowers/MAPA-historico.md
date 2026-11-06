@@ -4,6 +4,12 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-06 — saiu do MAPA (abertura da branch `feature/absorver-msig-agentes`, 0.53.0)
+
+**Onde estamos:** `main` em `a77e708` — **0.51.0 mesclada e publicada** (`origin/main` igual à `main`, push das 21:28), árvore limpa, nenhuma branch aberta. 2026-10-30 fechou duas versões a partir da conversa do Whats "Validar mensagens WhatsApp em produção" (F-048): 0.50.0 (kit entra primeiro · Stop por JSON · diário junto da memória · lembrete ligado · `docs/AMBIENTES.md` · `/mss-spec:tarefa`) e 0.51.0 (guardião da junção, fora do kit). Suíte: 1.131 verdes. Pendente desta sessão: o OK da captura de memória (rascunhos prontos, nada gravado).
+
+**Próximo passo (2):** 1. Owner: merge e push da 0.51.0 (`git switch main` · `git merge --no-ff feature/guardiao-da-juncao` · `git push origin main`) · 2. Owner: registrar a tarefa agendada do guardião (receita em `hooks/README.md`, "Fora do kit"; log em `~/.claude/mss-spec/guardiao-juncao.log`) · 3. `/mss-spec:upgrade` no Whats, no Transportes e no Energy (nasce o `docs/AMBIENTES.md`; valores só o owner tem) · 4. No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção" (a tarde de 30/10 não tem diário) · 5. No Whats: testar o `/mss-spec:bug` em janela nova (o `kit_primeiro.py` deve negar o superpowers e apontar a porta).
+
 ## 2026-10-29 — saiu do MAPA (abertura da feature "memória na hora da proposta")
 
 **Onde estamos:** `chore/captura-upgrade-converte-to-dolist` (saiu da `main` em `6b8c34d`) — **0.48.0 mesclada e no remoto**: o `/mss-spec:upgrade` converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com a soma e 3 linhas reais → OK do owner → conversão) e o `/mss-spec:doctor` (check 10) aponta o que falta. Captura da conversa (F-045, F-046, diário) nesta branch; merge é do owner.

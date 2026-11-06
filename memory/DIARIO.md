@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-06
+
+- [benchmark-msig-agentes] 0.53.0: levantamento somente-leitura do kit de agentes da equipe (MSIG_Agentes) e 12 melhorias absorvidas, um commit por item (solução conhecida primeiro, PII fora da memória, reputação antes de instalar, gatilho fraco/duplicata/citação morta, decisão junto do comportamento, procedimento como memória, dicionário e conceitos, envio externo em teste, cerca de banco de produção); pivô: hosts de produção saem do AMBIENTES.md, não de lista embutida; rejeitado: KB em banco, multi-agente → sessions/2026-11-06-benchmark-msig-agentes.md
+
 ## 2026-11-03
 
 - [guardiao-sem-script] 0.51.1: ao registrar a tarefa agendada do guardião, o owner foi contactado pela infra e pela Segurança da Informação — script PowerShell e tarefa agendada não são permitidos; hook do settings.json removido, .ps1 e testes fora do kit, memória vira política com gatilho_comando (F-050); pivô: automação na máquina do owner passa pela SI antes de existir; alternativa (marketplace local sem junção × hook Python) é escolha dele → sessions/2026-11-03-guardiao-sem-script.md

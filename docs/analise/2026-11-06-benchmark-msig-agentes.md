@@ -141,3 +141,11 @@ só a marca.
 Implementar os 13 itens **nesta conversa**, na ordem baixo → médio → alto, um commit por item na branch
 `feature/absorver-msig-agentes` (a partir da `main` em `4d28026`), pra reverter item a item ou a branch
 inteira. Passa por cima da regra "um assunto por janela" por decisão explícita do owner.
+
+**Feito em 2026-11-06 (0.53.0):** os 12 itens implementáveis entraram, um commit cada (o 10 já existia).
+Onde cada um mora: 2 → `commands/bug.md` (1b) · 13/6/11 → `templates/regras-do-kit/` · 7/8/9 →
+`templates/memoria_indice.py` (`verificar`, `citacoes`) + `doctor` check 8 · 3 → `hooks/decisao_junto.py` ·
+1 → `templates/MEMORY.md`, `memoria_indice.py`, `commands/memory.md`/`tarefa.md`/`bug.md` · 4 →
+`templates/ARQUITETURA.md` (5.1 e 9) · 12 → `templates/SEGURANCA.md` (14), `templates/rules/envio-externo.md`,
+`memory/project_envio_externo_nasce_em_teste.md` · 5 → `hooks/banco_producao.py`,
+`templates/rules/banco-e-segredo.md`, `templates/AMBIENTES.md`. Detalhe por item no `CHANGELOG.md`, 0.53.0.
