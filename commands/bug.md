@@ -31,6 +31,15 @@ inteira. Mostre ao owner
 sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga isso em uma linha. Só
 depois disso vem hipótese.
 
+**1b. Solução conhecida vem primeiro.** Se o que você leu descreve o **mesmo sintoma** (mesma mensagem
+de erro, mesma tela, mesmo passo) e traz contorno ou correção, a resposta **abre com esse contorno em 1 a
+3 linhas** ("tenta isto: …", com o `arquivo:linha` de onde veio). O diagnóstico do passo 2 vem **depois**,
+como complemento ou pro caso de o contorno não resolver. Nunca enterre a solução conhecida no fim de uma
+análise longa, e nunca a descarte por raciocínio teórico sem que ela tenha sido testada. O caso tem uma
+diferença clara em relação ao que a memória descreve? Diga qual é, mas cite o contorno no início mesmo
+assim. (Origem: kit de agentes da equipe MSIG, incidente de 05/11/2026 — a seção certa era o 1º resultado
+da busca e só apareceu no fim da resposta.)
+
 **2. Diagnóstico.** Invoque **`superpowers:systematic-debugging`** e siga a disciplina dela. Fato que
 o owner afirmou não se re-litiga — inclusive o próprio sintoma: se o que você leu (conversa, log, código)
 não mostra o erro que ele relatou, **falta leitura**, não erro. Diga o que já leu, onde ainda não achou, e

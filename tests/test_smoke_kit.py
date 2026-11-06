@@ -1551,3 +1551,22 @@ def test_upgrade_branch_antes_da_migracao_na_ordem():
         f"ordem errada no upgrade.md: branch={pos_branch} dry-run={pos_dry} --aplicar={pos_aplicar} commit={pos_commit}"
     assert "git add" not in up[up.index("## Primeiro"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
     assert "git branch --show-current" in up, "upgrade.md nao confere a branch antes de migrar (git reservado ao owner)"
+
+
+def test_bug_solucao_conhecida_vem_primeiro():
+    """Benchmark MSIG_Agentes (2026-11-06), item 2: a memória lida descreve o MESMO sintoma e traz contorno →
+    a resposta abre com o contorno em 1-3 linhas; o diagnóstico vem depois. Incidente de lá (05/11/2026): a
+    seção certa era o 1º resultado da busca e só apareceu no fim da resposta. O passo fica ENTRE a leitura
+    da memória (1) e o diagnóstico (2) — lido de cima pra baixo, o contorno sai antes da 1ª hipótese."""
+    b = (REPO / "commands" / "bug.md").read_text(encoding="utf-8")
+    blow = " ".join(b.lower().split())        # a prosa quebra linha no meio da frase
+    assert "solução conhecida vem primeiro" in blow, "bug.md não tem o passo 'solução conhecida vem primeiro'"
+    assert "mesmo sintoma" in blow and "1 a 3 linhas" in blow, \
+        "bug.md não diz quando (mesmo sintoma) nem como (1 a 3 linhas) abrir com o contorno"
+    assert "nunca enterre" in blow and "raciocínio teórico" in blow, \
+        "bug.md não proíbe enterrar nem descartar o contorno sem testar"
+    pos_memoria = blow.index("antes da 1ª hipótese")
+    pos_contorno = blow.index("solução conhecida vem primeiro")
+    pos_diag = blow.index("**2. diagnóstico.**")
+    assert pos_memoria < pos_contorno < pos_diag, \
+        f"ordem errada: memória={pos_memoria} contorno={pos_contorno} diagnóstico={pos_diag}"
