@@ -1570,3 +1570,24 @@ def test_bug_solucao_conhecida_vem_primeiro():
     pos_diag = blow.index("**2. diagnóstico.**")
     assert pos_memoria < pos_contorno < pos_diag, \
         f"ordem errada: memória={pos_memoria} contorno={pos_contorno} diagnóstico={pos_diag}"
+
+
+def test_regras_do_kit_pii_fora_da_memoria_reputacao_e_nao_narrar():
+    """Benchmark MSIG_Agentes (2026-11-06), itens 13, 6 e 11 — três regras de uma linha nos blocos que o
+    plugin injeta em toda janela:
+    - 13: segredo e PII não entram em memória/diário/spec/EVALS/decisão (lá, uma decisão do KB levava a senha);
+    - 6: antes de sugerir pacote/repo/MCP novo, perfil da fonte e veredito 🟢🟡🔴, nunca instala sozinho;
+    - 11: contexto carregado é meio, não resultado — não narrar o que leu.
+    E cada bloco continua abaixo dos 9.000 caracteres que o Claude Code aceita por texto injetado."""
+    from _texto_kit import BLOCOS
+    texto = " ".join(texto_do_kit().lower().split())
+    assert "não entram em memória, diário, spec, evals nem decisão" in texto, \
+        "regras do kit não estendem a proibição de segredo/PII ao que fica versionado (memória, diário, spec)"
+    assert "nunca repita credencial na resposta" in texto
+    assert "antes de sugerir pacote, repositório ou servidor mcp novo" in texto and "🟢" in texto and "🔴" in texto, \
+        "regras do kit não pedem o perfil da fonte antes de sugerir pacote/MCP novo"
+    assert "nunca bloqueie nem instale sozinho" in texto
+    assert "contexto carregado é meio, não resultado" in texto, "regras do kit não proíbem narrar o que foi lido"
+    for bloco in BLOCOS:
+        n = len(bloco.read_text(encoding="utf-8"))
+        assert n <= 9000, f"{bloco.name} com {n} caracteres — acima do limite de 9.000 do Claude Code (corte silencioso)"
