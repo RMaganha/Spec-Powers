@@ -1,5 +1,5 @@
-Catorze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
-Os catorze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Quinze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os quinze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
 | `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
 | `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
+| `decisao_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por arquivo de comportamento novo) | cerca: gravou arquivo de **comportamento** (`CLAUDE.md` da raiz, `.claude/rules/`, `.claude/settings.json`, `.claude/hooks/`; no kit `hooks/`, `commands/`, `templates/regras-do-kit/`, `templates/rules/`) sem decisão (`docs/decisoes.md` ou Histórico de spec) → a resposta volta pedindo a linha de decisão (benchmark MSIG_Agentes, 2026-11-06) |
 
 ---
 
@@ -69,6 +70,33 @@ volta pro WhatsApp em produção) não ficou escrito em lugar nenhum. O owner: *
 com a memória, assim que gravar ela"*. O `/mss-spec:memory capturar` já grava os dois; o hook cobra quando a
 memória foi gravada por fora dele. Falha aberta; escape só do owner: `MSS_DIARIO_JUNTO_OFF=1`; registra
 `devolveu`.
+
+---
+
+# Hook ligado — decisão junto da mudança de comportamento
+
+`decisao_junto.py` (evento `Stop`) lê no transcript o que o assistente **gravou** nesta conversa. Gravou arquivo
+de **comportamento** — o que muda como o assistente age: `CLAUDE.md` da raiz, `.claude/rules/*.md`,
+`.claude/settings.json`, `.claude/hooks/*` e, no próprio kit, `hooks/*.py`, `commands/*.md`,
+`templates/regras-do-kit/*`, `templates/rules/*.md` — e nenhuma **decisão** (`docs/decisoes.md`, ou o Histórico
+de uma spec em `docs/specs/` / `docs/superpowers/specs/`)? A resposta **volta** (JSON `block`, exit 0) pedindo
+que o assistente proponha ao owner a linha de decisão (`- <data> — decidimos <X> em vez de <Y> — porque <Z>`) e
+grave com o OK dele. Cobra **uma vez por arquivo de comportamento**; arquivo novo depois da cobrança cobra de
+novo; `stop_hook_active` deixa sair (nunca laço). Teste, README e módulo `_x.py` não contam. Estado por sessão
+no temp do SO.
+
+**Por que existe (benchmark MSIG_Agentes, 2026-11-06):** no kit de agentes da equipe, toda alteração de
+comportamento gera registro de decisão no mesmo fechamento (quem pediu · por quê · rejeitado · como reverter) e o
+sync avisa quando publica um desses arquivos sem decisão do dia — *"daqui a dois meses ninguém sabe por que o kit
+age assim"*. Aqui `docs/decisoes.md` existia e o `capturar_nudge.py` cobrava a captura por tempo; nada cobrava a
+decisão quando a gravação é num arquivo de comportamento. Decisão de um assunto só vai no Histórico da spec
+(`docs/decisoes.md` é só pra decisão transversal) — por isso os dois contam.
+
+## Garantias
+
+- **Falha aberta**: defeito → exit 0 calado. Escape consciente, só do owner: `MSS_DECISAO_JUNTO_OFF=1`.
+- Subagente (`isSidechain`) não conta. Registra `devolveu` no registro local.
+- Testes: `tests/test_hook_decisao_junto.py`.
 
 ---
 
@@ -523,6 +551,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `capturar_nudge` | `lembrou` | `sem_captura_ha=31min` · `intervalo=0` |
 | `kit_primeiro` | `negou` | `superpowers:systematic-debugging` (a skill negada) — nunca o prompt |
 | `diario_junto` | `devolveu` | `memoria_sem_diario=2` (quantas memórias sem diário) |
+| `decisao_junto` | `devolveu` | `comportamento_sem_decisao=2` (quantos arquivos de comportamento sem decisão) |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
 | `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
