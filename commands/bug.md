@@ -29,7 +29,17 @@ proponha passo num ambiente que o owner não acessa). Abra só o que o gatilho a
 inteira. Mostre ao owner
 **em até 5 linhas**, cada uma com `arquivo:linha`, o que já está escrito sobre esse sintoma: como o
 sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga isso em uma linha. Só
-depois disso vem hipótese.
+depois disso vem hipótese. **O recall apontou um `PROCEDIMENTO`?** Leia-o **inteiro** e siga na ordem,
+anunciando `Seguindo [[slug]] — passo k/N`; no fim, feitos × pendentes (inclusive os de terceiros).
+
+**1b. Solução conhecida vem primeiro.** Se o que você leu descreve o **mesmo sintoma** (mesma mensagem
+de erro, mesma tela, mesmo passo) e traz contorno ou correção, a resposta **abre com esse contorno em 1 a
+3 linhas** ("tenta isto: …", com o `arquivo:linha` de onde veio). O diagnóstico do passo 2 vem **depois**,
+como complemento ou pro caso de o contorno não resolver. Nunca enterre a solução conhecida no fim de uma
+análise longa, e nunca a descarte por raciocínio teórico sem que ela tenha sido testada. O caso tem uma
+diferença clara em relação ao que a memória descreve? Diga qual é, mas cite o contorno no início mesmo
+assim. (Origem: kit de agentes da equipe MSIG, incidente de 05/11/2026 — a seção certa era o 1º resultado
+da busca e só apareceu no fim da resposta.)
 
 **2. Diagnóstico.** Invoque **`superpowers:systematic-debugging`** e siga a disciplina dela. Fato que
 o owner afirmou não se re-litiga — inclusive o próprio sintoma: se o que você leu (conversa, log, código)
@@ -61,4 +71,6 @@ nova), **pare**: isso não é bug. Diga ao owner e siga pelo **`/mss-spec:nova-f
 **7. Fecho — só o que o owner pedir.** Ofereça em 1 linha, sem rodar sozinho: registrar a armadilha
 (sintoma → causa → correção) na memória pelo `/mss-spec:memory capturar` e, se o assistente alongou
 o diagnóstico (hipótese repetida, fato do owner contestado, memória ignorada), o caso no
-`docs/EVALS.md`. Testar em homologação antes de fechar é escolha dele.
+`docs/EVALS.md`. O diagnóstico descobriu tabela, chave, join ou conceito de negócio não mapeado? Ofereça a
+seção `[#dic-<assunto>]`/`[#conc-<termo>]` do `docs/ARQUITETURA.md` (só o confirmado no catálogo). Testar em
+homologação antes de fechar é escolha dele.

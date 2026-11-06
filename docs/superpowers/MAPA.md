@@ -1,25 +1,23 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra` (saiu da `main` em `4d28026`) — 0.52.0 em andamento: o teto da partida deixa de falar com o owner (MAPA/INDEX só pro assistente, uma vez por sessão; linha de sistema só quando o ato é dele), o teto do MAPA/INDEX conta só conteúdo, e o `upgrade` nunca reescreve os 4 arquivos do Docker que existem. Prova nas cópias do Whats e do MSS-SSC (scratchpad `sim/`): antes do código feita; depois, no fecho.
+`feature/absorver-msig-agentes` (saiu da `main` em `4d28026`) — **0.53.0 pronta na branch, por mesclar**: benchmark do kit de agentes da equipe (`docs/analise/2026-11-06-benchmark-msig-agentes.md`) e 12 melhorias absorvidas, um commit por item (lista no `CHANGELOG.md`). Suíte: 1.225 verdes. Convive com a `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra` (0.52.0, por mesclar): a ordem de merge é do owner.
 
 <!-- histórico do estado anterior -->
 `fix/guardiao-sem-script` (saiu da `main` em `a96c92f`) — 0.51.1 por mesclar: o guardião da junção (script `.ps1` + tarefa agendada) foi **retirado** — ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação: não permitido. Hook do `settings.json` do owner removido (cópia feita), `.ps1` e testes fora do kit, memória vira política com `gatilho_comando` (F-050). A junção que some com a atualização do app segue sem guarda: a alternativa é decisão do owner (marketplace local sem junção × hook Python de conferência), e passa pela SI antes.
 
-<!-- histórico do estado anterior (2) -->
-`main` em `a77e708` — **0.51.0 mesclada e publicada** (`origin/main` igual à `main`, push das 21:28), árvore limpa, nenhuma branch aberta. 2026-10-30 fechou duas versões a partir da conversa do Whats "Validar mensagens WhatsApp em produção" (F-048): 0.50.0 (kit entra primeiro · Stop por JSON · diário junto da memória · lembrete ligado · `docs/AMBIENTES.md` · `/mss-spec:tarefa`) e 0.51.0 (guardião da junção, fora do kit). Suíte: 1.131 verdes. Pendente desta sessão: o OK da captura de memória (rascunhos prontos, nada gravado).
-
 ## Próximo passo
-1. ⬜ **Owner: merge `--no-ff` da `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra` na `main` e push** — o assistente roda o merge com a sua aprovação (hook); `git push origin main` é seu.
+1. ⬜ **Owner: ordem de merge das duas branches abertas** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 2. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
 3. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md).
-4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — com a 0.52.0 ele não reescreve mais a infra que existe; nasce o `docs/AMBIENTES.md` sem questionário.
+4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega.
 5. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
+6. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
 
 <!-- histórico do próximo passo anterior -->
 1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
 2. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md): instalar pelo app, conferir em conversa nova, só então tirar a junção, atualizar as memórias e o `doctor`.
-3. ✅ **Owner: push da `main`** — `git push origin main` (0.51.1 + esta nota) — feito em 2026-11-03.
+3. ⬜ **Owner: push da `main`** — `git push origin main` (0.51.1 + esta nota).
 4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — nasce o `docs/AMBIENTES.md` em cada um; os valores só o owner preenche.
 5. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
 
@@ -40,4 +38,4 @@
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-03 (0.52.0 pronta na branch, por mesclar; escolha A: marketplace local sem junção, a executar em conversa nova) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-06 (0.53.0 pronta na branch feature/absorver-msig-agentes, por mesclar; 0.52.0 na outra branch, também por mesclar) · regenerável com /mss-spec:mapa -->

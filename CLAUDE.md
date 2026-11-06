@@ -34,3 +34,4 @@
 - `.claude/rules/banco-e-segredo.md` — Banco e segredo — carrega ao tocar `**/*.sql`, `**/db/**`, `**/*banco*.py`, `**/*conn*.py`, `**/*repositor*.py`
 - `.claude/rules/frontend.md` — Front-end deste projeto — carrega ao tocar `**/*.html`, `**/*.css`, `**/*.jsx`, `**/*.tsx`
 - `.claude/rules/rota-e-endpoint.md` — Rota e endpoint — carrega ao tocar `**/api/**`, `**/routes/**`, `**/app.py`, `**/main.py`, `**/views.py`
+- `.claude/rules/envio-externo.md` — Envio externo nasce em modo de teste — carrega ao tocar `**/*email*.py`, `**/*mail*.py`, `**/*webhook*.py`, `**/*notific*.py`, `**/*envio*.py`, `**/*sms*.py`, `**/*whatsapp*.py`

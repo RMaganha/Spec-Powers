@@ -15,7 +15,8 @@ Você é **engenheiro AppSec sênior**. Vai auditar a **postura de segurança do
    - segredo/token/URL interna hardcoded ou no bundle do front;
    - CORS `*` (com credencial), directory listing ligado, arquivo sensível servido;
    - endpoint **sem** exigência de auth/`Authorization`;
-   - dependência com CVE conhecido.
+   - dependência com CVE conhecido;
+   - **envio externo** (e-mail, webhook, SMS, mensagem) sem os 3 modos (`--dry-run` padrão · `--enviar` pro destino de teste · `--enviar-real`), com destinatário hardcoded ou com fallback silencioso (`docs/SEGURANCA.md`, seção 14).
 3. **Relatório priorizado em HTML** (leitura fácil, do crítico ao fácil) em `docs/superpowers/SEGURANCA-AUDITORIA.html`. Gere no **estilo editorial MSIG**, copiando `${CLAUDE_PLUGIN_ROOT}/templates/doc/template.html` (mesmo `<head>`/`<style>` — **não altere**; é o mesmo do `/mss-spec:documentacao`). Estrutura:
    - **hero**: resumo com a contagem por severidade (ex.: "2 críticos · 3 altos · 1 médio · 4 baixos") e o carimbo data + commit;
    - **uma `section` por severidade, ordenadas Crítico → Alto → Médio → Baixo**; cada achado é um `callout` colorido pela gravidade (`callout.crit` = Crítico · `callout.danger` = Alto · `callout.warn` = Médio · `callout.info` = Baixo) ou um `node` (card com `kv`), contendo: **ref OWASP** · **arquivo:linha** · **risco concreto** · **fix proposto** · **status** (aberto/corrigido);

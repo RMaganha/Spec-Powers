@@ -2,7 +2,7 @@ Regras do kit — vem do plugin mss-spec em toda janela. Quando uma regra do CLA
 
 ## Regras críticas (nunca violar) — cada uma nasce de um bug ou decisão real
 1. **Registro/memória/notas NUNCA num `CLAUDE.md`** (instrução sempre-ativa; polui o contexto). Memória = `memory/` **dentro do repo**; a pasta nativa guarda só um ponteiro pra ela.
-2. Nunca commitar `.env` nem segredos; nunca hardcode de credencial.
+2. Nunca commitar `.env` nem segredos; nunca hardcode de credencial. **Segredo e dado pessoal também não entram em memória, diário, spec, EVALS nem decisão** (credencial, token, payload real com PII): o que vale pro log vale pro que fica versionado — escreva `*****` e onde o valor vive; nunca repita credencial na resposta.
 3. **Front-end sempre Tailwind + `@tailwindcss/typography`, com JS/CSS em arquivos próprios** — detalhe em `.claude/rules/frontend.md` e `docs/FRONTEND.md`. Exceção: documento standalone (`/mss-spec:documentacao`).
 4. **Estrutura de pastas em camadas, sempre** (`docs/ESTRUTURA.md`): nunca arquivos achatados numa pasta única. Router fino, regra no service, imports só "pra baixo".
 5. **Segurança secure-by-default** — o app é alvo: autorização no **backend** por request, SQL parametrizado, entrada validada, segredo só por variável de ambiente, nada de PII/stack trace em log, obscuridade não é segurança. **Checklist em `docs/SEGURANCA.md`; auditoria com `/mss-spec:seguranca`.**

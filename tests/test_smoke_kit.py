@@ -1245,7 +1245,7 @@ def test_recall_hook_documentado_e_registrado():
     doc = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
     assert "recall_memoria.py" in doc, "README dos hooks não lista o recall"
     assert "MSS_RECALL_OFF" in doc, "README não documenta o escape do recall"
-    assert "Catorze hooks" in doc, "a contagem do README ficou velha"
+    assert "Dezesseis hooks" in doc, "a contagem do README ficou velha"
 
 
 def test_inventario_banco_wiring():
@@ -1568,3 +1568,75 @@ def test_upgrade_branch_antes_da_migracao_na_ordem():
         f"ordem errada no upgrade.md: branch={pos_branch} dry-run={pos_dry} --aplicar={pos_aplicar} commit={pos_commit}"
     assert "git add" not in up[up.index("## Primeiro"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
     assert "git branch --show-current" in up, "upgrade.md nao confere a branch antes de migrar (git reservado ao owner)"
+
+
+def test_bug_solucao_conhecida_vem_primeiro():
+    """Benchmark MSIG_Agentes (2026-11-06), item 2: a memória lida descreve o MESMO sintoma e traz contorno →
+    a resposta abre com o contorno em 1-3 linhas; o diagnóstico vem depois. Incidente de lá (05/11/2026): a
+    seção certa era o 1º resultado da busca e só apareceu no fim da resposta. O passo fica ENTRE a leitura
+    da memória (1) e o diagnóstico (2) — lido de cima pra baixo, o contorno sai antes da 1ª hipótese."""
+    b = (REPO / "commands" / "bug.md").read_text(encoding="utf-8")
+    blow = " ".join(b.lower().split())        # a prosa quebra linha no meio da frase
+    assert "solução conhecida vem primeiro" in blow, "bug.md não tem o passo 'solução conhecida vem primeiro'"
+    assert "mesmo sintoma" in blow and "1 a 3 linhas" in blow, \
+        "bug.md não diz quando (mesmo sintoma) nem como (1 a 3 linhas) abrir com o contorno"
+    assert "nunca enterre" in blow and "raciocínio teórico" in blow, \
+        "bug.md não proíbe enterrar nem descartar o contorno sem testar"
+    pos_memoria = blow.index("antes da 1ª hipótese")
+    pos_contorno = blow.index("solução conhecida vem primeiro")
+    pos_diag = blow.index("**2. diagnóstico.**")
+    assert pos_memoria < pos_contorno < pos_diag, \
+        f"ordem errada: memória={pos_memoria} contorno={pos_contorno} diagnóstico={pos_diag}"
+
+
+def test_procedimento_como_tipo_de_memoria_wiring():
+    """Benchmark MSIG_Agentes (2026-11-06), item 1: o molde da memória declara o tipo `procedimento` e o formato
+    (Passos · Ferramentas · Saída), o `memory capturar` roteia passo a passo ensinado pra ele, e `tarefa`/`bug`
+    mandam ler inteiro e seguir 'passo k/N' quando o recall aponta um PROCEDIMENTO."""
+    molde = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "| procedimento" in molde and "**Passos:**" in molde and "**Ferramentas:**" in molde and "**Saída:**" in molde
+    assert "passo k/N" in molde
+    mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    assert "`type: procedimento`" in mem and "passo a passo ensinado" in mem.lower()
+    assert "um gerador/modelo versionado no repo" in mem, "memory.md não exige modelo/gerador em vez de script por caso"
+    for nome in ("tarefa", "bug"):
+        txt = " ".join((REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8").split())
+        assert "`PROCEDIMENTO`" in txt and "passo k/N" in txt, f"{nome}.md não segue o procedimento apontado pelo recall"
+
+
+def test_dicionario_e_conceitos_no_dossie_wiring():
+    """Benchmark MSIG_Agentes (2026-11-06), item 4: o molde do dossiê ganha o dicionário de dados por assunto
+    (tabelas · chaves · query de localização · armadilhas, confirmado no catálogo) e os conceitos de negócio
+    (definição · no dado · armadilhas · relacionados); `analise` preenche só o confirmado; `tarefa`/`bug` oferecem
+    a seção no fecho."""
+    tpl = (REPO / "templates" / "ARQUITETURA.md").read_text(encoding="utf-8")
+    assert "[#dic-<assunto>]" in tpl and "**Armadilhas:**" in tpl and "**Confirmado em:**" in tpl
+    assert "[#conc-<termo>]" in tpl and "**No dado:**" in tpl and "**Relacionados:**" in tpl
+    assert "nunca inferida" in tpl, "o molde não diz que toda tabela/coluna do dicionário é confirmada no catálogo"
+    an = (REPO / "commands" / "analise.md").read_text(encoding="utf-8")
+    assert "dicionário de dados por assunto e conceitos de negócio" in an and "nunca inferido" in an
+    for nome in ("tarefa", "bug"):
+        txt = " ".join((REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8").split())
+        assert "[#dic-<assunto>]" in txt and "[#conc-<termo>]" in txt and "docs/ARQUITETURA.md" in txt, \
+            f"{nome}.md não oferece dicionário/conceito no fecho"
+
+
+def test_regras_do_kit_pii_fora_da_memoria_reputacao_e_nao_narrar():
+    """Benchmark MSIG_Agentes (2026-11-06), itens 13, 6 e 11 — três regras de uma linha nos blocos que o
+    plugin injeta em toda janela:
+    - 13: segredo e PII não entram em memória/diário/spec/EVALS/decisão (lá, uma decisão do KB levava a senha);
+    - 6: antes de sugerir pacote/repo/MCP novo, perfil da fonte e veredito 🟢🟡🔴, nunca instala sozinho;
+    - 11: contexto carregado é meio, não resultado — não narrar o que leu.
+    E cada bloco continua abaixo dos 9.000 caracteres que o Claude Code aceita por texto injetado."""
+    from _texto_kit import BLOCOS
+    texto = " ".join(texto_do_kit().lower().split())
+    assert "não entram em memória, diário, spec, evals nem decisão" in texto, \
+        "regras do kit não estendem a proibição de segredo/PII ao que fica versionado (memória, diário, spec)"
+    assert "nunca repita credencial na resposta" in texto
+    assert "antes de sugerir pacote, repositório ou servidor mcp novo" in texto and "🟢" in texto and "🔴" in texto, \
+        "regras do kit não pedem o perfil da fonte antes de sugerir pacote/MCP novo"
+    assert "nunca bloqueie nem instale sozinho" in texto
+    assert "contexto carregado é meio, não resultado" in texto, "regras do kit não proíbem narrar o que foi lido"
+    for bloco in BLOCOS:
+        n = len(bloco.read_text(encoding="utf-8"))
+        assert n <= 9000, f"{bloco.name} com {n} caracteres — acima do limite de 9.000 do Claude Code (corte silencioso)"

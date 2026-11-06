@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-06
+
+- [benchmark-msig-agentes] 0.53.0: levantamento somente-leitura do kit de agentes da equipe (MSIG_Agentes) e 12 melhorias absorvidas, um commit por item (solução conhecida primeiro, PII fora da memória, reputação antes de instalar, gatilho fraco/duplicata/citação morta, decisão junto do comportamento, procedimento como memória, dicionário e conceitos, envio externo em teste, cerca de banco de produção); pivô: hosts de produção saem do AMBIENTES.md, não de lista embutida; rejeitado: KB em banco, multi-agente → sessions/2026-11-06-benchmark-msig-agentes.md
+
 ## 2026-11-03
 
 - [teto-so-pro-assistente] 0.52.0: o owner, cansado do "alerta do MAPA no limite de 6k" em toda conversa e do upgrade refazendo infra nos projetos em produção; diagnóstico pelo `/mss-spec:bug`, simulação em cópias do Whats e do MSS-SSC antes do código (reproduziu 36 repetições e derrubou a premissa dos comentários do molde — F-051); o teto passa a falar só com o assistente, uma vez por sessão, MAPA/INDEX medidos sem comentário, e o upgrade nunca reescreve os 4 arquivos do Docker que existem — [sessão](sessions/2026-11-03-teto-so-pro-assistente.md)

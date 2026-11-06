@@ -1,5 +1,9 @@
 # Próximo passo — detalhe
 
+## 2026-11-06 — movido do MAPA.md
+
+1. ⬜ **Owner: ordem de merge das duas branches abertas** — `feature/absorver-msig-agentes` (0.53.0) e `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra` (0.52.0); cada uma `--no-ff` na `main` com a sua aprovação (hook); `git push origin main` é seu. A segunda a entrar leva conflito pequeno em `CHANGELOG.md`, `MAPA.md` e nos dois manifestos de versão.
+
 ## 2026-11-03 — trocar a junção pelo marketplace local (escolha A)
 
 Ordem importa: instalar ANTES de tirar a junção, senão o kit some no meio.

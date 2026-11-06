@@ -1,5 +1,5 @@
-Catorze hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
-Os catorze anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Dezesseis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os dezesseis anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -17,6 +17,8 @@ Os catorze anotam no **registro local** cada vez que **agem** (seção no fim de
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
 | `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
 | `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
+| `banco_producao.py` | `PreToolUse` Bash/PowerShell/`mcp__*` + `PostToolUse` (`--post`) | **ligado por padrão** | **sim** (nega escrita · pede aprovação pra leitura, uma vez por tarefa) | cerca: comando ou consulta MCP que cita host/alias de produção do `docs/AMBIENTES.md` (seção Produção) — SELECT pede o OK do owner e o OK vale 2 h (carimbo no `--post`, quando executou); DML/DDL é negado (vira `.sql` pro owner); rotina registrada em "Rotinas autorizadas" passa (benchmark MSIG_Agentes, 2026-11-06) |
+| `decisao_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por arquivo de comportamento novo) | cerca: gravou arquivo de **comportamento** (`CLAUDE.md` da raiz, `.claude/rules/`, `.claude/settings.json`, `.claude/hooks/`; no kit `hooks/`, `commands/`, `templates/regras-do-kit/`, `templates/rules/`) sem decisão (`docs/decisoes.md` ou Histórico de spec) → a resposta volta pedindo a linha de decisão (benchmark MSIG_Agentes, 2026-11-06) |
 
 ---
 
@@ -69,6 +71,66 @@ volta pro WhatsApp em produção) não ficou escrito em lugar nenhum. O owner: *
 com a memória, assim que gravar ela"*. O `/mss-spec:memory capturar` já grava os dois; o hook cobra quando a
 memória foi gravada por fora dele. Falha aberta; escape só do owner: `MSS_DIARIO_JUNTO_OFF=1`; registra
 `devolveu`.
+
+---
+
+# Hook ligado — banco de produção: leitura com OK por tarefa, escrita nunca (`banco_producao.py`)
+
+`banco_producao.py` (`PreToolUse` em `Bash|PowerShell|mcp__.*`; `PostToolUse` com `--post`) lê a seção
+**Produção** do `docs/AMBIENTES.md` do projeto e monta os **marcadores**: a linha **Hosts de produção (cerca)**
+(explícita, vence) ou, sem ela, todo token em crase da seção que parece host/alias (sem espaço, sem `/`, sem
+extensão, ≥ 5 caracteres, com dígito, maiúscula, hífen ou ponto). Sem seção ou sem marcador, fica calado.
+
+Comando de shell (só os segmentos **executáveis**: `echo`/`grep`/`cat`/`git` que citam o host não contam) ou
+consulta de um MCP de SQL (`query`/`sql`/`statement`; o nome do servidor em `mcp__<servidor>__…` também conta)
+que cita um marcador — ou invoca um `.py` do projeto cujo conteúdo cita um marcador:
+- **escrita** (INSERT/UPDATE/DELETE/MERGE/ALTER/DROP/TRUNCATE/CREATE/GRANT/EXEC) → **nega** (exit 2): DML/DDL de
+  produção vira `.sql` entregue ao owner, com o SELECT das linhas antes e o do estado final depois;
+- **leitura** → **pede aprovação** (`ask`, exit 0) **uma vez por tarefa**: quando o comando executa, o `--post`
+  carimba a aprovação (`mss_banco_prd_<projeto>.json` no temp, janela `MSS_BANCO_PRD_MINUTOS` = 120); dentro
+  da janela, as consultas seguintes passam caladas — executou = o owner aprovou;
+- **rotina** registrada em **Rotinas autorizadas em produção (só leitura)** → passa calada (rotina agendada
+  não tem humano pra responder popup).
+
+**Por que existe (benchmark MSIG_Agentes, 2026-11-06):** o kit de agentes da equipe tem a mesma cerca
+(`guarda_producao.py`): popup com motivo, OK por tarefa de 2 h, rotinas autorizadas, MCP só SELECT. Aqui o
+`git_publicacao.py` cercava push e deploy, e nada cercava consulta ou escrita em banco de produção. A fonte dos
+hosts é o `docs/AMBIENTES.md` que o owner já mantém — nada de lista embutida no hook. O rótulo 🟨/🟥 em toda
+consulta é prosa (`.claude/rules/banco-e-segredo.md`).
+
+## Garantias
+
+- **Falha com comando presente → `ask`**: cerca com defeito não abre nem trava sozinha; evento sem comando
+  libera calado. Escape consciente, só do owner: `MSS_BANCO_PRD_OFF=1`.
+- Carimbo **por projeto** (hash da raiz), nunca por máquina inteira; escrita nunca usa o carimbo.
+- Registra `negou` / `perguntou` / `liberou-rotina`. Testes: `tests/test_hook_banco_producao.py`.
+
+---
+
+# Hook ligado — decisão junto da mudança de comportamento
+
+`decisao_junto.py` (evento `Stop`) lê no transcript o que o assistente **gravou** nesta conversa. Gravou arquivo
+de **comportamento** — o que muda como o assistente age: `CLAUDE.md` da raiz, `.claude/rules/*.md`,
+`.claude/settings.json`, `.claude/hooks/*` e, no próprio kit, `hooks/*.py`, `commands/*.md`,
+`templates/regras-do-kit/*`, `templates/rules/*.md` — e nenhuma **decisão** (`docs/decisoes.md`, ou o Histórico
+de uma spec em `docs/specs/` / `docs/superpowers/specs/`)? A resposta **volta** (JSON `block`, exit 0) pedindo
+que o assistente proponha ao owner a linha de decisão (`- <data> — decidimos <X> em vez de <Y> — porque <Z>`) e
+grave com o OK dele. Cobra **uma vez por arquivo de comportamento**; arquivo novo depois da cobrança cobra de
+novo; `stop_hook_active` deixa sair (nunca laço). Teste, README e módulo `_x.py` não contam. Estado por sessão
+no temp do SO.
+
+**Por que existe (benchmark MSIG_Agentes, 2026-11-06):** no kit de agentes da equipe, toda alteração de
+comportamento gera registro de decisão no mesmo fechamento (quem pediu · por quê · rejeitado · como reverter) e o
+sync avisa quando publica um desses arquivos sem decisão do dia — *"daqui a dois meses ninguém sabe por que o kit
+age assim"*. Aqui `docs/decisoes.md` existia e o `capturar_nudge.py` cobrava a captura por tempo; nada cobrava a
+decisão quando a gravação é num arquivo de comportamento. Decisão de um assunto só vai no Histórico da spec
+(`docs/decisoes.md` é só pra decisão transversal) — por isso os dois contam.
+
+## Garantias
+
+- **Falha aberta**: defeito → exit 0 calado. Escape consciente, só do owner: `MSS_DECISAO_JUNTO_OFF=1`.
+- Subagente (`isSidechain`) não conta. Registra `devolveu` no registro local.
+- Testes: `tests/test_hook_decisao_junto.py`.
 
 ---
 
@@ -531,6 +593,8 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `capturar_nudge` | `lembrou` | `sem_captura_ha=31min` · `intervalo=0` |
 | `kit_primeiro` | `negou` | `superpowers:systematic-debugging` (a skill negada) — nunca o prompt |
 | `diario_junto` | `devolveu` | `memoria_sem_diario=2` (quantas memórias sem diário) |
+| `decisao_junto` | `devolveu` | `comportamento_sem_decisao=2` (quantos arquivos de comportamento sem decisão) |
+| `banco_producao` | `negou` · `perguntou` · `liberou-rotina` | `escrita em MS10PROSQL` · `leitura em MS10PROSQL` · o caminho da rotina — nunca a consulta |
 | `orcamento_partida` | `avisou` | `MAPA.md=60098 INDEX.md=70720` |
 | `regra_antes_de_gravar` | `negou` | os nomes das regras (`banco.md`) — **não** o caminho |
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |

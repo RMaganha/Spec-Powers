@@ -81,6 +81,15 @@
         ]
       },
       {
+        "matcher": "Bash|PowerShell|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/banco_producao.py\""
+          }
+        ]
+      },
+      {
         "matcher": "Skill|Read",
         "hooks": [
           {
@@ -123,6 +132,15 @@
         ]
       },
       {
+        "matcher": "Bash|PowerShell|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/banco_producao.py\" --post"
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "type": "command",
@@ -151,6 +169,10 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/diario_junto.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/decisao_junto.py\""
           },
           {
             "type": "command",
