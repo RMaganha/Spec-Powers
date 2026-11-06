@@ -1,18 +1,17 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-`main` — **0.53.0 publicada** (`origin/main` em `fd2d7fb`, push do owner em 2026-11-06): entraram a branch do teto (0.52.0 — o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (0.53.0 — benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). Os outros projetos só recebem a 0.53.0 depois da atualização do marketplace local no app.
+`main` — **0.53.0 publicada** (`origin/main` em `fd2d7fb`, push do owner em 2026-11-06): entraram a branch do teto (0.52.0 — o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (0.53.0 — benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). A junção `~/.claude/skills/mss-spec` ainda aponta pro clone, então hooks e comandos da 0.53.0 já valem em todo projeto; o que cada projeto ainda não tem são os arquivos novos do molde (`/mss-spec:upgrade`, passo 3).
 
 <!-- histórico do estado anterior -->
 `fix/guardiao-sem-script` (saiu da `main` em `a96c92f`) — 0.51.1 por mesclar: o guardião da junção (script `.ps1` + tarefa agendada) foi **retirado** — ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação: não permitido. Hook do `settings.json` do owner removido (cópia feita), `.ps1` e testes fora do kit, memória vira política com `gatilho_comando` (F-050). A junção que some com a atualização do app segue sem guarda: a alternativa é decisão do owner (marketplace local sem junção × hook Python de conferência), e passa pela SI antes.
 
 ## Próximo passo
-1. ⬜ **Owner: atualizar o marketplace local no app** (decisão 2026-11-03) — é o que leva a 0.53.0 pros outros projetos; conferir numa conversa nova de outro projeto que o `/mss-spec:doctor` mostra 0.53.0.
-2. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
-3. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md).
-4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega.
-5. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
-6. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
+1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
+2. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md); só a partir daí o `marketplace update` passa a ser o passo pós-publicação.
+3. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
+4. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
+5. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
 
 <!-- histórico do próximo passo anterior -->
 1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
