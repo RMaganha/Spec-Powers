@@ -33,10 +33,11 @@ Branch `feature/absorver-msig-agentes` (da `main` em `4d28026`), 0.53.0. Dossiê
 - Item 10 (BOM nos `.sql`): já existia no `inventario_banco.py`, com teste.
 
 ## Fizemos
-- 14 commits: dossiê · item 2 (bug.md) · itens 13/6/11 (regras do kit) · itens 7/8/9 (`verificar` +
+- 10 commits na branch: item 2 (bug.md, com o dossiê — o commit só do dossiê foi barrado pelo hook do
+  heredoc com acento e entrou aqui) · itens 13/6/11 (regras do kit) · itens 7/8/9 (`verificar` +
   `citacoes`) · item 3 (`decisao_junto.py`) · item 1 (procedimento) · regeneração das linhas do kit ·
   item 4 (dicionário/conceitos) · item 12 (envio externo + regra + memória) · item 5 (`banco_producao.py`)
-  · fecho (CHANGELOG 0.53.0, manifestos, decisões, MAPA, diário).
+  · fecho (CHANGELOG 0.53.0, manifestos, decisões, MAPA, diário). Suíte: 1.225 verdes.
 - Segurança reportada ao owner, sem valores: senha em texto em `config.json`, `.mcp.json`, numa decisão do
   KB e dentro do `trp/agent.md` de lá; `settings.json` em `auto` com `Write/Edit` liberados.
 
