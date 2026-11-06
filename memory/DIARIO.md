@@ -5,7 +5,7 @@
 
 ## 2026-11-06
 
-- [benchmark-msig-agentes] 0.53.0: levantamento somente-leitura do kit de agentes da equipe (MSIG_Agentes) e 12 melhorias absorvidas, um commit por item (solução conhecida primeiro, PII fora da memória, reputação antes de instalar, gatilho fraco/duplicata/citação morta, decisão junto do comportamento, procedimento como memória, dicionário e conceitos, envio externo em teste, cerca de banco de produção); pivô: hosts de produção saem do AMBIENTES.md, não de lista embutida; rejeitado: KB em banco, multi-agente → sessions/2026-11-06-benchmark-msig-agentes.md
+- [benchmark-msig-agentes] 0.53.0: levantamento somente-leitura do kit de agentes da equipe (MSIG_Agentes) e 12 melhorias absorvidas, um commit por item (solução conhecida primeiro, PII fora da memória, reputação antes de instalar, gatilho fraco/duplicata/citação morta, decisão junto do comportamento, procedimento como memória, dicionário e conceitos, envio externo em teste, cerca de banco de produção); pivô: hosts de produção saem do AMBIENTES.md, não de lista embutida; rejeitado: KB em banco, multi-agente; pós-merge: F-052 ("atualizar o marketplace" dito com a junção viva) e fecho sem inventário dos 13 itens → sessions/2026-11-06-benchmark-msig-agentes.md
 
 ## 2026-11-03
 

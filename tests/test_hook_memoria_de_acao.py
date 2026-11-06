@@ -128,6 +128,33 @@ def test_frase_real_do_plugin_casa_a_memoria_da_junction(tmp_path):
     assert motivo and "project_mss_spec_instalado_por_junction" in motivo
 
 
+# F-052 (2026-11-06): "a atualização do marketplace local" foi dita como passo pós-push com a junção ainda viva —
+# a decisão de 2026-11-03 (marketplace local, execução em conversa nova) foi lida como estado. O regex da memória
+# não casava "marketplace": agora casa update/atualização do marketplace, e não casa o `marketplace.json` nem o `add`.
+@pytest.mark.parametrize("frase", [
+    "Depois do push, a atualização do marketplace local no app é o que leva o kit novo pros outros projetos.",
+    "Owner: atualizar o marketplace local no app (decisão 2026-11-03).",
+    "Pronto. Agora rode `/plugin marketplace update mss-local` pra os outros projetos receberem a 0.53.0.",
+])
+def test_frases_do_marketplace_casam_a_memoria_da_junction(tmp_path, frase):
+    outro = tmp_path / "outro"
+    outro.mkdir()
+    motivo = _stop(outro, frase, tmp_path)
+    assert motivo and "project_mss_spec_instalado_por_junction" in motivo, frase
+
+
+@pytest.mark.parametrize("frase", [
+    "A versão vive nos dois manifestos: `plugin.json` e `marketplace.json`, ambos em 0.53.0.",
+    "Atualizei o MAPA e o CHANGELOG; a suíte segue verde.",
+    "Pra instalar noutra máquina: `/plugin marketplace add C:/ferramentas/mss-spec`.",
+])
+def test_frases_sem_atualizacao_do_kit_passam(tmp_path, frase):
+    outro = tmp_path / "outro"
+    outro.mkdir()
+    motivo = _stop(outro, frase, tmp_path)
+    assert not (motivo and "project_mss_spec_instalado_por_junction" in motivo), frase
+
+
 LONGA = " ".join(["passo"] * 320)
 
 
