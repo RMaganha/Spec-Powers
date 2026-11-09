@@ -1,5 +1,5 @@
 ---
-description: Sincroniza os arquivos do kit no projeto com a versão atual dos templates — atualiza os de referência sozinho e MESCLA CLAUDE.md/AMBIENTE.md sem perder o seu (só conflito real pergunta); projeto ainda com as regras do kit copiadas no CLAUDE.md é migrado antes, sozinho
+description: Sincroniza os arquivos do kit no projeto com a versão atual dos templates, TUDO NUMA RODADA e numa conversa — migração do CLAUDE.md, conversão do to-dolist e as 3 categorias, na ordem, uma branch e um commit por passe; atualiza os de referência sozinho e MESCLA CLAUDE.md/AMBIENTE.md sem perder o seu (só conflito real pergunta)
 argument-hint: "[--dry-run]"
 disable-model-invocation: true
 ---
@@ -8,47 +8,62 @@ disable-model-invocation: true
 
 Traz o projeto pra versão atual do kit: compara cada arquivo que veio do kit com o template correspondente em `${CLAUDE_PLUGIN_ROOT}/templates/` e reconcilia com **o mínimo de interação** — só **conflito real** chama o owner.
 
-**Antes de mexer:** confirme que o working tree está limpo (ou avise o owner pra revisar depois pelo `git diff`), porque o upgrade **modifica arquivos**. **Não** faça `git add`/commit — deixe as mudanças no working tree pro owner revisar e commitar. **Única exceção:** o git da migração do `CLAUDE.md` (próxima seção), que segue a regra de git do projeto.
+**Uma rodada, uma conversa (0.54.0).** O upgrade tem até três passes — **migração do `CLAUDE.md`** → **conversão do to-dolist** → **categorias 1-3** — e trata **todos os que se aplicam nesta mesma conversa, nesta ordem**, numa branch só, com **um commit por passe** (é o commit que mantém o `git diff` de cada passe separado, não uma conversa nova). **Nunca** peça conversa nova nem "próxima rodada" entre passes. Até a 0.53.0 cada passe terminava sozinho e exigia árvore limpa de novo: no Transportes V2 (2026-11-09) isso virou 3 conversas paradas na mesma pergunta sobre 3 arquivos modificados sem commit em outra branch.
+
+## Abertura: o que o projeto precisa
+
+Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/upgrade_plano.py" checar --proj "<raiz do projeto>"` (só lê; a raiz por extenso, não depende da pasta em que o shell está). Ele imprime:
+
+- a **1ª linha do status**, que você repete ao owner tal e qual — `migração do CLAUDE.md ✓/⬜ · to-dolist ✓/⬜ · categorias ⬜`;
+- os **passes que se aplicam, na ordem** (migração só sem a marca `<!-- mss-spec:regras-do-kit -->`; to-dolist só com achado do `converter_to_dolist.py checar`; categorias sempre);
+- a **situação do git**, num bloco só: branch atual, principal (`main`/`master`), se há remoto, arquivos **modificados** e **não rastreados**.
+
+Abra a conversa com essas três coisas e o roteiro de git abaixo, e **peça um único OK** pra rodada inteira. Pergunta nova só em conflito real (categoria 2) e nos OKs que cada passe já pede (prévia da conversão do to-dolist; diff do que a categoria 1 vai sobrescrever, se o owner quiser ver). Nada de descrever o trabalho interno a cada item (caso **F-038**).
+
+## Git: uma branch, trabalho pendente guardado uma vez
+
+Quem executa segue a **regra de git do projeto** (a linha `Versionamento` do `## Contexto` do `CLAUDE.md`, ou o documento que ela aponta). **Padrão do kit**: o assistente roda os comandos. **Projeto que reserva o git ao owner**: o assistente **não escreve no git** — entrega cada comando **um por bloco**, na ordem, e confirma com leitura (`git branch --show-current`, `git status --short`) antes de seguir. O roteiro é o mesmo nos dois casos:
+
+0. **Trabalho pendente do owner — guardar UMA vez, com o OK dele, nunca commitar.** Árvore suja (o `checar` listou modificados)? `git stash push -m "mss-spec upgrade: pendente de <branch atual>"` guarda os **modificados**; os **não rastreados** ficam no lugar (o upgrade não os toca; se um deles tiver o mesmo nome de um arquivo que o upgrade criaria, é o freio "do que já roda" — não é criado). Anote a branch em que o owner estava: é pra ela que tudo volta no fim. Árvore limpa → pule. **Não** proponha "commitar e seguir": o trabalho é dele, e o commit é dele.
+1. **A branch, uma só.** Vá pra principal, atualize-a (`git pull --ff-only`, só se há remoto) e crie **`chore/upgrade-kit`** a partir dela. Toda gravação desta rodada é nela.
+2. **Um commit por passe**, com `git add` **pelo nome** de cada arquivo que o passe gravou (nunca `-A` nem `.`): `chore(upgrade): migra o CLAUDE.md pras regras do kit no plugin` · `chore(upgrade): to-dolist no git como estava` + `chore(upgrade): to-dolist e fora de escopo no desenho do kit` (a conversão tem dois tempos, cada um com o seu commit — é a promessa de voltar atrás pelo git) · `chore(upgrade): arquivos do kit na versão <versão do plugin.json>` (categorias). O hook `teto_ao_gravar.py` moveu linhas do MAPA/INDEX ao gravar? Commit **à parte**, pra não misturar com o passe (aconteceu no Transportes: 34 linhas, `git revert` desfaz só ele).
+3. **No fim, integrar e devolver** — seção "Fecho", abaixo.
 
 ## Modo `--dry-run` (preview, não toca em arquivo)
 
-Se `$ARGUMENTS` contém `--dry-run`, rode em modo **preview**: mostre exatamente o que o upgrade *faria*, mas **não escreve nenhum arquivo** — o working tree fica intacto. É opt-in (a flag é aditiva; sem ela, o upgrade aplica como sempre). Serve pra prevenir o merge silencioso da categoria 1, que hoje é aplicado sozinho sem o owner ver o que mudou.
+Se `$ARGUMENTS` contém `--dry-run`, rode em modo **preview**: a abertura inteira (status, passes, situação do git) e, pra cada passe, exatamente o que o upgrade *faria* — mas **não escreve nenhum arquivo** nem mexe no git (sem stash, sem branch, sem commit). O working tree fica intacto. É opt-in (a flag é aditiva; sem ela, o upgrade aplica como sempre). Serve pra prevenir o merge silencioso da categoria 1, que é aplicado sozinho sem o owner ver o que mudou.
 
 No preview:
+- **Migração do `CLAUDE.md`:** a prévia do `migrar_claude_md.py` (sem `--aplicar`).
+- **To-dolist:** as prévias do `liberar` e do `converter` (sem `--aplicar`).
 - **Categoria 1 (referência):** para cada arquivo desatualizado, mostre o **diff unificado** (git-style, template novo × arquivo atual) do que *seria* sobrescrito. Este é o passo hoje silencioso — o alvo da prevenção.
 - **Categorias 2 e 3 (`CLAUDE.md`/`AMBIENTE.md` e código):** o mesmo relatório descritivo de sempre (o que seria mesclado · conflitos que dependeriam do owner · código a revisar à mão), sem escrever nada.
 
 Ao fim, **deixe explícito que foi só preview** e diga como aplicar de verdade: rode `/mss-spec:upgrade` **sem a flag**. Não faça nenhuma edição, `git add` nem commit no dry-run.
 
-## Primeiro: projeto sem a marca → migração do `CLAUDE.md`, sozinha
+## Passe 1 — projeto sem a marca → migração do `CLAUDE.md`
 
-Abra o `CLAUDE.md` da raiz e procure a linha `<!-- mss-spec:regras-do-kit -->` (a marca: é ela que faz o plugin entregar as regras do kit em toda janela).
+O `checar` disse `migração do CLAUDE.md ✓`? O projeto já migrou: pule pro passe 2. Disse `⬜`? As regras do kit ainda estão copiadas no `CLAUDE.md` (sem a marca `<!-- mss-spec:regras-do-kit -->`, o plugin não entrega regra nenhuma). Faça a migração **primeiro**, num commit só dela — o `CLAUDE.md` muda de formato, e misturar com as categorias esconderia a mudança no `git diff`.
 
-- **Tem a marca** → o projeto já migrou; pule esta seção e siga pras categorias.
-- **Não tem** → as regras do kit ainda estão copiadas no `CLAUDE.md`. Faça a migração **primeiro e sozinha**: **nenhuma outra categoria** (1, 2 ou 3) roda na mesma rodada — o `CLAUDE.md` muda de formato, e misturar esconderia a mudança no `git diff`.
-  0. **A branch, antes de tudo** (árvore limpa; com `--dry-run` no `$ARGUMENTS` pule este passo — preview não mexe em git): vá pra branch principal, atualize-a e crie `chore/migrar-claude-md` a partir dela, pra o `--aplicar` já gravar na branch certa. Quem executa segue a **regra de git do projeto** (a linha `Versionamento` do `## Contexto`, ou o documento que ela aponta):
-     - **Padrão do kit** — o assistente roda: trocar pra principal, atualizá-la (`git pull --ff-only`) e `git switch -c chore/migrar-claude-md`.
-     - **Projeto que reserva o git ao owner** — o assistente **não escreve no git**: entregue esses comandos **um por bloco** (principal · atualizar · `git switch -c chore/migrar-claude-md`) e, **antes de continuar**, confirme rodando `git branch --show-current` (só leitura) que a resposta é `chore/migrar-claude-md`; se não for, não siga.
-  1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py" --proj "<raiz do projeto>"` (dry-run, com a raiz do projeto por extenso: não depende da pasta em que o shell está; a saída começa com "Prévia"). Mostre o relatório ao owner: quantas linhas saíram por serem do kit, quantas mudaram de lugar, quais ficaram por dúvida, e o aviso de teto se houver.
-  2. Saiu com falha (a saída lista o que não fechou; árvore suja nos arquivos que ele toca também é falha) → **nada foi gravado**: repasse a lista e pare (a branch criada fica; o owner a descarta se quiser). Com `--dry-run` no `$ARGUMENTS`, pare aqui de qualquer jeito.
+  1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py" --proj "<raiz do projeto>"` (dry-run; a saída começa com "Prévia"). Mostre o relatório ao owner: quantas linhas saíram por serem do kit, quantas mudaram de lugar, quais ficaram por dúvida, e o aviso de teto se houver.
+  2. Saiu com falha (a saída lista o que não fechou; árvore suja nos arquivos que ele toca também é falha — por isso o stash vem antes) → **nada foi gravado**: repasse a lista e **siga pro passe 2** sem a migração; o relatório do fim diz que ela ficou pendente e por quê. Com `--dry-run`, pare neste passe de qualquer jeito.
   3. Sem falha → rode `python "${CLAUDE_PLUGIN_ROOT}/templates/migrar_claude_md.py" --aplicar --proj "<raiz do projeto>"`. Ele grava e para: **não mexe no git**.
-  4. Commit, pela mesma regra de git do projeto: `git add` **pelo nome** de cada arquivo que o script gravou (nunca `-A` nem `.`) e `git commit` — o assistente roda no padrão do kit; no projeto que reserva o git ao owner, entregue os dois comandos um por bloco. Push só como a regra do projeto permitir. Desfazer, antes de commitar: `git restore <os arquivos que o script gravou>`.
-  5. **Termine aqui** — commit feito (padrão do kit) ou pedido ao owner (git reservado a ele). As outras categorias ficam pra próxima rodada do `/mss-spec:upgrade`, já com a marca.
+  4. Commit do passe (regra de git do projeto): `git add` **pelo nome** de cada arquivo que o script gravou e `git commit`. Desfazer antes de commitar: `git restore <os arquivos que o script gravou>`.
+  5. **Siga pro passe 2, nesta conversa.** A marca já está lá: as categorias vão achá-la.
 
-## Segundo: to-dolist e fora de escopo no formato antigo → conversão, sozinha
+## Passe 2 — to-dolist e fora de escopo no formato antigo → conversão
 
-Desde a 0.47.0, "fora de escopo" quer dizer **"não agora"** e é uma linha do `to-dolist.md` com a tag `#fora-de-escopo`; o to-dolist vai pro git (`docs/decisoes.md`, 2026-10-28). Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/converter_to_dolist.py" checar --proj "<raiz do projeto>"` (só lê).
+Desde a 0.47.0, "fora de escopo" quer dizer **"não agora"** e é uma linha do `to-dolist.md` com a tag `#fora-de-escopo`; o to-dolist vai pro git (`docs/decisoes.md`, 2026-10-28). O `checar` da abertura já rodou `python "${CLAUDE_PLUGIN_ROOT}/templates/converter_to_dolist.py" checar --proj "<raiz do projeto>"` (só lê) e trouxe os achados.
 
-- **"no desenho do kit"** → pule esta seção e siga pras categorias.
-- **Achou formato antigo** (seção "Fora de escopo" no INDEX, `docs/superpowers/FORA-DE-ESCOPO.md`, `.gitignore` ignorando o to-dolist, to-dolist fora do formato) → converta **primeiro e sozinha**: nenhuma categoria roda na mesma rodada. **Nunca perder nada** é a regra: em dois tempos, cada um com o seu commit.
-  0. **A branch** (árvore limpa; com `--dry-run` pule): principal atualizada → `chore/to-dolist-desenho-do-kit`, pela **regra de git do projeto**, igual ao passo 0 da migração acima (no projeto que reserva o git ao owner, entregue os comandos um por bloco e confira com `git branch --show-current`).
-  1. **Tempo 1 — o to-dolist entra no git como está.** `converter_to_dolist.py liberar --proj "<raiz>"` (prévia) mostra as linhas que saem do `.gitignore`; com `--aplicar` ele grava. Commit **só** de `.gitignore` e `to-dolist.md`, pelo nome, com o arquivo **exatamente como estava**: é o "antes" que o git guarda — o upgrade promete voltar atrás pelo git (fim deste comando), e o to-dolist estava fora dele. Sem to-dolist no projeto, só o `.gitignore`.
-  2. **Tempo 2 — prévia.** `converter_to_dolist.py converter --proj "<raiz>"` (não grava). Mostre ao owner o que a saída traz: a **soma** (linhas de origem = recados convertidos + títulos usados + lista do fim + marcação) e **3 linhas reais** como estão e como vão ficar. O que a conversão faz: recado (item com as linhas que continuam embaixo) vira **uma linha**, com o título da seção na frente e a data dele; fora de escopo vira `- <item> #fora-de-escopo (decidido: <data>, <texto inteiro>)`; sem data → a data de hoje; `DD/MM/AAAA` → `AAAA-MM-DD`; ordem pela data, a mais antiga em cima; riscado/FEITA/CONCLUÍDO, data sem ano, parágrafo solto, citação, tabela e código vão **sem mudar uma letra** pra uma lista no fim, pro owner decidir. A seção do INDEX e o `FORA-DE-ESCOPO.md` saem. Saiu `PROBLEMA` → nada é gravado: repasse e pare. Com `--dry-run`, pare aqui.
+- **`to-dolist ✓`** ("no desenho do kit") → pule pro passe 3.
+- **`to-dolist ⬜`** (seção "Fora de escopo" no INDEX, `docs/superpowers/FORA-DE-ESCOPO.md`, `.gitignore` ignorando o to-dolist, to-dolist fora do formato) → converta, ainda na `chore/upgrade-kit`. **Nunca perder nada** é a regra: em dois tempos, cada um com o seu commit.
+  1. **Tempo 1 — o to-dolist entra no git como está.** `converter_to_dolist.py liberar --proj "<raiz>"` (prévia) mostra as linhas que saem do `.gitignore`; com `--aplicar` ele grava. Antes de commitar, confira que o to-dolist **não traz segredo nem dado pessoal** (só nomes de variável e host interno passam; valor de senha/token não). Commit **só** de `.gitignore` e `to-dolist.md`, pelo nome, com o arquivo **exatamente como estava**: é o "antes" que o git guarda — o upgrade promete voltar atrás pelo git (fim deste comando), e o to-dolist estava fora dele. Sem to-dolist no projeto, só o `.gitignore`.
+  2. **Tempo 2 — prévia.** `converter_to_dolist.py converter --proj "<raiz>"` (não grava). Mostre ao owner o que a saída traz: a **soma** (linhas de origem = recados convertidos + títulos usados + lista do fim + marcação) e **3 linhas reais** como estão e como vão ficar. O que a conversão faz: recado (item com as linhas que continuam embaixo) vira **uma linha**, com o título da seção na frente e a data dele; fora de escopo vira `- <item> #fora-de-escopo (decidido: <data>, <texto inteiro>)`; sem data → a data de hoje; `DD/MM/AAAA` → `AAAA-MM-DD`; ordem pela data, a mais antiga em cima; riscado/FEITA/CONCLUÍDO, data sem ano, parágrafo solto, citação, tabela e código vão **sem mudar uma letra** pra uma lista no fim, pro owner decidir. A seção do INDEX e o `FORA-DE-ESCOPO.md` saem. Saiu `PROBLEMA` → nada é gravado: repasse e **siga pro passe 3** (o relatório do fim diz que a conversão ficou pendente). Com `--dry-run`, pare neste passe.
   3. **Só com o OK do owner** nas 3 linhas: `converter … --aplicar`. Ele confere de novo (to-dolist já no git, arquivos limpos, soma) e só então grava; não mexe no git.
   4. Commit dos arquivos que ele gravou/apagou (`to-dolist.md`, `docs/superpowers/INDEX.md`, `docs/superpowers/FORA-DE-ESCOPO.md`), pelo nome e pela regra de git do projeto. Diga ao owner quantas linhas ficaram na **lista do fim** (abaixo do comentário `<!-- upgrade: linhas que a conversão não soube converter … -->`): ele decide cada uma — reescrever no formato, `/mss-spec:to-dolist feito <n>` ou deixar. Desfazer: `git revert` do commit do tempo 2 (o tempo 1 tem o original).
-  5. **Termine aqui.** As categorias ficam pra próxima rodada do `/mss-spec:upgrade`.
+  5. **Siga pro passe 3, nesta conversa.**
 
-Três categorias (projeto **com** a marca):
+## Passe 3 — as três categorias (projeto **com** a marca)
 
 1. **Arquivos só-do-kit (referência) — atualiza sozinho, sem perguntar.** São iguais em todo projeto; substitua pela versão nova do template:
    - `docs/SEGURANCA.md` ← `templates/SEGURANCA.md`
@@ -56,12 +71,12 @@ Três categorias (projeto **com** a marca):
    - `.claude/rules/*.md` ← `templates/rules/` (regras path-scoped; **só acrescente as que faltam** — **nunca sobrescreva** a que existe, ela é do projeto — e não recrie a que o projeto apagou de propósito por não se aplicar)
    - `docs/FRONTEND.md` ← `templates/FRONTEND.md` (só se o projeto tem UI web)
    - `docker-compose.yml` · `docker-compose.office.yml` · `Dockerfile` · `.dockerignore` ← `templates/docker/` (só se o projeto usa Docker, e **só o que falta**: o que existe nunca é reescrito — freio "do que já roda", abaixo)
-   - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou — a única saída é a do `/to-dolist.md`, e só pelo `liberar` da seção acima)
+   - `.gitignore` ← `templates/gitignore` (acrescente o que o kit passou a ignorar; **não remova** entradas que o projeto adicionou — a única saída é a do `/to-dolist.md`, e só pelo `liberar` do passe 2)
    - **Índice de memória plano** (`memory/MEMORY.md` com linhas `- [Título](arquivo.md)` e sem `memory/indice/`): **não sobrescreva**; mostre `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" dividir` em dry-run (tabela família × bytes) e peça OK antes do `--aplicar` — move, não apaga
 
    **Freio da infra própria — o que é MSIG não entra em projeto que não é MSIG.** Leia a linha `**Infra:**` do Contexto do `CLAUDE.md` antes desta categoria. Se for **infra própria**, os arquivos da infra corporativa **não são criados nem atualizados**: `docker-compose.office.yml`, `certs/corp-ca.pem` e o proxy no `.env`; e o `docker-compose.yml` base, se existir, **não** ganha a rede externa `mitiai_network`. Sem esse freio o upgrade **reintroduz** sozinho, a cada rodada, exatamente o que o `kickoff` deixou de fora (a categoria 1 sobrescreve sem perguntar).
 
-   **Freio do que já roda — infra que existe NUNCA é reescrita, em projeto nenhum (0.52.0).** `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile` e `.dockerignore` que **já existem** não são tocados: o upgrade só **cria** o que falta (respeitando o freio da infra própria). O molde mudou? **Mostre o diff** e diga "o molde do kit mudou — revise à mão", como na categoria 3; **nunca** sobrescreva. Motivo: o projeto que nasceu do kit e já está em homologação/produção não é brownfield (sem tabela no `ARQUITETURA.md`) nem infra própria — caía fora dos dois freios e tinha o Dockerfile que roda substituído pelo molde (MSS-SSC: 143 linhas diferentes só no Dockerfile). `certs/corp-ca.pem` **não** está nesta categoria e fica **fora** deste freio: quem o entrega é o `/mss-spec:ambiente`, e CA velha quebra o build (`memory/project_docker_build_fortigate.md`) — ele continua atualizável.
+   **Freio do que já roda — infra que existe NUNCA é reescrita, em projeto nenhum (0.52.0).** `docker-compose.yml`, `docker-compose.office.yml`, `Dockerfile` e `.dockerignore` que **já existem** (no git ou soltos na pasta, não rastreados) não são tocados: o upgrade só **cria** o que falta (respeitando o freio da infra própria). O molde mudou? **Mostre o diff** e diga "o molde do kit mudou — revise à mão", como na categoria 3; **nunca** sobrescreva. Motivo: o projeto que nasceu do kit e já está em homologação/produção não é brownfield (sem tabela no `ARQUITETURA.md`) nem infra própria — caía fora dos dois freios e tinha o Dockerfile que roda substituído pelo molde (MSS-SSC: 143 linhas diferentes só no Dockerfile). `certs/corp-ca.pem` **não** está nesta categoria e fica **fora** deste freio: quem o entrega é o `/mss-spec:ambiente`, e CA velha quebra o build (`memory/project_docker_build_fortigate.md`) — ele continua atualizável.
 
    **Freio do brownfield — arquivo que "não nasceu do kit" PERGUNTA, não é sobrescrito.** Antes de aplicar esta categoria, leia a tabela **"Pré-existente — não nasceu do kit"** do `docs/ARQUITETURA.md` (se existir; ela é gravada pelo `/mss-spec:analise`). Arquivo listado lá é do **projeto**, não uma cópia velha do molde: **mostre o diff e pergunte** ao owner em vez de atualizar sozinho — o padrão é **manter o do projeto**. Sem esse freio, um projeto **brownfield** que já tinha `docker-compose.yml`/`Dockerfile` próprios teria a infra que roda substituída pelo molde do kit, parando o projeto. Vale o mesmo julgamento quando não há dossiê e o arquivo claramente não veio do kit (conteúdo sem parentesco com o template): na dúvida, **pergunte**. O próprio `docs/ARQUITETURA.md` é **conteúdo do projeto** (levantamento do código, sem template a sincronizar) — o upgrade **nunca** o toca; quem o regenera é o `/mss-spec:analise`.
 
@@ -79,6 +94,19 @@ Três categorias (projeto **com** a marca):
 
 3. **Código do projeto (ex.: `utils/get_connection.py`) — só avisa.** Mexer em código sozinho é arriscado. Se `templates/get_connection.py` evoluiu, **mostre o diff** e diga "o molde do kit mudou — revise à mão"; **não** aplique.
 
-**No fim, um relatório curto:** (a) o que atualizou sozinho · (b) o que mesclou no `CLAUDE.md`/`AMBIENTE.md` · (c) os conflitos que dependem do owner · (d) o código a revisar à mão. Lembre o owner de conferir tudo pelo `git diff` antes de commitar.
+**Commit do passe 3**, pela regra de git do projeto: mostre ao owner o `git status --short` e `git diff --stat` do que as categorias gravaram, e commite pelo nome (`chore(upgrade): arquivos do kit na versão <versão>`). Conflito da categoria 2 que o owner ainda não respondeu fica **fora** do commit (o arquivo fica como estava) e entra no relatório.
 
-**Rollback: o git é o rollback.** Não há comando de "desfazer" — não precisa. Como o upgrade só mexe em arquivos versionados (e você começou com a árvore de trabalho limpa), `git restore .` reverte tudo que ele mudou antes de commitar; se já commitou, `git revert`/descartar a branch desfaz. Sem comando dedicado de propósito (YAGNI).
+## Fecho: relatório, integração e devolução
+
+**Relatório curto, um bloco por passe que rodou:** (a) o que atualizou sozinho · (b) o que mesclou no `CLAUDE.md`/`AMBIENTE.md` · (c) os conflitos que dependem do owner · (d) o código a revisar à mão · (e) o que ficou pendente (migração ou conversão que saiu com falha, linhas da lista do fim do to-dolist) e por quê. Mostre a lista dos commits da rodada: `git log --oneline <principal>..chore/upgrade-kit`.
+
+**Integrar e devolver, com o OK do owner** (pela regra de git do projeto; no projeto que reserva o git ao owner, um comando por bloco e você confere por leitura):
+
+1. `git switch <principal>` e `git merge chore/upgrade-kit` (o hook `git_publicacao.py` pede a aprovação do owner — é o OK dele; com remoto, `git merge --no-ff` se a regra do projeto pedir histórico de merge). **Push: nunca você** (`main`/`master` é negado pelo hook; o owner faz do terminal dele, quando quiser).
+2. **Traz a principal pra branch em que o owner estava** — senão toda janela nova aberta nela acusa o `CLAUDE.md` antigo: `git switch <branch do owner>` e `git merge --ff-only <principal>`. O `--ff-only` falhou (a branch dele divergiu da principal)? **Pare e pergunte**: `git merge <principal>` (o hook pede aprovação) ou deixar pra ele — nunca rebase do trabalho dele.
+3. **Devolve o trabalho pendente**: `git stash pop` (só se o passo 0 guardou). Conflito no pop? Pare, mostre `git status --short` e peça ao owner — o stash continua guardado até resolver.
+4. **Conferência colada, antes de dizer "pronto"** (o owner disse "commitei"/"mesclei" e você não viu a saída? não está feito): `git branch --show-current` (a branch do owner) · `git log --oneline -5` (os commits da rodada aparecem) · `git status --short` (os mesmos arquivos modificados de antes, e só eles) · `git stash list` (vazio, ou sem a entrada `mss-spec upgrade`). Só com as quatro saídas na conversa a rodada está fechada. A `chore/upgrade-kit` pode ser apagada pelo owner (`git branch -d chore/upgrade-kit`); ela fica.
+
+Owner sem tempo pra integrar agora? Tudo bem: a `chore/upgrade-kit` fica com os commits, você devolve o stash **na branch dele** (volte pra ela antes do `pop`) e o relatório diz que a integração (passos 1 e 2) ficou pra ele, com os comandos um por bloco.
+
+**Rollback: o git é o rollback.** Não há comando de "desfazer" — não precisa. Como o upgrade só mexe em arquivos versionados, numa branch própria e com o trabalho do owner guardado fora: antes do commit, `git restore .` reverte o que o passe mudou; depois, `git revert` do commit do passe ou descartar a `chore/upgrade-kit` desfaz. Sem comando dedicado de propósito (YAGNI).
