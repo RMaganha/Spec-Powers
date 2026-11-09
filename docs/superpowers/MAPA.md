@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+`feature/upgrade-em-uma-rodada` (saiu da `main` em `eda9f62`) — **0.54.0 em construção: o `/mss-spec:upgrade` trata tudo numa rodada e numa conversa.** Hoje o comando termina depois de cada passe (migração do `CLAUDE.md` · to-dolist · categorias) e exige árvore limpa em cada um; no Transportes V2 (2026-11-09) isso virou 3 conversas paradas na mesma pergunta sobre trabalho pendente em outra branch. Desenho aprovado: script só-leitura `templates/upgrade_plano.py` abre com o status e a situação do git; `commands/upgrade.md` passa a uma branch (`chore/upgrade-kit`), um commit por passe, stash do pendente uma vez e integração na principal + `--ff-only` de volta pra branch do owner. Spec: `docs/superpowers/specs/2026-07-16-upgrade-design.md`.
+
+<!-- histórico do estado anterior -->
 `main` — **0.53.0 publicada** (`origin/main` em `fd2d7fb`, push do owner em 2026-11-06): entraram a branch do teto (0.52.0 — o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (0.53.0 — benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). A junção `~/.claude/skills/mss-spec` ainda aponta pro clone, então hooks e comandos da 0.53.0 já valem em todo projeto; o que cada projeto ainda não tem são os arquivos novos do molde (`/mss-spec:upgrade`, passo 4). A `main` local está à frente do `origin` (correções do MAPA e a captura desta sessão); `git push origin main` é do owner (passo 1).
 
 <!-- histórico do estado anterior -->
