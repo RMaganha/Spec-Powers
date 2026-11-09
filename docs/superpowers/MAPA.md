@@ -6,9 +6,6 @@
 <!-- histórico do estado anterior -->
 `main` — **0.53.0 publicada** (`origin/main` em `fd2d7fb`, push do owner em 2026-11-06): entraram a branch do teto (0.52.0 — o teto fala só com o assistente, mede só conteúdo, upgrade não reescreve infra) e a `feature/absorver-msig-agentes` (0.53.0 — benchmark do kit de agentes da equipe, `docs/analise/2026-11-06-benchmark-msig-agentes.md`, 12 melhorias, um commit por item — lista no `CHANGELOG.md`). A junção `~/.claude/skills/mss-spec` ainda aponta pro clone, então hooks e comandos da 0.53.0 já valem em todo projeto; o que cada projeto ainda não tem são os arquivos novos do molde (`/mss-spec:upgrade`, passo 4). A `main` local está à frente do `origin` (correções do MAPA e a captura desta sessão); `git push origin main` é do owner (passo 1).
 
-<!-- histórico do estado anterior -->
-`fix/guardiao-sem-script` (saiu da `main` em `a96c92f`) — 0.51.1 por mesclar: o guardião da junção (script `.ps1` + tarefa agendada) foi **retirado** — ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação: não permitido. Hook do `settings.json` do owner removido (cópia feita), `.ps1` e testes fora do kit, memória vira política com `gatilho_comando` (F-050). A junção que some com a atualização do app segue sem guarda: a alternativa é decisão do owner (marketplace local sem junção × hook Python de conferência), e passa pela SI antes.
-
 ## Próximo passo
 1. ⬜ **Owner: `git push origin main`** — captura desta sessão (caso F-052, memória da junção com regex ampliado + teste, memória nova "fecho lista os itens", diário) e as correções do MAPA já mescladas.
 2. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).

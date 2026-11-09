@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-09 — saiu do MAPA (abertura da branch `feature/upgrade-em-uma-rodada`, 0.54.0)
+
+**Onde estamos (2 anteriores):** `fix/guardiao-sem-script` (saiu da `main` em `a96c92f`) — 0.51.1 por mesclar: o guardião da junção (script `.ps1` + tarefa agendada) foi **retirado** — ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação: não permitido. Hook do `settings.json` do owner removido (cópia feita), `.ps1` e testes fora do kit, memória vira política com `gatilho_comando` (F-050). A junção que some com a atualização do app segue sem guarda: a alternativa é decisão do owner (marketplace local sem junção × hook Python de conferência), e passa pela SI antes.
+
 ## 2026-11-06 — saiu do MAPA (abertura da branch `feature/absorver-msig-agentes`, 0.53.0)
 
 **Onde estamos:** `main` em `a77e708` — **0.51.0 mesclada e publicada** (`origin/main` igual à `main`, push das 21:28), árvore limpa, nenhuma branch aberta. 2026-10-30 fechou duas versões a partir da conversa do Whats "Validar mensagens WhatsApp em produção" (F-048): 0.50.0 (kit entra primeiro · Stop por JSON · diário junto da memória · lembrete ligado · `docs/AMBIENTES.md` · `/mss-spec:tarefa`) e 0.51.0 (guardião da junção, fora do kit). Suíte: 1.131 verdes. Pendente desta sessão: o OK da captura de memória (rascunhos prontos, nada gravado).
