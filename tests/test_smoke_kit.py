@@ -217,6 +217,41 @@ def test_upgrade_dry_run_wiring():
     assert "sem a flag" in up.lower(), "upgrade.md não diz como aplicar de verdade (rodar upgrade sem a flag)"
 
 
+def test_upgrade_em_uma_rodada_wiring():
+    """0.54.0: o upgrade trata os 3 passes (migração do CLAUDE.md → to-dolist → categorias) numa rodada e numa
+    conversa, numa branch só, um commit por passe; trabalho pendente do owner guardado UMA vez (stash) e devolvido
+    no fim, nunca commitado; integra na principal e traz a principal pra branch do owner. No Transportes V2
+    (2026-11-09) o desenho anterior virou 3 conversas paradas na mesma pergunta. A ordem e a situação do git são
+    código (templates/upgrade_plano.py, testado em tests/test_upgrade_plano.py); aqui é só o wiring da prosa."""
+    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
+    low = up.lower()
+    # abertura pelo script só-leitura, que existe
+    assert 'upgrade_plano.py" checar' in up, "upgrade.md não abre pelo upgrade_plano.py checar"
+    assert (REPO / "templates" / "upgrade_plano.py").is_file()
+    assert "migração do claude.md ✓/⬜ · to-dolist ✓/⬜ · categorias ⬜" in low, "a linha de status da abertura"
+    # a ordem dos passes na prosa: migração → to-dolist → categorias, e cada um manda seguir pro próximo
+    i1, i2, i3 = low.index("## passe 1"), low.index("## passe 2"), low.index("## passe 3")
+    assert i1 < i2 < i3
+    assert "migração do `claude.md`" in low[i1:i2] and "to-dolist" in low[i2:i3] and "categorias" in low[i3:]
+    assert "termine aqui" not in low, "passe não pode terminar a rodada"
+    assert low.count("siga pro passe") >= 2, "cada passe manda seguir pro próximo, nesta conversa"
+    assert "uma rodada, uma conversa" in low
+    # árvore suja: uma vez, stash dos modificados, nunca commitar o trabalho do owner
+    assert low.count("git stash push") == 1, "o stash é um só, na abertura"
+    assert "git stash pop" in low and "nunca commitar" in low
+    assert "não rastreados** ficam" in low, "não rastreado fica no lugar"
+    # uma branch, um commit por passe; as branches por passe sumiram
+    assert "chore/upgrade-kit" in low and "um commit por passe" in low
+    assert "chore/migrar-claude-md" not in low and "chore/to-dolist-desenho-do-kit" not in low
+    # integração com OK e devolução pra branch do owner
+    assert "git merge --ff-only <principal>" in low and "branch em que o owner estava" in low
+    # conferência colada antes de dizer pronto (to-dolist linha 6)
+    for cmd in ("git branch --show-current", "git log --oneline -5", "git status --short", "git stash list"):
+        assert cmd in low, f"a conferência colada não cita {cmd}"
+    # dry-run segue sem tocar no git
+    assert "sem stash, sem branch, sem commit" in low
+
+
 def test_compliance_wiring():
     """Auditoria de convenções montada: comando existe, checa a estrutura/docs/memória do jeito
     da casa (só reporta), e delimita o papel — auditoria profunda é seguranca, sync é upgrade."""
@@ -1494,13 +1529,14 @@ def test_azure_prd_licoes_da_1a_producao_real():
 MARCA_KIT = "<!-- mss-spec:regras-do-kit -->"
 
 
-def test_upgrade_migra_primeiro_e_sozinho():
-    """Projeto sem a marca: o upgrade roda a migração do CLAUDE.md PRIMEIRO e SOZINHA; com a marca, a
-    categoria 2 não reacrescenta seção do kit; branch + commit seguem a regra de git do PROJETO."""
+def test_upgrade_migra_primeiro_num_commit_so():
+    """Projeto sem a marca: o upgrade roda a migração do CLAUDE.md PRIMEIRO, num commit só dela (0.54.0: na mesma
+    rodada que os outros passes, não mais 'sozinha' numa conversa); com a marca, a categoria 2 não reacrescenta
+    seção do kit; branch + commit seguem a regra de git do PROJETO."""
     up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
     low = up.lower()
-    for trecho in ("migrar_claude_md.py", MARCA_KIT, "primeiro", "nenhuma outra categoria",
-                   "regra de git do projeto", "--aplicar", "chore/migrar-claude-md", "git restore"):
+    for trecho in ("migrar_claude_md.py", MARCA_KIT, "primeiro", "num commit só dela",
+                   "regra de git do projeto", "--aplicar", "chore/upgrade-kit", "git restore"):
         assert trecho.lower() in low, f"upgrade.md sem {trecho!r}"
     assert "não reacrescenta" in low and "seção do kit" in low, \
         "upgrade.md não diz que, com a marca, a categoria 2 não reacrescenta seção do kit"
@@ -1557,16 +1593,16 @@ def test_upgrade_roda_o_script_com_proj_explicito():
 
 
 def test_upgrade_branch_antes_da_migracao_na_ordem():
-    """A branch chore/migrar-claude-md nasce da principal ANTES do dry-run e do --aplicar; o commit vem depois.
-    Lido de cima pra baixo, o roteiro nunca grava a migracao na branch errada."""
+    """A branch chore/upgrade-kit nasce da principal ANTES do dry-run e do --aplicar da migração; o commit vem
+    depois. Lido de cima pra baixo, o roteiro nunca grava a migracao na branch errada."""
     up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
-    pos_branch = up.index("chore/migrar-claude-md")
+    pos_branch = up.index("chore/upgrade-kit")
     pos_dry = up.index("migrar_claude_md.py")
     pos_aplicar = up.index('migrar_claude_md.py" --aplicar')
     pos_commit = up.index("git add", pos_aplicar)
     assert pos_branch < pos_dry < pos_aplicar < pos_commit, \
         f"ordem errada no upgrade.md: branch={pos_branch} dry-run={pos_dry} --aplicar={pos_aplicar} commit={pos_commit}"
-    assert "git add" not in up[up.index("## Primeiro"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
+    assert "git add" not in up[up.index("## Passe 1"):pos_aplicar], "upgrade.md manda `git add` antes do --aplicar"
     assert "git branch --show-current" in up, "upgrade.md nao confere a branch antes de migrar (git reservado ao owner)"
 
 

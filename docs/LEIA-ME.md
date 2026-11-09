@@ -95,7 +95,7 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 | `/mss-spec:seguranca` | Audita AppSec (OWASP + baseline MSIG) e corrige com seu OK; relatório HTML ordenado crítico→fácil |
 | `/mss-spec:compliance` | Audita a aderência às convenções do kit (estrutura, docs, memória, gitignore); só reporta ✓/✗ |
 | `/mss-spec:release` | Gate de pré-publicação: roda testes + confere versão/CHANGELOG + convenção (compliance) + segurança + specs; só reporta |
-| `/mss-spec:upgrade` | Sincroniza um projeto existente com a evolução dos moldes (mescla `CLAUDE.md`, conflito pergunta; não mexe em código) |
+| `/mss-spec:upgrade` | Sincroniza um projeto existente com a evolução dos moldes, tudo numa rodada e numa conversa (migração do `CLAUDE.md` → to-dolist → categorias; uma branch, um commit por passe; mescla `CLAUDE.md`, conflito pergunta; não mexe em código) |
 | `/mss-spec:documentacao <tema>` | Gera documentação HTML no estilo editorial MSIG (arquivo único self-contained) |
 
 ## Fluxo

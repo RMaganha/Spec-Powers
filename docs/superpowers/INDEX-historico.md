@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-09 — fechadas
+
+- [upgrade em uma rodada só](specs/2026-07-16-upgrade-design.md) — o `/mss-spec:upgrade` trata migração do `CLAUDE.md`, to-dolist e categorias numa conversa, uma branch, um commit por passe, stash único do pendente — fechada (0.54.0, 2026-11-09)
+
 ## 2026-11-03 — fechadas
 
 - [partida-no-orcamento](../specs/partida-no-orcamento.md) — o teto fala só com o assistente e conta só conteúdo; o upgrade nunca reescreve infra que existe ([upgrade](../specs/upgrade.md)) — fechada: 0.52.0 na branch `feature/teto-avisa-uma-vez-e-upgrade-sem-refazer-infra`, suíte 1.142 verdes, por mesclar

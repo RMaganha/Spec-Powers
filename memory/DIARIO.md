@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-09
+
+- [upgrade-em-uma-rodada] 0.54.0: o `/mss-spec:upgrade` do Transportes V2 virou 3 conversas paradas na mesma pergunta sobre trabalho pendente em outra branch; agora os 3 passes rodam numa conversa, uma branch `chore/upgrade-kit`, um commit por passe, stash único do pendente do owner (nunca commitar), `--ff-only` de volta pra branch dele e conferência colada; pivô: ordem e situação do git viram script só-leitura (`templates/upgrade_plano.py`, 12 testes) porque prosa não se testa; rejeitado: script que faz o git, só prosa; F-053 (comando colado não visto pelo `kit_primeiro.py`) → sessions/2026-11-09-upgrade-em-uma-rodada.md
+
 ## 2026-11-06
 
 - [benchmark-msig-agentes] 0.53.0: levantamento somente-leitura do kit de agentes da equipe (MSIG_Agentes) e 12 melhorias absorvidas, um commit por item (solução conhecida primeiro, PII fora da memória, reputação antes de instalar, gatilho fraco/duplicata/citação morta, decisão junto do comportamento, procedimento como memória, dicionário e conceitos, envio externo em teste, cerca de banco de produção); pivô: hosts de produção saem do AMBIENTES.md, não de lista embutida; rejeitado: KB em banco, multi-agente; pós-merge: F-052 ("atualizar o marketplace" dito com a junção viva) e fecho sem inventário dos 13 itens → sessions/2026-11-06-benchmark-msig-agentes.md

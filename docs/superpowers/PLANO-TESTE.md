@@ -22,6 +22,7 @@
 - `test_regras_branch_e_escopo_wiring` — branch sempre da principal + regra "um assunto por janela" (CLAUDE/nova-feature/to-dolist)
 - `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
 - `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
+- `test_upgrade_em_uma_rodada_wiring` — (0.54.0) o upgrade abre pelo `upgrade_plano.py checar`, trata os 3 passes na ordem e na mesma conversa (sem "Termine aqui"), stash único do pendente do owner (nunca commitar), uma branch `chore/upgrade-kit`, um commit por passe, `--ff-only` de volta pra branch do owner e conferência colada; `test_upgrade_migra_primeiro_num_commit_so` / `test_upgrade_branch_antes_da_migracao_na_ordem` seguem o desenho novo
 - `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
 - `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e a URL real do GitHub (publicado 2026-07-21)
 - `test_mapa_contexto_wiring` — mapa de contexto F1: `templates/MAPA.md` (3 seções + Conexões do código real/não inventar), comando `/mss-spec:mapa` (lê+reconcilia git/INDEX/Conexões), e os 4 pontos de integração (kickoff cria · CLAUDE lê na partida · nova-feature mantém)
@@ -146,6 +147,12 @@
 - `test_kit_converteu_o_proprio_fora_de_escopo` — sem `FORA-DE-ESCOPO.md` nem seção no INDEX; cada linha no formato combinado
 - (em `tests/test_hook_recall_memoria.py`) `test_recall_nao_cita_fora_de_escopo_sozinho` — a busca não lê to-dolist nem `FORA-DE-ESCOPO.md`
 
+`tests/test_upgrade_plano.py` — a abertura do upgrade numa rodada só (0.54.0; `templates/upgrade_plano.py`, só lê):
+- `test_sem_marca_e_to_dolist_antigo_sao_tres_passes_na_ordem` / `test_com_marca_e_to_dolist_no_desenho_so_as_categorias` / `test_com_marca_e_to_dolist_antigo_sao_dois_passes` / `test_sem_claude_md_a_migracao_nao_se_aplica_e_o_relatorio_diz` — os passes que se aplicam, na ordem migração → to-dolist → categorias, e a linha de status `✓/⬜`
+- `test_arvore_suja_em_outra_branch_sai_num_bloco_so` — o caso do Transportes: branch de fix, 3 modificados, 2 não rastreados → um bloco `Git:` só, "guardar uma vez … devolver no fim"
+- `test_arvore_limpa_na_principal_nada_a_guardar` / `test_arvore_limpa_em_outra_branch_ainda_assim_volta_pra_ela_no_fim` / `test_principal_master_e_remoto_sao_reconhecidos` / `test_sem_principal_conhecida_o_relatorio_pede_ao_owner` / `test_fora_de_git_o_relatorio_diz_isso` — principal `main`/`master`, remoto (`pull --ff-only`), principal desconhecida ("não sei"), fora de git
+- `test_cli_checar_imprime_o_status_e_nao_grava_nada` / `test_o_kit_esta_no_proprio_desenho` — a CLI só lê (hash dos arquivos igual antes e depois, branch intacta); o kit só precisa das categorias
+
 `tests/test_converter_to_dolist.py` — o upgrade leva o to-dolist e o fora de escopo pro desenho do kit (0.48.0):
 - `test_checar_*` (×3) — aponta o formato antigo; projeto e kit no desenho não apontam nada
 - `test_liberar_*` / `test_recado_numerado_*` / `test_fora_de_escopo_mantem_o_texto_inteiro` / `test_negrito_no_meio_*` / `test_data_*` / `test_sem_data_*` / `test_ordem_*` / `test_linha_ja_no_formato_fica_igual`
@@ -172,4 +179,4 @@
 - `test_volta_so_uma_vez_por_sessao` / `test_relato_que_so_menciona_build_passa` / `test_projeto_sem_memoria_passa` / `test_escape_do_owner` — uma vez por sessão; relato e projeto sem `memory/` passam; `MSS_MEMORIA_ACAO_OFF`
 - `test_resposta_que_contraria_o_relato_volta` (×3) / `test_frase_sobre_outra_coisa_passa` — "não se perdeu/não errou" com sujeito volta com a memória; "para não se perder" passa
 
-**Último 100% verde:** 2026-10-29 · branch feature/memoria-na-hora-da-proposta (memória na hora da proposta) · 1031 passed
+**Último 100% verde:** 2026-11-09 · branch feature/upgrade-em-uma-rodada (upgrade em uma rodada só) · commit 2d5fe7c · 1250 passed
