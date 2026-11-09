@@ -6,8 +6,8 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
+- [upgrade em uma rodada só](specs/2026-07-16-upgrade-design.md) — o `/mss-spec:upgrade` trata migração do `CLAUDE.md`, to-dolist e categorias numa conversa, uma branch, um commit por passe, stash único do pendente — aberta
 
 ## A fazer (ordem)
-5. upgrade — sincroniza projeto existente com a evolução dos templates — pausada: sem commit, retomar em janela própria
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
 7. cobertura C#/.NET na análise — `Program`/`Startup`, controllers, `.csproj`, rotas (o `bpmn` e o `mapa-neural` seguem só Python) — pausada: nasce depois do dogfood do item 6
