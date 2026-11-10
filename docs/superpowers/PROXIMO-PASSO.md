@@ -2,7 +2,7 @@
 
 ## 2026-11-06 — movido do MAPA.md
 
-3. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy, quando abrir cada um** — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega. `doctor` só mede; `upgrade` é quem traz.
+3. ⬜ **`/mss-spec:upgrade` no Whats e no Energy, quando abrir cada um** (**Transportes: ✅ feito em 2026-11-09, na pasta `Transportes\V2`** — a raiz `Transportes` não é repositório git, a janela abre na V2; o `docs/AMBIENTES.md` de lá nasceu com 34 "falta preencher", que só o owner preenche) — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega. `doctor` só mede; `upgrade` é quem traz.
 
 ## 2026-11-06 — movido do MAPA.md
 
