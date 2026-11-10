@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-10
+
+- [memoria-em-tabela-e-ci] análise do que o MSIG_Agentes faz de melhor em memória, agentes e revisão (nada de lá é usado) e teste de mesa nos 4 projetos (3.046 trechos, 944 casos): tabela SQLite local única como CÓPIA pra busca, com tudo o que é memória + contexto da conversa, acha 41% entre os 10 contra 12% de hoje; várias tabelas e reordenar por palavras não ganham; buscar 30 e escolher 10 melhora (60 casos); 172 falhas mostram que a dor é não consultar na hora de agir e concluir de 1 caso; escopo em 2 passos (memória → conferência antes de entregar), itens 8 a 15 do INDEX → sessions/2026-11-10-memoria-em-tabela-e-ci.md
+
 ## 2026-11-09
 
 - [upgrade-em-uma-rodada] 0.54.0: o `/mss-spec:upgrade` do Transportes V2 virou 3 conversas paradas na mesma pergunta sobre trabalho pendente em outra branch; agora os 3 passes rodam numa conversa, uma branch `chore/upgrade-kit`, um commit por passe, stash único do pendente do owner (nunca commitar), `--ff-only` de volta pra branch dele e conferência colada; pivô: ordem e situação do git viram script só-leitura (`templates/upgrade_plano.py`, 12 testes) porque prosa não se testa; rejeitado: script que faz o git, só prosa; F-053 (comando colado não visto pelo `kit_primeiro.py`) → sessions/2026-11-09-upgrade-em-uma-rodada.md

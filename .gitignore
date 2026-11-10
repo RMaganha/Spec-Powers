@@ -50,6 +50,11 @@ Thumbs.db
 /docs/bpmn.html
 /docs/bpmn.md
 /docs/bpmn/
+# Teste de mesa da memoria em tabela (2026-11-10) - os roteiros sao versionados; os DADOS que eles geram
+# (pedidos reais do owner em outros projetos, tabela de teste, lotes) NUNCA vao pro git.
+/docs/analise/2026-11-10-teste-de-mesa/*.json
+/docs/analise/2026-11-10-teste-de-mesa/*.sqlite3
+/docs/analise/2026-11-10-teste-de-mesa/lote*.md
 # Inventario do banco vivo (/mss-spec:inventario-banco) - o RETRATO docs/banco.md e derivado e fica
 # fora do git, ANCORADO em /docs/ (solto, 'banco.md' ignoraria o commands/banco.md). Os corpos
 # docs/banco/*.sql sao VERSIONADOS de proposito: unica copia da regra de negocio fora do servidor.

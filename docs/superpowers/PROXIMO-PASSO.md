@@ -1,5 +1,9 @@
 # Próximo passo — detalhe
 
+## 2026-11-10 — movido do MAPA.md
+
+7. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — escopo, régua de 944 casos e textos prontos em `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`; ordem nos itens 8 a 15 do INDEX. Faltam do owner: o sim pra "consultar pela ação" e a decisão GitLab × GitHub do CI do kit.
+
 ## 2026-11-06 — movido do MAPA.md
 
 3. ⬜ **`/mss-spec:upgrade` no Whats e no Energy, quando abrir cada um** (**Transportes: ✅ feito em 2026-11-09, na pasta `Transportes\V2`** — a raiz `Transportes` não é repositório git, a janela abre na V2; o `docs/AMBIENTES.md` de lá nasceu com 34 "falta preencher", que só o owner preenche) — nasce o `docs/AMBIENTES.md`; com a 0.53.0, escrever a linha **Hosts de produção (cerca)** na seção Produção (a cerca `banco_producao.py` passa a ser exata) e a regra `envio-externo.md` chega. `doctor` só mede; `upgrade` é quem traz.
