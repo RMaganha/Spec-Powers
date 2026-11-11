@@ -2,6 +2,7 @@
 name: feedback_nao_adivinhar_dono_do_dado
 description: Hook/script que precisa atribuir um dado a um dono (chat, sessão, usuário) que o dado não registra NÃO adivinha — fica com o que dá pra afirmar e declara o custo; a "foto do INDEX" errou nas duas direções
 gatilho: quando um hook ou script precisar atribuir um dado a um dono (chat, sessão, usuário) que o próprio dado não registra
+sem_gatilho_de_acao: depende do desenho do código — não aparece em comando nem em frase
 metadata:
   type: feedback
 ---

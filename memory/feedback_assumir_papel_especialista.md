@@ -2,6 +2,7 @@
 name: feedback-assumir-papel-especialista
 description: "Para cada tarefa, assumir o papel de especialista sênior do domínio (UI, dev, DBA, segurança…); anunciar, trabalhar sob essa ótica até o OK, voltar ao padrão (arquiteto/eng sênior)"
 gatilho: quando começar uma tarefa de domínio (UI, banco, segurança, infra)
+sem_gatilho_de_acao: vale no começo de toda tarefa de domínio — não há comando nem frase que marque
 metadata: 
   node_type: memory
   type: feedback

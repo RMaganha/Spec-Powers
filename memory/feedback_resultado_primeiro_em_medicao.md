@@ -2,6 +2,7 @@
 name: feedback-resultado-primeiro-em-medicao
 description: Medição, teste ou comparação entregue ao owner começa pelo resultado em uma linha (melhora ou não melhora; quanto), em português simples — a tabela de números vem depois
 gatilho: quando entregar ao owner o resultado de um teste, medição ou comparação (tabela de números, antes × depois, gabarito)
+sem_gatilho_de_acao: o que marca é a ordem do texto (resultado na 1ª linha), que um regex não mede
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback_comando_pro_owner_passo_a_passo
 description: Comando que o OWNER vai rodar (git sempre; e qualquer outro) sai em passo numerado — título em negrito dizendo o que faz, o comando sozinho num bloco bash logo abaixo, e a linha do que conferir na saída; um comando por bloco
 gatilho: quando for passar ao owner um comando git (ou qualquer comando) pra ele rodar no terminal
+gatilho_resposta: (?im)^```(?:bash|sh|powershell|ps1)?[ \t]*\n(?:(?!```).*\n)*?git\s.*\n(?:(?!```).*\n)*?git\s|\b(?:rode|execute|digite)\b[^\n]{0,60}\bgit\s+(?:push|merge|pull|switch|checkout|rebase|stash|commit|add)\b
 metadata:
   type: feedback
 ---

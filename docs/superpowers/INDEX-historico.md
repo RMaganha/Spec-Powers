@@ -5,6 +5,10 @@
 
 ## 2026-11-11 — fechadas
 
+- [consultar a memória pela ação antes de agir](../specs/memoria-em-tabela.md) — toda anotação que é regra sobre o que o assistente faz ganha o gatilho de ação, cobrado na captura (decisão 24; 0.57.0) — fechada
+
+## 2026-11-11 — fechadas
+
 - [memória em tabela, parte 2](../specs/memoria-em-tabela.md) — a busca usa a tabela e a tabela se atualiza sozinha, sem comando pra lembrar (0.56.0) — fechada
 
 ## 2026-11-11 — fechadas

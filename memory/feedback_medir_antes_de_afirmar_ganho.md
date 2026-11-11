@@ -2,6 +2,7 @@
 name: feedback-medir-antes-de-afirmar-ganho
 description: Proposta de melhoria de custo/desempenho/qualidade começa pela MEDIÇÃO do estado atual — número primeiro, peça depois
 gatilho: quando propor melhoria de custo, desempenho ou qualidade
+gatilho_resposta: (?i)\b(?:acha|funciona|fica|sai|responde)\s+(?:bem\s+|muito\s+)?(?:melhor|mais r[áa]pid[oa]|mais barat[oa])\b|\b(?:ganho|economia|redu[çc][ãa]o)\s+de\s+(?:uns\s+|cerca de\s+|~\s?)?\d
 metadata:
   node_type: memory
   type: feedback

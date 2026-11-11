@@ -2,6 +2,7 @@
 name: feedback-um-comando-com-o-porque
 description: Ao indicar ao owner um comando do kit, diga UM só e, em 1 linha, se ele diagnostica (doctor) ou conserta (upgrade) — e confira se a mensagem dos hooks diz a mesma coisa
 gatilho: quando indicar ao owner qual comando do kit rodar
+gatilho_resposta: (?i)\b(?:rode|rodar|digite|execute)\b[^.\n]{0,40}/mss-spec:(?:doctor|upgrade)\b
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback_publicacao_e_ato_do_owner
 description: Push em dev/homologação/produção e deploy (docker push, az, gh pr merge) é ato do OWNER — o assistente roda /mss-spec:release e PEDE; merge/rebase/push de feature rodam com a aprovação do owner; e feature nova só quando não há feature aberta (um item por janela é trava, não alerta)
 gatilho: quando for publicar/integrar/fazer deploy (git push, merge, rebase, docker/az) ou quando surgir um 2º assunto na janela de uma feature
+sem_gatilho_de_acao: já tem cerca própria — `hooks/git_publicacao.py` nega ou pede aprovação
 metadata:
   type: feedback
 ---

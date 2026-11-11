@@ -2,6 +2,7 @@
 name: feedback-pergunta-so-no-texto
 description: No app do Claude Code a pergunta ao owner vai só no texto da resposta — nunca repetida na caixa de "próximo passo" do fim da rodada (com botões), que o confunde
 gatilho: quando fechar uma rodada com pergunta ou decisão pendente para o owner no app do Claude Code (caixa de próximo passo, botões de resposta)
+sem_gatilho_de_acao: a ação é preencher a caixa do fim da rodada, que não é comando de shell nem texto da resposta
 metadata:
   type: feedback
 ---

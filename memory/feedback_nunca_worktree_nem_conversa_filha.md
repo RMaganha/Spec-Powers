@@ -2,6 +2,7 @@
 name: feedback_nunca_worktree_nem_conversa_filha
 description: Nunca trabalhar em worktree e nunca abrir uma conversa a partir de outra — tudo na pasta principal, numa branch saída da main; conversa nova o owner abre pelo + e cola o texto pronto que você entrega
 gatilho: quando pensar em worktree (git worktree, EnterWorktree, subagente isolado) ou em abrir/passar trabalho pra outra conversa
+sem_gatilho_de_acao: já tem cerca própria — `hooks/sem_worktree.py` nega
 metadata:
   type: feedback
 ---

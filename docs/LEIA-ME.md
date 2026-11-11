@@ -136,6 +136,9 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   vez** pra corrigir ou dizer "não sei". Sem LLM, sem custo quando está tudo certo. Escape `MSS_CITACOES_OFF=1`.
   Também volta a resposta com rotas alternativas que ninguém pediu, e a que casa o `gatilho_resposta:` de uma memória;
   o comando que casa o `gatilho_comando:` de uma memória é negado uma vez por sessão (`MSS_MEMORIA_ACAO_OFF=1`).
+  Desde a 0.57.0 toda memória que é regra sobre o que o assistente faz (`type: feedback`) declara um desses dois
+  gatilhos — ou `sem_gatilho_de_acao: <motivo>` —, e a captura cobra (`memoria_indice.py verificar`; as antigas saem
+  em `memoria_indice.py fila`, pro owner aprovar de uma vez).
 - **Teto ao gravar** — o hook `hooks/teto_ao_gravar.py` (ligado, **não bloqueia**): gravou `MAPA.md`/`INDEX.md` e passou
   do teto → o excesso sai na hora pra arquivo próprio com ponteiro (`BACKLOG.md`, `FORA-DE-ESCOPO.md` do formato antigo, `EM-ANDAMENTO.md`,
   `CONEXOES.md`…), movendo e nunca apagando. E a cerca de publicação passa a **negar** gravar em OUTRO repositório

@@ -84,8 +84,10 @@ def marcar(sessao, nomes):
 
 
 def casar(texto, qual, raiz, sessao):
-    """Memórias de `qual` cujo gatilho casa `texto` e que ainda não foram mostradas nesta sessão."""
-    if not isinstance(texto, str) or not texto:
+    """Memórias de `qual` cujo gatilho casa `texto` e que ainda não foram mostradas nesta sessão.
+    Sem número de sessão não age: "uma vez por sessão" não se garante — o estado cairia num arquivo único,
+    dividido por toda conversa (e por toda rodada de teste)."""
+    if not isinstance(texto, str) or not texto or not sessao:
         return []
     feitas = ja_mostradas(sessao)
     return [m for m in memorias(raiz, qual) if m[0] not in feitas and m[3].search(texto)]

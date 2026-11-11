@@ -2,6 +2,7 @@
 name: feedback-nao-inventar-fatos-concretos
 description: Nunca chutar caminhos/hosts/nomes de recurso concretos — usar só o que está no repo/projeto.md ou o que o owner confirmar
 gatilho: quando citar caminho, host, nome de container, variável ou recurso
+sem_gatilho_de_acao: já tem cerca própria — `hooks/confere_citacoes.py` devolve a resposta com citação que não existe
 metadata: 
   node_type: memory
   type: feedback

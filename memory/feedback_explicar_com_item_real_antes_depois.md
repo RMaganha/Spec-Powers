@@ -2,6 +2,7 @@
 name: feedback_explicar_com_item_real_antes_depois
 description: Ao explicar ao owner um desenho que muda arquivos dele, use um item real do projeto dele mostrado antes e depois — não tabela de bytes nem nome de mecanismo — e abra com o que já foi combinado
 gatilho: quando explicar ao owner um desenho que muda arquivos dele
+sem_gatilho_de_acao: depende de o owner não ter entendido a explicação — não há frase da resposta que marque
 metadata:
   type: feedback
 ---

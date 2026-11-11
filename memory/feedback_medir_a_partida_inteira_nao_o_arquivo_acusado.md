@@ -2,6 +2,7 @@
 name: feedback_medir_a_partida_inteira_nao_o_arquivo_acusado
 description: quando um hook/teto acusa UM arquivo, meça o conjunto inteiro contra os tetos antes de consertar o acusado — o que grita raramente é o que mais custa
 gatilho: quando uma ferramenta, hook ou teto acusar UM arquivo (tamanho, lint, limite) e a reação natural for consertar só ele
+sem_gatilho_de_acao: dispara por aviso de hook, teto ou lint, não por ação do assistente
 metadata:
   type: feedback
 ---

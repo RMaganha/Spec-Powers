@@ -2,6 +2,7 @@
 name: feedback-estilo-resposta-direto
 description: Estilo de resposta direto (sem enrolação) virou regra no CLAUDE.md global — 5 regras extraídas da skill caveman, que foi avaliada e NÃO instalada
 gatilho: quando escrever qualquer resposta ao owner
+sem_gatilho_de_acao: vale pra toda resposta — o gatilho não separaria nada
 metadata:
   node_type: memory
   type: feedback

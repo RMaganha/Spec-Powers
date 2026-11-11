@@ -2,6 +2,7 @@
 name: feedback-nivel-cerimonia-velocidade
 description: Ritual completo do superpowers (spec+plano+subagentes) é lento demais pro dia a dia; padrão = médio + effortLevel medium; alto só p/ feature grande
 gatilho: quando escolher o ritual da tarefa (spec, plano, subagentes)
+sem_gatilho_de_acao: vale ao escolher o ritual da tarefa — não há comando nem frase que marque
 metadata: 
   node_type: memory
   type: feedback

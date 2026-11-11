@@ -49,6 +49,24 @@ seção (specs, planos, MAPA/INDEX e demais). Cada linha guarda projeto, tipo, a
 - **O aviso automático de até 3 anotações por mensagem** (`hooks/recall_memoria.py`) segue no motor antigo: só
   troca depois de medido e com a decisão do owner (decisão 21).
 
+**Parte 3 (consultar a memória pela ação = gatilho de ação em toda anotação de regra) — 0.57.0.**
+
+- **Não há busca nova.** Antes de um comando ou de fechar uma resposta, o que traz a regra é o gatilho de ação
+  que a própria anotação declara no frontmatter: `gatilho_comando:` (o comando de Bash/PowerShell que casa é
+  negado uma vez por sessão, com a anotação no motivo) ou `gatilho_resposta:` (a resposta que casa volta uma
+  vez). Quem lê: `hooks/_memoria_de_acao.py`, pelos hooks `git_publicacao.py` e `confere_citacoes.py` — nada
+  disso mudou. Buscar por palavras a cada comando continua **fora** (decisão de 2026-09-25, mantida).
+- **Toda anotação que é regra sobre o que o assistente faz** (`type: feedback`) **declara** um dos dois gatilhos
+  — ou `sem_gatilho_de_acao: <motivo>`, quando a ação não tem sinal que dê pra ver num comando nem numa resposta.
+- **A captura cobra:** o `memoria_indice.py verificar` acusa pelo nome a anotação **nova** (ainda sem commit) de
+  regra que não cumpre, e o regex que não compila. As **antigas** não viram problema: o `verificar` só avisa
+  quantas são, o `memoria_indice.py fila` lista, e o owner aprova de uma vez (nunca o assistente sozinho).
+- **No kit:** 26 das 75 anotações têm gatilho de ação (5 de antes + as 21 aprovadas em 2026-11-11: 9 por
+  comando, 12 pela resposta) e 28 de regra têm o motivo escrito. **A memória do kit vale em todo projeto**
+  (`hooks/_memoria_de_acao.py` lê a do projeto e a do kit): esses gatilhos disparam nos outros projetos também.
+- **As 13 anotações em que a ação é gravar arquivo** seguem como estavam (viram regra por tipo de arquivo em
+  `.claude/rules/` quando merecem); não há gatilho por arquivo gravado.
+
 Fora de escopo: o aviso de "tabela ausente" no `/mss-spec:doctor` (a abertura já monta), buscar cruzando
 projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 
@@ -100,12 +118,23 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 **Os outros itens de memória (fila, depois da parte 2)**
 23. **Comando guardado inteiro:** comando ou SQL que o owner vai rodar de novo é gravado completo na anotação;
     senha continua escondida. (Origem: o UPDATE cortado no Whats.)
-24. **Consultar pela ação antes de agir:** antes de fazer algo, o assistente busca pelo que vai fazer.
-    **PENDENTE — o owner ainda não disse sim nem não.** Só se prova em uso real.
+24. **Consultar pela ação antes de agir — fechada pelo owner em 2026-11-11: amplia-se o gatilho de ação que já
+    existe; não nasce busca nova.**
+    - **Mantida a decisão de 2026-09-25** (`docs/decisoes.md`): **não** buscar por palavras a cada comando. Medido
+      de novo em 2026-11-11, só neste projeto (713 comandos de 7 tipos de ação, regra certa escolhida pelo
+      assistente): a regra certa fica entre as 3 primeiras em 46% a 51%, e apareceriam 30 das 75 anotações numa
+      conversa típica.
+    - **Toda anotação que é regra sobre o que o assistente FAZ ganha o gatilho de ação** (`gatilho_comando:` ou
+      `gatilho_resposta:` no frontmatter — o comando que casa é negado uma vez por sessão e a resposta que casa
+      volta uma vez, com a anotação no motivo).
+    - **Na captura** (`/mss-spec:memory capturar`) **o gatilho de ação passa a ser cobrado** pra esse tipo de
+      anotação.
+    - **Anotações antigas:** o assistente traz a lista das que deveriam ter e não têm; o owner aprova de uma vez.
+    - Só se prova em uso real.
 25. **Ajudante pesquisador:** lê muito e devolve só o resumo; usado só nesse papel, escrito do zero no kit.
 
 **Ordem que o owner fixou:** tabela (feita) → busca (parte 2) → comando guardado inteiro → consultar pela ação
-(se ele aprovar) → ajudante pesquisador. **Depois** vem a conferência antes de entregar
+(fechada em 2026-11-11 como ampliação do gatilho de ação) → ajudante pesquisador. **Depois** vem a conferência antes de entregar
 (`docs/specs/conferencia-antes-de-entregar.md`).
 
 **Em aberto, dito ao owner:** mais da metade dos pedidos reais ainda não acha o arquivo certo; cruzar projetos
@@ -151,6 +180,18 @@ não foi medido; busca por significado não foi testada; dono e data só foram c
 19. **Régua (decisão 22):** nos pedidos reais regenerados, arquivo certo entre os 10 em pelo menos 41%;
     situação → regra não abaixo de 78% e descrição → anotação não abaixo de 88% (os números do dossiê, 4.2).
 
+**Parte 3**
+
+20. DADO uma anotação nova (sem commit) do tipo `feedback` sem `gatilho_comando:`, `gatilho_resposta:` nem
+    `sem_gatilho_de_acao:`, QUANDO rodo `verificar`, ENTÃO ela é acusada pelo nome; com qualquer um dos três, passa.
+21. DADO anotações antigas (já commitadas) de regra sem a linha, QUANDO rodo `verificar`, ENTÃO não viram
+    problema — sai um aviso com a contagem, e o `fila` lista os nomes pro owner aprovar de uma vez.
+22. DADO um gatilho de ação com regex que não compila, QUANDO rodo `verificar`, ENTÃO ele é acusado.
+23. DADO as anotações do kit, QUANDO rodo a suíte, ENTÃO toda regra tem gatilho de ação ou o motivo, e cada um
+    dos 21 gatilhos aprovados casa o comando ou a frase real e não casa 2 ou 3 vizinhos.
+24. DADO o texto da captura e o molde da memória, QUANDO leio, ENTÃO o gatilho de ação é cobrado (não opcional)
+    e a anotação antiga não se corrige sem a aprovação do owner.
+
 ## Conferido no real (2026-11-11)
 - Tabela temporária, só leitura, `--sem-git`: kit 826 linhas · Whats 1.521 · Transportes V2 509 · MSS-UTILS 144 =
   3.000 (teste de mesa: 3.046). Montar: 1,5 s no Whats, menos de 1 s nos outros; remontar sem mudança não refaz nada.
@@ -184,7 +225,37 @@ os N primeiros:
   real desta conversa (o dossiê estimava 4,7 KB); o ganho de o assistente escolher entre as 30 continua vindo
   dos 60 casos do dossiê — não foi medido de novo; a busca só por termo não tem gabarito.
 
+## Conferido no real — parte 3 (2026-11-11)
+Tudo em leitura, com roteiros descartáveis fora do repositório (os dados são conversas reais do owner).
+
+- **Por que não buscar a cada comando** (só este projeto; 713 comandos de 7 tipos de ação, com a regra certa
+  escolhida pelo assistente — viés dito): a regra certa fica entre as 3 em 46% (texto do comando), 47%
+  (descrição) e 51% (os dois); buscando a cada comando, apareceriam 30 das 75 anotações por conversa (mediana).
+- **Os 21 gatilhos, antes de gravar** (270 conversas de todos os projetos, 19.672 comandos, 5.758 respostas
+  finais): por comando — criar branch 122 conversas · trocar texto por script solto 81 · `docker build` 56 ·
+  varrer o disco 53 · `git add` dos manifestos 33 (só no kit) · `git stash` 22 · os outros abaixo de 10. Pela
+  resposta — "N verdes" 120 conversas · terminar com "quer que eu…?" 112 · pedir evidência 40 · texto pra colar
+  28 · mandar rodar `doctor`/`upgrade` 22 · git pro owner fora do formato 17 · muitas perguntas 15 · os outros
+  abaixo de 12.
+- **Teto de paradas:** cada gatilho age uma vez por sessão — no máximo, em média, 1,4 comando negado e 1,4
+  resposta devolvida por conversa.
+- **Os quatro de sinal fraco** (ganho afirmado, muitas perguntas, como a ferramenta funciona, pedir evidência)
+  ficaram abaixo dos 3,3% de respostas devolvidas que a decisão de 2026-10-29 já aceita: 0,1% · 0,3% · 0,2% ·
+  2,2%.
+- **Limites:** dois gatilhos passam de 3,3% das respostas contando toda ocorrência ("N verdes" 6,3%, "quer que
+  eu…?" 5,1%) — como agem uma vez por sessão, devolvem em 2,1% e 1,9%; as amostras lidas mostram acerto
+  desigual (pedir evidência pega passo de roteiro; "acha melhor" pega frase comum); nenhum gatilho foi visto
+  disparar em uso real ainda.
+- **Como se mede depois** (o que o owner pediu): (a) cobertura — 26 de 75 no kit; (b) uso — quantas vezes cada
+  gatilho disparou, por anotação, no registro local dos hooks (`python hooks/_registro.py resumo`); (c) a cada
+  falha nova do tipo "a regra existia e não foi usada" em `docs/EVALS.md`: a anotação tinha gatilho? ele
+  disparou antes? Ponto de partida: 35 de 172. Leituras em 2026-11-25 e 2026-12-11 (no "Próximo passo" do MAPA).
+
 ## Escolhas do assistente (o owner pode trocar)
+- Parte 3 (lista mostrada ao owner em 2026-11-11): quem é cobrado é a anotação `type: feedback`; o motivo de
+  não ter vai em `sem_gatilho_de_acao:`; a cobrança mora no `verificar`, sem hook novo; nova = sem commit no git
+  (sem git, ninguém é nova); as 13 em que a ação é gravar arquivo ficam como estão (o owner não respondeu a
+  pergunta e mandou seguir — vale a recomendação).
 - Um projeto não lê o outro; o nome do projeto vem do título do `CLAUDE.md` (cai pro nome da pasta).
 - Dono e data pelo `git log`; conferido só no kit (70 de 70 anotações).
 - Modo novo `tabela` no `/mss-spec:memory`; script novo em `templates/`.
@@ -204,3 +275,11 @@ os N primeiros:
 - 2026-11-11 — parte 2: a tabela se atualiza sozinha (abertura, gravação e antes da busca) e as portas e o
   `/mss-spec:memory buscar` procuram nela primeiro; o modo `tabela` saiu da vista do owner (motivo: o owner
   recusou comando pra lembrar — caso F-057; decisões 13 a 22).
+- 2026-11-11 — decisão 24 fechada pelo owner: consultar pela ação vira **ampliar o gatilho de ação** (toda
+  anotação que é regra sobre o que o assistente faz ganha `gatilho_comando:` ou `gatilho_resposta:`, cobrado na
+  captura; lista das antigas pra ele aprovar de uma vez), em vez de um hook novo que buscasse na tabela a cada
+  momento de ação (motivo: o owner manteve a decisão de 2026-09-25 — não buscar por palavras a cada comando — e a
+  medição do dia confirmou o ruído).
+- 2026-11-11 — parte 3 entregue (0.57.0): a captura cobra o gatilho de ação da anotação de regra e 21 anotações
+  do kit ganharam o gatilho (motivo: o owner aprovou a lista de uma vez; cada regex foi medido em 270 conversas
+  antes de gravar).

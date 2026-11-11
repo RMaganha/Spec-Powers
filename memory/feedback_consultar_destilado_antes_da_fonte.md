@@ -2,6 +2,7 @@
 name: feedback_consultar_destilado_antes_da_fonte
 description: consultar mapa/índice/memória (o destilado) ANTES de reabrir arquivos-fonte; RE-ler tudo a cada pergunta é a amnésia que o mapa de contexto existe pra matar
 gatilho: quando precisar de contexto do projeto — na partida ou ao reabrir um assunto
+sem_gatilho_de_acao: vale na partida e ao reabrir assunto — a ação é ler arquivo, que o gatilho de ação não enxerga
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback_visual_pro_humano_dados_pro_assistente
 description: visualização (grafo/HTML/dashboard) é pro humano; o ganho de performance/entendimento do assistente vem de dados agregados em TEXTO consultável
 gatilho: quando propor visualização (grafo, dashboard, HTML) como ganho pro assistente
+sem_gatilho_de_acao: depende do argumento da proposta — não há frase que separe
 metadata:
   type: feedback
 ---

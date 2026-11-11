@@ -20,6 +20,7 @@ Uso:  python memoria_indice.py dividir  [--proj DIR] [--aplicar]
 """
 import argparse
 import re
+import subprocess
 import sys
 import unicodedata
 from dataclasses import dataclass, field
@@ -303,7 +304,46 @@ def _sem_prefixo(arquivo: str) -> str:
     return arquivo[3:] if arquivo.startswith("../") else arquivo
 
 
-def verificar(memdir: Path, aplicar: bool = False) -> list:
+# ------------------------------------------------------------------ gatilho de ação (decisão 24 do owner, 2026-11-11)
+# "Consultar a memória pela ação" ficou assim: não se busca por palavras a cada comando (decisão de 2026-09-25,
+# mantida); a anotação que é REGRA sobre o que o assistente faz (`type: feedback`) declara o gatilho de ação —
+# `gatilho_comando:` ou `gatilho_resposta:`, lidos por `hooks/_memoria_de_acao.py` — ou diz por que não tem
+# (`sem_gatilho_de_acao: <motivo>`). A captura cobra a NOVA (ainda sem commit) pelo nome; as antigas vão pra `fila`,
+# que o owner aprova de uma vez — nunca viram N problemas (o assistente sairia corrigindo sozinho).
+CAMPOS_DE_ACAO = ("gatilho_comando", "gatilho_resposta")
+CAMPO_SEM_ACAO = "sem_gatilho_de_acao"
+TIPO_DE_REGRA = "feedback"
+
+
+def _sem_commit(memdir: Path) -> set:
+    """Nomes dos arquivos de `memory/` que o git ainda não tem (novos nesta captura). Em bytes e com `-z`
+    (`text=True` quebra a chamada ao git no Windows). Sem git, fora de repositório ou com defeito → vazio:
+    sem saber o que é novo, nada é cobrado pelo nome."""
+    try:
+        r = subprocess.run(["git", "-C", str(memdir), "status", "--porcelain", "-z", "--untracked-files=all", "--", "."],
+                           capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if r.returncode != 0:
+        return set()
+    return {item[3:].rsplit("/", 1)[-1] for item in r.stdout.decode("utf-8", "ignore").split("\0")
+            if len(item) > 3 and (item[:2] == "??" or item[0] == "A")}
+
+
+def sem_gatilho_de_acao(memdir: Path) -> list:
+    """Anotações de regra (`type: feedback`, não obsoletas) sem gatilho de ação e sem o motivo de não ter."""
+    out = []
+    for md in _memorias(Path(memdir)):
+        fm = frontmatter(md)
+        if fm.get("obsoleta") or fm.get("type") != TIPO_DE_REGRA:
+            continue
+        if not any(fm.get(c) for c in CAMPOS_DE_ACAO) and not fm.get(CAMPO_SEM_ACAO):
+            out.append(md.name)
+    return out
+
+
+def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
+    """`sem_commit`: nomes das anotações novas (default: o que o git ainda não tem commitado em `memory/`)."""
     memdir = Path(memdir)
     probs = []
     idx = memdir / "MEMORY.md"
@@ -345,6 +385,20 @@ def verificar(memdir: Path, aplicar: bool = False) -> list:
                 probs.append(f"procedimento sem `gatilho:` em {md.name} — sem gatilho ele nunca chega ao assistente")
             for erro in validar_procedimento(corpo(md)):
                 probs.append(f"procedimento fora do formato em {md.name}: {erro}")
+        for campo in CAMPOS_DE_ACAO:
+            if not fm.get("obsoleta") and fm.get(campo):
+                try:
+                    re.compile(fm[campo])
+                except re.error as erro:
+                    probs.append(f"regex quebrado em `{campo}:` de {md.name} ({erro}) — o hook ignora a anotação "
+                                 f"calado e ela nunca dispara; corrija o regex")
+    novas = _sem_commit(memdir) if sem_commit is None else set(sem_commit)
+    for nome in sem_gatilho_de_acao(memdir):
+        if nome in novas:
+            probs.append(f"regra de ação sem gatilho de ação em {nome}: anotação `type: {TIPO_DE_REGRA}` declara "
+                         f"`gatilho_comando:` ou `gatilho_resposta:` (regex testado contra o caso real e contra 2-3 "
+                         f"que não devem casar) — ou `{CAMPO_SEM_ACAO}: <motivo>` quando a ação não tem sinal que "
+                         f"dê pra ver num comando ou numa resposta")
     for a, b, motivo in duplicatas(memdir):
         probs.append(f"possível duplicata: {a} × {b} — {motivo}; atualize uma e marque a outra `obsoleta:`")
     contagem = {}
@@ -484,7 +538,8 @@ def fila(memdir: Path) -> dict:
                                      for s, _, it in linhas if s == sub])
             if not frases_de_gatilho(fam, memdir):
                 fams_sem_frase.append(sub.stem)
-    return {"sem_gatilho": sem, "familias_sem_frase": fams_sem_frase}
+    return {"sem_gatilho": sem, "familias_sem_frase": fams_sem_frase,
+            "sem_gatilho_de_acao": sem_gatilho_de_acao(memdir)}
 
 
 # ------------------------------------------------------------------ motor de casamento (hook + buscar)
@@ -709,6 +764,12 @@ def main(argv=None) -> int:
         return 0
     if a.modo == "verificar":
         probs = verificar(memdir, aplicar=a.aplicar)
+        novas = _sem_commit(memdir)
+        antigas = [n for n in sem_gatilho_de_acao(memdir) if n not in novas] if memdir.is_dir() else []
+        if antigas:
+            print(f"aviso: {len(antigas)} anotação(ões) antiga(s) de regra sem gatilho de ação — NÃO corrija por "
+                  f"conta própria: `memoria_indice.py fila` lista, e o owner aprova de uma vez quais ganham "
+                  f"`gatilho_comando:`/`gatilho_resposta:` e quais ficam com `{CAMPO_SEM_ACAO}: <motivo>`")
         if probs:
             print("problemas:\n- " + "\n- ".join(probs))
             return 1
@@ -731,6 +792,10 @@ def main(argv=None) -> int:
             print("  -", n)
         print(f"famílias sem frase de gatilho no topo ({len(f['familias_sem_frase'])}): "
               + ", ".join(f["familias_sem_frase"]))
+        print(f"anotações de regra (`type: {TIPO_DE_REGRA}`) sem gatilho de ação ({len(f['sem_gatilho_de_acao'])}) — "
+              f"lista pro owner aprovar de uma vez:")
+        for n in f["sem_gatilho_de_acao"]:
+            print("  -", n)
         return 0
     if not a.termo.strip():
         print("uso: memoria_indice.py buscar \"<termo>\" [--proj DIR] [--limite N]")

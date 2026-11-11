@@ -2,6 +2,7 @@
 name: so-dependencia-estavel
 description: Regra do owner — só dependências ESTÁVEIS em todos os componentes; nada de beta/rc/alpha/next, mesmo que a versão beta seja mais "parruda"
 gatilho: quando escolher biblioteca ou versão de dependência
+gatilho_comando: (?im)(?:^|[;&|(])\s*(?:python[\d.]*\s+-m\s+)?(?:pip[\d.]*|uv\s+pip|npm|pnpm|yarn|uv)\s+(?:install|add)\s+(?!-)[\w@.]
 metadata:
   type: feedback
 ---

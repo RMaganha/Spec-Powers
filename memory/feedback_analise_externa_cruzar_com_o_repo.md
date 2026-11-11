@@ -2,6 +2,7 @@
 name: feedback_analise_externa_cruzar_com_o_repo
 description: Análise do kit feita por outra IA (sem acesso ao repo) se avalia item a item contra decisoes.md, o "Fora de escopo" do INDEX e o código — metade já existe ou contraria decisão tomada
 gatilho: quando o owner trouxer análise, review ou sugestões sobre o kit feitas por outra IA ou por terceiro, ou um texto/plano vindo de outra conversa
+sem_gatilho_de_acao: dispara pelo pedido do owner (é ele quem traz a análise) — o `gatilho:` comum já serve
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback_visualizacao_usa_lib_consagrada
 description: Desenho/diagrama/grafo/layout — use a biblioteca consagrada VENDORIZADA (o kit já faz isso); geometria escrita à mão sai ilegível
 gatilho: quando a feature pedir desenho, diagrama, grafo ou layout visual
+sem_gatilho_de_acao: a ação é gravar arquivo de desenho, que o gatilho de comando e de resposta não enxerga
 metadata:
   type: feedback
 ---
