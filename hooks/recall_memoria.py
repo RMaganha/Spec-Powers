@@ -12,7 +12,9 @@ Contrato:
 - projeto = `CLAUDE_PROJECT_DIR` (âncora da janela), fallback `cwd` do evento;
 - **falha ABERTA**: qualquer exceção → exit 0 calado (`MSS_RECALL_DEBUG=1` mostra o traceback);
 - escape consciente, só do owner: `MSS_RECALL_OFF=1`.
-O motor de casamento é o de `templates/memoria_indice.py` (o mesmo do `/mss-spec:memory buscar`).
+O motor de casamento é o de `templates/memoria_indice.py` (a reserva do `/mss-spec:memory buscar`, que desde a
+0.56.0 busca primeiro na tabela de memória). Este aviso só troca pro motor da tabela depois de medido e com a
+decisão do owner (`docs/specs/memoria-em-tabela.md`, decisão 21).
 """
 import json
 import os

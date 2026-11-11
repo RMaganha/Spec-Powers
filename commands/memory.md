@@ -1,16 +1,18 @@
 ---
-description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário · `buscar` um termo · `tabela` monta a cópia local pra busca
-argument-hint: "resgatar | capturar | buscar <termo> | tabela (sem argumento: pergunto qual)"
+description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário · `buscar` um termo
+argument-hint: "resgatar | capturar | buscar <termo> (sem argumento: pergunto qual)"
 disable-model-invocation: true
 ---
 
 **Responda sempre em português (pt-BR).**
 
-Comando de **memória do projeto**, com quatro modos. **Sem argumento, pergunte qual** antes de agir:
-- **`tabela`** — monta ou atualiza a **tabela local de memória** (cópia pra busca; o arquivo no git segue sendo o original).
+Comando de **memória do projeto**, com três modos. **Sem argumento, pergunte qual** antes de agir:
 - **`resgatar`** — traz pro repo a memória que ficou na pasta nativa (volátil) do Claude.
 - **`capturar`** — destila **esta sessão** em decisões (inclusive as negativas) + **diário de sessão**, roteando pros lares duráveis certos.
-- **`buscar <termo>`** — aponta `arquivo:linha` onde o termo aparece em memórias, subíndices, diário, decisões e EVALS, sem abrir nada.
+- **`buscar <termo>`** — aponta `arquivo:linha` onde o termo aparece em tudo o que é memória do projeto (anotações, diários, decisões, falhas, specs, planos e documentos), sem abrir nada.
+
+A **tabela local de memória** (a cópia que a busca usa) **se atualiza sozinha** — quando a conversa abre, depois de cada
+gravação e antes de cada busca. Não há modo pra o owner chamar; o texto de uso interno está no fim deste arquivo.
 
 ---
 
@@ -70,18 +72,28 @@ Você vai **destilar esta sessão** e gravar o que é durável, pra parar de dep
 
 ## Modo: buscar
 
-Você vai **apontar onde um assunto já foi tratado** — sem abrir arquivo, sem reler conversa. É o mesmo motor
-do hook `recall_memoria.py`, sem o teto de 3 resultados.
+Você vai **apontar onde um assunto já foi tratado** — sem abrir arquivo, sem reler conversa. A busca é na
+**tabela de memória** primeiro e, se precisar, nos arquivos.
 
-1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" buscar "<termo>" --limite 10` (se a
-   variável não resolveu, ache o script no clone do kit como o `doctor` faz no check 1).
-2. Reporte os ponteiros **como vieram** (`arquivo:linha — gancho`), em ordem de score. **Não abra** os
-   arquivos, salvo pedido: o objetivo é o owner ver onde está, não pagar a leitura de tudo.
-3. Nada casou → diga isso e sugira 1 termo alternativo (sinônimo/identificador), sem inventar resultado.
+1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" buscar "<termo>"` (se a variável não
+   resolveu, ache o script no clone do kit como o `doctor` faz no check 1). Ele atualiza a tabela sozinho antes
+   de procurar e busca só o termo, só neste projeto.
+2. Reporte as linhas **como vieram**, nos dois blocos — **Anotações** e **Documentos** — (`tipo | arquivo:linha |
+   título | trecho`), na ordem em que vieram. **Não abra** os arquivos, salvo pedido: o objetivo é o owner ver
+   onde está, não pagar a leitura de tudo.
+3. **Se precisar, nos arquivos:** saiu sem achado ou com a tabela indisponível → rode o motor antigo,
+   `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_indice.py" buscar "<termo>" --limite 10`, e reporte os
+   ponteiros dele (`arquivo:linha — gancho`).
+4. Nada casou nos dois → diga isso e sugira 1 termo alternativo (sinônimo/identificador), sem inventar resultado.
 
 ---
 
-## Modo: tabela
+## Uso interno: tabela
+
+**Não é modo do owner** (ele decidiu em 2026-11-11: sem comando pra lembrar). A tabela se atualiza sozinha — hook
+`memoria_tabela_em_dia.py` na abertura da conversa e depois de cada gravação, e o `buscar` antes de procurar. Este
+texto serve ao procedimento de troca de máquina (`memory/project_remontar_a_tabela_de_memoria.md`) e a quando o
+assistente precisar conferir a tabela à mão.
 
 Você vai **montar ou atualizar a tabela local de memória** deste projeto. Ela é uma **cópia pra busca**: tudo o que
 é memória (anotações com a frase do subíndice, diários, decisões, falhas do `docs/EVALS.md`, specs, planos, MAPA,
@@ -109,4 +121,4 @@ INDEX, `to-dolist.md` e os demais `.md`/`.html` de `docs/`) numa tabela SQLite �
    `memory/project_remontar_a_tabela_de_memoria.md` do kit (um `montar` em cada projeto).
 
 O que **não** entra: `.env`, `.txt`, arquivo que o `.gitignore` do projeto ignora e trecho `<private>…</private>`.
-A busca das portas (`tarefa`, `bug`, `duvida`) **ainda não usa** a tabela — é a parte 2 (`docs/specs/memoria-em-tabela.md`).
+A busca das portas (`tarefa`, `bug`, `duvida`) e o modo `buscar` usam a tabela (`docs/specs/memoria-em-tabela.md`).

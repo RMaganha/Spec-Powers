@@ -498,7 +498,7 @@ def formatar(achados: list) -> str:
     return bloco("Anotações", anotacoes) + "\n\n" + bloco("Documentos", documentos)
 
 
-def _pedido_do_owner(reg) -> str:
+def _pedido_do_owner(reg, minimo: int = PEDIDO_MINIMO) -> str:
     """O texto que o owner escreveu num registro da conversa, ou "" (ajudante, corpo de comando ou skill,
     retorno de hook, saída de ferramenta, resposta curta). Mesmo filtro do garimpo do teste de mesa, mais dois
     cuidados: registro `isMeta` não é do owner, e o texto colado por ele É pedido dele (caso F-053)."""
@@ -513,29 +513,33 @@ def _pedido_do_owner(reg) -> str:
         t = args.group(1)
     t = re.sub(r"</?pasted_content[^>]*>", " ", t)
     t = " ".join(re.sub(r"<[^>]+>.*?</[^>]+>", " ", t, flags=re.S).split())
-    if len(t) < PEDIDO_MINIMO or t.startswith(NAO_E_PEDIDO) or "hook feedback" in t[:60] or "[mss-spec]" in t[:40]:
+    if len(t) < minimo or t.startswith(NAO_E_PEDIDO) or "hook feedback" in t[:60] or "[mss-spec]" in t[:40]:
         return ""
     return t
 
 
 def pedidos_da_conversa(arquivo, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO) -> list:
     """Os últimos `quantos` pedidos do owner nesta conversa, do mais antigo pro mais novo, cada um cortado em
-    `teto` letras. Sem arquivo, ou com linha torta, devolve o que der (lista vazia no pior caso)."""
-    pedidos = []
+    `teto` letras. O ÚLTIMO entra mesmo curto (é o pedido em curso: `/mss-spec:duvida e o deploy?`); os
+    anteriores curtos ("ok", "pode seguir") ficam fora. Sem arquivo, ou com linha torta, devolve o que der."""
+    textos = []
     try:
         with open(arquivo, encoding="utf-8", errors="replace") as f:
             for bruto in f:
                 if '"user"' not in bruto:
                     continue
                 try:
-                    pedido = _pedido_do_owner(json.loads(bruto))
+                    texto = _pedido_do_owner(json.loads(bruto), minimo=1)
                 except ValueError:
                     continue
-                if pedido:
-                    pedidos.append(pedido[:teto])
+                if texto:
+                    textos.append(texto)
     except (OSError, TypeError):
         return []
-    return pedidos[-quantos:]
+    if not textos:
+        return []
+    pedidos = [t for t in textos[:-1] if len(t) >= PEDIDO_MINIMO] + [textos[-1]]
+    return [p[:teto] for p in pedidos[-quantos:]]
 
 
 def arquivo_da_conversa(ambiente=None):

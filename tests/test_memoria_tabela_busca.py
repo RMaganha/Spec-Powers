@@ -274,6 +274,18 @@ def test_pedidos_da_conversa_fica_so_com_o_que_o_owner_escreveu(tmp_path):
     ]
 
 
+def test_o_pedido_atual_entra_mesmo_curto_e_o_curto_do_meio_fica_fora(tmp_path):
+    """`/mss-spec:duvida e o deploy?` é pedido de 11 letras: se o corte de tamanho o tirasse, a busca sairia com
+    os pedidos velhos e sem o que o owner acabou de perguntar."""
+    arq = _conversa(tmp_path, [
+        _owner("preciso emitir a segunda via do boleto do corretor"),
+        _owner("pode seguir"),
+        _owner("<command-message>mss-spec:duvida</command-message> <command-args>e o deploy?</command-args>"),
+        _owner("Base directory for this skill: C:/x/skills/qualquer # Corpo de skill", isMeta=True),
+    ])
+    assert _mod().pedidos_da_conversa(arq) == ["preciso emitir a segunda via do boleto do corretor", "e o deploy?"]
+
+
 def test_pedidos_da_conversa_sem_arquivo_ou_com_linha_torta_nao_da_erro(tmp_path):
     mod = _mod()
     assert mod.pedidos_da_conversa(tmp_path / "nao-existe.jsonl") == []
@@ -370,3 +382,41 @@ def test_cli_buscar_com_a_tabela_indisponivel_sai_com_2_e_manda_pros_arquivos(tm
         outro.close()
     saida = capsys.readouterr().out
     assert codigo == 2 and "memory/MEMORY.md" in saida and "indisponível" in saida, saida
+
+
+# ------------------------------------------------------------------ ligação ao kit (prosa dos comandos)
+
+REPO = SCRIPT.parent.parent
+CHAMADA = 'memoria_tabela.py" buscar'
+
+
+def _comando(nome):
+    return (REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8")
+
+
+def test_as_tres_portas_buscam_na_tabela_e_tem_os_arquivos_como_reserva():
+    for nome in ("tarefa", "bug", "duvida"):
+        texto = _comando(nome)
+        assert CHAMADA in texto, f"{nome}.md: o passo de memória não manda rodar a busca da tabela"
+        passo = " ".join(texto.split(CHAMADA, 1)[1][:1400].split())        # a prosa quebra linha onde quiser
+        assert "não resuma o pedido" in passo, f"{nome}.md: falta dizer que o pedido não se resume (medido: piora)"
+        assert "abra só as que servem" in passo, f"{nome}.md: falta dizer que o assistente escolhe quais abrir"
+        assert "memory/MEMORY.md" in passo and "memory/indice/" in passo, f"{nome}.md: falta a reserva nos arquivos"
+        assert "entre aspas" in passo, f"{nome}.md: falta o que fazer quando a busca não acha a conversa"
+
+
+def test_memory_buscar_usa_a_tabela_e_cai_no_indice_se_precisar():
+    modo = _comando("memory").split("## Modo: buscar", 1)[1].split("\n## ", 1)[0]
+    assert CHAMADA in modo, "memory.md: o modo buscar não usa a tabela"
+    assert modo.index(CHAMADA) < modo.index('memoria_indice.py" buscar'), "memory.md: a tabela vem primeiro"
+    assert "Anotações" in modo and "Documentos" in modo
+
+
+def test_ninguem_manda_o_owner_montar_a_tabela():
+    """Sem comando pra lembrar (decisão 13): fora do uso interno e do procedimento de troca de máquina, nenhum
+    comando do kit manda rodar o `montar`."""
+    for arq in sorted((REPO / "commands").glob("*.md")):
+        texto = arq.read_text(encoding="utf-8")
+        if arq.name == "memory.md":
+            texto = texto.split("## Uso interno: tabela", 1)[0]
+        assert 'memoria_tabela.py" montar' not in texto, f"{arq.name} manda montar a tabela à mão"

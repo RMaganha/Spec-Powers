@@ -24,7 +24,7 @@ Tarefa é o que sobra: você já sabe **o que** quer e **onde**, cabe numa conve
 mentir depois dela. Virou outra coisa no meio? Pare e troque de porta, dizendo em 1 linha.
 
 **1. Leia só o que a tarefa toca** (destilado antes da fonte): `docs/superpowers/MAPA.md` (onde estamos) →
-`memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) → a spec viva do assunto,
+**a busca na memória** (passo 1a) → a spec viva do assunto,
 se existir (`docs/specs/<assunto>.md`, "Estado atual") → **`docs/AMBIENTES.md`**, se a tarefa cita local,
 homologação, produção, servidor, variável ou App Setting (nome, valor, quem acessa o quê — nunca chute, nunca
 proponha passo num ambiente que o owner não acessa) → **`memory/DIARIO.md`** (últimos 7 dias), se o assunto já
@@ -32,6 +32,15 @@ apareceu. Nunca a pasta inteira. **O recall apontou um `PROCEDIMENTO`?** Leia o 
 qualquer passo e siga na ordem, anunciando `Seguindo [[slug]] — passo k/N`; passo de outra pessoa vira item
 explícito de pendência; no fim, liste feitos × pendentes. O caso divergiu do procedimento? Diga onde e
 pergunte — nunca improvise outro caminho calado.
+
+**1a. Busca na memória — a tabela primeiro.** Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" buscar`
+(sem texto: ele usa o pedido do owner e os 3 anteriores desta conversa, palavra por palavra — **não resuma o pedido**;
+se a variável não resolveu, ache o script no clone do kit como o `doctor` faz no check 1). Vêm até 30 linhas curtas
+em dois blocos — **Anotações** e **Documentos** —, cada uma com `arquivo:linha`: leia as linhas e **abra só as que
+servem**. A tabela se atualiza sozinha; não há nada pra montar antes. **Se precisar, nos arquivos:** o comando disse
+que não achou a conversa → rode de novo com o pedido do owner entre aspas; saiu sem achado, com a tabela indisponível,
+ou nenhuma linha serve → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) e a
+palavra procurada em `memory/` e `docs/`.
 
 **2. Plano em até 5 linhas, e o OK do owner:** o que muda · em que arquivos · como você vai **provar** (teste,
 consulta, tela, `git status`) · o que **não** muda. Fato que falta e muda o plano → **pergunte antes**, uma

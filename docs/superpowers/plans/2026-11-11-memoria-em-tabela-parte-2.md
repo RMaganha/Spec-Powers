@@ -27,7 +27,7 @@
 
 ## Tarefas
 
-- [ ] **1. Conferência rápida e `atualizar`** (critérios 12 e 18)
+- [x] **1. Conferência rápida e `atualizar`** (critérios 12 e 18)
   - `assinatura_do_disco(raiz) -> str`: nome, tamanho e data de cada `.md`/`.html` de `memory/`, `docs/` e dos
     soltos, sem ler conteúdo e sem git.
   - Esquema 2: uma linha `tipo = 'controle'` por projeto guarda essa assinatura (dentro da mesma tabela; a
@@ -38,7 +38,7 @@
   - Testes: nada mudou → não lê arquivo nem chama git (contador); arquivo mudado, novo e apagado → atualiza;
     tabela ausente → monta; linha de controle não aparece em `por_tipo`.
 
-- [ ] **2. `buscar` e `formatar`** (critérios 11, 15, 16)
+- [x] **2. `buscar` e `formatar`** (critérios 11, 15, 16)
   - `buscar(raiz, texto, contexto=(), tabela=None, limite=30, sem_tipos=()) -> list[dict]` — palavras pela
     regra do teste de mesa (palavra de mais de 6 letras casa pelo começo; pesos título 3, quando usar 4,
     resumo 2, texto 1), só as linhas da raiz, um arquivo por linha.
@@ -46,7 +46,7 @@
   - Testes: 40 arquivos → 30 linhas de 30 arquivos; dois blocos; outro projeto não aparece; pedido sem palavra
     útil → lista vazia; tabela ausente → erro tratado.
 
-- [ ] **3. Contexto da conversa e modo `buscar` da linha de comando** (critérios 11, 14, 18)
+- [x] **3. Contexto da conversa e modo `buscar` da linha de comando** (critérios 11, 14, 18)
   - `pedidos_da_conversa(arquivo, quantos=4, teto=600) -> list[str]`: os últimos pedidos do owner, do mais
     antigo pro mais novo, com o mesmo filtro do garimpo do teste de mesa.
   - `arquivo_da_conversa(ambiente) -> Path | None`: pelo `CLAUDE_CODE_SESSION_ID`, em `<pasta do app>/projects/*/`.
@@ -56,7 +56,7 @@
   - Testes: conversa com 5 pedidos → usa os 4 últimos, cortados em 600; sem arquivo de conversa → só o texto;
     códigos de saída; arquivo mudado por fora aparece na busca.
 
-- [ ] **4. Hook `memoria_tabela_em_dia.py`** (critérios 10 e 12)
+- [x] **4. Hook `memoria_tabela_em_dia.py`** (critérios 10 e 12)
   - `SessionStart`: `atualizar`; tabela montada do zero → uma linha só pro assistente; em dia → silêncio.
   - `PostToolUse` (Write/Edit/MultiEdit): age só se o arquivo gravado é `.md`/`.html` de `memory/`, `docs/`,
     `to-dolist.md` ou o arquivo de base da raiz do projeto da janela; silêncio sempre.
@@ -64,21 +64,21 @@
   - Testes: os dois eventos, o silêncio, arquivo fora do alcance, falha aberta (tabela presa), escape.
   - Por último: registrar no `hooks/hooks.json` + teste que confere o registro.
 
-- [ ] **5. Portas, `memory` e documentos** (critérios 13 e 17)
+- [x] **5. Portas, `memory` e documentos** (critérios 13 e 17)
   - `commands/tarefa.md`, `bug.md`, `duvida.md`: o passo de memória manda rodar o `buscar`, ler as linhas e
     abrir só o que serve; reserva = `MEMORY.md` → subíndice e procura nos arquivos.
   - `commands/memory.md`: `buscar` usa a tabela; `tabela` sai da descrição e do `argument-hint` (texto fica
     como uso interno).
   - Testes de prosa (um por comando) + `hooks/README.md`, `docs/LEIA-ME.md`, procedimento de troca de máquina.
 
-- [ ] **6. Régua** (critério 19)
+- [x] **6. Régua** (critério 19)
   - `regua_parte2.py`: monta uma tabela temporária com os 4 projetos (`--sem-git`, só leitura neles) e mede,
     com o `buscar` entregue, K1, K2 e K3 (1º, até 3, até 10, até 30), ao lado do jeito de hoje nos mesmos casos;
     e, por projeto, "entre os 3 primeiros" hoje × tabela (o aviso automático).
   - Rodar `mesa2.py garimpar` numa cópia na pasta temporária; colar a saída; registrar os números na spec
     ("Conferido no real") e no dossiê.
 
-- [ ] **7. Fecho**
+- [x] **7. Fecho**
   - Suíte inteira (`python -m pytest tests/ -q`), `CHANGELOG.md`, 0.56.0 nos dois manifestos, decisão em
     `docs/decisoes.md`, F-057 fechado no `docs/EVALS.md`, revisão do código, `plano-teste`, `release`, captura
     (com o OK do owner), MAPA e INDEX.

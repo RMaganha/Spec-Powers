@@ -210,3 +210,18 @@ def test_processo_com_os_padroes_monta_na_pasta_do_usuario_e_sai_com_0(tmp_path)
 def test_processo_com_entrada_torta_sai_com_0_calado(tmp_path):
     r = _rodar(None, tmp_path, raw="{nao é json")
     assert r.returncode == 0 and r.stdout.strip() == ""
+
+
+# ------------------------------------------------------------------ ligação ao kit
+
+def test_hook_ligado_na_abertura_e_depois_de_gravar_e_documentado():
+    cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+    abertura = [h["command"] for g in cfg["SessionStart"] if not g.get("matcher") for h in g["hooks"]]
+    assert any("memoria_tabela_em_dia.py" in c for c in abertura), \
+        "memoria_tabela_em_dia.py fora do SessionStart (ou preso a um matcher: tem de valer em toda abertura)"
+    gravacao = [g for g in cfg["PostToolUse"] if any("memoria_tabela_em_dia.py" in h["command"] for h in g["hooks"])]
+    assert len(gravacao) == 1, "memoria_tabela_em_dia.py fora do PostToolUse"
+    assert set(gravacao[0]["matcher"].split("|")) == set(_mod().TOOLS_DE_ARQUIVO), "matcher difere das ferramentas do hook"
+    readme = (REPO / "hooks" / "README.md").read_text(encoding="utf-8")
+    assert "| `memoria_tabela_em_dia.py` |" in readme and "MSS_MEMORIA_TABELA_OFF" in readme, \
+        "hooks/README.md não descreve o hook nem o escape"

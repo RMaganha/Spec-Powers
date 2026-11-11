@@ -423,9 +423,14 @@ def test_pasta_com_espaco_e_acento(tmp_path):
 
 # ------------------------------------------------------------------ ligação ao kit (prosa e memória)
 
-def test_comando_memory_oferece_o_modo_tabela():
+def test_comando_memory_guarda_o_modo_tabela_fora_da_vista_do_owner():
+    """Parte 2 (decisão 16, caso F-057): o modo `tabela` some da descrição e da ajuda — a tabela se atualiza
+    sozinha. O texto do modo continua no comando, como uso interno e pro procedimento de troca de máquina."""
     mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
-    assert "tabela" in mem.split("---")[1], "memory.md: argument-hint não oferece o modo tabela"
+    assert "tabela" not in mem.split("---")[1], "memory.md: a descrição/ajuda ainda oferece o modo tabela ao owner"
+    abertura = mem.split("## Modo")[0]
+    assert "**`tabela`**" not in abertura, "memory.md: a lista de modos do owner ainda traz o tabela"
+    assert "## Uso interno: tabela" in mem, "memory.md: o texto do modo tabela sumiu (o procedimento precisa dele)"
     assert 'memoria_tabela.py" montar' in mem and 'memoria_tabela.py" status' in mem
     assert "~/mss-spec/" in mem and "fora do `.claude`" in mem, "memory.md não diz onde a tabela mora"
     assert "nunca grave na tabela" in mem.lower(), "memory.md não diz que o arquivo é o original"

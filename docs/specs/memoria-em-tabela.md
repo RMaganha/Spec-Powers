@@ -80,7 +80,7 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
     passo na memória do kit).
 12. Só `.md` e `.html` que o git enxerga; `.env`, `.txt` e trecho privado nunca. Dono e data vêm do git.
 
-**A busca — parte 2, AINDA NÃO construída (é o próximo trabalho)**
+**A busca — parte 2, entregue na 0.56.0**
 13. **Gravar:** no arquivo; a tabela se atualiza **sozinha** logo depois.
 14. **Buscar:** na tabela primeiro; se precisar, nos arquivos.
 15. A tabela se atualiza sozinha **quando a conversa abre** no projeto e é **montada na hora** se não existir.
@@ -157,6 +157,32 @@ não foi medido; busca por significado não foi testada; dono e data só foram c
 - Tabela do kit com os padrões (com git): 169 arquivos, 791 linhas, `status` em dia; 70 das 71 anotações com dono
   e data (a que falta ainda não tinha commit).
 - Não conferido: dono e data nos outros 3 projetos (o `montar` com git só roda na janela de cada um).
+
+## Conferido no real — parte 2 (2026-11-11)
+Régua rodada **duas vezes** com o código entregue (`docs/analise/2026-11-10-teste-de-mesa/regua_parte2.py`;
+tabela temporária com os 4 projetos, só leitura neles; os dados ficam fora do repositório). Arquivo certo entre
+os N primeiros:
+
+| O que mede | Casos | Jeito de antes | Tabela entregue | Meta |
+|---|---|---|---|---|
+| Pedido real → arquivo, entre os 10 (1ª medição) | 664 | 10,7% | **43,8%** | 41% |
+| Pedido real → arquivo, entre os 10 (2ª: pedidos filtrados como o código entregue filtra) | 675 | 12,0% | **47,7%** | 41% |
+| Pedido real → arquivo, entre os 30 (o que o assistente recebe pra escolher) | 664 · 675 | 12,8% · 13,8% | 66,4% · 67,4% | — |
+| Situação da falha → regra, entre os 10 | 64 | 78,1% | **89,1%** | não cair de 78% |
+| Frase de "quando usar" → anotação, entre os 10 | 233 | sem medida | **91,8%** | não cair de 88% |
+
+- Repete nas duas metades dos casos: 42,3% e 45,3% (1ª medição); 47,6% e 47,8% (2ª).
+- Por projeto, entre os 10 (1ª medição): kit 43,8% · Whats 41,5% · MSS-UTILS 57,6% · Transportes só 4 casos.
+- **Aviso automático de 3 anotações** (entre os 3 primeiros; jeito de antes × tabela, nas duas medições): kit
+  8,8% e 9,3% × 21,9% e 25,3% · Whats 4,3% e 4,5% × 23,6% e 24,8% · **MSS-UTILS 20,3% e 23,0% × 16,9% e 24,6%**
+  (empate; em 1º lugar o jeito de antes ganha: 20,3% e 23,0% × 5,1% e 8,2%). O aviso **não foi trocado**; a
+  decisão é do owner.
+- Tempo, neste projeto, com os padrões: conferência com nada mudado 0,5 a 0,8 s (abertura, gravação e busca);
+  `buscar` inteiro 1,0 s; a primeira busca depois de arquivos mudados 1,8 s.
+- **Limites ditos ao owner:** o gabarito tem o mesmo ruído de antes (o "certo" é o arquivo aberto ou citado na
+  resposta); mais da metade dos pedidos ainda não acha entre os 10; a saída das 30 linhas deu 8,6 KB numa busca
+  real desta conversa (o dossiê estimava 4,7 KB); o ganho de o assistente escolher entre as 30 continua vindo
+  dos 60 casos do dossiê — não foi medido de novo; a busca só por termo não tem gabarito.
 
 ## Escolhas do assistente (o owner pode trocar)
 - Um projeto não lê o outro; o nome do projeto vem do título do `CLAUDE.md` (cai pro nome da pasta).

@@ -1,5 +1,5 @@
-Dezesseis hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
-Os dezesseis anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Dezessete hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os dezessete anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -18,6 +18,7 @@ Os dezesseis anotam no **registro local** cada vez que **agem** (seção no fim 
 | `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
 | `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
 | `banco_producao.py` | `PreToolUse` Bash/PowerShell/`mcp__*` + `PostToolUse` (`--post`) | **ligado por padrão** | **sim** (nega escrita · pede aprovação pra leitura, uma vez por tarefa) | cerca: comando ou consulta MCP que cita host/alias de produção do `docs/AMBIENTES.md` (seção Produção) — SELECT pede o OK do owner e o OK vale 2 h (carimbo no `--post`, quando executou); DML/DDL é negado (vira `.sql` pro owner); rotina registrada em "Rotinas autorizadas" passa (benchmark MSIG_Agentes, 2026-11-06) |
+| `memoria_tabela_em_dia.py` | `SessionStart` + `PostToolUse` Write/Edit/MultiEdit | **ligado por padrão** (0.56.0) | não (atualiza calado) | rede: a **tabela de memória** (cópia pra busca) se atualiza sozinha — na abertura da conversa (montada na hora se não existir) e depois de gravar `.md`/`.html` de `memory/`, `docs/`, `to-dolist.md` ou `projeto.md`; em dia → não lê arquivo nem chama o git; recado só pro assistente, nunca pro owner; escape `MSS_MEMORIA_TABELA_OFF=1` |
 | `decisao_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por arquivo de comportamento novo) | cerca: gravou arquivo de **comportamento** (`CLAUDE.md` da raiz, `.claude/rules/`, `.claude/settings.json`, `.claude/hooks/`; no kit `hooks/`, `commands/`, `templates/regras-do-kit/`, `templates/rules/`) sem decisão (`docs/decisoes.md` ou Histórico de spec) → a resposta volta pedindo a linha de decisão (benchmark MSIG_Agentes, 2026-11-06) |
 
 ---
@@ -357,8 +358,10 @@ silêncio custa um lembrete, não um dado; e o diário tem a cerca própria.
 `recall_memoria.py` casa cada prompt do owner com os `gatilho:` das memórias, as linhas de
 `memory/indice/*.md` (ou do `MEMORY.md` plano), o gist do `DIARIO.md`, as `docs/decisoes.md` e a coluna
 gatilho do `docs/EVALS.md`, e injeta **só os 3 melhores ponteiros** (≤ 600 bytes) como
-`additionalContext`. Nada casou → silêncio. Motor: `templates/memoria_indice.py` (o mesmo do
-`/mss-spec:memory buscar`).
+`additionalContext`. Nada casou → silêncio. Motor: `templates/memoria_indice.py` (o motor de antes da tabela;
+é a reserva do `/mss-spec:memory buscar`). O aviso **não** usa a tabela de memória: só troca de motor depois de
+medido e com a decisão do owner — no MSS-UTILS o motor de antes ainda empata ou ganha entre os 3 primeiros
+(`docs/specs/memoria-em-tabela.md`, decisão 21).
 
 **Por que existe:** num projeto com 93 memórias o índice de 25 KB estava na janela e mesmo assim o owner
 voltava às conversas antigas pra re-explicar onde o assunto tinha sido tratado. Recall que depende de o
@@ -475,6 +478,36 @@ heredoc não conta). "Outro projeto" é **identidade de repositório**, não heu
 lá (decisão do owner: negar sempre e entregar o comando). Negar vence o "pedir aprovação" do merge. **Falha
 ABERTA**; escape = o da âncora, `MSS_ANCORA_OFF=1`. **Brecha declarada:** script que grava com o caminho escrito
 DENTRO dele não aparece no comando.
+
+---
+
+# Hook ligado — a tabela de memória em dia (`memoria_tabela_em_dia.py`, 0.56.0)
+
+**Por que existe (F-057):** a parte 1 da memória em tabela entregou um modo manual (`/mss-spec:memory tabela`) e a
+tabela real ficou só com o kit. O owner recusou comando pra lembrar: *"vai fazer se perder quando eu perguntar"*.
+Decisão dele (2026-11-11): grava-se no arquivo e a tabela acompanha; busca-se na tabela e, se precisar, nos arquivos.
+
+- **`SessionStart`** (toda abertura: startup, resume, clear, compact): atualiza a tabela do projeto da janela
+  (`CLAUDE_PROJECT_DIR` › `cwd`). **Em dia → silêncio**, sem ler arquivo nem chamar o git: a conferência compara só
+  nome, tamanho e data dos arquivos com a linha de controle do projeto (`tipo = 'controle'`, dentro da mesma
+  tabela). Mudou → relê só o que mudou. **Tabela ausente → montada na hora**, e aí sai **uma linha pro assistente**.
+  Não deu pra atualizar (tabela presa por outro programa) → uma linha pro assistente mandando buscar nos arquivos.
+- **`PostToolUse`** de Write/Edit/MultiEdit: age só se o arquivo gravado é `.md`/`.html` de `memory/`, de `docs/`,
+  o `to-dolist.md` ou o `projeto.md` **deste** projeto. Sempre calado, dê certo ou não — o `buscar` confere de novo
+  antes de procurar (é ele que pega o arquivo mudado por fora: `git pull`, edição à mão, gravação pelo shell).
+- Projeto sem a pasta `memory/` → nada.
+- Motor: `templates/memoria_tabela.py` (`atualizar`), o mesmo do `buscar` das portas e do `/mss-spec:memory buscar`.
+  Medido no kit (170 arquivos): 0,5 a 0,8 s por disparo quando nada mudou, quase tudo a partida do Python.
+
+## Garantias
+
+- **Nunca bloqueia** — sai sempre 0. **Falha ABERTA**: defeito → calado (na abertura, o recado de reserva).
+- **Recado só pro assistente**: nunca `systemMessage`, nunca "avise o owner" — ele não tem nada a fazer.
+- **Nada na máquina além do próprio hook**: sem script PowerShell, tarefa agendada ou processo solto (decisão de
+  2026-11-03); a tabela mora em `~/mss-spec/memoria.sqlite3`, fora do `.claude` e de qualquer repositório.
+- **Um projeto não lê o outro**: cada conversa mexe só nas linhas do projeto dela.
+- **Escape consciente só do owner:** `MSS_MEMORIA_TABELA_OFF=1`. `MSS_MEMORIA_TABELA` troca o caminho (a suíte usa,
+  via `tests/conftest.py`, pra nunca tocar a tabela real).
 
 ---
 
@@ -600,6 +633,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
 | `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
+| `memoria_tabela_em_dia` | `montou` · `atualizou` · `falhou` | `3 novo(s) · 1 refeito(s) · 0 removido(s)` · `OperationalError` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
 
