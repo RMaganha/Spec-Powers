@@ -6,12 +6,12 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
+- [memória em tabela, parte 1: a tabela](../specs/memoria-em-tabela.md) — tudo o que é memória numa tabela SQLite local, cópia para busca; o arquivo é o original — aberta
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
 7. cobertura C#/.NET na análise — `Program`/`Startup`, controllers, `.csproj`, rotas (o `bpmn` e o `mapa-neural` seguem só Python) — pausada: nasce depois do dogfood do item 6
 8. comando guardado inteiro na anotação — comando ou SQL que o owner vai rodar de novo é gravado completo (escopo, régua e textos prontos dos itens 8 a 15: `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`)
-9. memória em tabela, parte 1: a tabela — tudo o que é memória numa tabela SQLite local; arquivo é o original; um comando remonta
 10. memória em tabela, parte 2: a busca — usa o contexto da conversa, devolve 30 linhas, o assistente escolhe; depende do item 9
 11. consultar a memória pela ação antes de agir — aguardando o sim do owner
 12. ajudante pesquisador — lê muito e devolve só o resumo

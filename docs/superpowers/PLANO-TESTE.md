@@ -179,4 +179,13 @@
 - `test_volta_so_uma_vez_por_sessao` / `test_relato_que_so_menciona_build_passa` / `test_projeto_sem_memoria_passa` / `test_escape_do_owner` — uma vez por sessão; relato e projeto sem `memory/` passam; `MSS_MEMORIA_ACAO_OFF`
 - `test_resposta_que_contraria_o_relato_volta` (×3) / `test_frase_sobre_outra_coisa_passa` — "não se perdeu/não errou" com sujeito volta com a memória; "para não se perder" passa
 
+`tests/test_memoria_tabela.py` — a tabela local de memória (0.55.0; `templates/memoria_tabela.py`, só lê o projeto):
+- `test_caminho_padrao_fica_na_pasta_do_usuario_fora_do_claude` / `test_variavel_troca_o_caminho` / `test_montar_cria_a_pasta_da_tabela` / `test_esquema_de_outra_versao_e_refeito` — onde a tabela mora (`~/mss-spec/`, nunca no `.claude`) e o esquema
+- `test_cada_fonte_vira_linha_com_o_tipo_certo` e os 9 seguintes — anotação com a frase do subíndice, diário com a linha do `DIARIO.md`, decisão e falha por item, documento por seção com `arquivo:linha`, `.html` sem tags, `<private>`/`.env`/`.txt` fora, seção gigante em pedaços, bytes fora de UTF-8, nome do projeto pelo `CLAUDE.md`
+- `test_montar_grava_e_conta_por_tipo` … `test_filtro_por_projeto_tipo_e_data_e_busca_por_palavra` (9) — remontagem parcial (muda um → refaz um; apaga → tira; subíndice muda → refaz a anotação), dois projetos sem um tocar o outro, pastas de mesmo nome, `SELECT` e `MATCH`
+- `test_dono_e_data_vem_da_criacao_no_git` / `test_ignorado_pelo_git_fica_fora` / `test_arquivo_novo_ainda_nao_commitado_entra_e_vira_pendencia` / `test_projeto_sem_git_segue_sem_erro` — `git init` de verdade em `tmp_path`
+- `test_status_*` (3) e `test_cli_*` (3) — tabela ausente/desatualizada avisa e diz como remontar; a CLI roda **com os padrões** (pasta do usuário trocada por variável de ambiente)
+- `test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2` / `test_arquivo_grande_demais_fica_fora_e_vira_pendencia` / `test_pasta_com_espaco_e_acento` — os casos de risco: tabela aberta no DBeaver, arquivo acima do teto, caminho como o do Whats
+- `test_comando_memory_oferece_o_modo_tabela` / `test_procedimento_de_troca_de_maquina_esta_na_memoria_do_kit` — ligação ao `/mss-spec:memory` e ao procedimento na memória do kit
+
 **Último 100% verde:** 2026-11-09 · branch feature/upgrade-em-uma-rodada (upgrade em uma rodada só) · commit 2d5fe7c · 1250 passed

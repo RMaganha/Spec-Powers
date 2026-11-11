@@ -13,4 +13,4 @@
 - **Ao versionar, publicar e fechar** → [subíndice](indice/ao-versionar-publicar-e-fechar.md) — 10 memórias · quando: abrir branch de feature ou fix · pensar em worktree ou em outra conversa · for publicar/integrar/fazer deploy · bumpar a versão do kit · fechar mudança em gerador ou CLI do kit
 - **Ao diagnosticar uma falha** → [subíndice](indice/ao-diagnosticar-uma-falha.md) — 3 memórias · quando: entrar em loop de diagnóstico
 - **Ao testar** → [subíndice](indice/ao-testar.md) — 3 memórias · quando: for escrever teste pra um comando ou skill do kit · for validar uma tela ou UI
-- **Ambiente desta máquina e pendências** → [subíndice](indice/ambiente-desta-maquina-e-pendencias.md) — 4 memórias · quando: pensar em atualizar ou reinstalar o mss-spec nesta máquina · o mss-spec parar de responder depois de o app atualizar · revisar pendências antigas do kit
+- **Ambiente desta máquina e pendências** → [subíndice](indice/ambiente-desta-maquina-e-pendencias.md) — 5 memórias · quando: pensar em atualizar ou reinstalar o mss-spec nesta máquina · o mss-spec parar de responder depois de o app atualizar · revisar pendências antigas do kit

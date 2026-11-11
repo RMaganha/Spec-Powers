@@ -1,12 +1,13 @@
 ---
-description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário · `buscar` um termo
-argument-hint: "resgatar | capturar | buscar <termo> (sem argumento: pergunto qual)"
+description: Memória do projeto — `resgatar` a nativa pro repo · `capturar` a sessão em decisões + diário · `buscar` um termo · `tabela` monta a cópia local pra busca
+argument-hint: "resgatar | capturar | buscar <termo> | tabela (sem argumento: pergunto qual)"
 disable-model-invocation: true
 ---
 
 **Responda sempre em português (pt-BR).**
 
-Comando de **memória do projeto**, com três modos. **Sem argumento, pergunte qual** antes de agir:
+Comando de **memória do projeto**, com quatro modos. **Sem argumento, pergunte qual** antes de agir:
+- **`tabela`** — monta ou atualiza a **tabela local de memória** (cópia pra busca; o arquivo no git segue sendo o original).
 - **`resgatar`** — traz pro repo a memória que ficou na pasta nativa (volátil) do Claude.
 - **`capturar`** — destila **esta sessão** em decisões (inclusive as negativas) + **diário de sessão**, roteando pros lares duráveis certos.
 - **`buscar <termo>`** — aponta `arquivo:linha` onde o termo aparece em memórias, subíndices, diário, decisões e EVALS, sem abrir nada.
@@ -77,3 +78,35 @@ do hook `recall_memoria.py`, sem o teto de 3 resultados.
 2. Reporte os ponteiros **como vieram** (`arquivo:linha — gancho`), em ordem de score. **Não abra** os
    arquivos, salvo pedido: o objetivo é o owner ver onde está, não pagar a leitura de tudo.
 3. Nada casou → diga isso e sugira 1 termo alternativo (sinônimo/identificador), sem inventar resultado.
+
+---
+
+## Modo: tabela
+
+Você vai **montar ou atualizar a tabela local de memória** deste projeto. Ela é uma **cópia pra busca**: tudo o que
+é memória (anotações com a frase do subíndice, diários, decisões, falhas do `docs/EVALS.md`, specs, planos, MAPA,
+INDEX, `to-dolist.md` e os demais `.md`/`.html` de `docs/`) numa tabela SQLite única, com a coluna `tipo`.
+
+- **O arquivo no git é o original.** Grava-se no arquivo, como sempre; **nunca grave na tabela** à mão (nem
+  `INSERT`, nem `UPDATE`): na próxima montagem a mudança some. Apagar a tabela não perde nada.
+- **Onde mora:** `~/mss-spec/memoria.sqlite3` — pasta do usuário, **fora do `.claude`** (limpeza ou reinstalação
+  do app não apaga) e fora de qualquer repositório (uma por máquina, todos os projetos juntos). Outro lugar: a
+  variável `MSS_MEMORIA_TABELA` com o caminho do arquivo.
+- **Um projeto não lê o outro:** o comando roda no projeto **desta janela** e mexe só nas linhas dele.
+
+1. Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" status` (se a variável não resolveu, ache
+   o script no clone do kit como o `doctor` faz no check 1). Ele diz se a tabela existe e se está em dia.
+2. Não existe ou está desatualizada → rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" montar`.
+   Ele relê **só o que mudou**, tira o que foi apagado do projeto e não toca as linhas dos outros projetos.
+3. **Cole a saída** como veio: onde está a tabela, quantos arquivos novos/refeitos/removidos, as linhas por tipo e
+   as **pendências** (arquivo de memória ainda não commitado, commit ainda não publicado — publicar é ato do
+   owner; arquivo acima de 1,5 MB que ficou fora).
+4. O owner quer consultar? A tabela abre em qualquer cliente SQLite (DBeaver incluso), só pra leitura. Exemplo:
+   `SELECT projeto, tipo, data, ponteiro, titulo FROM memoria WHERE tipo = 'decisao' AND data >= '2026-09-01'
+   ORDER BY data DESC;` — e por palavra: `SELECT ponteiro, titulo FROM memoria WHERE memoria MATCH 'boleto';`.
+5. Erro ao abrir ou gravar (tabela aberta em outro programa)? Diga o que o script disse e pare — **nada** no
+   projeto foi alterado. Trocou de máquina ou a tabela sumiu → siga o procedimento
+   `memory/project_remontar_a_tabela_de_memoria.md` do kit (um `montar` em cada projeto).
+
+O que **não** entra: `.env`, `.txt`, arquivo que o `.gitignore` do projeto ignora e trecho `<private>…</private>`.
+A busca das portas (`tarefa`, `bug`, `duvida`) **ainda não usa** a tabela — é a parte 2 (`docs/specs/memoria-em-tabela.md`).
