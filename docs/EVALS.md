@@ -62,6 +62,57 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-051 | 2026-11-03 | quando atribuir a causa de um sintoma a uma parte comum do molde (ou a qualquer número medido fora do projeto que reclamou) e desenhar o conserto antes de medir no arquivo real dele | **causa afirmada antes de medir no alvo**: propus "o teto do MAPA conta só conteúdo" porque o molde traz 1.805 B de comentário (30% do teto); a cópia do MAPA do Whats, o projeto do aviso, tinha 0 B de comentário — a medida não teria mudado nada lá; o aviso vinha do hook falar com o owner em toda edição | prosa: `memory/feedback_simular_a_seco_com_dados_reais.md` já existia e só entrou quando o owner pediu a simulação — falta o gatilho dela casar com a própria proposta ("conta só conteúdo", "o molde come X%") antes do OK | aberto |
 | F-052 | 2026-11-06 | quando dizer ao owner o que falta pra uma versão do kit valer nos outros projetos, ou tratar uma decisão registrada como já executada | **decisão lida como estado**: a decisão de 2026-11-03 ("carregado pelo marketplace local… execução em conversa nova") virou "depois do push, atualize o marketplace" no MAPA e em 2 respostas; a junção ainda aponta pro clone e a 0.53.0 já valia em todo projeto. Reincidência do F-034: a memória `project_mss_spec_instalado_por_junction` existia e o `gatilho_resposta` dela não casou "atualização do marketplace" | regex da memória ampliado (marketplace update / atualização do marketplace) + nota de 06/11 na memória · `tests/test_hook_memoria_de_acao.py::test_frases_do_marketplace_casam_a_memoria_da_junction` · prosa: decisão com "execução em conversa nova" é pendência até o disco mostrar (`ls -ld ~/.claude/skills/mss-spec`) | fechado |
 | F-053 | 2026-11-09 | quando o prompt do owner chegar colado (bloco de conteúdo colado) começando por `/mss-spec:<x>` | **o hook não viu o comando do kit**: `hooks/kit_primeiro.py` só reconhece prompt que **começa** com `/mss-spec:` (linha 119); o colado começa pelo invólucro do paste, e o `superpowers:brainstorming` pedido pelo `nova-feature` foi negado com "nenhum comando do kit rodou ainda" — o brainstorm saiu inline | a definir: reconhecer o comando também dentro do bloco colado (1ª linha de texto, não do invólucro) | aberto |
+| F-054 | 2026-11-10 | quando tirar conclusão de uma medição ou apresentar um desenho ao owner como "o certo" | **conclusão de 1 caso e desenho dado como certo (reincidência do F-028)**: no teste de mesa da memória em tabela concluí "resumir o pedido acha melhor" de 1 caso em que eu mesmo escolhi as palavras sabendo a resposta, e apresentei a estrutura da tabela como definida sem comparar alternativa; com 310 casos a conclusão caiu (83% → 73%) | antes de afirmar: mais de um caso com resposta conhecida, o viés do gabarito dito e alternativa medida ao lado — memória `feedback_medir_antes_de_afirmar_ganho` (nota de 2026-11-10); régua de 944 casos em `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md` | aberto |
+| F-055 | 2026-11-10 | quando medir, comparar ou propor algo sobre a memória de um projeto (ou qualquer acervo dele) | **fontes que já existiam ficaram fora da análise**: o teste de mesa leu só `memory/*.md` e os diários; ficaram fora os subíndices (`memory/indice/`), specs, planos, MAPA, INDEX e documentos, e o `docs/EVALS.md` não foi aberto na partida — daí a afirmação errada "40% das anotações do Whats não têm 'quando usar'" (todas têm, no subíndice) | listar TODAS as fontes do acervo antes de medir e dizer o que ficou fora; a partida lê o `docs/EVALS.md` — memória `feedback_simular_a_seco_com_dados_reais` (nota de 2026-11-10); `templates/memoria_tabela.py` reúne todas as fontes | aberto |
+| F-056 | 2026-11-10 | quando responder ao owner uma pergunta direta, explicar um desenho ou entregar uma medição | **resposta longa, com jargão e sem o resultado na 1ª linha (reincidência do F-033, 3× na sessão)**: resumo inicial grande demais, tópico explicado "em linguagem de máquina", pergunta respondida com outras coisas, medição sem dizer se melhora ou não, e a pergunta repetida na caixa do fim da rodada | resposta do tamanho do pedido, em português simples, resultado primeiro, um tópico por vez e pergunta só no texto — memórias `feedback_resultado_primeiro_em_medicao`, `feedback_decidir_por_topicos_um_de_cada_vez`, `feedback_pergunta_so_no_texto` e `feedback_resposta_do_tamanho_do_pedido` | aberto |
+| F-057 | 2026-11-11 | quando entregar um mecanismo novo do kit que o assistente ou o owner precisa lembrar de chamar | **comando novo que depende de alguém lembrar (reincidência do F-014)**: a parte 1 da memória em tabela saiu com o modo `/mss-spec:memory tabela` manual e a atualização automática ficou "fora de escopo"; a tabela real ficou só com o kit | a tabela se atualiza sozinha (abertura da conversa e depois de gravar memória) e a busca vai nela primeiro — parte 2, item 10 do INDEX; decisão de 2026-11-11 em `docs/decisoes.md` | aberto |
+
+### F-057 — comando novo que depende de alguém lembrar de chamar (aberto)
+
+- **Falhou:** a parte 1 da memória em tabela (0.55.0) entregou o modo manual `/mss-spec:memory tabela` e deixou a
+  atualização automática fora de escopo. O owner, ao conferir a tabela: *"Vi que criou um novo comando isso eu entendo
+  que ficará confuso e vai fazer se perder quando eu perguntas!!"*.
+- **Verdade:** é o padrão do F-014 (mecanismo cuja utilidade depende de o owner lembrar). O que ele quer: *"o gravar
+  faz no arquivo depois tabela (foi o que decidimos), e o buscar faz tabela e se precisar aquivos"*.
+- **Guardrail:** a definir na parte 2 — a tabela se atualiza sozinha e a busca vai nela primeiro; o modo `tabela` some
+  da vista do owner.
+- **Teste:** nenhum ainda (nasce com a parte 2).
+
+### F-056 — resposta longa, com jargão e sem o resultado na 1ª linha (aberto)
+
+- **Falhou:** três vezes na mesma sessão. *"é muita coisa para eu absorver"* (resumo inicial); *"voce fala em linguagem
+  de máquina fica extremamente confuso de entender"* (tópico 1); *"eu te pergunto uma coisa voce responde outras só
+  confusão aqui, que desespero..."* e *"eu não entendi o desfecho melhora ou não"* (medições). E a caixa do fim da
+  rodada repetia a pergunta: *"me deixa completamente confuso"*.
+- **Verdade:** o que funcionou foi: lista de tópicos com 1 linha cada, um tópico por vez em "Hoje · A proposta · O que
+  você ganha", resultado na primeira linha e a pergunta só no texto.
+- **Guardrail:** prosa — as quatro memórias da linha. Reincidência do F-033, que segue aberto.
+- **Teste:** nenhum — é conduta de resposta.
+
+### F-055 — fontes de memória que já existiam ficaram fora da análise (aberto)
+
+- **Falhou:** o teste de mesa e as conclusões saíram sem os subíndices, specs, planos, MAPA, INDEX e documentos, e sem
+  o `docs/EVALS.md` ter sido lido na partida. O owner: *"tem o indice.md e seus sub-indices, se não olhou está falhando
+  miseravelmente pois voce já deveria saber disso tudo"*; *"voce olhou minhas resposta para decisões e não para os
+  questionamentos que fiz"*.
+- **Verdade:** todas as anotações têm a frase de quando usar no subíndice (190 de 190 no Whats; 83 de 83 no
+  Transportes); a maior parte do que o assistente abre está em specs e documentos (incluí-los levou o acerto de 13%
+  pra 32%); e o gabarito cobria 8% dos pedidos, quase nenhum questionamento do owner.
+- **Guardrail:** prosa — listar todas as fontes antes de medir e dizer o que ficou fora. A tabela da 0.55.0 reúne as
+  fontes; a partida do kit já manda ler o `docs/EVALS.md`.
+- **Teste:** nenhum — é conduta de análise.
+
+### F-054 — conclusão tirada de 1 caso, desenho dado como certo (aberto)
+
+- **Falhou:** concluí "resumir o pedido em poucas palavras acha melhor" de 1 caso (o do Whats) em que eu mesmo escolhi
+  as palavras; e dei a estrutura da tabela como definida. O owner: *"voce fez 1 único teste e viu divergencia e
+  sugeriu correção ... voce está assumindo esse 1 teste como verdade absoluta!"*; *"a estrutura das tabelas voce
+  sugeriu uma e novamente definiu como essa sendo a essencial ... tudo novamente fica subjetivo!!"*.
+- **Verdade:** com 310 casos, resumir piorou (83% → 73%; 24% → 19%); com 9 estruturas medidas, quase todas empatam.
+  O teste foi refeito quatro vezes a pedido dele até chegar a 944 casos com todas as fontes.
+- **Guardrail:** prosa — mais de um caso com resposta conhecida, viés do gabarito dito, alternativa medida ao lado; a
+  régua fica no dossiê. Reincidência do F-028 ("fica aberto até reincidência zero em 3 sessões" — reincidiu).
+- **Teste:** nenhum — é conduta de análise.
 
 ### F-053 — o comando do kit colado não foi reconhecido pelo `kit_primeiro.py` (aberto)
 

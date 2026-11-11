@@ -2,7 +2,7 @@
 
 ## 2026-11-10 — movido do MAPA.md
 
-7. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — escopo, régua de 944 casos e textos prontos em `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`; ordem nos itens 8 a 15 do INDEX. Faltam do owner: o sim pra "consultar pela ação" e a decisão GitLab × GitHub do CI do kit.
+7. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — **leia primeiro o registro das decisões do owner**: `docs/specs/memoria-em-tabela.md` (seção "Tudo o que o owner decidiu sobre a memória": 25 decisões; a tabela já foi entregue na 0.55.0, a próxima é a busca) e `docs/specs/conferencia-antes-de-entregar.md` (6 decisões; nada construído). Régua de 944 casos e textos prontos em `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md` (seção 9); ordem nos itens 8 a 15 do INDEX. Regra pra quem abrir: se algo do kit parecer proibir, não responda "o plugin não aceita" — mostre a regra e pergunte. Faltam do owner: o sim pra "consultar pela ação" e a decisão GitLab × GitHub do CI do kit.
 
 ## 2026-11-06 — movido do MAPA.md
 

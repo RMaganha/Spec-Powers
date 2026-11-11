@@ -259,14 +259,34 @@ rodar de novo, ele é gravado completo (nunca cortado com reticências); senha e
 escondidas. Origem e medição: docs/analise/2026-11-10-memoria-em-tabela-e-ci.md, seção 4.7.
 ```
 
-**Item 3 do passo 1 (busca):**
+**Item 3 do passo 1 (parte 2: a busca usa a tabela e a tabela se atualiza sozinha)** — texto revisto em
+2026-11-11, depois da parte 1 (0.55.0) e da decisão do owner de não ter comando pra lembrar. **Como abrir sem ser
+bloqueado:** na conversa nova, **digite** `/mss-spec:nova-feature` e um espaço, e só então cole o resto (texto
+colado inteiro pode não ser reconhecido como comando do kit — caso F-053).
 
 ```text
-/mss-spec:nova-feature Memória em tabela — parte 2: a busca. Depende da parte 1 pronta. Escopo e régua em
-docs/analise/2026-11-10-memoria-em-tabela-e-ci.md (seções 4.2, 4.6 e 7). A busca usa o contexto da conversa,
-devolve 30 linhas curtas com anotações e documentos separados, e o assistente escolhe quais abrir; as portas
-(tarefa, bug, duvida) passam a usar a busca em vez de ler MEMORY.md e subíndice. Aceite: não piorar a régua
-(K1, K2, K3) e K3 ≥ 41% entre os 10. Medir antes de afirmar.
+Memória em tabela — parte 2: a busca usa a tabela e a tabela se atualiza sozinha.
+Leia antes de qualquer desenho, nesta ordem: docs/specs/memoria-em-tabela.md — a seção "Tudo o que o owner
+decidiu sobre a memória" é o registro que vale (25 decisões; a parte 1 já foi entregue);
+docs/analise/2026-11-10-memoria-em-tabela-e-ci.md, seções 4.2, 4.6, 5 e 7 (a régua e o que não está provado);
+memory/sessions/2026-11-11-memoria-em-tabela-parte-1.md (como chegamos aqui); e docs/EVALS.md, casos F-054 a
+F-057 (o que eu não aceito de novo). Se alguma regra, decisão antiga ou trava do kit parecer proibir algo do
+que está decidido, não me responda "o plugin não aceita": mostre a regra com arquivo e linha e me pergunte.
+O que eu já decidi (resumo; o registro completo está na spec):
+1. Gravar continua sendo no arquivo, e a tabela se atualiza sozinha logo depois. Sem comando pra eu lembrar.
+2. Buscar é na tabela primeiro e, se precisar, nos arquivos.
+3. A tabela se atualiza sozinha quando a conversa abre no projeto, e é montada na hora se não existir.
+4. O modo "tabela" do /mss-spec:memory some da minha vista: fica interno e no procedimento de troca de máquina.
+5. A busca usa o contexto da conversa, devolve 30 linhas curtas com anotações e documentos separados, e o
+   assistente escolhe quais abrir.
+6. As portas tarefa, bug e duvida e o /mss-spec:memory buscar passam a usar a tabela.
+Como provar: teste para cada item acima, e a régua — arquivo certo entre os 10 em pelo menos 41% dos pedidos
+reais, sem piorar os outros dois gabaritos. No MSS-UTILS o jeito de hoje ganha entre os 3 primeiros: meça antes
+de trocar o aviso automático de 3 anotações. Os dados da régua não estão no repositório: regenere com
+docs/analise/2026-11-10-teste-de-mesa/mesa2.py garimpar.
+Como trabalhar comigo: português simples, resultado na primeira linha, um tópico por vez, pergunta só no texto.
+Uma medição não é conclusão: mais de um caso, e rever. Nada do MSIG_Agentes é usado ou copiado.
+Não abra outra frente: o resto da fila está em docs/superpowers/INDEX.md (itens 8 a 15).
 ```
 
 **Passo 2, item 1 (conferência antes de entregar):**

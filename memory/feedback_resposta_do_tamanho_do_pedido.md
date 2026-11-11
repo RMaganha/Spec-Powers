@@ -24,3 +24,8 @@ entender o próprio roteiro. É o caso **F-033** do `docs/EVALS.md`.
   [[feedback_comando_pro_owner_passo_a_passo]]).
 Mora no `templates/CLAUDE.md` com a frase-chave travada. Relacionadas: [[feedback_estilo_resposta_direto]],
 [[feedback_perguntar_em_vez_de_vasculhar]].
+
+**Reincidiu 3× numa sessão (2026-11-10/11, F-056):** *"é muita coisa para eu absorver"*; *"voce fala em linguagem
+de máquina"*; *"eu te pergunto uma coisa voce responde outras só confusão aqui, que desespero..."*. O que
+consertou está em [[feedback_decidir_por_topicos_um_de_cada_vez]], [[feedback_resultado_primeiro_em_medicao]] e
+[[feedback_pergunta_so_no_texto]]: pergunta direta → resposta direta, na ordem em que ele perguntou, e só.

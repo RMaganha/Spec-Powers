@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-11
+
+- [memoria-em-tabela-parte-1] 0.55.0: `templates/memoria_tabela.py` monta a tabela SQLite única de tudo o que é memória (cópia pra busca; o arquivo é o original) em `~/mss-spec/` — o owner vetou o `.claude` e a pasta do kit; relê só o que mudou, um projeto não toca o outro; 39 testes, 3.000 linhas nos 4 projetos reais, 1,5 s no Whats; no fim o owner recusou o comando como coisa a lembrar — gravar no arquivo e a tabela se atualizar sozinha vira a parte 2 → sessions/2026-11-11-memoria-em-tabela-parte-1.md
+
 ## 2026-11-10
 
 - [memoria-em-tabela-e-ci] análise do que o MSIG_Agentes faz de melhor em memória, agentes e revisão (nada de lá é usado) e teste de mesa nos 4 projetos (3.046 trechos, 944 casos): tabela SQLite local única como CÓPIA pra busca, com tudo o que é memória + contexto da conversa, acha 41% entre os 10 contra 12% de hoje; várias tabelas e reordenar por palavras não ganham; buscar 30 e escolher 10 melhora (60 casos); 172 falhas mostram que a dor é não consultar na hora de agir e concluir de 1 caso; escopo em 2 passos (memória → conferência antes de entregar), itens 8 a 15 do INDEX → sessions/2026-11-10-memoria-em-tabela-e-ci.md
