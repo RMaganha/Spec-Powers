@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **conversa nova não se perde (0.59.0), em construção em 2026-11-11**; desenho aprovado. Spec: `docs/specs/conversa-nova-nao-se-perde.md`.
+
+<!-- histórico do estado anterior -->
 Branch `feature/ajudante-pesquisador` (da `main` em `43b2eae`, 0.57.0 já mesclada, 3 commits à frente do GitHub) — **0.58.0 (ajudante pesquisador, decisão 25) pronta em 2026-11-11 e mesclada na `main` com a aprovação do owner; a publicação é dele** (suíte 1416 verdes; confira com `git log --oneline -3` e `git status -sb`): o arquivo `agents/pesquisador.md` (só leitura; devolve o resumo com `arquivo:linha`), o script `templates/conversa_texto.py` (outra conversa em texto, em `~/mss-spec/conversas/`) e a regra de quando chamar (outra conversa, muitos arquivos ou outro assunto; nunca em toda tarefa). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova** (kit carregado pela junção). Spec: `docs/specs/ajudante-pesquisador.md`. Plano: `docs/superpowers/plans/2026-11-11-ajudante-pesquisador.md`.
 
 <!-- histórico do estado anterior -->

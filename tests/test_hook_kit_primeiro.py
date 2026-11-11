@@ -214,3 +214,22 @@ def test_documentado_no_readme_e_na_regra_11():
     regra11 = next(l for l in regras.splitlines() if l.startswith("11."))
     assert "kit_primeiro" in regra11 or "superpowers só por dentro" in regra11.lower(), \
         "a regra 11 não diz que a cerca agora é hook"
+
+# --- 0.59.0: comando do kit dentro de texto colado (caso F-053) ------------------------------------
+
+COLADO = '<pasted_content id="6303">\n/mss-spec:nova-feature upgrade em uma rodada só\n\nHoje o upgrade roda em 3 passes.\n</pasted_content>'
+
+
+def test_comando_colado_conta_como_entrada(amb):
+    """A forma real da conversa do F-053: o pedido chega dentro de `<pasted_content id="…">`."""
+    mod, s = _mod(), _nova()
+    assert mod.decidir(_prompt(COLADO, s), amb) is None
+    assert mod.decidir(_skill("superpowers:brainstorming", s), amb) is None, \
+        "o comando colado não contou como entrada pelo kit (F-053)"
+
+
+def test_comando_citado_no_meio_do_colado_nao_conta(amb):
+    mod, s = _mod(), _nova()
+    mod.decidir(_prompt('<pasted_content id="1">\nolhe o log; depois rodo /mss-spec:bug\n</pasted_content>', s), amb)
+    assert mod.decidir(_skill("superpowers:systematic-debugging", s), amb), \
+        "comando citado no meio do texto colado contou como entrada"

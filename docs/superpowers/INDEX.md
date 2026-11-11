@@ -6,6 +6,7 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
+- [conversa nova não se perde](../specs/conversa-nova-nao-se-perde.md) — a passagem de uma conversa pra outra leva as decisões do owner como decididas, "o kit não aceita" só com arquivo e linha, e duas conversas na mesma pasta não trocam a branch uma da outra — aberta
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

@@ -48,6 +48,12 @@ try:
 except Exception:                                    # noqa: BLE001
     _registrar = None
 
+try:
+    from _prompt import texto_do_pedido as _pedido
+except Exception:                                    # noqa: BLE001 — sem o módulo, vale o pedido como veio
+    def _pedido(prompt):
+        return prompt
+
 
 def _anotar(decisao, detalhe, evento):
     try:
@@ -268,6 +274,8 @@ def avaliar(evento, ambiente=None):
         if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict):
             return "libera", None
         prompt = evento.get("prompt")
+        # pedido COLADO: o comando é o começo do texto, não da marca `<pasted_content …>` do app (F-053)
+        prompt = _pedido(prompt) if isinstance(prompt, str) else None
         m = RE_COMANDO.match(prompt) if isinstance(prompt, str) else None
         cwd = _texto(evento.get("cwd"))
         if not m or cwd is None:
