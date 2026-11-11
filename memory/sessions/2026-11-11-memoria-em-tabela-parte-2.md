@@ -3,7 +3,7 @@
 Branch `feature/memoria-em-tabela-parte-2` (da `main` em `5366d66`, mais o commit `77cd688` do item CRÍTICO do
 to-dolist). Spec: `docs/specs/memoria-em-tabela.md`. Plano:
 `docs/superpowers/plans/2026-11-11-memoria-em-tabela-parte-2.md`. Conversa nova, aberta com o texto pronto do
-dossiê. Diário em andamento: a sessão ainda não fechou (ver "Próximo").
+dossiê.
 
 ## Conversamos
 - O owner abriu com 6 itens **já decididos** e a ordem de leitura (spec → dossiê → diário da parte 1 → F-054 a
@@ -49,10 +49,18 @@ dossiê. Diário em andamento: a sessão ainda não fechou (ver "Próximo").
   Estável nas duas metades. Aviso entre os 3 primeiros: kit e Whats a tabela ganha; MSS-UTILS empata e em
   primeiro lugar o jeito de hoje ganha.
 
+## Fecho
+- Suíte inteira 100% verde (1341), baseline atualizado, hook ligado no `hooks/hooks.json`, 0.56.0 nos dois
+  manifestos, decisão registrada, F-057 fechado. Na revisão do próprio código: pedido em curso curto
+  (`/mss-spec:duvida e o deploy?`) ficava fora da busca — corrigido com teste.
+- Captura com o OK do owner (4 itens): casos F-058 (decidido reaberto tópico a tópico) e F-059 (branch criada sem
+  ler a pasta) no `docs/EVALS.md`; nota de 2026-11-11 em `feedback_feature_a_partir_da_master`; 4 linhas "não
+  agora" no `to-dolist.md`.
+
 ## Próximo
-- Suíte inteira, documentação (README dos hooks, LEIA-ME, CHANGELOG, decisão), 0.56.0 nos dois manifestos,
-  F-057 fechado, hook ligado no `hooks/hooks.json`, revisão, `plano-teste`, `release`.
-- Captura completa com o OK do owner: caso novo no `docs/EVALS.md` pelo erro da branch e pelo tópico a tópico.
-- Do owner: decidir, com os números, se o aviso automático troca de motor; merge e `git push`.
+- Do owner: aprovar o merge na `main` e fazer o `git push origin main`; decidir, com os números, se o aviso
+  automático troca de motor.
+- Ver o hook valendo numa conversa nova (ele só carrega na abertura) e nos outros projetos.
+- Fila: comando guardado inteiro na anotação (item 8 do INDEX), em conversa nova.
 - Avisos dados a ele: a saída de 30 linhas deu 8,6 KB nesta conversa (o dossiê estimava 4,7 KB); o teste do
-  hook foi escrito junto com o código.
+  hook e o da última correção foram escritos junto com o código; revisão só do próprio assistente.

@@ -66,6 +66,34 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-055 | 2026-11-10 | quando medir, comparar ou propor algo sobre a memória de um projeto (ou qualquer acervo dele) | **fontes que já existiam ficaram fora da análise**: o teste de mesa leu só `memory/*.md` e os diários; ficaram fora os subíndices (`memory/indice/`), specs, planos, MAPA, INDEX e documentos, e o `docs/EVALS.md` não foi aberto na partida — daí a afirmação errada "40% das anotações do Whats não têm 'quando usar'" (todas têm, no subíndice) | listar TODAS as fontes do acervo antes de medir e dizer o que ficou fora; a partida lê o `docs/EVALS.md` — memória `feedback_simular_a_seco_com_dados_reais` (nota de 2026-11-10); `templates/memoria_tabela.py` reúne todas as fontes | aberto |
 | F-056 | 2026-11-10 | quando responder ao owner uma pergunta direta, explicar um desenho ou entregar uma medição | **resposta longa, com jargão e sem o resultado na 1ª linha (reincidência do F-033, 3× na sessão)**: resumo inicial grande demais, tópico explicado "em linguagem de máquina", pergunta respondida com outras coisas, medição sem dizer se melhora ou não, e a pergunta repetida na caixa do fim da rodada | resposta do tamanho do pedido, em português simples, resultado primeiro, um tópico por vez e pergunta só no texto — memórias `feedback_resultado_primeiro_em_medicao`, `feedback_decidir_por_topicos_um_de_cada_vez`, `feedback_pergunta_so_no_texto` e `feedback_resposta_do_tamanho_do_pedido` | aberto |
 | F-057 | 2026-11-11 | quando entregar um mecanismo novo do kit que o assistente ou o owner precisa lembrar de chamar | **comando novo que depende de alguém lembrar (reincidência do F-014)**: a parte 1 da memória em tabela saiu com o modo `/mss-spec:memory tabela` manual e a atualização automática ficou "fora de escopo"; a tabela real ficou só com o kit | a tabela se atualiza sozinha — hook `hooks/memoria_tabela_em_dia.py` (abertura da conversa e depois de gravar) e o `buscar` antes de procurar — e as portas e o `/mss-spec:memory buscar` vão nela primeiro; o modo `tabela` saiu da descrição e da ajuda (0.56.0) · `tests/test_hook_memoria_tabela_em_dia.py` · `tests/test_memoria_tabela_busca.py::test_ninguem_manda_o_owner_montar_a_tabela` · `tests/test_memoria_tabela.py::test_comando_memory_guarda_o_modo_tabela_fora_da_vista_do_owner` | fechado |
+| F-058 | 2026-11-11 | quando abrir uma conversa que continua um assunto com decisões do owner já registradas (texto pronto, spec com "o que o owner decidiu") | **o que já estava decidido foi reaberto, tópico por tópico**: a conversa da parte 2 da memória em tabela leu o registro das 25 decisões e mesmo assim montou 7 tópicos pra fechar um por um, começando por um que o owner já tinha decidido; ele precisou cortar (*"Os itens de 1 a 6 do meu texto já estão decididos. Não me peça para confirmar de novo"*) — e foi a terceira conversa do dia a se perder no mesmo assunto | prosa — memória `feedback_decidir_por_topicos_um_de_cada_vez` (nota de 2026-11-11: tópico a tópico vale só pro que ainda não foi decidido; no lugar, lista única das escolhas do assistente e o que só o owner decide perguntado de uma vez, no fim) · a definir: cobrança por comando ou hook (item CRÍTICO do `to-dolist.md`) | aberto |
+| F-059 | 2026-11-11 | quando criar ou trocar de branch numa pasta que outra conversa também pode estar usando | **o `git status -sb` e o `git switch -c` foram no mesmo comando: a saída não foi lida antes da troca** — a pasta estava na branch `chore/todo-conversa-nova-se-perde` de outra conversa, com mudança por commitar; a branch da feature nasceu ali, o commit da outra conversa (`77cd688`) caiu nela e, ao devolver a pasta, movi-a de novo enquanto a outra conversa também movia (reincidência do quase-caso de 2026-10-21; é o padrão do F-022) | prosa — memória `feedback_feature_a_partir_da_master` (nota de 2026-11-11: o status num comando, ler a saída, e só então trocar; pasta fora da principal → parar e perguntar) · a definir: cerca no `hooks/git_publicacao.py` | aberto |
+
+### F-059 — branch criada sem ler em que branch a pasta estava (aberto)
+
+- **Falhou:** rodei `git status -sb && git switch -c feature/memoria-em-tabela-parte-2` num comando só. O status dizia
+  `## chore/todo-conversa-nova-se-perde` com o `to-dolist.md` modificado — outra conversa estava usando a pasta. A
+  branch nasceu ali; o commit da outra conversa (`77cd688`) caiu na minha; e ao "devolver" a pasta eu a movi de novo
+  enquanto a outra conversa também movia (ela tinha ido pra `main`, eu a tirei de lá e depois a pus de volta).
+- **Verdade:** nada se perdeu (as três pontas estavam no mesmo commit da `main`), mas o commit ficou na branch
+  errada e o owner teve de arbitrar entre duas conversas (*"A outra conversa não mexe mais no git"*). A regra já
+  existia: `memory/feedback_feature_a_partir_da_master.md` e o passo 0 do `nova-feature` mandam conferir e parar.
+- **Guardrail:** prosa — a nota de 2026-11-11 na memória. A definir: o `hooks/git_publicacao.py` negar
+  `git switch -c`/`git checkout -b` quando a branch atual não é a principal.
+- **Teste:** nenhum ainda.
+
+### F-058 — o que já estava decidido foi reaberto, tópico por tópico (aberto)
+
+- **Falhou:** o owner abriu a conversa com 6 itens decididos e o registro das 25 decisões. Eu li tudo e respondi com
+  7 tópicos "pra fechar com você", um por vez, começando por um já decidido. *"Os itens de 1 a 6 do meu texto já estão
+  decididos. Não me peça para confirmar de novo, tópico por tópico."* No to-dolist ele registrou: *"fico perdido
+  tratando em 2 chats 1 coisa"*.
+- **Verdade:** o formato tópico a tópico (`feedback_decidir_por_topicos_um_de_cada_vez`) é pra decisão **em aberto**.
+  O que funcionou: uma lista única só com as escolhas do assistente (uma linha cada, com o motivo), o que só o owner
+  decide perguntado de uma vez no fim, e seguir depois do OK — ele respondeu "Ok" e a entrega andou.
+- **Guardrail:** prosa — a nota de 2026-11-11 na memória. A definir: cobrança por comando ou hook, pra todos os
+  projetos (item CRÍTICO do `to-dolist.md`).
+- **Teste:** nenhum — é conduta de conversa, até o guardrail mecânico existir.
 
 ### F-056 — resposta longa, com jargão e sem o resultado na 1ª linha (aberto)
 
