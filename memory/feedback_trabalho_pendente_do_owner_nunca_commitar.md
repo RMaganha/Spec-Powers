@@ -2,6 +2,7 @@
 name: feedback_trabalho_pendente_do_owner_nunca_commitar
 description: árvore suja em outra branch quando a tarefa pede branch nova da principal — guardar UMA vez com git stash (com o OK), nunca propor "commitar e seguir", devolver no fim na branch do owner com conferência colada
 gatilho: quando a tarefa pedir branch nova a partir da principal e `git status` mostrar modificados sem commit em outra branch do owner
+gatilho_comando: (?m)(?:^|[;&|(])\s*git\s+stash\b(?!\s+(?:list|show)\b)
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback-item-de-backlog-nao-e-design
 description: Item curto de to-dolist/backlog é o sintoma, não o design — transcrever o item em bullets não é desenhar a feature
 gatilho: quando a feature nascer de um item curto de to-dolist ou backlog
+sem_gatilho_de_acao: vale ao abrir feature a partir de item curto — o sinal está no pedido do owner, não na ação
 metadata:
   node_type: memory
   type: feedback

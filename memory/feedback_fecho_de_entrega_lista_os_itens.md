@@ -2,6 +2,7 @@
 name: feedback_fecho_de_entrega_lista_os_itens
 description: O fecho de uma entrega com vários itens lista cada item com onde ele está (commit), antes do passo do owner — quem só lê a última mensagem (ou chega depois de compactar) tem de ver o quadro inteiro
 gatilho: quando fechar uma entrega de vários itens, ou escrever a 1ª resposta depois de compactar a janela
+sem_gatilho_de_acao: o fecho de entrega não tem frase fixa — o que marca é a ausência da tabela, que um regex não mede
 metadata:
   type: feedback
 ---

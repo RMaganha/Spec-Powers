@@ -2,6 +2,7 @@
 name: feedback_comandos_prosa_nao_unit_test
 description: comandos do kit são prosa markdown, não código — testar por wiring no smoke, nunca por unit test de comportamento
 gatilho: quando for escrever teste pra um comando ou skill do kit (.md)
+sem_gatilho_de_acao: a ação é gravar arquivo de teste, que o gatilho de comando e de resposta não enxerga
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback-decidir-por-topicos-um-de-cada-vez
 description: Assunto com vários itens a decidir vai em lista de tópicos (1 linha cada) e depois um tópico por vez, em português simples — "Hoje · A proposta · O que você ganha" — com a lista atualizada a cada decisão
 gatilho: quando o assunto tiver vários itens para o owner decidir, ou quando ele disser que é muita coisa, que ficou perdido ou que a resposta está em linguagem de máquina
+gatilho_resposta: (?m)(?:^.*\?[ \t*_]*$[\s\S]*?){4}
 metadata:
   type: feedback
 ---

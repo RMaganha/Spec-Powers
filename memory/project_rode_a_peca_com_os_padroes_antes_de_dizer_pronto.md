@@ -2,6 +2,7 @@
 name: project_rode_a_peca_com_os_padroes_antes_de_dizer_pronto
 description: teste que passa o parâmetro não prova o valor padrão — antes de dizer "pronto", rode a peça de verdade como ela será chamada (sem parâmetros); no PowerShell 5.1 com -File, $PSScriptRoot chega vazio no default do param
 gatilho: quando declarar pronto um script, hook ou comando que tem valor padrão (default de param, variável de ambiente, caminho calculado) e os testes só passam valores explícitos
+gatilho_resposta: (?i)\b\d[\d.]*\s+(?:testes?\s+)?verdes?\b|\b100\s?% verde|\bsu[íi]te (?:inteira |toda )?verde
 metadata:
   type: project
 ---

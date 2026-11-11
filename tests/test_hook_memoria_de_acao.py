@@ -86,6 +86,17 @@ def test_escape_do_owner(proj):
     assert tipo is None
 
 
+def test_sem_numero_de_sessao_a_memoria_nao_age(proj):
+    """Sem `session_id` não há como garantir "uma vez por sessão": o estado caía num arquivo único
+    (`…_sem-sessao.json`), dividido por toda conversa e por toda rodada da suíte. Com os 26 gatilhos do kit
+    (0.57.0), `git checkout -b` num teste da cerca de publicação era negado na 1ª rodada e passava na 2ª."""
+    ev = {"tool_name": "Bash", "tool_input": {"command": "python seed.py"}, "cwd": str(proj)}
+    tipo, _ = _carregar("git_publicacao").avaliar(ev, {"CLAUDE_PROJECT_DIR": str(proj)},
+                                                  git_destino=lambda p: ("feature/x", None))
+    assert tipo is None
+    assert _cmd(proj, "python seed.py")[0] == "deny", "o evento sem sessão gastou a vez de uma sessão de verdade"
+
+
 def test_memoria_do_kit_vale_em_qualquer_projeto(tmp_path):
     """O heredoc com acento é memória da MÁQUINA: mora no kit e vale no Whats também."""
     outro = tmp_path / "outro"

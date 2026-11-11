@@ -2,6 +2,7 @@
 name: feedback_texto_pronto_pra_colar
 description: Quando o owner precisa repassar algo a outra janela, a um aprovador ou à infra, entregue o texto pronto pra colar — completo, com os valores reais preenchidos e um exemplo de como fica; nunca placeholder sem dizer de onde tirar
 gatilho: quando o owner precisar repassar algo a outra janela do Claude, a um aprovador ou à equipe de infra
+gatilho_resposta: (?i)\b(?:conversa nova|outra janela|janela nova|outro chat|chat novo)\b[^\n]{0,120}\b(?:col[ea]|colar|texto pronto)\b|\b(?:col[ea]|colar|texto pronto)\b[^\n]{0,120}\b(?:conversa nova|outra janela|janela nova|outro chat|chat novo)\b
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback-avisar-progresso-em-execucao-longa
 description: Em execução longa (subagentes, plano de várias tarefas), mantenha a lista de tarefas em dia e mande 1 linha de status a cada etapa dizendo o que falta e quanto tempo — o owner acompanha pela lista e pelas mensagens, não pelos commits
 gatilho: quando a tarefa rodar por subagentes ou passar de ~10 minutos sem mensagem ao owner
+sem_gatilho_de_acao: depende do tempo sem mensagem ao owner, que comando e resposta não mostram
 metadata:
   type: feedback
 ---

@@ -2,6 +2,7 @@
 name: feedback-divergir-antes-de-convergir
 description: Decisão de design aberta e cara de reverter → propor o /mss-spec:divergir (ramos isolados por frame antes de convergir); a 1ª resposta é a de manual
 gatilho: quando a decisão de design for aberta (2+ arquiteturas viáveis, sem precedente que decida) e cara de reverter
+sem_gatilho_de_acao: depende de julgar se a decisão é aberta e cara de reverter — não há frase que separe
 metadata:
   node_type: memory
   type: feedback

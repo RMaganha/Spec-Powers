@@ -2,6 +2,7 @@
 name: feedback-diagnostico-disciplinado
 description: Falha que não fecha em 2 rodadas? Pare o loop de hipóteses — diff completo contra o precedente que funciona (código de boot incluso) ANTES de pedir evidência ao owner; fato do owner não se re-litiga
 gatilho: quando entrar em loop de diagnóstico (falha que não fecha em 2 rodadas)
+gatilho_resposta: (?i)\b(?:me (?:mande|envie|passe|mostre|cole)|cole aqui|pode (?:rodar|colar|conferir|verificar|me)|consegue (?:rodar|colar|conferir|verificar|me))\b[^.\n]{0,80}\b(?:log|sa[íi]da|print|erro|console|tela|resultado)\b
 metadata:
   node_type: memory
   type: feedback

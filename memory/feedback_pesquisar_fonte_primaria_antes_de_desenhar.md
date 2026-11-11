@@ -2,6 +2,7 @@
 name: feedback-pesquisar-fonte-primaria-antes-de-desenhar
 description: Desenho que depende de como uma ferramenta/plataforma funciona exige a documentação PRIMÁRIA dela antes do design — não memória, não terceiro
 gatilho: quando o desenho depender de como uma ferramenta ou plataforma funciona de verdade
+gatilho_resposta: (?i)\b(?:a documenta[çc][ãa]o|a doc)\b[^.\n]{0,40}\b(?:diz|garante|confirma|manda|recomenda)\b|\b(?:o Claude Code|o app Desktop)\b[^.\n]{0,60}\b(?:s[óo] (?:l[êe]|carrega|aceita|mostra)|n[ãa]o (?:l[êe]|carrega|aceita|mostra|suporta|permite)|sempre|nunca)\b
 metadata:
   node_type: memory
   type: feedback

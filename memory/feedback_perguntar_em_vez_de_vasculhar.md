@@ -2,6 +2,7 @@
 name: feedback-perguntar-em-vez-de-vasculhar
 description: Falta um fato concreto que o owner tem na cabeça (caminho, nome de container/variável, qual arquivo é o compose)? Perguntar na hora — nunca varrer o disco
 gatilho: quando faltar um fato concreto que o owner tem na cabeça
+gatilho_comando: (?im)(?:^|[;&|(])\s*(?:find\s+(?:~|/c/Users/[\w.-]+|/c/Ronaldo|/c|/)(?=\s|$)|(?:Get-ChildItem|gci|dir)\b(?=[^|\n]*-Recurse)(?=[^|\n]*(?:C:\\Users\\[\w.-]+(?![\w.\\-])|\$env:USERPROFILE(?![\\\w])|\$HOME(?![\\\w]))))
 metadata:
   node_type: memory
   type: feedback

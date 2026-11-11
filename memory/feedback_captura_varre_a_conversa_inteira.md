@@ -2,6 +2,7 @@
 name: feedback_captura_varre_a_conversa_inteira
 description: Na captura de memória, varra a conversa inteira do começo — cada reclamação, correção ou decisão do owner é um item; conte e cite as falas exatas, e confira se algum item adiado teve a condição de reabertura cumprida
 gatilho: quando rodar /mss-spec:memory capturar (ou montar o fecho de uma sessão longa)
+sem_gatilho_de_acao: a ação é rodar a captura, que não é comando de shell nem frase da resposta — a regra mora no passo da captura
 metadata:
   type: feedback
 ---

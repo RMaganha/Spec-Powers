@@ -2,6 +2,7 @@
 name: feedback_resposta_do_tamanho_do_pedido
 description: Resposta do tamanho do pedido — entregue só o que o owner pediu, na ordem, e pare; o não pedido cabe em 1 linha; fato que muda o roteiro se PERGUNTA antes (nada de roteiro com bifurcação); sem jargão
 gatilho: quando o owner pedir uma entrega específica (passo a passo, comando, roteiro) ou quando a resposta começar a ganhar etapas, rotas e pendências que ele não pediu
+sem_gatilho_de_acao: vale pra toda resposta — o caso medível (rotas não pedidas, F-033) já é conferido pelo `hooks/confere_citacoes.py`
 metadata:
   type: feedback
 ---

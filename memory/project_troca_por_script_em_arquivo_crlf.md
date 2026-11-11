@@ -2,6 +2,7 @@
 name: project_troca_por_script_em_arquivo_crlf
 description: os .md do kit são CRLF — troca de texto por script com "\n" no trecho não acha nada; normalize o fim de linha e deixe o script rodar de novo sem estragar
 gatilho: quando trocar texto num arquivo do kit por script Python (troca de trecho com mais de uma linha)
+gatilho_comando: (?s)python[\d.]*(?:\.exe)?\s+(?:-c\s|-\s*<<)(?=.*(?:\.replace\(|re\.sub\())(?=.*(?:write_text\(|\.write\(|open\([^)]*['\"]w))
 metadata:
   type: project
 ---

@@ -2,6 +2,7 @@
 name: feedback-teto-que-sempre-estoura-e-estrutura
 description: Teto que estoura em todo projeto é sinal de estrutura errada, não de número baixo — meça o que é comum a todos antes de propor subir o teto
 gatilho: quando um teto ou orçamento estourar em vários projetos, ou quando for propor subir um teto
+gatilho_resposta: (?i)\b(?:subir|aumentar|elevar|dobrar)\b[^.\n]{0,30}\bteto\b
 metadata:
   type: feedback
 ---

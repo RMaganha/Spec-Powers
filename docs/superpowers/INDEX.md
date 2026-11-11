@@ -11,7 +11,6 @@
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
 7. cobertura C#/.NET na análise — `Program`/`Startup`, controllers, `.csproj`, rotas (o `bpmn` e o `mapa-neural` seguem só Python) — pausada: nasce depois do dogfood do item 6
 8. comando guardado inteiro na anotação — comando ou SQL que o owner vai rodar de novo é gravado completo (escopo, régua e textos prontos dos itens 8 a 15: `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`)
-11. consultar a memória pela ação antes de agir — aguardando o sim do owner
 12. ajudante pesquisador — lê muito e devolve só o resumo
 13. conferência antes de entregar — lista do projeto alimentada pelos apontamentos do revisor (decisões do owner: `docs/specs/conferencia-antes-de-entregar.md`)
 14. ajudante revisor — confere a mudança pela lista do item 13

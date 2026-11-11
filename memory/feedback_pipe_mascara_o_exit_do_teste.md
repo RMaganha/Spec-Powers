@@ -2,6 +2,7 @@
 name: feedback_pipe_mascara_o_exit_do_teste
 description: `pytest … | tail -1 && git commit` commita com suíte vermelha — o exit do pipe é o do tail; use set -o pipefail ou rode o pytest em passo próprio
 gatilho: quando encadear o comando de teste com git commit (ou qualquer ação) no mesmo comando de shell
+sem_gatilho_de_acao: já tem cerca própria — `hooks/git_publicacao.py` nega pytest em pipe antes do commit
 metadata:
   type: feedback
 ---

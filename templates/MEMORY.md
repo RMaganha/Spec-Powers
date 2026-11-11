@@ -34,6 +34,13 @@
        O recall aponta com o prefixo PROCEDIMENTO: ler INTEIRO, seguir na ordem anunciando
        `Seguindo [[slug]] — passo k/N`, fechar com feitos × pendentes (inclusive os de terceiros).
      - Memória superada ganha `obsoleta: <data> — superada por [[slug]]` e SAI do subíndice.
+     - Memória `type: feedback` é REGRA sobre o que o assistente faz, e leva também o GATILHO DE AÇÃO — uma
+       linha a mais no frontmatter, logo abaixo do `gatilho:` (o `memoria_indice.py verificar` cobra a nova):
+           gatilho_comando: <regex>    casa o comando de Bash/PowerShell; o hook nega UMA vez por sessão
+           gatilho_resposta: <regex>   casa a resposta final; ela volta UMA vez por sessão
+           sem_gatilho_de_acao: <motivo>   quando a ação não tem sinal que dê pra ver em comando ou resposta
+       Teste o regex contra o comando ou a frase real e contra 2-3 vizinhos que NÃO devem casar. Anotação
+       ANTIGA sem a linha não se corrige por conta própria: `memoria_indice.py fila` lista, o owner aprova.
      - Gatilho que é ARQUIVO ("quando editar HTML de aplicação") merece virar também regra path-scoped
        em `.claude/rules/` — o Claude Code carrega sozinho. Ver `templates/rules/`.
      - Falha que já aconteceu não mora aqui: vai pro corpus `docs/EVALS.md`. -->
