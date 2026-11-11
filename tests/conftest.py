@@ -31,3 +31,16 @@ def _tabela_de_memoria_fora_do_home(tmp_path_factory):
         os.environ.pop("MSS_MEMORIA_TABELA", None)
     else:
         os.environ["MSS_MEMORIA_TABELA"] = anterior
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _conversas_em_texto_fora_do_home(tmp_path_factory):
+    """As conversas em texto (`~/mss-spec/conversas/`, `templates/conversa_texto.py`) são do owner: script que
+    rode na suíte sem informar a saída grava numa pasta temporária, nunca na dele."""
+    anterior = os.environ.get("MSS_CONVERSAS_DIR")
+    os.environ["MSS_CONVERSAS_DIR"] = str(tmp_path_factory.mktemp("conversas"))
+    yield
+    if anterior is None:
+        os.environ.pop("MSS_CONVERSAS_DIR", None)
+    else:
+        os.environ["MSS_CONVERSAS_DIR"] = anterior

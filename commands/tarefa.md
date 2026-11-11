@@ -42,6 +42,15 @@ que não achou a conversa → rode de novo com o pedido do owner entre aspas; sa
 ou nenhuma linha serve → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) e a
 palavra procurada em `memory/` e `docs/`.
 
+**1b. Leitura grande vai pelo ajudante pesquisador — só em três casos.** O pedido exige ler **outra conversa**,
+**muitos arquivos** (mais de 10 pra abrir sem saber quais importam, ou documento grande que não vai ser editado aqui)
+ou entender **outro assunto** que não é o desta conversa? Chame o subagente `mss-spec:pesquisador`: diga a pergunta e
+por onde começar; ele lê na janela dele e devolve o resumo com `arquivo:linha`. Outra conversa: antes,
+`python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" listar` mostra as conversas deste projeto e
+`python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" texto <id ou palavra>` grava a escolhida em texto e
+imprime o caminho — passe esse caminho ao ajudante. **Não é pra toda tarefa:** poucos arquivos, edição e conferência
+seguem aqui. O ajudante não apareceu na lista? Faça a mesma leitura com o subagente genérico, com o mesmo pedido.
+
 **2. Plano em até 5 linhas, e o OK do owner:** o que muda · em que arquivos · como você vai **provar** (teste,
 consulta, tela, `git status`) · o que **não** muda. Fato que falta e muda o plano → **pergunte antes**, uma
 pergunta. **Tarefa só de leitura** (consulta, relatório, `git log`, comparar arquivos) **não espera OK**:

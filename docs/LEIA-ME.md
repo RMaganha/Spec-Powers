@@ -117,6 +117,16 @@ Na ordem de ciclo de vida (começar → montar base → construir → apoio → 
 conversa aberta a partir de outra** — o hook `hooks/sem_worktree.py` nega (0.46.0); conversa nova você abre
 pelo **+** e cola o texto pronto que o assistente entrega.
 
+## Ajudante pesquisador
+O plugin traz um ajudante, `mss-spec:pesquisador` (arquivo `agents/pesquisador.md`): ele **lê muito na janela
+dele e devolve só o resumo**, com `arquivo:linha`, pra conversa principal não encher. Só tem ferramentas de
+leitura — não grava, não roda comando. O assistente o chama sozinho, e **só em três casos**: ler outra
+conversa, ler muitos arquivos (mais de 10 sem saber quais importam, ou documento grande que não vai ser
+editado) ou entender outro assunto. Não é pra toda tarefa. Pra outra conversa, o assistente roda antes o
+`templates/conversa_texto.py`, que lista as conversas do projeto e grava a escolhida em texto em
+`~/mss-spec/conversas/` (fora do repositório e do `.claude`). Ajudante novo só aparece em conversa nova.
+Spec: `docs/specs/ajudante-pesquisador.md`.
+
 ## Skill de precedentes
 O plugin traz a skill `precedentes-msig` (em `skills/`), que dispara sozinha quando você vai
 implementar algo que pode já existir em outro projeto (RAG/busca vetorial, extração de PDF com LLM,

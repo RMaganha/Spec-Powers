@@ -49,6 +49,16 @@ diferença clara em relação ao que a memória descreve? Diga qual é, mas cite
 assim. (Origem: kit de agentes da equipe MSIG, incidente de 05/11/2026 — a seção certa era o 1º resultado
 da busca e só apareceu no fim da resposta.)
 
+**1c. Leitura grande vai pelo ajudante pesquisador — só em três casos.** O relato exige ler **outra conversa** (a que
+mexeu nisso antes), **muitos arquivos** (mais de 10 pra abrir sem saber quais importam, ou documento grande que não
+vai ser editado aqui) ou entender **outro assunto** que não é o desta conversa? Chame o subagente
+`mss-spec:pesquisador`: diga a pergunta e por onde começar; ele lê na janela dele e devolve o resumo com
+`arquivo:linha`. Outra conversa: antes, `python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" listar` mostra as
+conversas deste projeto e `python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" texto <id ou palavra>` grava a
+escolhida em texto e imprime o caminho — passe esse caminho ao ajudante. **Não é pra toda tarefa:** o diagnóstico em
+si (hipótese, teste, causa) segue aqui. O ajudante não apareceu na lista? Faça a mesma leitura com o subagente
+genérico, com o mesmo pedido.
+
 **2. Diagnóstico.** Invoque **`superpowers:systematic-debugging`** e siga a disciplina dela. Fato que
 o owner afirmou não se re-litiga — inclusive o próprio sintoma: se o que você leu (conversa, log, código)
 não mostra o erro que ele relatou, **falta leitura**, não erro. Diga o que já leu, onde ainda não achou, e

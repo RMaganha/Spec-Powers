@@ -10,7 +10,7 @@ Caixa de captura de ideias/ajustes que surgem **fora do contexto** da tarefa atu
 
 É o destino do protocolo **um assunto por janela** (regra no `CLAUDE.md`): quando um 2º assunto não relacionado aparece no meio de uma tarefa, ele é anotado aqui — `adicionar <assunto>` — e tratado depois, numa **nova janela**, em vez de emendar na atual.
 
-Também é o destino da **bola de neve** — quando, pra fechar o assunto A, aparece o assunto B que "precisa ser entendido antes". Só **entender** B cabe na janela, e por **subagente** (lê em janela separada, devolve o resumo). **Mexer** em B vem pra cá — `adicionar <B> (trava: <A>)` — e a janela segue em A, ou para. E é o destino do que sobra quando o hook `alerta_contexto.py` avisa que a janela passou de **75%**: fecha-se A, anota-se o resto aqui e `/clear`.
+Também é o destino da **bola de neve** — quando, pra fechar o assunto A, aparece o assunto B que "precisa ser entendido antes". Só **entender** B cabe na janela, e pelo **subagente `mss-spec:pesquisador`** (o ajudante pesquisador do kit: lê em janela separada, devolve o resumo). **Mexer** em B vem pra cá — `adicionar <B> (trava: <A>)` — e a janela segue em A, ou para. E é o destino do que sobra quando o hook `alerta_contexto.py` avisa que a janela passou de **75%**: fecha-se A, anota-se o resto aqui e `/clear`.
 
 E é o **único lugar do "fora de escopo"**, que quer dizer **"não agora"**: decidido numa conversa, numa data, com um motivo; volta quando o owner decidir — **nunca é proibição**. Uma linha por item, com a tag:
 
