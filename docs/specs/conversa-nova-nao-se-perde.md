@@ -1,8 +1,9 @@
 # Conversa nova não se perde — o que está decidido chega como decidido
 
 ## Estado atual
-**Em construção na `feature/conversa-nova-nao-se-perde` (0.59.0).** Vale para todos os projetos, porque é hook do
-plugin — nenhum projeto precisa de upgrade.
+**Entregue na 0.59.0 (2026-11-11), branch `feature/conversa-nova-nao-se-perde`.** Vale para todos os projetos,
+porque é hook do plugin — nenhum projeto precisa de upgrade. Falta provar no real, com o owner: o clique de
+aprovação da troca de branch no app e a regra chegando numa conversa nova aberta com `Já decidido`.
 
 - **Quem entrega** (a conversa que passa o trabalho adiante): o texto pronto para outra conversa só sai com três
   partes de título fixo — `Já decidido — não reabrir:` (lista numerada), `Falta decidir:` (lista ou "nada") e
@@ -56,6 +57,26 @@ mudança de outra conversa.
   o relato do owner (`to-dolist.md:80`). A frase real que não pode disparar existe: "Nada no kit proíbe o que você
   decidiu" (conversa `56ec3cd9`). O gatilho dessa conferência é calibrado pela medição nas respostas reais.
 
+## Medido antes de ligar (2026-11-11, só este projeto, uma medição)
+1.052 respostas finais das conversas gravadas do kit, passadas pelas três conferências:
+
+| Conferência | Voltariam | O que eram |
+|---|---|---|
+| Quem recebe (reabrir) | 1 (0,1%) | a resposta do caso F-058 — a única conversa com itens decididos no pedido |
+| "O kit não aceita" | 9 (0,9%) | relatos de trava que negou ("foi negada pelo hook", "a cerca de git negou") e 2 descrições |
+| Quem entrega (texto pronto) | 16 (1,5%) | os 16 eram textos para colar em outra conversa; 2, recados para conversa em curso |
+
+Abaixo dos 3,3% que a decisão de 2026-10-29 já aceita (`docs/decisoes.md:54`). O que a medição **não** prova: a
+conferência de pergunta que repete item decidido só teve uma conversa real para olhar; e nenhuma das frases
+originais do "o plugin não aceita" foi vista. Roteiro da medição fora do repositório (pasta temporária).
+
+## Onde mora
+- `hooks/passagem_de_conversa.py` (pedido e fim da resposta) · `hooks/_prompt.py` (texto colado) ·
+  `hooks/_pasta_e_branch.py` (dentro do `hooks/git_publicacao.py`) · registro em `hooks/hooks.json`.
+- Testes: `tests/test_hook_passagem_de_conversa.py`, `tests/test_hook_pasta_e_branch.py`, e os do comando colado em
+  `tests/test_hook_kit_primeiro.py` e `tests/test_hook_um_item_por_janela.py`.
+- Texto que ensina o molde: `commands/nova-feature.md` (passo 2), aviso do `hooks/sem_worktree.py`, `docs/LEIA-ME.md`.
+
 ## Critérios de aceite
 1. DADO um pedido com `O que eu já decidi` e 6 itens, QUANDO a resposta anuncia "Tópico 1", ENTÃO volta uma vez.
 2. DADO o mesmo pedido, QUANDO a resposta traz lista única e perguntas só no fim, ENTÃO sai.
@@ -71,3 +92,7 @@ mudança de outra conversa.
 
 ## Histórico
 - 2026-11-11 — criado: desenho aprovado pelo owner (lista única + duas respostas); branch aberta da `main`.
+- 2026-11-11 — entregue (0.59.0): hook da passagem por HOOK em vez de comando ou anotação (o owner recusou comando
+  para lembrar e pediu cobrança mecânica); trava de branch com clique de aprovação na pasta limpa em vez de negar
+  sempre (decisão do owner); gatilhos calibrados nas conversas reais (motivo: as frases originais do "plugin não
+  aceita" não estavam mais gravadas, e a medição tirou um falso positivo — "nunca bloqueou").

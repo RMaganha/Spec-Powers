@@ -1,5 +1,5 @@
-Dezessete hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
-Os dezessete anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Dezoito hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
+Os dezoito anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
@@ -20,6 +20,7 @@ Os dezessete anotam no **registro local** cada vez que **agem** (seção no fim 
 | `banco_producao.py` | `PreToolUse` Bash/PowerShell/`mcp__*` + `PostToolUse` (`--post`) | **ligado por padrão** | **sim** (nega escrita · pede aprovação pra leitura, uma vez por tarefa) | cerca: comando ou consulta MCP que cita host/alias de produção do `docs/AMBIENTES.md` (seção Produção) — SELECT pede o OK do owner e o OK vale 2 h (carimbo no `--post`, quando executou); DML/DDL é negado (vira `.sql` pro owner); rotina registrada em "Rotinas autorizadas" passa (benchmark MSIG_Agentes, 2026-11-06) |
 | `memoria_tabela_em_dia.py` | `SessionStart` + `PostToolUse` Write/Edit/MultiEdit | **ligado por padrão** (0.56.0) | não (atualiza calado) | rede: a **tabela de memória** (cópia pra busca) se atualiza sozinha — na abertura da conversa (montada na hora se não existir) e depois de gravar `.md`/`.html` de `memory/`, `docs/`, `to-dolist.md` ou `projeto.md`; em dia → não lê arquivo nem chama o git; recado só pro assistente, nunca pro owner; escape `MSS_MEMORIA_TABELA_OFF=1` |
 | `decisao_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por arquivo de comportamento novo) | cerca: gravou arquivo de **comportamento** (`CLAUDE.md` da raiz, `.claude/rules/`, `.claude/settings.json`, `.claude/hooks/`; no kit `hooks/`, `commands/`, `templates/regras-do-kit/`, `templates/rules/`) sem decisão (`docs/decisoes.md` ou Histórico de spec) → a resposta volta pedindo a linha de decisão (benchmark MSIG_Agentes, 2026-11-06) |
+| `passagem_de_conversa.py` | `UserPromptSubmit` + `Stop` | **ligado por padrão** (0.59.0) | devolve a resposta **uma vez** | cerca: **conversa nova não se perde** — pedido com `Já decidido` + itens → os itens valem como decididos (tópico a tópico, pergunta repetida ou perguntas espalhadas voltam); texto pronto para outra conversa só sai no molde (`Já decidido — não reabrir:` · `Falta decidir:` · `Regras desta conversa:`); "o kit não aceita / negou / bloqueou" só sai com `arquivo:linha` e pergunta ao owner (F-058) |
 
 ---
 
@@ -33,6 +34,31 @@ Informação da MSIG não permite scripts PowerShell nem tarefas agendadas na m�
 tarefa ele foi contactado pela infra. Nada do kit roda `.ps1` nem cria tarefa; o hook do `settings.json` do
 usuário foi removido. A alternativa (instalar o kit pelo marketplace local, sem junção, ou um hook Python de
 conferência) está em decisão — `docs/superpowers/MAPA.md`. Enquanto isso, kit sumido = check 1 do `doctor`.
+
+---
+
+# Hook ligado — conversa nova não se perde (`passagem_de_conversa.py`, 0.59.0)
+
+**Por que existe (item CRÍTICO do `to-dolist.md`, caso F-058):** em 2026-11-11 duas conversas abertas com o texto
+pronto se perderam (*"dizendo que o plugin não aceita isso ou aquilo"*) e a terceira, com 6 itens decididos no
+pedido, respondeu "Tópico 1 — …". O próprio texto pronto pedia "um tópico por vez" e não dizia para não reabrir.
+
+| Quando | O que o hook olha | O que faz |
+|---|---|---|
+| o pedido chega (`UserPromptSubmit`) | título `Já decidido` / `O que eu já decidi` / `Decisões já tomadas` + itens | guarda os itens da conversa e entrega a regra ao assistente (não reabrir · lista única das escolhas dele · perguntas de uma vez no fim · regra que parecer proibir → arquivo e linha + pergunta, antes do desenho) |
+| a resposta vai sair (`Stop`), em conversa que recebeu itens | "Tópico N" · pergunta que repete item decidido (3+ palavras em comum, 60% da menor) · 2+ perguntas com mais de 12 linhas entre elas | devolve; cada uma age uma vez por conversa (a de repetir, uma vez por item) |
+| a resposta vai sair, em toda conversa | fala de outra conversa + colar/texto pronto + bloco de texto de 5+ linhas | o bloco tem de ter `Já decidido — não reabrir:`, `Falta decidir:` e `Regras desta conversa:` e não pedir "um tópico por vez"; senão devolve com o molde |
+| a resposta vai sair, em toda conversa | "o kit/plugin não aceita…", "o hook/a trava negou/bloqueou…", "foi negado pelo hook", "não posso… a regra proíbe" | só sai com um `arquivo:linha` e uma pergunta; "nada no kit proíbe", "nunca bloqueou", descrição no presente, aspas, bloco de código e citação não contam |
+
+- **Medido antes de ligar** (1.052 respostas finais das conversas gravadas deste projeto, uma medição): quem recebe
+  1 (a conversa do F-058); recusa 9 (0,9%); entrega 16 (1,5% — os 16 eram textos para colar em outra conversa,
+  2 deles recados para conversa em curso; o motivo dá a saída "entregue como está").
+- Contrato do `Stop`: JSON `{"decision": "block"}` e exit 0; `stop_hook_active` → deixa sair. Recado só pro
+  assistente (`additionalContext`), nunca `systemMessage`. **Falha ABERTA.**
+- Estado por conversa no temp do SO (`mss_passagem_<conversa>.json`). O comando do kit colado é reconhecido pelo
+  `_prompt.py` (tira a marca `<pasted_content …>` — caso F-053), usado também pelo `kit_primeiro.py` e pelo
+  `um_item_por_janela.py`.
+- Escape consciente, só do owner: `MSS_PASSAGEM_OFF=1`. Spec `docs/specs/conversa-nova-nao-se-perde.md`.
 
 ---
 

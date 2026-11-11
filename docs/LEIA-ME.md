@@ -175,6 +175,18 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   de outro chat, ele só **avisa** que duas features na mesma pasta trocam a branch (pasta na branch de outra feature →
   o assistente para e pergunta a você).
   Mesmo acidente: a janela de uma feature virou três assuntos. Falha aberta; escape `MSS_UM_ITEM_OFF=1`.
+- **Conversa nova não se perde** (0.59.0) — o hook `hooks/passagem_de_conversa.py` (ligado por padrão). O texto
+  pronto que uma conversa entrega para outra só sai com três partes de título fixo: `Já decidido — não reabrir:`,
+  `Falta decidir:` e `Regras desta conversa:`. A conversa que recebe trata os itens como decididos: se anunciar
+  "Tópico 1", repetir em pergunta um item decidido ou espalhar perguntas, a resposta volta uma vez. E em toda
+  conversa, "o kit não aceita / o hook negou" só sai com a regra em `arquivo:linha` e uma pergunta a você. Você
+  não digita nada: basta o pedido trazer `Já decidido` (ou `O que eu já decidi`) com a lista. Falha aberta;
+  escape `MSS_PASSAGEM_OFF=1`.
+- **Duas conversas na mesma pasta não trocam a branch uma da outra** (0.59.0) — dentro do
+  `hooks/git_publicacao.py`: criar branch com a pasta fora da principal é negado; trocar de branch numa branch
+  que a conversa não abriu é negado se há mudança por commitar e, com a pasta limpa, **pede a sua aprovação com
+  um clique**. Na principal, ou na branch que a própria conversa abriu, passa calado. Escape
+  `MSS_PASSAGEM_OFF` não vale aqui: o desta trava é `MSS_PASTA_BRANCH_OFF=1`.
 - **Âncora do projeto ativo** — a rede que **bloqueia** escrita fora: o hook `hooks/projeto_ativo.py` (ligado
   por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
   referência **somente-leitura** — você lê o código dele pelo `precedentes` e traz o padrão pra cá.
