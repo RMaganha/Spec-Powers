@@ -215,7 +215,7 @@ def test_montar_grava_e_conta_por_tipo(tmp_path):
     assert r.por_tipo == {"anotacao": 1, "diario": 1, "decisao": 1, "falha": 1, "spec": 2, "plano": 1,
                           "mapa": 2, "documento": 3}
     assert (r.novos, r.refeitos, r.removidos, r.iguais) == (10, 0, 0, 0)
-    assert _sql(tabela, "SELECT count(*) FROM memoria")[0][0] == sum(r.por_tipo.values())
+    assert _sql(tabela, "SELECT count(*) FROM memoria WHERE tipo <> 'controle'")[0][0] == sum(r.por_tipo.values())
 
 
 def test_remontar_sem_mudanca_nao_refaz_nada(tmp_path):
@@ -401,7 +401,7 @@ def test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2(tmp_path, cap
         outro.close()
     assert codigo == 2
     assert "outro programa" in capsys.readouterr().out
-    assert _sql(tabela, "SELECT count(*) FROM memoria")[0][0] == 12, "a tabela ficou como estava"
+    assert _sql(tabela, "SELECT count(*) FROM memoria WHERE tipo <> 'controle'")[0][0] == 12, "a tabela ficou como estava"
 
 
 def test_arquivo_grande_demais_fica_fora_e_vira_pendencia(tmp_path, monkeypatch):

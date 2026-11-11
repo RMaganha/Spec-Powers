@@ -40,6 +40,9 @@ SOLTOS = ("to-dolist.md", "projeto.md")
 EXTENSOES = (".md", ".html")
 COLUNAS = ("projeto", "raiz", "tipo", "classe", "arq", "ponteiro", "data", "dono", "assinatura",
            "titulo", "quando", "resumo", "texto")
+TIPO_CONTROLE = "controle"    # 1 linha por projeto, dentro da mesma tabela: a assinatura do disco na última montagem
+VIGIADOS = ("CLAUDE.md", ".gitignore")   # não entram na tabela, mas mudam o nome do projeto ou o que o git enxerga
+MUITOS_ARQUIVOS = 40          # acima disso o `git log` de dono e data olha as pastas, não arquivo por arquivo
 INDICES_DA_MEMORIA = {"MEMORY.md", "DIARIO.md"}
 NOMES_DE_MAPA = ("MAPA", "INDEX", "PROXIMO", "BACKLOG", "EM-ANDAMENTO", "FORA-DE-ESCOPO")
 
@@ -137,10 +140,11 @@ def arquivos_do_projeto(raiz: Path, usar_git: bool = True) -> list:
     return [raiz / r for r in _relativos(raiz, usar_git)]
 
 
-def _criacao(raiz: Path) -> dict:
-    """arquivo → (data, autor) do commit que o criou. Vazio sem git."""
+def _criacao(raiz: Path, caminhos=None) -> dict:
+    """arquivo → (data, autor) do commit que o criou. Vazio sem git. `caminhos` limita a pergunta a poucos
+    arquivos (a atualização depois de uma gravação não precisa do histórico das pastas inteiras)."""
     saida = _git(raiz, "-c", "core.quotepath=false", "log", "--diff-filter=A", "--date=short",
-                 "--format=@@%ad|%an", "--name-only", "--", *PASTAS, *SOLTOS)
+                 "--format=@@%ad|%an", "--name-only", "--", *(caminhos or PASTAS + SOLTOS))
     achados, atual = {}, ("", "")
     for linha in (saida or b"").decode("utf-8", "ignore").split("\n"):
         linha = linha.strip()
@@ -228,13 +232,39 @@ def linhas_do_projeto(raiz: Path, usar_git: bool = True) -> list:
     return _ler_projeto(raiz, usar_git)[0]
 
 
-def _ler_projeto(raiz: Path, usar_git: bool):
-    """(linhas, arquivos grandes demais que ficaram fora) — cada arquivo é lido uma vez."""
+def assinatura_do_disco(raiz: Path) -> str:
+    """Nome, tamanho e data de cada `.md`/`.html` de `memory/`, `docs/`, dos soltos e dos vigiados — SEM ler
+    conteúdo e sem git. É a conferência rápida: igual à guardada na linha de controle → nada mudou."""
+    raiz = Path(raiz)
+    itens = []
+
+    def anota(p: Path, rel: str):
+        try:
+            s = p.stat()
+        except OSError:
+            return
+        itens.append(f"{rel}|{s.st_size}|{s.st_mtime_ns}")
+
+    for pasta in PASTAS:
+        for base, _pastas, nomes in os.walk(raiz / pasta):
+            for nome in nomes:
+                if nome.lower().endswith(EXTENSOES):
+                    p = Path(base) / nome
+                    anota(p, p.relative_to(raiz).as_posix())
+    for solto in SOLTOS + VIGIADOS:
+        anota(raiz / solto, solto)
+    return hashlib.sha1("\n".join(sorted(itens)).encode("utf-8")).hexdigest()[:16]
+
+
+def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
+    """(linhas, arquivos grandes demais que ficaram fora) — cada arquivo é lido uma vez. `criacao` já pronto
+    (o `montar` passa `{}` e preenche dono e data só do que mudou) evita o `git log` das pastas inteiras."""
     mi = _motor()
     raiz = Path(raiz).resolve()
     projeto, raiz_txt = nome_projeto(raiz), raiz.as_posix()
     rels = _relativos(raiz, usar_git)
-    criacao = _criacao(raiz) if usar_git else {}
+    if criacao is None:
+        criacao = _criacao(raiz) if usar_git else {}
     sub, diario = _subindice(raiz, rels, mi), _linhas_do_diario(raiz, mi)
     linhas, grandes = [], []
 
@@ -324,34 +354,77 @@ def _por_arquivo(linhas: list) -> dict:
 
 
 def _diferenca(conn, raiz_txt: str, grupos: dict):
-    gravados = dict(conn.execute("SELECT arq, min(assinatura) FROM memoria WHERE raiz = ? GROUP BY arq", (raiz_txt,)))
+    gravados = dict(conn.execute("SELECT arq, min(assinatura) FROM memoria WHERE raiz = ? AND tipo <> ? GROUP BY arq",
+                                 (raiz_txt, TIPO_CONTROLE)))
     novos = [a for a in grupos if a not in gravados]
     refeitos = [a for a in grupos if a in gravados and gravados[a] != grupos[a][0]["assinatura"]]
     removidos = [a for a in gravados if a not in grupos]
     return novos, refeitos, removidos, len(grupos) - len(novos) - len(refeitos)
 
 
-def montar(raiz: Path, tabela: Path = None, usar_git: bool = True) -> Resultado:
+def _dono_e_data(raiz: Path, grupos: dict, mudados: list) -> None:
+    """Preenche dono e data (criação no git) só nas linhas dos arquivos novos ou refeitos."""
+    criacao = _criacao(raiz, mudados if len(mudados) <= MUITOS_ARQUIVOS else None)
+    for arq in mudados:
+        data, dono = criacao.get(arq, ("", ""))
+        for linha in grupos[arq]:
+            linha["data"], linha["dono"] = linha["data"] or data, dono
+
+
+def _controle(tabela: Path, raiz_txt: str):
+    """Assinatura do disco guardada na última montagem deste projeto, ou None (tabela de outra versão, sem a
+    linha de controle ou sem a tabela `memoria`)."""
+    conn = sqlite3.connect(str(tabela), timeout=2)
+    try:
+        if (conn.execute("PRAGMA user_version").fetchone()[0] != VERSAO_ESQUEMA
+                or not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'memoria'").fetchone()):
+            return None
+        achado = conn.execute("SELECT assinatura FROM memoria WHERE raiz = ? AND tipo = ? LIMIT 1",
+                              (raiz_txt, TIPO_CONTROLE)).fetchone()
+    finally:
+        conn.close()
+    return achado[0] if achado else None
+
+
+def atualizar(raiz: Path, tabela: Path = None, usar_git: bool = True):
+    """A tabela em dia, sem ninguém pedir: `None` quando nada mudou no disco (não lê arquivo, não chama o git);
+    senão monta o que mudou e devolve o `Resultado`. Tabela ausente é montada na hora."""
+    raiz = Path(raiz).resolve()
+    tabela = Path(tabela) if tabela else caminho_tabela()
+    if tabela.is_file() and _controle(tabela, raiz.as_posix()) == assinatura_do_disco(raiz):
+        return None
+    return montar(raiz, tabela, usar_git=usar_git, com_pendencias=False)
+
+
+def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencias: bool = True) -> Resultado:
     raiz = Path(raiz).resolve()
     tabela = Path(tabela) if tabela else caminho_tabela()
     tabela.parent.mkdir(parents=True, exist_ok=True)
-    linhas, grandes = _ler_projeto(raiz, usar_git)
+    disco = assinatura_do_disco(raiz)          # antes de ler: o que mudar durante a leitura é pego na próxima
+    linhas, grandes = _ler_projeto(raiz, usar_git, criacao={})
     grupos, raiz_txt, projeto = _por_arquivo(linhas), raiz.as_posix(), nome_projeto(raiz)
     conn = _abrir(tabela)
     try:
         novos, refeitos, removidos, iguais = _diferenca(conn, raiz_txt, grupos)
+        if usar_git and (novos or refeitos):
+            _dono_e_data(raiz, grupos, novos + refeitos)
         for arq in refeitos + removidos:
             conn.execute("DELETE FROM memoria WHERE raiz = ? AND arq = ?", (raiz_txt, arq))
         marcas = ",".join("?" * len(COLUNAS))
         for arq in novos + refeitos:
             conn.executemany(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
                              [tuple(l[c] for c in COLUNAS) for l in grupos[arq]])
+        conn.execute("DELETE FROM memoria WHERE raiz = ? AND tipo = ?", (raiz_txt, TIPO_CONTROLE))
+        conn.execute(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
+                     tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": disco}.get(c, "")
+                           for c in COLUNAS))
         conn.execute("UPDATE memoria SET projeto = ? WHERE raiz = ? AND projeto <> ?", (projeto, raiz_txt, projeto))
         conn.commit()
-        por_tipo = dict(conn.execute("SELECT tipo, count(*) FROM memoria WHERE raiz = ? GROUP BY tipo", (raiz_txt,)))
+        por_tipo = dict(conn.execute("SELECT tipo, count(*) FROM memoria WHERE raiz = ? AND tipo <> ? GROUP BY tipo",
+                                     (raiz_txt, TIPO_CONTROLE)))
     finally:
         conn.close()
-    pendencias = _pendencias(raiz) if usar_git else []
+    pendencias = _pendencias(raiz) if (usar_git and com_pendencias) else []
     if grandes:
         pendencias.append(f"{len(grandes)} arquivo(s) acima de 1,5 MB ficaram fora: " + ", ".join(grandes[:5]))
     return Resultado(tabela, projeto, por_tipo, len(novos), len(refeitos), len(removidos), iguais, pendencias)
@@ -374,7 +447,8 @@ def status(raiz: Path, tabela: Path = None, usar_git: bool = True) -> Situacao:
         if not em_dia:
             return Situacao(True, 0, len(grupos), f"a tabela em {tabela} é de outra versão — rode: {_como_remontar(raiz)}")
         novos, refeitos, removidos, _ = _diferenca(conn, raiz_txt, grupos)
-        linhas = conn.execute("SELECT count(*) FROM memoria WHERE raiz = ?", (raiz_txt,)).fetchone()[0]
+        linhas = conn.execute("SELECT count(*) FROM memoria WHERE raiz = ? AND tipo <> ?",
+                              (raiz_txt, TIPO_CONTROLE)).fetchone()[0]
     finally:
         conn.close()
     mudaram = len(novos) + len(refeitos) + len(removidos)
