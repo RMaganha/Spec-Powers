@@ -132,6 +132,7 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
     - **Anotações antigas:** o assistente traz a lista das que deveriam ter e não têm; o owner aprova de uma vez.
     - Só se prova em uso real.
 25. **Ajudante pesquisador:** lê muito e devolve só o resumo; usado só nesse papel, escrito do zero no kit.
+    Spec própria: `docs/specs/ajudante-pesquisador.md`.
 
 **Ordem que o owner fixou:** tabela (feita) → busca (parte 2) → comando guardado inteiro → consultar pela ação
 (fechada em 2026-11-11 como ampliação do gatilho de ação) → ajudante pesquisador. **Depois** vem a conferência antes de entregar
