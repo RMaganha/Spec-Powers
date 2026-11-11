@@ -25,6 +25,10 @@ texto já estão decididos. Não me peça para confirmar de novo, tópico por t�
 que só ele pode decidir, perguntado **de uma vez, no fim**; (3) depois do OK na lista, seguir para o plano e o
 código. O formato tópico a tópico fica para quando a decisão está em aberto.
 
+**Desde a 0.59.0 há hook (2026-11-11):** `hooks/passagem_de_conversa.py` guarda os itens que o pedido traz sob
+`Já decidido` / `O que eu já decidi` e devolve a resposta que anunciar "Tópico N", repetir em pergunta um item
+decidido ou espalhar perguntas (caso F-058). A regra acima continua valendo onde o hook não alcança.
+
 **Why:** ele decide rápido quando vê uma coisa só, em palavras do dia a dia; comparação com algo conhecido
 ("como uma busca do Google", "fichário e estante") destrava mais que definição.
 

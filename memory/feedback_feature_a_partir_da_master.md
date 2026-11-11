@@ -34,3 +34,8 @@ existia e eu não li a saída antes de trocar. A pasta estava na branch de outra
 commit dela caiu na minha branch. **O status vai num comando, sozinho; lê-se a saída; só então a troca vai em outro
 comando.** Pasta fora da principal, ou com mudança que não é minha → parar e perguntar ao owner, sem mover nada. E
 se outra conversa está usando a pasta, não "devolver" por conta própria: cada troca a mais corre contra a dela.
+
+**Desde a 0.59.0 é trava (2026-11-11):** `hooks/_pasta_e_branch.py`, dentro do `git_publicacao.py` — criar branch com
+a pasta fora da principal é negado; trocar de branch numa branch que a conversa não abriu é negado com mudança por
+commitar e, com a pasta limpa, pede a aprovação do owner com um clique. O aviso de uma vez por conversa ao criar
+branch continua (é o `gatilho_comando` desta anotação).
