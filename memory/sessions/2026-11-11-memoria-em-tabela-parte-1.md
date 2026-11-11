@@ -41,4 +41,11 @@ preferiu seguir nela: a janela nova "bloqueou um monte de coisa").
 - Merge na `main` (aprovação do owner); `git push` é dele.
 - Parte 2: a busca usa a tabela e a tabela se atualiza sozinha (sem comando pra lembrar); as outras máquinas e
   projetos entram quando cada um abrir.
-- `/mss-spec:memory capturar` das falhas da sessão de 2026-11-10 (seção 6 do dossiê) ainda não foi feito.
+- Captura feita em 2026-11-11, com o OK do owner (17 itens): casos F-054 a F-057 no `docs/EVALS.md`; memórias
+  novas `feedback_pergunta_so_no_texto`, `feedback_resultado_primeiro_em_medicao`,
+  `feedback_decidir_por_topicos_um_de_cada_vez` e `project_dados_de_outros_projetos_fora_do_repo_do_kit`; notas
+  datadas em `feedback_medir_antes_de_afirmar_ganho`, `feedback_simular_a_seco_com_dados_reais` e
+  `feedback_resposta_do_tamanho_do_pedido`; decisão "a tabela se atualiza sozinha"; 5 linhas no `to-dolist.md`.
+- O owner decidiu seguir a parte 2 em **outra conversa** (*"o meu problema é … o novo chat se perder"*): texto
+  pronto na seção 9 do dossiê, com a orientação de digitar o comando antes de colar (F-053).
+- Faltam do owner: o sim ou não pra "consultar pela ação" e a decisão GitLab × GitHub do teste automático do kit.

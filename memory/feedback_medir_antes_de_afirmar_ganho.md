@@ -31,3 +31,12 @@ vendi "release em script" pra um problema que acontece na hora do commit.
 
 Parente de [[feedback-pesquisar-fonte-primaria-antes-de-desenhar]] e de
 [[feedback-item-de-backlog-nao-e-design]].
+
+**Reincidiu (2026-11-10, F-054) — uma medição não é conclusão.** No teste de mesa da memória em tabela concluí
+de **1 caso** (escolhido por mim, sabendo a resposta) que "resumir o pedido acha melhor"; com 310 casos piorou.
+O owner: *"voce está assumindo esse 1 teste como verdade absoluta!"*. Passa a valer: conclusão só com **mais de
+um caso de resposta conhecida**, com o **defeito do gabarito dito** e a **alternativa medida ao lado**; e a
+medida se repete por projeto e por metade dos casos antes de virar afirmação. **O que deu certo na mesma
+sessão:** quando o owner perguntou *"mas assim não seria melhor para dividir e buscar?"* e *"talvez … buscar 30
+e depois … tirando 10 … o que acha?"*, a resposta foi **medir na mesma régua** em vez de opinar — várias tabelas
+não ganharam; escolher 10 entre 30 melhorou. Régua: `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`.
