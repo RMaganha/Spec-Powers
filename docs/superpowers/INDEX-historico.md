@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-11 — fechadas
+
+- [memória em tabela, parte 1: a tabela](../specs/memoria-em-tabela.md) — tudo o que é memória numa tabela SQLite local, cópia para busca; o arquivo é o original — fechada
+
 ## 2026-11-09 — fechadas
 
 - [upgrade em uma rodada só](specs/2026-07-16-upgrade-design.md) — o `/mss-spec:upgrade` trata migração do `CLAUDE.md`, to-dolist e categorias numa conversa, uma branch, um commit por passe, stash único do pendente — fechada (0.54.0, 2026-11-09)

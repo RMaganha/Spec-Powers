@@ -188,4 +188,4 @@
 - `test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2` / `test_arquivo_grande_demais_fica_fora_e_vira_pendencia` / `test_pasta_com_espaco_e_acento` — os casos de risco: tabela aberta no DBeaver, arquivo acima do teto, caminho como o do Whats
 - `test_comando_memory_oferece_o_modo_tabela` / `test_procedimento_de_troca_de_maquina_esta_na_memoria_do_kit` — ligação ao `/mss-spec:memory` e ao procedimento na memória do kit
 
-**Último 100% verde:** 2026-11-09 · branch feature/upgrade-em-uma-rodada (upgrade em uma rodada só) · commit 2d5fe7c · 1250 passed
+**Último 100% verde:** 2026-11-11 · branch feature/memoria-em-tabela (memória em tabela, parte 1) · commit db28bf7 · 1289 passed
