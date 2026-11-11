@@ -1,6 +1,9 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+Branch `feature/memoria-em-tabela-parte-2` (da `main` em `5366d66`, mais o commit `77cd688` do item CRÍTICO do to-dolist, que o owner mandou ficar) — **memória em tabela, parte 2, em andamento**: a busca usa a tabela e a tabela se atualiza sozinha (abertura da conversa, gravação e antes da busca). Lista de escolhas aprovada pelo owner em 2026-11-11. Spec: `docs/specs/memoria-em-tabela.md`. Plano: `docs/superpowers/plans/2026-11-11-memoria-em-tabela-parte-2.md`. Onde parou e próximo passo: ver as caixas do plano.
+
+<!-- histórico do estado anterior -->
 `main` local — **0.55.0 (memória em tabela, parte 1) integrada em 2026-11-11 pela `feature/memoria-em-tabela`, ainda NÃO publicada** (suíte 1289 verdes; confira com `git log --oneline -3` e `git status -sb`): memória em tabela, parte 1 — um comando monta, a partir dos arquivos do projeto, uma tabela SQLite local única (cópia para busca; o arquivo no git segue sendo o original) em `~/mss-spec/`, fora do `.claude` e de qualquer repo. Spec: `docs/specs/memoria-em-tabela.md`. Plano: `docs/superpowers/plans/2026-11-11-memoria-em-tabela.md`. Dossiê e régua: `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`. **Próxima: a parte 2** (a busca usa a tabela e a tabela se atualiza sozinha — o owner recusou comando pra lembrar), em conversa nova, com o texto pronto da seção 9 do dossiê. A `main` local está à frente do `origin` (análise de 2026-11-10 + 0.55.0 + captura); `git push origin main` é do owner.
 
 <!-- histórico do estado anterior -->

@@ -17,6 +17,13 @@ linguagem de máquina"*. O formato que ele seguiu até o fim (6 itens decididos)
 3. A cada resposta, a **lista atualizada** com ✅ e o próximo tópico.
 4. No fim, os tópicos **juntos por assunto** e na ordem de fazer.
 
+**Vale só para o que ainda NÃO foi decidido (owner, 2026-11-11).** Na parte 2 da memória em tabela ele abriu a
+conversa com 6 itens já decididos e eu comecei a fechar de novo, tópico por tópico: *"Os itens de 1 a 6 do meu
+texto já estão decididos. Não me peça para confirmar de novo, tópico por tópico."* O que ele pediu no lugar: (1)
+**uma lista única só com as escolhas do assistente** (o que ele não decidiu), uma linha cada, com o motivo; (2) o
+que só ele pode decidir, perguntado **de uma vez, no fim**; (3) depois do OK na lista, seguir para o plano e o
+código. O formato tópico a tópico fica para quando a decisão está em aberto.
+
 **Why:** ele decide rápido quando vê uma coisa só, em palavras do dia a dia; comparação com algo conhecido
 ("como uma busca do Google", "fichário e estante") destrava mais que definição.
 

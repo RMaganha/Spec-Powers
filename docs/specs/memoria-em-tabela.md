@@ -23,8 +23,34 @@ seção (specs, planos, MAPA/INDEX e demais). Cada linha guarda projeto, tipo, a
 - **Um projeto não lê o outro:** cada projeto alimenta a tabela quando o comando roda nele. Máquina nova =
   rodar `montar` em cada projeto (procedimento na memória do kit).
 
-Fora de escopo desta parte: a busca (parte 2 — as portas seguem lendo `MEMORY.md`/subíndice), a atualização
-automática na abertura da conversa e o aviso de "tabela ausente" no `/mss-spec:doctor`.
+**Parte 2 (a busca usa a tabela e a tabela se atualiza sozinha) — 0.56.0.**
+
+- **A tabela se atualiza sozinha, sem comando**, em três momentos: quando a conversa abre no projeto (e é
+  montada na hora se não existir), logo depois de o assistente gravar um arquivo de `memory/`, de `docs/`, o
+  `to-dolist.md` ou o arquivo de base da raiz, e antes de cada busca. Quem faz: o hook
+  `hooks/memoria_tabela_em_dia.py` (abertura e gravação) e o próprio `buscar`. Calado quando dá certo; se
+  falhar, nada trava e a busca vai nos arquivos.
+- **A conferência é rápida:** compara só nome, tamanho e data dos arquivos com o que ficou guardado numa linha
+  de controle do projeto (`tipo = 'controle'`, dentro da mesma tabela); nada mudou → não lê arquivo nem chama o
+  git. Mudou → relê só o que mudou; o git só é consultado por dono e data quando há arquivo novo.
+- **`buscar`** (`python memoria_tabela.py buscar [texto]`): procura só nas linhas do projeto da janela, com o
+  pedido **mais os 3 pedidos anteriores do owner, palavra por palavra** (até 600 letras cada, lidos do arquivo
+  da própria conversa; sem ele, busca só com o texto). Com um termo explícito (`/mss-spec:memory buscar
+  <termo>`) busca só o termo. Não resume o pedido e não reordena por contagem de palavras.
+- **O que devolve:** até 30 linhas curtas, **30 arquivos diferentes** (o melhor trecho de cada), em dois
+  blocos — **Anotações** (o que está em `memory/`, menos os diários) e **Documentos** (todo o resto) — cada
+  linha com tipo, `arquivo:linha`, título e um trecho de até 170 letras. **O assistente escolhe quais abrir.**
+- **Se precisar, nos arquivos:** tabela que não abriu, busca vazia ou nenhuma das 30 linhas serve → o caminho
+  de antes (`memory/MEMORY.md` → subíndice → a memória, e procura por palavra nos arquivos).
+- **Quem usa:** as portas `/mss-spec:tarefa`, `/mss-spec:bug` e `/mss-spec:duvida` (no passo de achar o assunto
+  na memória; a leitura de partida não mudou) e o `/mss-spec:memory buscar`.
+- **O modo `tabela` do `/mss-spec:memory` saiu da vista do owner:** não aparece na descrição nem na ajuda; o
+  texto ficou no comando como uso interno e no procedimento de troca de máquina.
+- **O aviso automático de até 3 anotações por mensagem** (`hooks/recall_memoria.py`) segue no motor antigo: só
+  troca depois de medido e com a decisão do owner (decisão 21).
+
+Fora de escopo: o aviso de "tabela ausente" no `/mss-spec:doctor` (a abertura já monta), buscar cruzando
+projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 
 ## Tudo o que o owner decidiu sobre a memória (2026-11-10 e 11) — o registro que vale
 
@@ -102,6 +128,29 @@ não foi medido; busca por significado não foi testada; dono e data só foram c
 9. DADO os 4 projetos reais, QUANDO rodo `montar --sem-git` numa tabela de teste (só leitura neles), ENTÃO a
    contagem fica na ordem da do teste de mesa (3.046 trechos).
 
+**Parte 2**
+
+10. DADO a tabela montada e um arquivo de memória gravado depois, QUANDO o hook de gravação roda, ENTÃO a linha
+    nova já está na tabela, sem comando (decisão 13).
+11. DADO um pedido cujo assunto está numa anotação e num documento, QUANDO rodo `buscar`, ENTÃO a resposta vem
+    da tabela; DADO a tabela indisponível ou a busca vazia, ENTÃO o `buscar` diz pra ir nos arquivos e sai com
+    código diferente de zero (decisão 14).
+12. DADO um projeto sem tabela, QUANDO a conversa abre, ENTÃO a tabela é montada na hora; DADO a tabela em dia,
+    ENTÃO o hook não lê arquivo, não chama o git e não diz nada (decisão 15).
+13. DADO o `commands/memory.md`, QUANDO leio a descrição e a ajuda, ENTÃO o modo `tabela` não aparece; o texto
+    do modo e o procedimento de troca de máquina continuam existindo (decisão 16).
+14. DADO uma conversa com 4 pedidos do owner, QUANDO rodo `buscar` sem texto, ENTÃO a busca usa o último pedido
+    mais os 3 anteriores, palavra por palavra, cada um cortado em 600 letras (decisão 17).
+15. DADO 40 arquivos que casam, QUANDO rodo `buscar`, ENTÃO vêm 30 linhas, de 30 arquivos diferentes, em dois
+    blocos (Anotações · Documentos), cada linha com tipo, ponteiro, título e trecho de até 170 letras
+    (decisão 18).
+16. DADO dois projetos na mesma tabela, QUANDO busco num, ENTÃO nenhuma linha do outro aparece (decisão 11).
+17. DADO os comandos `tarefa`, `bug`, `duvida` e o modo `buscar` do `memory`, QUANDO leio o passo de memória,
+    ENTÃO ele manda rodar o `buscar` da tabela e dá o caminho dos arquivos como reserva (decisão 20).
+18. DADO um arquivo mudado fora da conversa, QUANDO rodo `buscar`, ENTÃO a tabela é atualizada antes de procurar.
+19. **Régua (decisão 22):** nos pedidos reais regenerados, arquivo certo entre os 10 em pelo menos 41%;
+    situação → regra não abaixo de 78% e descrição → anotação não abaixo de 88% (os números do dossiê, 4.2).
+
 ## Conferido no real (2026-11-11)
 - Tabela temporária, só leitura, `--sem-git`: kit 826 linhas · Whats 1.521 · Transportes V2 509 · MSS-UTILS 144 =
   3.000 (teste de mesa: 3.046). Montar: 1,5 s no Whats, menos de 1 s nos outros; remontar sem mudança não refaz nada.
@@ -113,8 +162,19 @@ não foi medido; busca por significado não foi testada; dono e data só foram c
 - Um projeto não lê o outro; o nome do projeto vem do título do `CLAUDE.md` (cai pro nome da pasta).
 - Dono e data pelo `git log`; conferido só no kit (70 de 70 anotações).
 - Modo novo `tabela` no `/mss-spec:memory`; script novo em `templates/`.
+- Parte 2 (lista aprovada pelo owner em 2026-11-11): conferência por nome, tamanho e data, com a linha de
+  controle dentro da mesma tabela; hooks ligados só no fim; contexto lido do arquivo da conversa; mesma regra de
+  palavras do teste de mesa; 30 arquivos diferentes em dois blocos, sem reserva de vagas (a reserva só entra se
+  medida); três casos de "nos arquivos"; nas portas muda só o passo de memória; a régua mede o código entregue,
+  com os dados fora do repositório; "sem piorar" = 78% e 88%.
+- Termo explícito no `/mss-spec:memory buscar <termo>` busca só o termo, sem os pedidos anteriores (o owner
+  digitou o que quer achar; 1.800 letras de contexto afogariam uma palavra). Não medido: não há gabarito de
+  busca por termo.
 
 ## Histórico
 - 2026-11-11 — criado: parte 1, a tabela (motivo: teste de mesa de 2026-11-10 — tabela com tudo acha 41% entre
   os 10 contra 12% do jeito de hoje; `docs/analise/2026-11-10-memoria-em-tabela-e-ci.md`). O lugar da tabela foi
   decisão do owner: fora do `.claude` ("qualquer alteração perde") e fora da pasta do kit.
+- 2026-11-11 — parte 2: a tabela se atualiza sozinha (abertura, gravação e antes da busca) e as portas e o
+  `/mss-spec:memory buscar` procuram nela primeiro; o modo `tabela` saiu da vista do owner (motivo: o owner
+  recusou comando pra lembrar — caso F-057; decisões 13 a 22).
