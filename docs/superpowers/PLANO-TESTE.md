@@ -210,4 +210,16 @@
 - `test_a_captura_cobra_o_gatilho_de_acao_da_anotacao_de_regra` / `test_o_molde_da_memoria_explica_os_tres_campos` — prosa da captura e do molde
 - em `tests/test_hook_memoria_de_acao.py`: `test_sem_numero_de_sessao_a_memoria_nao_age` — evento sem sessão não dispara nem gasta a vez do gatilho
 
-**Último 100% verde:** 2026-11-11 · branch feature/consultar-pela-acao (consultar a memória pela ação) · commit 4538274 · 1382 passed
+`tests/test_ajudante_pesquisador.py` — o ajudante pesquisador (0.58.0; `agents/pesquisador.md`, decisão 25):
+- `test_ajudante_existe_com_nome_e_descricao` / `test_ajudante_so_tem_ferramentas_de_leitura` / `test_ajudante_usa_o_modelo_da_conversa_e_nao_traz_campo_ignorado` — cabeçalho lido como YAML: só `Read, Grep, Glob`, modelo da conversa, sem campo que o Claude Code ignora em ajudante de plugin
+- `test_descricao_diz_os_tres_casos_e_que_nao_e_pra_toda_tarefa` / `test_corpo_traz_o_formato_da_resposta` — quando chamar (e quando não) e o que devolve (primeira linha, `arquivo:linha`, não achei, não li, 3.000 letras, sem colar arquivo)
+- `test_regra_bola_de_neve_nomeia_o_ajudante` / `test_comandos_e_aviso_de_janela_nomeiam_o_ajudante` / `test_portas_tem_o_passo_do_ajudante_com_o_comando_do_script` / `test_leia_me_apresenta_o_ajudante` — onde a regra aparece; nenhuma porta com número de passo repetido
+
+`tests/test_conversa_texto.py` — outra conversa em texto (0.58.0; `templates/conversa_texto.py`, só lê a conversa):
+- `test_falas_so_do_owner_e_do_assistente` / `test_o_turno_do_assistente_vira_uma_fala_com_o_que_ele_gravou` / `test_comando_do_kit_aparece_com_o_nome_e_o_pedido` / `test_texto_colado_pelo_owner_fica_e_retorno_de_hook_sai` / `test_linha_torta_e_arquivo_que_nao_abre_nao_derrubam` — o que é fala e o que não é
+- `test_fala_digitada_enquanto_o_assistente_trabalhava_entra` / `test_fala_que_veio_pela_fila_e_pelo_registro_entra_uma_vez` / `test_aviso_do_app_nao_vira_fala` / `test_private_nao_escapa_com_tag_dentro_nem_sem_fechar` / `test_o_que_o_owner_escreveu_entre_sinais_de_menor_e_maior_fica` / `test_nome_de_comando_citado_no_meio_da_fala_nao_vira_comando` — os achados da revisão, vistos nas conversas reais do kit
+- `test_gravar_texto_numera_as_falas_e_nao_tem_linha_gigante` / `test_fala_comprida_e_quebrada_em_linhas` / `test_conversa_sem_fala_nao_grava` / `test_pasta_de_saida_padrao_fica_fora_do_repo_e_do_claude` — o texto gravado (linhas de até 160 letras) e onde ele mora
+- `test_listar_*` (2) / `test_achar_por_comeco_do_id_por_caminho_e_por_palavra` / `test_palavra_que_tambem_e_comeco_de_id_traz_as_duas` / `test_pasta_das_conversas_pelo_caminho_do_projeto` — achar a conversa
+- `test_cli_*` (5) — a linha de comando: listar, texto, mais de uma ou nenhuma (sai com 1), sem a pasta (sai com 2), caminho direto, conversa sem fala
+
+**Último 100% verde:** 2026-11-11 · branch feature/ajudante-pesquisador (ajudante pesquisador) · commit 94b4181 · 1416 passed
