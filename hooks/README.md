@@ -4,7 +4,7 @@ Os dezessete anotam no **registro local** cada vez que **agem** (seção no fim 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|
 | `projeto_ativo.py` | `PreToolUse` Write/Edit/NotebookEdit | **ligado por padrão** | **sim** (nega) | cerca: escrita só no projeto ativo |
-| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) |
+| `git_publicacao.py` | `PreToolUse` Bash/PowerShell | **ligado por padrão** | **sim** (nega · ou pede aprovação) | cerca: push em homologação/produção e deploy é ato do owner; merge/rebase/push de feature pedem aprovação · e pytest mascarado por pipe antes do `git commit` (F-025) · e **nega** gravar em OUTRO repositório pelo shell, com o comando pronto pra colar na janela dele (F-031) · e nega **uma vez por sessão** o comando que casa o `gatilho_comando:` de uma memória, com ela no motivo (F-034) · e **duas conversas na mesma pasta não trocam a branch uma da outra** (`_pasta_e_branch.py`, F-059, 0.59.0) |
 | `um_item_por_janela.py` | `UserPromptSubmit` | **ligado por padrão** | **sim** (bloqueia o prompt) | cerca: o mesmo chat não abre 2ª feature enquanto a dele estiver aberta; outras abertas no INDEX só geram aviso (pasta em outra feature → parar e perguntar) |
 | `capturar_nudge.py` | `Stop` | **ligado por padrão** (0.50.0) | não (avisa o owner) | rede: conversa há 30 min sem captura → `systemMessage` ao owner: rode `/mss-spec:memory capturar` (memória e diário juntos); por sessão (F-048) |
 | `recall_memoria.py` | `UserPromptSubmit` | **ligado por padrão** | não (só injeta) | rede: aponta a memória/decisão que casou com o prompt (diário de sessão fica fora — F-030) |
@@ -33,6 +33,30 @@ Informação da MSIG não permite scripts PowerShell nem tarefas agendadas na m�
 tarefa ele foi contactado pela infra. Nada do kit roda `.ps1` nem cria tarefa; o hook do `settings.json` do
 usuário foi removido. A alternativa (instalar o kit pelo marketplace local, sem junção, ou um hook Python de
 conferência) está em decisão — `docs/superpowers/MAPA.md`. Enquanto isso, kit sumido = check 1 do `doctor`.
+
+---
+
+# Cerca ligada — pasta e branch: duas conversas não trocam a branch uma da outra (`_pasta_e_branch.py`, 0.59.0)
+
+**Por que existe (caso F-059):** em 2026-11-11 a pasta estava na branch de outra conversa, com mudança por
+commitar; `git status -sb && git switch -c feature/…` num comando só fez a branch nascer ali, o commit da outra
+conversa caiu nela e, ao "devolver" a pasta, as duas conversas a moveram ao mesmo tempo. Roda dentro do
+`git_publicacao.py` (6ª cerca, mesmo processo).
+
+| A pasta está… | Criar branch | Trocar de branch |
+|---|---|---|
+| na principal (`main`/`master`) | passa (a branch fica lembrada como desta conversa) | passa |
+| numa branch que esta conversa abriu | passa | passa |
+| numa branch que esta conversa **não** abriu, com mudança por commitar | **nega** | **nega** |
+| numa branch que esta conversa **não** abriu, limpa | **nega** (`git switch -c x main` vale como troca) | **pede a aprovação do owner** |
+
+- O hook não sabe se a outra conversa está viva; sabe o que **esta** abriu (`mss_pasta_branch_<conversa>.json`
+  no temp do SO). Por isso, com a pasta limpa, quem decide é o owner, com um clique (decisão dele, 2026-11-11).
+- A branch atual é lida do `.git/HEAD`, sem rodar o git; "há mudança?" olha só arquivo que o git acompanha.
+- `git checkout <arquivo>`, `git checkout -- <arquivo>` e `git checkout <branch> -- <arquivo>` não são troca.
+- Sem número de conversa não age; **falha ABERTA** (`.git` ilegível, HEAD destacado, defeito → libera).
+- O aviso de uma vez por conversa ao criar branch (memória `feedback_feature_a_partir_da_master`) continua.
+- Escape consciente, só do owner: `MSS_PASTA_BRANCH_OFF=1`. Spec `docs/specs/conversa-nova-nao-se-perde.md`.
 
 ---
 

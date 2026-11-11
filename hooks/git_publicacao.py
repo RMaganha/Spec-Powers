@@ -42,6 +42,11 @@ escape próprio: `MSS_PIPE_TESTE_OFF=1`. Uma cerca não liga nem desliga a outra
 
 5ª cerca, também aqui: **worktree no shell** (0.46.0) — nega `git worktree add` e comando que grava dentro
 de um worktree; escape `MSS_WORKTREE_OFF=1`. As portas do Claude Code ficam no `sem_worktree.py`.
+
+6ª cerca, também aqui: **pasta e branch** (0.59.0, caso F-059) — duas conversas na mesma pasta não trocam a
+branch uma da outra. Criar branch com a pasta fora da principal é negado; trocar numa branch que esta conversa
+não abriu é negado com mudança por commitar e, com a pasta limpa, pede a aprovação do owner. Regra e escape
+(`MSS_PASTA_BRANCH_OFF=1`) em `_pasta_e_branch.py`.
 """
 import json
 import os
@@ -486,6 +491,20 @@ def _decidir_worktree(comando, ambiente, cwd):
     return None, None
 
 
+# ------------------------------------------------------------------ 6ª cerca: pasta e branch (F-059, 0.59.0)
+# Duas conversas na mesma pasta não trocam a branch uma da outra: criar branch fora da principal é negado; trocar
+# numa branch que esta conversa não abriu é negado com mudança por commitar e, com a pasta limpa, vira pedido de
+# aprovação do owner. Regra, estado e escape (`MSS_PASTA_BRANCH_OFF`) em `_pasta_e_branch.py`. Falha ABERTA.
+
+def _decidir_pasta_e_branch(evento, comando, ambiente, cwd):
+    """(tipo, motivo, detalhe) ou (None, None, None)."""
+    try:
+        import _pasta_e_branch as pb
+        return pb.avaliar(_sem_heredoc(comando), cwd, evento.get("session_id"), ambiente)
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, None, None
+
+
 # ------------------------------------------------------------------ 4ª verificação: memória do comando (F-034)
 # Memória com `gatilho_comando:` (regex) vale pro que o assistente vai RODAR — o recall só casa o prompt do owner.
 # Casou → nega UMA vez por sessão com a memória no motivo; repetir o comando passa. Falha ABERTA.
@@ -540,6 +559,10 @@ def avaliar(evento, ambiente=None, git_destino=None):
         motivo_pipe, detalhe_pipe = _decidir_pipe(comando, ambiente)
         if motivo_pipe is not None:                  # negar vence perguntar
             tipo, motivo, detalhe = NEGA, motivo_pipe, detalhe_pipe
+    if tipo != NEGA:
+        tipo_pb, motivo_pb, detalhe_pb = _decidir_pasta_e_branch(evento, comando, ambiente, cwd)
+        if tipo_pb == NEGA or (tipo_pb == PERGUNTA and tipo is None):   # negar vence perguntar
+            tipo, motivo, detalhe = tipo_pb, motivo_pb, detalhe_pb
     if tipo is None:                                 # só quando nenhuma cerca agiu: é aviso, não trava
         motivo_mem, detalhe_mem = _decidir_memoria_do_comando(evento, comando, ambiente)
         if motivo_mem is not None:
