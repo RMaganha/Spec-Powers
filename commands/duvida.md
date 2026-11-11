@@ -30,6 +30,15 @@ que não achou a conversa → rode de novo com a pergunta do owner entre aspas; 
 indisponível, ou nenhuma linha serve → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a
 memória) e a palavra procurada em `memory/` e `docs/`.
 
+**1b. Leitura grande vai pelo ajudante pesquisador — só em três casos.** A pergunta exige ler **outra conversa**,
+**muitos arquivos** (mais de 10 pra abrir sem saber quais importam, ou documento grande que não vai ser editado aqui)
+ou entender **outro assunto** que não é o desta conversa? Chame o subagente `mss-spec:pesquisador`: diga a pergunta e
+por onde começar; ele lê na janela dele e devolve o resumo com `arquivo:linha`. Outra conversa: antes,
+`python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" listar` mostra as conversas deste projeto e
+`python "${CLAUDE_PLUGIN_ROOT}/templates/conversa_texto.py" texto <id ou palavra>` grava a escolhida em texto e
+imprime o caminho — passe esse caminho ao ajudante. **Não é pra toda tarefa:** poucos arquivos se leem aqui mesmo.
+O ajudante não apareceu na lista? Faça a mesma leitura com o subagente genérico, com o mesmo pedido.
+
 **2. Responda com fonte ou diga "não sei".** Cada fato sai de um arquivo aberto nesta janela
 (`arquivo:linha`) ou do que o owner disse. Sem fonte, diga **"não sei"** e diga o que abriria ou
 perguntaria. Responda só o que foi perguntado, do tamanho da pergunta, na língua do owner.

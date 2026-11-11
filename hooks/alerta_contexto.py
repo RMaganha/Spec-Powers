@@ -170,7 +170,7 @@ def mensagens(pct, tokens, janela, limiar):
         "passo em curso; anote o estado em `docs/superpowers/MAPA.md` (onde parou, próximo passo); "
         "o que sobrar — inclusive o 'pra fechar isto preciso entender aquilo' — vai pro "
         "`/mss-spec:to-dolist adicionar <assunto>`; e recomende `/clear` (ou janela nova) antes do "
-        "próximo assunto. Entender algo ainda necessário = subagente, que devolve só o resumo."
+        "próximo assunto. Entender algo ainda necessário = subagente `mss-spec:pesquisador`, que devolve só o resumo."
     )
     pro_owner = (f"[mss-spec] Janela em {numero}. Feche o assunto, anote o estado e rode /clear "
                  f"antes do próximo.")

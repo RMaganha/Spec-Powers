@@ -5,6 +5,10 @@
 
 ## 2026-11-11 — fechadas
 
+- [ajudante pesquisador](../specs/ajudante-pesquisador.md) — ajudante do kit que lê muito e devolve só o resumo — fechada
+
+## 2026-11-11 — fechadas
+
 - [consultar a memória pela ação antes de agir](../specs/memoria-em-tabela.md) — toda anotação que é regra sobre o que o assistente faz ganha o gatilho de ação, cobrado na captura (decisão 24; 0.57.0) — fechada
 
 ## 2026-11-11 — fechadas
