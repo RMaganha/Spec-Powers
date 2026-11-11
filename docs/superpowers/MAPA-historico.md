@@ -4,6 +4,15 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-11 — saiu do MAPA (fecho da `feature/conversa-nova-nao-se-perde`, 0.59.0)
+
+**Onde estávamos:** Branch `feature/consultar-pela-acao` (da `main` em `52b347e`) — **0.57.0 (consultar a memória pela ação, decisão 24) mesclada na `main` em `43b2eae` (2026-11-11); a publicação é do owner**: a captura cobra `gatilho_comando:`/`gatilho_resposta:` (ou `sem_gatilho_de_acao:`) da anotação de regra nova, e 21 anotações do kit ganharam o gatilho (lista aprovada por ele; valem em todo projeto). Spec: `docs/specs/memoria-em-tabela.md` (parte 3). Diário: `memory/sessions/2026-11-11-consultar-pela-acao.md`.
+
+**Do estado seguinte (0.58.0), o detalhe que saiu do MAPA:** o arquivo `agents/pesquisador.md` (só leitura; devolve o resumo com `arquivo:linha`), o script `templates/conversa_texto.py` (outra conversa em texto, em `~/mss-spec/conversas/`) e a regra de quando chamar (outra conversa, muitos arquivos ou outro assunto; nunca em toda tarefa); suíte 1416 verdes. Plano: `docs/superpowers/plans/2026-11-11-ajudante-pesquisador.md`.
+
+**Próximo passo (item feito):**
+1. ✅ **Owner: `git push origin main`** (0.57.0 e 0.58.0) — feito em 2026-11-11 (`git status -sb` disse `## main...origin/main` na abertura da branch da 0.59.0).
+
 ## 2026-11-11 — saiu do MAPA (abertura da branch `feature/consultar-pela-acao`)
 
 **Próximo passo (itens feitos, tirados no fecho da 0.57.0):**

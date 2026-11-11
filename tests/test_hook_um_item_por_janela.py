@@ -596,3 +596,16 @@ def test_segunda_camada_em_prosa():
     readme = (REPO / "hooks" / "README.md").read_text(encoding="utf-8").lower()
     assert "um_item_por_janela.py" in readme and "mss_um_item_off" in readme
     assert "session_id" in readme and "um-item-janelas.json" in readme, "README sem a regra por chat"
+
+# --- 0.59.0: comando do kit dentro de texto colado (caso F-053) ------------------------------------
+
+def test_nova_feature_colado_e_enxergado(tmp_path):
+    """O pedido colado chega como `<pasted_content id="…">` + o comando: o hook tem de ver o `nova-feature`."""
+    raiz = _projeto(tmp_path, INDEX_COM_ABERTA)
+    mod, amb = _mod(), _amb(tmp_path)
+    colado = '<pasted_content id="6303">\n/mss-spec:nova-feature login por SSO\n\ncontexto do pedido\n</pasted_content>'
+    assert mod.decidir(_evento(colado, raiz, sessao="c9"), amb) is None
+    motivo = mod.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c9"), amb)
+    assert motivo is not None and "login por SSO" in motivo, \
+        "o nova-feature colado não ficou registrado como a feature deste chat (F-053)"
+    assert "pasted_content" not in motivo, "a marca do texto colado entrou no nome da feature"

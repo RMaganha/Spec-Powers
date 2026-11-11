@@ -5,6 +5,10 @@
 
 ## 2026-11-11 — fechadas
 
+- [conversa nova não se perde](../specs/conversa-nova-nao-se-perde.md) — a passagem de uma conversa pra outra leva as decisões do owner como decididas, "o kit não aceita" só com arquivo e linha, e duas conversas na mesma pasta não trocam a branch uma da outra — fechada
+
+## 2026-11-11 — fechadas
+
 - [ajudante pesquisador](../specs/ajudante-pesquisador.md) — ajudante do kit que lê muito e devolve só o resumo — fechada
 
 ## 2026-11-11 — fechadas

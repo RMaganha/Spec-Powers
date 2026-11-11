@@ -63,7 +63,9 @@ MOTIVO_CONVERSA = (
     "[mss-spec] BLOQUEADO — abrir, propor ou passar trabalho pra outra conversa a partir desta.\n"
     "O owner abre conversa nova ele mesmo, pelo + — conversa aberta por outra fica pendurada nela na barra "
     "lateral e ele se perde. Entregue o TEXTO PRONTO pra colar (num bloco, completo, com os valores reais: "
-    "o comando do kit, a pasta, a branch e o que ler antes) e pare." + _ESCAPE
+    "o comando do kit, a pasta, a branch e o que ler antes) e pare. O texto leva três partes de título fixo — "
+    "`Já decidido — não reabrir:`, `Falta decidir:` e `Regras desta conversa:` — senão a resposta volta "
+    "(`passagem_de_conversa.py`, caso F-058)." + _ESCAPE
 )
 MOTIVO_CRIACAO_CLAUDE = (
     "[mss-spec] Criação de worktree recusada: o owner não usa worktree. Trabalhe na pasta principal do "

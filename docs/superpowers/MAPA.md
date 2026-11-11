@@ -1,14 +1,15 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/ajudante-pesquisador` (da `main` em `43b2eae`, 0.57.0 já mesclada, 3 commits à frente do GitHub) — **0.58.0 (ajudante pesquisador, decisão 25) pronta em 2026-11-11 e mesclada na `main` com a aprovação do owner; a publicação é dele** (suíte 1416 verdes; confira com `git log --oneline -3` e `git status -sb`): o arquivo `agents/pesquisador.md` (só leitura; devolve o resumo com `arquivo:linha`), o script `templates/conversa_texto.py` (outra conversa em texto, em `~/mss-spec/conversas/`) e a regra de quando chamar (outra conversa, muitos arquivos ou outro assunto; nunca em toda tarefa). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova** (kit carregado pela junção). Spec: `docs/specs/ajudante-pesquisador.md`. Plano: `docs/superpowers/plans/2026-11-11-ajudante-pesquisador.md`.
+Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
 
 <!-- histórico do estado anterior -->
-Branch `feature/consultar-pela-acao` (da `main` em `52b347e`) — **0.57.0 (consultar a memória pela ação, decisão 24) mesclada na `main` em `43b2eae` (2026-11-11); a publicação é do owner**: a captura cobra `gatilho_comando:`/`gatilho_resposta:` (ou `sem_gatilho_de_acao:`) da anotação de regra nova, e 21 anotações do kit ganharam o gatilho (lista aprovada por ele; valem em todo projeto). Spec: `docs/specs/memoria-em-tabela.md` (parte 3). Diário: `memory/sessions/2026-11-11-consultar-pela-acao.md`.
+Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decisão 25) mesclada na `main` e publicada em 2026-11-11** (`0fd5b73`; `git status -sb` disse `## main...origin/main`). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova.** Spec: `docs/specs/ajudante-pesquisador.md`.
 
 ## Próximo passo
-1. ⬜ **Owner: `git push origin main`** (0.57.0 e 0.58.0 mescladas e ainda não publicadas)
-1a. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
+1. ⬜ **Owner: aprovar o merge da `feature/conversa-nova-nao-se-perde` na `main` (0.59.0) e `git push origin main`**
+1a. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
+1b. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
 3. ⬜ **Nos outros projetos, na conversa de cada um: lista das anotações antigas sem gatilho de ação** — `memoria_indice.py fila`; o owner aprova de uma vez. E o caso F-060 (aberto) espera o guardrail.
 4. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
@@ -44,4 +45,4 @@ Branch `feature/consultar-pela-acao` (da `main` em `52b347e`) — **0.57.0 (cons
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-10 (0.54.0 publicada; upgrade do Transportes V2 feito) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-11 (0.59.0 pronta na branch, aguardando o merge do owner) · regenerável com /mss-spec:mapa -->

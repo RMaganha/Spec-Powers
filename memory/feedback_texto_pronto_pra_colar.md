@@ -25,6 +25,11 @@ conserta, com a causa e `arquivo:linha`. Todo fato do texto é conferido agora, 
 é o `/mss-spec:upgrade`". Frase do owner com duas leituras vai verbatim e você pergunta antes de montar o texto.
 Owner: *"não ficou claro o que isso vai fazer e como ele irá consertar, só há um texto para ler e mais nada"*.
 
+**Texto pra conversa nova tem três partes de título fixo (0.59.0, 2026-11-11):** `Já decidido — não reabrir:`
+(numerado, com `arquivo:linha` quando houver), `Falta decidir:` (ou "nada") e `Regras desta conversa:` — e nunca
+"um tópico por vez". O texto de 2026-11-11 pedia isso e não dizia para não reabrir; a conversa que recebeu reabriu 6
+itens decididos (F-058). O hook `hooks/passagem_de_conversa.py` devolve o texto fora do molde e traz o molde.
+
 **How to apply:** vale em qualquer comando que delegue ação a terceiros. No `/mss-spec:azure-ambiente` já mora
 na regra 10 da condução, no texto do aprovador (etapa 6) e no chamado `templates/azure-ambiente/permissoes-infra.md`
 (com o código real da conexão). Parente de [[feedback_comando_pro_owner_passo_a_passo]] (o formato dos comandos

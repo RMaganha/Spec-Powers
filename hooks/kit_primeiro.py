@@ -10,7 +10,8 @@ primeiro". Prosa contra prosa, ganhou a do superpowers. Aqui a cerca é determin
 continua sendo chamado, mas de dentro do comando do kit, no passo certo.
 
 Contrato:
-- `UserPromptSubmit`: prompt que começa com `/mss-spec:` → marca "entrou pelo kit" nesta sessão; calado;
+- `UserPromptSubmit`: prompt que começa com `/mss-spec:` → marca "entrou pelo kit" nesta sessão; calado. O
+  pedido colado conta pelo começo do TEXTO, não da marca `<pasted_content …>` do app (`_prompt.py`, F-053);
 - `PreToolUse` em `Skill`: `mss-spec:*` → marca e libera; `superpowers:*` sem marca → **nega** dizendo a
   porta certa (bug · nova-feature · duvida · analise); qualquer outra skill → libera;
 - `PreToolUse` em `Read`: `commands/<x>.md` do kit → marca (os comandos `disable-model-invocation` —
@@ -36,6 +37,12 @@ try:
     from _registro import registrar as _registrar
 except Exception:                                    # noqa: BLE001
     _registrar = None
+
+try:
+    from _prompt import texto_do_pedido as _pedido
+except Exception:                                    # noqa: BLE001 — sem o módulo, vale o pedido como veio
+    def _pedido(prompt):
+        return prompt if isinstance(prompt, str) else ""
 
 
 def _anotar(decisao, detalhe, evento):
@@ -116,7 +123,8 @@ def decidir(evento, ambiente=None):
         sessao = evento.get("session_id")
         nome_evento = evento.get("hook_event_name")
         if nome_evento == "UserPromptSubmit":
-            if _texto(evento.get("prompt")).lstrip().startswith("/" + PREFIXO_KIT):
+            # o pedido COLADO chega dentro de `<pasted_content …>`: o comando é o começo do texto, não da marca (F-053)
+            if _pedido(evento.get("prompt")).lstrip().startswith("/" + PREFIXO_KIT):
                 marcar(sessao, ambiente, "prompt")
             return None
         if nome_evento != "PreToolUse":
