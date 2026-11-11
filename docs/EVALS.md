@@ -72,6 +72,43 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-061 | 2026-11-11 | quando escrever ou alterar código que lê a conversa gravada pelo app (`.jsonl`) | **leitor de conversa verde no exemplo e errado no real**: a 1ª versão do `templates/conversa_texto.py` reaproveitou o filtro de pedidos da busca e só olhava registro `user` — perdia a fala que o owner digita enquanto o assistente trabalha (anexo de fila; 4 de 6 casos reais), deixava escapar `<private>` com tag dentro ou sem fechar, cortava o que o owner escreve entre `<` e `>` e punha 41 registros do app como fala; 15 testes com conversa de exemplo passavam; quem achou foi a revisão independente rodando o script nas 62 conversas reais, antes do merge | filtro próprio no `conversa_texto.py` (anexo de fila, `origin.kind`, `isCompactSummary`, resposta fabricada, `<private>` primeiro) · memória `project_conversa_gravada_formato` · `tests/test_conversa_texto.py::test_fala_digitada_enquanto_o_assistente_trabalhava_entra` · `::test_aviso_do_app_nao_vira_fala` · `::test_private_nao_escapa_com_tag_dentro_nem_sem_fechar` · `::test_o_que_o_owner_escreveu_entre_sinais_de_menor_e_maior_fica` | fechado |
 | F-062 | 2026-11-11 | quando chamar o ajudante pesquisador (`mss-spec:pesquisador`) para ler outra conversa do projeto | **ajudante chamado sem o texto da conversa gravado antes**: pedi a ele as frases reais das conversas que se perderam apontando os `.jsonl`; ele só lê arquivo, não roda o `templates/conversa_texto.py`, e devolveu "falta o texto das conversas" depois de 2min40 e 75 mil tokens. A regra existia: `docs/specs/ajudante-pesquisador.md` ("quem roda o script é a conversa principal, antes de chamar o ajudante") | prosa — a spec e a descrição do ajudante · sem teste | aberto |
 | F-063 | 2026-11-11 | quando rodar `/mss-spec:memory capturar` no fecho de uma feature | **captura feita sem a varredura da conversa e sem a reconciliação do MAPA (reincidência do caso de 2026-10-21)**: montei os rascunhos de cabeça, o owner aprovou, gravei e commitei; a regra (`memory/feedback_captura_varre_a_conversa_inteira.md`) e o passo 5 do `commands/memory.md` existiam. Só apareceu quando o owner perguntou *"foi executado o /mss-spec:memory capturar"* — e a varredura achou um item tirado do to-dolist como feito sem ter sido conferido | prosa — a memória e o passo do comando · sem teste | aberto |
+| F-064 | 2026-11-11 | quando conferir, numa conversa, a entrega que outra conversa fez ou está fazendo na mesma pasta | **suíte rodada na pasta em uso por outra conversa, e o pedido respondido com outra coisa**: o owner pediu "ver se está OK" e o texto da próxima etapa; rodei a suíte inteira enquanto a outra conversa fazia o merge (35 falhas falsas na troca de branch), tentei rodar de novo e fui interrompido | conferência de entrega de outra conversa = só leitura, usando o resultado que ela registrou; nada roda com a pasta em uso — memória `feedback_conferir_entrega_de_outra_conversa_so_lendo` | aberto |
+| F-065 | 2026-11-11 | quando entregar ao owner os textos prontos das próximas conversas | **7 textos de uma vez, sem explicar cada item, e mandando a conversa nova reler tudo**: o owner não entendeu 3 dos itens e a conversa que recebeu um dos textos releu spec, dossiê, hooks e falhas antes de mostrar a decisão que vetava o desenho | um texto por vez, com o item explicado em português simples antes, e leitura mínima no texto — nota de 2026-11-11 em `feedback_texto_pronto_pra_colar`; molde de três partes da 0.59.0 | aberto |
+| F-066 | 2026-11-11 | quando rodar a captura de uma sessão em que o owner tomou decisões sobre o que fazer | **captura sem o principal (mesmo padrão do F-063)**: a 1ª captura listou 17 itens (falhas, anotações, pendências) e deixou fora as decisões do owner sobre o que construir; e o último terço da conversa (conferências, teste no DeRe, decisão 24) ficou sem registro até ele pedir | as decisões do que fazer vêm primeiro e num registro só (a spec do assunto); conversa longa se captura por varredura do texto inteiro, com ajudante — nota de 2026-11-11 em `feedback_captura_varre_a_conversa_inteira` | aberto |
+
+### F-066 — captura sem as decisões do que fazer e sem o último terço da conversa (aberto)
+
+- **Falhou:** na 1ª captura da conversa da memória em tabela mostrei 17 itens e o owner respondeu: *"está faltando
+  gravar o principal tudo que decidimos em relação ao que fazer , isso é terrível e desgastante"*. No fim, pediu a
+  captura de novo: *"nada aqui deve ficar de fora, pois foi onde decidimos tudo!!"*.
+- **Verdade:** as decisões estavam espalhadas no dossiê, no meio das medições; viraram dois registros (25 de
+  memória, 6 de conferência). A varredura do texto inteiro da conversa (122 falas, por ajudante) achou 83 itens: 63
+  gravados, 8 pela metade e 12 faltando — quase todos do último terço.
+- **Guardrail:** prosa — a nota na memória da captura. O conserto de verdade é o item do `to-dolist.md` ("conversa
+  longa: capturar aos poucos").
+- **Teste:** nenhum — é conduta de captura.
+
+### F-065 — sete textos prontos de uma vez, sem explicar, mandando reler tudo (aberto)
+
+- **Falhou:** o owner pediu a conferência e "os prompts das próximas tarefas"; entreguei 7 blocos de texto seguidos.
+  Ele: *"Esse monte de prompt é das decisões que fechamos nessa conversa??? O item 1 ,2 e 4 não entendi nada!!!"*. E
+  sobre a conversa que recebeu um deles: *"ele rele tudo para todo lado!!! parece que de nada adiantou"*.
+- **Verdade:** ele só precisa de um texto por vez, e de entender o item antes (o formato "Hoje · O que muda · O que
+  você ganha" resolveu). Os textos mandavam ler spec e dossiê inteiros; a conversa nova obedeceu.
+- **Guardrail:** prosa — a nota na memória do texto pronto; o molde de três partes da 0.59.0 já cobra o "não reabrir".
+- **Teste:** nenhum — é conduta de resposta.
+
+### F-064 — suíte rodada na pasta que outra conversa usava; pedido respondido com outra coisa (aberto)
+
+- **Falhou:** o owner pediu: *"a parte 2 terminou, consegue ver se está OK, e se estiver qual o prompt para a próxima
+  etapa"*. Rodei a suíte inteira na mesma pasta; a outra conversa trocou de branch pra fazer o merge no meio e saíram
+  35 falhas falsas. Ele: *"eu pedi uma coisa vc fez outra NOVAMENTE, interferiu na outra suite"*; depois: *"não tem
+  pq rodar aqui é gastar token a toa"*; e *"é terrível isso 02 a 03 chats abertos para tocar uma feature"*.
+- **Verdade:** a conversa que entrega já roda a suíte e registra o resultado; quem confere lê o git, a spec e esse
+  registro. Antes, no mesmo dia, as duas conversas já tinham trocado a branch uma da outra (F-059).
+- **Guardrail:** prosa — a memória da linha. O custo de manter uma conversa só pra conferir a outra é item do
+  `to-dolist.md`.
+- **Teste:** nenhum — é conduta.
 
 ### F-063 — captura sem a varredura da conversa e sem o MAPA (aberto)
 

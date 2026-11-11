@@ -134,7 +134,7 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 25. **Ajudante pesquisador:** lê muito e devolve só o resumo; usado só nesse papel, escrito do zero no kit.
     Spec própria: `docs/specs/ajudante-pesquisador.md`.
 
-**Ordem que o owner fixou:** tabela (feita) → busca (parte 2) → comando guardado inteiro → consultar pela ação
+**Ordem que o owner fixou, e como andou:** tabela (0.55.0) → busca (0.56.0) → comando guardado inteiro (**pulado pelo owner em 2026-11-11; segue aberto**, item 8 do INDEX) → consultar pela ação
 (fechada em 2026-11-11 como ampliação do gatilho de ação) → ajudante pesquisador. **Depois** vem a conferência antes de entregar
 (`docs/specs/conferencia-antes-de-entregar.md`).
 
@@ -221,6 +221,16 @@ os N primeiros:
   decisão é do owner.
 - Tempo, neste projeto, com os padrões: conferência com nada mudado 0,5 a 0,8 s (abertura, gravação e busca);
   `buscar` inteiro 1,0 s; a primeira busca depois de arquivos mudados 1,8 s.
+- **Régua refeita pela conversa da análise, com os dados dela (655 pedidos, 2026-11-11):** 44,0% entre os 10 (jeito
+  de antes 10,4%); nas duas metades, 45,0% e 42,9%; situação → regra 86,4% contra 75,8% (66 casos); descrição →
+  anotação 91,8%. Confirma a medição acima.
+- **Primeira prova ao vivo fora do kit (2026-11-11, projeto DeRe):** conversa nova aberta lá, sem `upgrade` e sem
+  comando — a tabela ganhou 54 linhas do DeRe (7 anotações, 13 decisões, 3 diários, 27 trechos de documentos, 4 de
+  mapa), sem misturar com as 845 do kit.
+- **Em português simples, pro owner** (ele perguntou três vezes): não existem duas memórias — existe o arquivo; a
+  tabela é só o índice pra achar mais rápido. Em outro projeto: basta abrir uma conversa nova (o projeto precisa ter
+  a pasta `memory/`; não precisa de `upgrade`). Mudou uma anotação: a tabela acompanha sozinha. Se divergirem, vale
+  o arquivo. A conversa em si não vai pra tabela — só o que a captura grava em arquivo.
 - **Limites ditos ao owner:** o gabarito tem o mesmo ruído de antes (o "certo" é o arquivo aberto ou citado na
   resposta); mais da metade dos pedidos ainda não acha entre os 10; a saída das 30 linhas deu 8,6 KB numa busca
   real desta conversa (o dossiê estimava 4,7 KB); o ganho de o assistente escolher entre as 30 continua vindo
@@ -245,8 +255,10 @@ Tudo em leitura, com roteiros descartáveis fora do repositório (os dados são 
   2,2%.
 - **Limites:** dois gatilhos passam de 3,3% das respostas contando toda ocorrência ("N verdes" 6,3%, "quer que
   eu…?" 5,1%) — como agem uma vez por sessão, devolvem em 2,1% e 1,9%; as amostras lidas mostram acerto
-  desigual (pedir evidência pega passo de roteiro; "acha melhor" pega frase comum); nenhum gatilho foi visto
-  disparar em uso real ainda.
+  desigual (pedir evidência pega passo de roteiro; "acha melhor" pega frase comum); o primeiro gatilho visto
+  em uso real disparou em 2026-11-11, na conversa da análise: a anotação "rode a peça com os padrões antes de dizer
+  pronto" devolveu uma resposta que dizia "está OK" só pela leitura, e o gatilho da regra de branch barrou uma vez
+  um `git switch -c`.
 - **Como se mede depois** (o que o owner pediu): (a) cobertura — 26 de 75 no kit; (b) uso — quantas vezes cada
   gatilho disparou, por anotação, no registro local dos hooks (`python hooks/_registro.py resumo`); (c) a cada
   falha nova do tipo "a regra existia e não foi usada" em `docs/EVALS.md`: a anotação tinha gatilho? ele

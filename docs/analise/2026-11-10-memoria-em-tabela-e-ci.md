@@ -204,7 +204,7 @@ dos temas 1 a 3 da seção 3.
 | 1º | Comando guardado inteiro | Comando ou SQL que o owner vai rodar de novo é gravado completo; senha continua escondida | o caso do Whats não se repete |
 | 2º | Tabela SQLite única | Tudo o que é memória numa tabela (coluna "tipo"); documentos grandes por seção; dono e data; comando que remonta + procedimento na memória do projeto | acervo completo; remontar em segundos |
 | 3º | Busca | Usa o contexto da conversa; devolve 30 linhas curtas, anotações e documentos separados; o assistente escolhe quais abrir | régua da seção 4.2: não piorar; alvo K3 ≥ 41% entre 10 |
-| 4º | Consultar pela ação | Antes de agir, o assistente busca pelo que vai fazer | **owner ainda não disse sim ou não**; só se prova em uso |
+| 4º | Consultar pela ação | Antes de agir, o assistente busca pelo que vai fazer | **fechado pelo owner em 2026-11-11** como ampliação do gatilho de ação (0.57.0); só se prova em uso |
 | 5º | Ajudante pesquisador | Lê muito e devolve só o resumo | — |
 
 ### Passo 2 — Conferência antes de entregar
@@ -296,6 +296,100 @@ Não abra outra frente: o resto da fila está em docs/superpowers/INDEX.md (iten
 a cada apontamento de revisor (item com origem: quem, onde, quando), e o assistente passa a mudança por ela
 antes de dizer "pronto para entregar". Origem: docs/analise/2026-11-10-memoria-em-tabela-e-ci.md, seções 1 e 7.
 O ajudante revisor é a janela seguinte. Nada do MSIG_Agentes é usado ou copiado.
+```
+
+### Textos revistos em 2026-11-11 — valem ESTES para os itens que ainda faltam
+
+Os textos acima dos itens "comando inteiro" e "conferência antes de entregar" ficaram velhos. Abaixo, os quatro que
+faltam, no molde de três partes da 0.59.0. **Um por vez**, cada um numa conversa nova: **digite** o comando indicado
+e um espaço, e cole o texto. Antes de entregar um texto ao owner, explique o item em português simples ("Hoje · O
+que muda · O que você ganha") — caso F-065.
+
+**Comando guardado inteiro** — digite `/mss-spec:tarefa` e cole:
+
+```text
+Comando guardado inteiro.
+
+Já decidido — não reabrir:
+1. Quando uma anotação ou diário citar um comando ou SQL que eu vou rodar de novo, ele é gravado completo,
+   nunca cortado com reticências (decisão 23 de docs/specs/memoria-em-tabela.md).
+2. Senha e credencial continuam escondidas.
+3. Nada do MSIG_Agentes é usado ou copiado.
+
+Falta decidir:
+- nada.
+
+Regras desta conversa:
+- Leia só a decisão 23 da spec e a seção 4.7 de docs/analise/2026-11-10-memoria-em-tabela-e-ci.md.
+- Mostre em lista única só as suas escolhas (onde a regra entra e como vai provar) e siga depois do meu OK.
+- Se algo do kit parecer proibir, mostre a regra com arquivo e linha e me pergunte.
+- Português simples, resultado na primeira linha, respostas breves. Faça só este item.
+```
+
+**Lista de conferência antes de entregar** — digite `/mss-spec:nova-feature` e cole:
+
+```text
+Conferência antes de entregar — a lista.
+
+Já decidido — não reabrir:
+1. Cada projeto tem a sua lista de conferência, que cresce a cada apontamento de revisor; cada item guarda a
+   origem: quem apontou, onde e quando (decisão 2 de docs/specs/conferencia-antes-de-entregar.md).
+2. O assistente confere a mudança pela lista antes de dizer "pronto para entregar" (decisão 3).
+3. Conferir é rever com mais de um caso, não passar uma vez (decisão 6).
+4. O ajudante revisor é a conversa seguinte, não esta. Nada do MSIG_Agentes é usado ou copiado.
+
+Falta decidir:
+- Como os apontamentos do revisor chegam em cada projeto (Azure DevOps, GitHub, ou eu colando o texto).
+
+Regras desta conversa:
+- Leia só docs/specs/conferencia-antes-de-entregar.md.
+- Mostre em lista única só as suas escolhas; pergunte de uma vez, no fim, o que só eu decido; siga depois do meu OK.
+- Se algo do kit parecer proibir, mostre a regra com arquivo e linha e me pergunte.
+- Português simples, resultado na primeira linha, respostas breves. Faça só este item.
+```
+
+**Ajudante revisor** — depende da lista de conferência já entregue; digite `/mss-spec:nova-feature` e cole:
+
+```text
+Ajudante revisor.
+
+Já decidido — não reabrir:
+1. Um ajudante do kit confere a mudança pela lista de conferência do projeto, com olhos de quem não escreveu o
+   código (decisão 4 de docs/specs/conferencia-antes-de-entregar.md).
+2. É usado só nesse momento, antes de entregar; nunca em toda tarefa.
+3. Só lê: não grava arquivo nem roda comando, como o ajudante pesquisador (docs/specs/ajudante-pesquisador.md).
+4. Escrito do zero no kit. Nada do MSIG_Agentes é usado ou copiado.
+
+Falta decidir:
+- nada.
+
+Regras desta conversa:
+- Leia só docs/specs/conferencia-antes-de-entregar.md e o "Estado atual" de docs/specs/ajudante-pesquisador.md.
+- Mostre em lista única só as suas escolhas e siga depois do meu OK.
+- Se algo do kit parecer proibir, mostre a regra com arquivo e linha e me pergunte.
+- Português simples, resultado na primeira linha, respostas breves. Faça só este item.
+```
+
+**Teste automático do kit** — só depois de o owner escolher entre GitLab e GitHub; digite `/mss-spec:nova-feature`,
+cole e complete a primeira linha da lista:
+
+```text
+Teste automático do kit a cada publicação.
+
+Já decidido — não reabrir:
+1. Onde roda: (escreva aqui: GitHub ou GitLab). A decisão de 2026-07-20 em docs/decisoes.md escolheu GitLab; se
+   eu escrevi GitHub, estou revendo aquela decisão — registre isso.
+2. A cada publicação a suíte do kit roda sozinha e avisa se algum teste falhou (decisão 5 de
+   docs/specs/conferencia-antes-de-entregar.md).
+
+Falta decidir:
+- nada.
+
+Regras desta conversa:
+- Leia só docs/specs/conferencia-antes-de-entregar.md e a linha de 2026-07-20 de docs/decisoes.md.
+- Mostre em lista única só as suas escolhas e siga depois do meu OK.
+- Se algo do kit parecer proibir, mostre a regra com arquivo e linha e me pergunte.
+- Português simples, resultado na primeira linha, respostas breves. Faça só este item.
 ```
 
 ## 10. Lacunas
