@@ -1,13 +1,13 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/ajudante-pesquisador` (da `main` em `43b2eae`, 0.57.0 já mesclada, 3 commits à frente do GitHub) — **0.58.0 (ajudante pesquisador, decisão 25) pronta em 2026-11-11; o merge na `main` depende da aprovação do owner e a publicação é dele** (suíte 1416 verdes; confira com `git log --oneline -3` e `git status -sb`): o arquivo `agents/pesquisador.md` (só leitura; devolve o resumo com `arquivo:linha`), o script `templates/conversa_texto.py` (outra conversa em texto, em `~/mss-spec/conversas/`) e a regra de quando chamar (outra conversa, muitos arquivos ou outro assunto; nunca em toda tarefa). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova** (kit carregado pela junção). Spec: `docs/specs/ajudante-pesquisador.md`. Plano: `docs/superpowers/plans/2026-11-11-ajudante-pesquisador.md`.
+Branch `feature/ajudante-pesquisador` (da `main` em `43b2eae`, 0.57.0 já mesclada, 3 commits à frente do GitHub) — **0.58.0 (ajudante pesquisador, decisão 25) pronta em 2026-11-11 e mesclada na `main` com a aprovação do owner; a publicação é dele** (suíte 1416 verdes; confira com `git log --oneline -3` e `git status -sb`): o arquivo `agents/pesquisador.md` (só leitura; devolve o resumo com `arquivo:linha`), o script `templates/conversa_texto.py` (outra conversa em texto, em `~/mss-spec/conversas/`) e a regra de quando chamar (outra conversa, muitos arquivos ou outro assunto; nunca em toda tarefa). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova** (kit carregado pela junção). Spec: `docs/specs/ajudante-pesquisador.md`. Plano: `docs/superpowers/plans/2026-11-11-ajudante-pesquisador.md`.
 
 <!-- histórico do estado anterior -->
 Branch `feature/consultar-pela-acao` (da `main` em `52b347e`) — **0.57.0 (consultar a memória pela ação, decisão 24) mesclada na `main` em `43b2eae` (2026-11-11); a publicação é do owner**: a captura cobra `gatilho_comando:`/`gatilho_resposta:` (ou `sem_gatilho_de_acao:`) da anotação de regra nova, e 21 anotações do kit ganharam o gatilho (lista aprovada por ele; valem em todo projeto). Spec: `docs/specs/memoria-em-tabela.md` (parte 3). Diário: `memory/sessions/2026-11-11-consultar-pela-acao.md`.
 
 ## Próximo passo
-1. ⬜ **Owner: aprovar o merge da `feature/ajudante-pesquisador` na `main` (0.58.0) e fazer o `git push origin main`** (a 0.57.0 também ainda não foi publicada)
+1. ⬜ **Owner: `git push origin main`** (0.57.0 e 0.58.0 mescladas e ainda não publicadas)
 1a. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
 3. ⬜ **Nos outros projetos, na conversa de cada um: lista das anotações antigas sem gatilho de ação** — `memoria_indice.py fila`; o owner aprova de uma vez. E o caso F-060 (aberto) espera o guardrail.
