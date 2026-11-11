@@ -222,4 +222,19 @@
 - `test_listar_*` (2) / `test_achar_por_comeco_do_id_por_caminho_e_por_palavra` / `test_palavra_que_tambem_e_comeco_de_id_traz_as_duas` / `test_pasta_das_conversas_pelo_caminho_do_projeto` — achar a conversa
 - `test_cli_*` (5) — a linha de comando: listar, texto, mais de uma ou nenhuma (sai com 1), sem a pasta (sai com 2), caminho direto, conversa sem fala
 
-**Último 100% verde:** 2026-11-11 · branch feature/ajudante-pesquisador (ajudante pesquisador) · commit 94b4181 · 1416 passed
+`tests/test_hook_passagem_de_conversa.py` — conversa nova não se perde (0.59.0; `hooks/passagem_de_conversa.py`, casos F-058 e F-053):
+- `test_le_os_itens_decididos_do_pedido_real` / `test_formas_do_titulo` (5) / `test_pedido_colado_tambem` / `test_pedido_sem_lista_decidida_nao_tem_itens` / `test_pedido_com_decididos_entrega_a_regra_so_ao_assistente` — o pedido real da conversa do F-058: os 6 itens sob `O que eu já decidi`, a linha de continuação, o fim da lista, e a regra entregue só ao assistente
+- `test_resposta_real_do_f058_volta` / `test_sem_decididos_o_topico_a_topico_passa` / `test_resposta_real_que_deu_certo_sai` / `test_perguntas_de_uma_vez_no_fim_saem` — as duas respostas reais: a que reabriu tópico a tópico volta; a lista única sai
+- `test_pergunta_que_repete_item_decidido_volta` / `test_perguntas_espalhadas_pelo_meio_voltam` / `test_devolve_uma_vez_por_tipo_na_conversa` — pergunta que repete item, perguntas espalhadas, e cada conferência age uma vez por conversa
+- `test_recusa_sem_regra_e_sem_pergunta_volta` (6) / `test_recusa_com_regra_e_pergunta_sai` / `test_recusa_so_com_regra_ainda_volta` / `test_o_que_nao_e_recusa_passa` (9) — "o kit não aceita / o hook negou" só com `arquivo:linha` e pergunta; "Nada no kit proíbe", "nunca bloqueou", aspas, bloco e citação passam
+- `test_texto_pronto_sem_as_tres_partes_volta_com_o_molde` / `test_texto_pronto_com_as_tres_partes_sai` / `test_texto_pronto_com_um_topico_por_vez_volta` / `test_o_molde_do_proprio_hook_e_um_texto_valido` / `test_o_que_nao_e_texto_pronto_de_passagem_passa` (3) — quem entrega
+- `test_stop_hook_active_deixa_sair` / `test_escape_do_owner` / `test_entrada_malformada_libera` (7) / `test_conversas_sao_independentes` / `test_processo_*` (3) / `test_registro_guarda_que_devolveu_sem_o_texto` — garantias e o contrato do processo (JSON `block` + saída 0; contexto sem `systemMessage`)
+- em `tests/test_hook_kit_primeiro.py` e `tests/test_hook_um_item_por_janela.py`: `test_comando_colado_conta_como_entrada` / `test_comando_citado_no_meio_do_colado_nao_conta` / `test_nova_feature_colado_e_enxergado` — o comando do kit dentro de `<pasted_content …>` (F-053)
+
+`tests/test_hook_pasta_e_branch.py` — duas conversas na mesma pasta não trocam a branch uma da outra (0.59.0; `hooks/_pasta_e_branch.py`, 6ª cerca do `git_publicacao.py`, caso F-059):
+- `test_criar_branch_na_principal_passa` / `test_branch_que_a_conversa_abriu_e_dela` / `test_outra_conversa_nao_herda_a_branch` — na principal ou na branch que a conversa abriu, passa; outra conversa não herda
+- `test_caso_f059_criar_branch_na_branch_de_outra_conversa_e_negado` / `test_criar_dizendo_que_sai_da_principal_vira_troca` / `test_trocar_com_mudanca_pendente_e_negado` / `test_trocar_com_a_pasta_limpa_pergunta_ao_owner` / `test_sem_saber_se_ha_mudanca_pergunta` — a sequência real do F-059; mudança por commitar nega; pasta limpa pede a aprovação do owner
+- `test_nao_e_troca_de_branch` (11) / `test_powershell_tambem` / `test_git_c_e_cd_apontam_a_pasta` — `git checkout <arquivo>` e texto de mensagem não são troca; `-C` e `cd`
+- `test_sem_numero_de_conversa_nao_age` / `test_escape_do_owner` / `test_pasta_sem_git_ou_head_solto_libera` / `test_o_hook_nega_e_pergunta` / `test_merge_aprovado_nao_perde_a_pergunta` / `test_processo_com_git_de_verdade` / `test_documentado_no_readme_e_na_spec` — garantias, dentro do hook e com repositório git real (`ask` sai 0; `deny` sai 2)
+
+**Último 100% verde:** 2026-11-11 · branch feature/conversa-nova-nao-se-perde (conversa nova não se perde) · commit 0d10b8c · 1501 passed
