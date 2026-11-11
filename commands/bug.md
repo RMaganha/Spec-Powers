@@ -19,8 +19,7 @@ bug aqui**: anote o estado no `docs/superpowers/MAPA.md`, ofereça `/mss-spec:to
 <bug>` e mande abrir janela nova.
 
 **1. O que a memória já diz — antes da 1ª hipótese.** Leia o destilado nesta ordem:
-`docs/superpowers/MAPA.md` → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` →
-a memória) → `docs/EVALS.md` (a falha já aconteceu?) → `docs/decisoes.md` e a spec viva do assunto
+`docs/superpowers/MAPA.md` → **a busca na memória** (passo 1a) → `docs/EVALS.md` (a falha já aconteceu?) → `docs/decisoes.md` e a spec viva do assunto
 (`docs/specs/<assunto>.md`) → **`memory/DIARIO.md`** (as entradas dos **últimos 7 dias**: o que já foi
 conversado e o que ficou aberto; abra o `memory/sessions/<data>-<assunto>.md` só se o assunto bater) → e,
 se o sintoma cita **local, homologação, produção, servidor, variável ou App Setting**, a seção daquele
@@ -31,6 +30,15 @@ inteira. Mostre ao owner
 sistema funciona ali, casos parecidos, decisões que valem. Nada achado? Diga isso em uma linha. Só
 depois disso vem hipótese. **O recall apontou um `PROCEDIMENTO`?** Leia-o **inteiro** e siga na ordem,
 anunciando `Seguindo [[slug]] — passo k/N`; no fim, feitos × pendentes (inclusive os de terceiros).
+
+**1a. Busca na memória — a tabela primeiro.** Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" buscar`
+(sem texto: ele usa o relato do owner e os 3 pedidos anteriores desta conversa, palavra por palavra — **não resuma o
+pedido**; se a variável não resolveu, ache o script no clone do kit como o `doctor` faz no check 1). Vêm até 30 linhas
+curtas em dois blocos — **Anotações** e **Documentos** —, cada uma com `arquivo:linha`: leia as linhas e **abra só as
+que servem**. A tabela se atualiza sozinha; não há nada pra montar antes. **Se precisar, nos arquivos:** o comando disse
+que não achou a conversa → rode de novo com o relato do owner entre aspas; saiu sem achado, com a tabela indisponível,
+ou nenhuma linha serve → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) e a
+palavra procurada em `memory/` e `docs/`.
 
 **1b. Solução conhecida vem primeiro.** Se o que você leu descreve o **mesmo sintoma** (mesma mensagem
 de erro, mesma tela, mesmo passo) e traz contorno ou correção, a resposta **abre com esse contorno em 1 a

@@ -186,6 +186,20 @@
 - `test_dono_e_data_vem_da_criacao_no_git` / `test_ignorado_pelo_git_fica_fora` / `test_arquivo_novo_ainda_nao_commitado_entra_e_vira_pendencia` / `test_projeto_sem_git_segue_sem_erro` — `git init` de verdade em `tmp_path`
 - `test_status_*` (3) e `test_cli_*` (3) — tabela ausente/desatualizada avisa e diz como remontar; a CLI roda **com os padrões** (pasta do usuário trocada por variável de ambiente)
 - `test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2` / `test_arquivo_grande_demais_fica_fora_e_vira_pendencia` / `test_pasta_com_espaco_e_acento` — os casos de risco: tabela aberta no DBeaver, arquivo acima do teto, caminho como o do Whats
-- `test_comando_memory_oferece_o_modo_tabela` / `test_procedimento_de_troca_de_maquina_esta_na_memoria_do_kit` — ligação ao `/mss-spec:memory` e ao procedimento na memória do kit
+- `test_comando_memory_guarda_o_modo_tabela_fora_da_vista_do_owner` / `test_procedimento_de_troca_de_maquina_esta_na_memoria_do_kit` — o modo `tabela` fora da descrição e da ajuda (0.56.0), o texto de uso interno e o procedimento na memória do kit
 
-**Último 100% verde:** 2026-11-11 · branch feature/memoria-em-tabela (memória em tabela, parte 1) · commit db28bf7 · 1289 passed
+`tests/test_memoria_tabela_busca.py` — a busca usa a tabela e a tabela se atualiza sozinha (0.56.0; decisões 13 a 22 da spec):
+- `test_atualizar_*` (5) / `test_linha_de_controle_e_uma_por_projeto_e_nao_conta_como_memoria` / `test_tabela_da_parte_1_sem_linha_de_controle_e_conferida_uma_vez` / `test_arquivo_ignorado_pelo_git_que_muda_nao_vira_remontagem_sem_fim` / `test_montar_do_zero_segue_trazendo_dono_e_data_de_tudo` / `test_trocar_o_nome_do_projeto_e_visto_pela_conferencia` — conferência rápida: em dia não lê arquivo nem chama o git; mudado, novo e apagado entram; o git só é perguntado pelo que mudou
+- `test_buscar_*` (5) / `test_palavra_longa_casa_pelo_comeco_e_acento_nao_atrapalha` / `test_contexto_da_conversa_entra_na_busca` / `test_pedido_sem_palavra_util_ou_com_simbolos_nao_da_erro` — 30 linhas de 30 arquivos, só o projeto da janela, a linha de controle nunca aparece, tabela ausente dá erro tratável
+- `test_formatar_*` (2) — dois blocos (Anotações · Documentos), título até 80 e trecho até 170 letras
+- `test_pedidos_da_conversa_*` (3) / `test_o_pedido_atual_entra_mesmo_curto_e_o_curto_do_meio_fica_fora` / `test_arquivo_da_conversa_vem_do_numero_da_sessao` — o último pedido + os 3 anteriores, cortados em 600; texto colado conta, corpo de comando e de skill não
+- `test_cli_buscar_*` (7) — a linha de comando **com os padrões**: monta a tabela, usa a conversa, vê o arquivo mudado por fora, sai com 1 ou 2 mandando ir nos arquivos
+- `test_as_tres_portas_buscam_na_tabela_e_tem_os_arquivos_como_reserva` / `test_memory_buscar_usa_a_tabela_e_cai_no_indice_se_precisar` / `test_ninguem_manda_o_owner_montar_a_tabela` — prosa das portas e do `/mss-spec:memory`
+
+`tests/test_hook_memoria_tabela_em_dia.py` — o hook que mantém a tabela em dia (0.56.0; `hooks/memoria_tabela_em_dia.py`):
+- `test_abertura_*` (3) / `test_segundo_projeto_na_mesma_tabela_tambem_e_montado_na_abertura` — abertura da conversa: monta na hora (recado só pro assistente), em dia fica calada, arquivo mudado por fora entra
+- `test_gravou_*` (2) / `test_gravacao_fora_do_alcance_nao_mexe_em_nada` / `test_caminho_relativo_e_resolvido_pela_raiz_do_projeto` / `test_a_raiz_e_a_do_projeto_da_janela_nao_a_pasta_do_evento` — depois de gravar: só `.md`/`.html` de `memory/`, `docs/` e os soltos deste projeto
+- `test_projeto_sem_pasta_memory_nao_ganha_tabela` / `test_escape_do_owner_desliga` / `test_tabela_presa_nao_trava_a_abertura_e_manda_buscar_nos_arquivos` / `test_evento_torto_nunca_levanta` / `test_copias_das_constantes_sao_iguais_as_do_motor` — quando não age e a falha aberta
+- `test_processo_*` (2) / `test_hook_ligado_na_abertura_e_depois_de_gravar_e_documentado` — como processo, com os padrões, e a ligação no `hooks/hooks.json` e no README
+
+**Último 100% verde:** 2026-11-11 · branch feature/memoria-em-tabela-parte-2 (memória em tabela, parte 2) · commit bb1cfaf · 1341 passed

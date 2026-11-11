@@ -14,12 +14,21 @@ seja lida antes.
 ## O trilho
 
 **1. Leia o destilado antes de responder**, nesta ordem: `docs/superpowers/MAPA.md` →
-`memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a memória) →
+**a busca na memória** (passo 1a) →
 `docs/specs/<assunto>.md` (o "Estado atual") → `docs/decisoes.md` → **`memory/DIARIO.md`** (as entradas
 dos **últimos 7 dias**; o `memory/sessions/…` só se o assunto bater) → e, se a pergunta cita **local,
 homologação, produção, servidor, variável ou App Setting**, a seção daquele ambiente em
 **`docs/AMBIENTES.md`**. Faltou? Abra o código que responde. Abra só o que o gatilho apontar, nunca a
 pasta inteira.
+
+**1a. Busca na memória — a tabela primeiro.** Rode `python "${CLAUDE_PLUGIN_ROOT}/templates/memoria_tabela.py" buscar`
+(sem texto: ele usa a pergunta do owner e os 3 pedidos anteriores desta conversa, palavra por palavra — **não resuma o
+pedido**; se a variável não resolveu, ache o script no clone do kit como o `doctor` faz no check 1). Vêm até 30 linhas
+curtas em dois blocos — **Anotações** e **Documentos** —, cada uma com `arquivo:linha`: leia as linhas e **abra só as
+que servem**. A tabela se atualiza sozinha; não há nada pra montar antes. **Se precisar, nos arquivos:** o comando disse
+que não achou a conversa → rode de novo com a pergunta do owner entre aspas; saiu sem achado, com a tabela
+indisponível, ou nenhuma linha serve → `memory/MEMORY.md` (o gatilho que bate → `memory/indice/<família>.md` → a
+memória) e a palavra procurada em `memory/` e `docs/`.
 
 **2. Responda com fonte ou diga "não sei".** Cada fato sai de um arquivo aberto nesta janela
 (`arquivo:linha`) ou do que o owner disse. Sem fonte, diga **"não sei"** e diga o que abriria ou

@@ -305,3 +305,22 @@ O ajudante revisor é a janela seguinte. Nada do MSIG_Agentes é usado ou copiad
 - O gabarito K3 depende de as conversas ainda estarem em `~/.claude/projects/` (pasta volátil).
 - A classificação das 172 falhas é por palavra-chave.
 - Energy e DeRe não entraram no teste.
+
+## 11. Régua da parte 2 — o código entregue (2026-11-11)
+
+Os números das seções 4.2 a 4.6 são do **código de teste**. Na parte 2 (0.56.0) a régua foi rodada de novo, duas
+vezes, com o **código entregue** (`templates/memoria_tabela.py`: `montar` e `buscar`), pelo roteiro
+`regua_parte2.py` desta pasta (antes dele: `mesa2.py garimpar`, numa cópia fora do repositório).
+
+| Gabarito (entre os 10) | Casos | Jeito de antes | Tabela entregue |
+|---|---|---|---|
+| K3 pedido real → arquivo (1ª medição) | 664 | 10,7% | 43,8% |
+| K3, pedidos filtrados como o código entregue filtra (2ª) | 675 | 12,0% | 47,7% |
+| K1 situação → regra | 64 | 78,1% | 89,1% |
+| K2 descrição → anotação | 233 | — | 91,8% |
+
+Repete nas duas metades dos casos (42,3% e 45,3%; 47,6% e 47,8%). Entre os 30: 66,4% e 67,4%. Aviso de 3 anotações,
+entre os 3 primeiros (antes × tabela): kit 8,8% e 9,3% × 21,9% e 25,3%; Whats 4,3% e 4,5% × 23,6% e 24,8%; MSS-UTILS
+20,3% e 23,0% × 16,9% e 24,6% — empate, e em 1º lugar o jeito de antes ganha. O que continua sem prova: o ganho de
+o assistente escolher entre as 30 (segue nos 60 casos da 4.6), cruzar projetos, busca por significado e busca só por
+termo. Detalhe e limites: `docs/specs/memoria-em-tabela.md`, "Conferido no real — parte 2".

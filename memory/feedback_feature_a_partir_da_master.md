@@ -27,3 +27,9 @@ que o owner ainda não tinha juntado na `main` — a branch nova nasceu da featu
 antes de gravar qualquer arquivo, apaguei a branch vazia e pedi o merge antes. Conferência que pega isso:
 **antes do `git checkout -b`, `git status -sb` tem de dizer `## main...origin/main`**; se disser outra
 branch, a anterior ainda não foi integrada — peça o merge com o passo a passo, não ramifique.
+
+**Reincidiu (2026-11-11, caso F-059):** rodei `git status -sb && git switch -c …` num comando só — a conferência
+existia e eu não li a saída antes de trocar. A pasta estava na branch de outra conversa, com mudança por commitar; o
+commit dela caiu na minha branch. **O status vai num comando, sozinho; lê-se a saída; só então a troca vai em outro
+comando.** Pasta fora da principal, ou com mudança que não é minha → parar e perguntar ao owner, sem mover nada. E
+se outra conversa está usando a pasta, não "devolver" por conta própria: cada troca a mais corre contra a dela.

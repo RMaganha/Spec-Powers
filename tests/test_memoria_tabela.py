@@ -215,7 +215,7 @@ def test_montar_grava_e_conta_por_tipo(tmp_path):
     assert r.por_tipo == {"anotacao": 1, "diario": 1, "decisao": 1, "falha": 1, "spec": 2, "plano": 1,
                           "mapa": 2, "documento": 3}
     assert (r.novos, r.refeitos, r.removidos, r.iguais) == (10, 0, 0, 0)
-    assert _sql(tabela, "SELECT count(*) FROM memoria")[0][0] == sum(r.por_tipo.values())
+    assert _sql(tabela, "SELECT count(*) FROM memoria WHERE tipo <> 'controle'")[0][0] == sum(r.por_tipo.values())
 
 
 def test_remontar_sem_mudanca_nao_refaz_nada(tmp_path):
@@ -401,7 +401,7 @@ def test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2(tmp_path, cap
         outro.close()
     assert codigo == 2
     assert "outro programa" in capsys.readouterr().out
-    assert _sql(tabela, "SELECT count(*) FROM memoria")[0][0] == 12, "a tabela ficou como estava"
+    assert _sql(tabela, "SELECT count(*) FROM memoria WHERE tipo <> 'controle'")[0][0] == 12, "a tabela ficou como estava"
 
 
 def test_arquivo_grande_demais_fica_fora_e_vira_pendencia(tmp_path, monkeypatch):
@@ -423,9 +423,14 @@ def test_pasta_com_espaco_e_acento(tmp_path):
 
 # ------------------------------------------------------------------ ligação ao kit (prosa e memória)
 
-def test_comando_memory_oferece_o_modo_tabela():
+def test_comando_memory_guarda_o_modo_tabela_fora_da_vista_do_owner():
+    """Parte 2 (decisão 16, caso F-057): o modo `tabela` some da descrição e da ajuda — a tabela se atualiza
+    sozinha. O texto do modo continua no comando, como uso interno e pro procedimento de troca de máquina."""
     mem = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
-    assert "tabela" in mem.split("---")[1], "memory.md: argument-hint não oferece o modo tabela"
+    assert "tabela" not in mem.split("---")[1], "memory.md: a descrição/ajuda ainda oferece o modo tabela ao owner"
+    abertura = mem.split("## Modo")[0]
+    assert "**`tabela`**" not in abertura, "memory.md: a lista de modos do owner ainda traz o tabela"
+    assert "## Uso interno: tabela" in mem, "memory.md: o texto do modo tabela sumiu (o procedimento precisa dele)"
     assert 'memoria_tabela.py" montar' in mem and 'memoria_tabela.py" status' in mem
     assert "~/mss-spec/" in mem and "fora do `.claude`" in mem, "memory.md não diz onde a tabela mora"
     assert "nunca grave na tabela" in mem.lower(), "memory.md não diz que o arquivo é o original"

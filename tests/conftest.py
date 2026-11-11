@@ -18,3 +18,16 @@ def _registro_dos_hooks_fora_do_home(tmp_path_factory):
         os.environ.pop("MSS_REGISTRO_ARQUIVO", None)
     else:
         os.environ["MSS_REGISTRO_ARQUIVO"] = anterior
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _tabela_de_memoria_fora_do_home(tmp_path_factory):
+    """A tabela de memória real (`~/mss-spec/memoria.sqlite3`) é do owner: hook ou script que rode na suíte
+    sem informar a tabela grava numa pasta temporária, nunca na dele."""
+    anterior = os.environ.get("MSS_MEMORIA_TABELA")
+    os.environ["MSS_MEMORIA_TABELA"] = str(tmp_path_factory.mktemp("memoria") / "memoria.sqlite3")
+    yield
+    if anterior is None:
+        os.environ.pop("MSS_MEMORIA_TABELA", None)
+    else:
+        os.environ["MSS_MEMORIA_TABELA"] = anterior

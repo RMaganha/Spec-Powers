@@ -5,6 +5,10 @@
 
 ## 2026-11-11 — fechadas
 
+- [memória em tabela, parte 2](../specs/memoria-em-tabela.md) — a busca usa a tabela e a tabela se atualiza sozinha, sem comando pra lembrar (0.56.0) — fechada
+
+## 2026-11-11 — fechadas
+
 - [memória em tabela, parte 1: a tabela](../specs/memoria-em-tabela.md) — tudo o que é memória numa tabela SQLite local, cópia para busca; o arquivo é o original — fechada
 
 ## 2026-11-09 — fechadas
