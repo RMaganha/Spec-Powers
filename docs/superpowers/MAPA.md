@@ -8,8 +8,8 @@ Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decis�
 
 ## Próximo passo
 1. ⬜ **Owner: aprovar o merge da `feature/conversa-nova-nao-se-perde` na `main` (0.59.0) e `git push origin main`**
-1b. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
-1a. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
+1a. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
+1b. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
 3. ⬜ **Nos outros projetos, na conversa de cada um: lista das anotações antigas sem gatilho de ação** — `memoria_indice.py fila`; o owner aprova de uma vez. E o caso F-060 (aberto) espera o guardrail.
 4. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
@@ -45,4 +45,4 @@ Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decis�
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-10 (0.54.0 publicada; upgrade do Transportes V2 feito) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-11 (0.59.0 pronta na branch, aguardando o merge do owner) · regenerável com /mss-spec:mapa -->

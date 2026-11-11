@@ -20,6 +20,12 @@
 - **Criar branch dizendo que sai da principal** (`git switch -c x main`) numa branch de outra conversa não é
   "criar fora da principal": vale como troca.
 
+- **A captura saiu incompleta e o owner pegou.** Ele perguntou "foi executado o /mss-spec:memory capturar"; eu
+  tinha gravado os quatro rascunhos sem a varredura da conversa e sem reconciliar o MAPA. A varredura, feita
+  depois, achou um item tirado do to-dolist como feito sem conferência (voltou, reescrito) — caso F-063.
+- **MAPA com dois blocos de histórico.** Ao abrir a branch acrescentei um bloco sem tirar o anterior; a suíte pegou
+  (`test_mapa_carrega_um_estado_anterior`) e o bloco mais antigo foi pro `MAPA-historico.md`.
+
 ## Rejeitado
 - Comando para o owner digitar e gerar a passagem — ele já recusou comando para lembrar (F-057).
 - Só anotação/prosa — é o que o item proíbe.

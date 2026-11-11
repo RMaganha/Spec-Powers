@@ -86,3 +86,4 @@
 - Limpeza dos textos de conversa em `~/mss-spec/conversas/` #fora-de-escopo (decidido: 2026-11-11, hoje ficam até serem sobrescritos; é cópia do que já está na pasta do app)
 - Commit feito na branch errada quando duas conversas usam a mesma pasta: a trava da 0.59.0 cobre criar e trocar de branch, não o `git commit` numa branch que a conversa não abriu #fora-de-escopo (decidido: 2026-11-11, pediria aprovação a cada commit de conversa que retoma uma feature; medir antes)
 - `git stash` de mudança que pode ser de outra conversa na mesma pasta #fora-de-escopo (decidido: 2026-11-11, a trava da 0.59.0 só olha troca de branch; o motivo da negativa já manda não contornar com stash)
+- Se uma conversa aberta com texto colado voltar a "bloquear um monte de coisa", conferir na gravação se é o F-053 (comando colado não reconhecido — corrigido na 0.59.0) ou outra trava; a conversa de 2026-11-11 que o owner relatou não está mais gravada e não deu pra conferir (add: 2026-11-11)

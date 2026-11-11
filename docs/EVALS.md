@@ -71,6 +71,19 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-060 | 2026-11-11 | quando uma decisão já registrada parecer vetar o caminho mais direto do que o owner pediu | **desenho inteiro entregue antes da decisão que o vetava**: em "consultar a memória pela ação" montei um hook novo (4 momentos, 10 escolhas, 6 critérios) e deixei a decisão de 2026-09-25 — que já tinha recusado buscar por palavras a cada comando — como pergunta 1 no fim; o owner cortou (*"Antes de qualquer desenho: mostre em 3 linhas a decisão… e me pergunte se eu mantenho ou revejo"*), manteve a decisão e o desenho caiu inteiro | nenhum ainda · sem teste | aberto |
 | F-061 | 2026-11-11 | quando escrever ou alterar código que lê a conversa gravada pelo app (`.jsonl`) | **leitor de conversa verde no exemplo e errado no real**: a 1ª versão do `templates/conversa_texto.py` reaproveitou o filtro de pedidos da busca e só olhava registro `user` — perdia a fala que o owner digita enquanto o assistente trabalha (anexo de fila; 4 de 6 casos reais), deixava escapar `<private>` com tag dentro ou sem fechar, cortava o que o owner escreve entre `<` e `>` e punha 41 registros do app como fala; 15 testes com conversa de exemplo passavam; quem achou foi a revisão independente rodando o script nas 62 conversas reais, antes do merge | filtro próprio no `conversa_texto.py` (anexo de fila, `origin.kind`, `isCompactSummary`, resposta fabricada, `<private>` primeiro) · memória `project_conversa_gravada_formato` · `tests/test_conversa_texto.py::test_fala_digitada_enquanto_o_assistente_trabalhava_entra` · `::test_aviso_do_app_nao_vira_fala` · `::test_private_nao_escapa_com_tag_dentro_nem_sem_fechar` · `::test_o_que_o_owner_escreveu_entre_sinais_de_menor_e_maior_fica` | fechado |
 | F-062 | 2026-11-11 | quando chamar o ajudante pesquisador (`mss-spec:pesquisador`) para ler outra conversa do projeto | **ajudante chamado sem o texto da conversa gravado antes**: pedi a ele as frases reais das conversas que se perderam apontando os `.jsonl`; ele só lê arquivo, não roda o `templates/conversa_texto.py`, e devolveu "falta o texto das conversas" depois de 2min40 e 75 mil tokens. A regra existia: `docs/specs/ajudante-pesquisador.md` ("quem roda o script é a conversa principal, antes de chamar o ajudante") | prosa — a spec e a descrição do ajudante · sem teste | aberto |
+| F-063 | 2026-11-11 | quando rodar `/mss-spec:memory capturar` no fecho de uma feature | **captura feita sem a varredura da conversa e sem a reconciliação do MAPA (reincidência do caso de 2026-10-21)**: montei os rascunhos de cabeça, o owner aprovou, gravei e commitei; a regra (`memory/feedback_captura_varre_a_conversa_inteira.md`) e o passo 5 do `commands/memory.md` existiam. Só apareceu quando o owner perguntou *"foi executado o /mss-spec:memory capturar"* — e a varredura achou um item tirado do to-dolist como feito sem ter sido conferido | prosa — a memória e o passo do comando · sem teste | aberto |
+
+### F-063 — captura sem a varredura da conversa e sem o MAPA (aberto)
+
+- **Falhou:** no fecho da 0.59.0 mostrei quatro rascunhos sem a lista numerada da conversa e não reconciliei o MAPA
+  no fim. A anotação da captura tem `sem_gatilho_de_acao` (a regra "mora no passo da captura") e o aviso automático
+  só a apontou quando o owner escreveu "memory capturar".
+- **Verdade:** a varredura, feita depois, achou três coisas: a linha do to-dolist sobre a janela que "bloqueou um
+  monte de coisa" saiu como feita sem conferência (a conversa não está mais gravada); este caso; e dois pivôs fora
+  do diário. A linha voltou, reescrita.
+- **Guardrail:** nenhum mecânico. Candidato pro owner decidir: o `diario_junto.py` cobrar, junto do diário, a lista
+  numerada da varredura.
+- **Teste:** nenhum.
 
 ### F-062 — ajudante pesquisador chamado sem o texto da conversa (aberto)
 
