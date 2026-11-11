@@ -104,3 +104,6 @@ conversa é a leitura direta: mediana 62.831 letras por conversa, 20 conversas a
 ## Histórico
 - 2026-11-11 — criado: desenho aprovado pelo owner (motivo: decisão 25 da memória em tabela; a medição do dia
   mostrou que o que enche a conversa é a leitura direta, não o retorno dos ajudantes).
+- 2026-11-11 — entregue na 0.58.0; o filtro das falas da conversa passou a ser próprio e a fala digitada no meio
+  do trabalho passou a entrar (motivo: a revisão independente rodou o script nas 62 conversas reais e achou a
+  fala do owner perdida, `<private>` escapando e registro do app entrando como fala).
