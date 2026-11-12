@@ -30,3 +30,8 @@ Mora no `templates/CLAUDE.md` com a frase-chave travada. Relacionadas: [[feedbac
 de máquina"*; *"eu te pergunto uma coisa voce responde outras só confusão aqui, que desespero..."*. O que
 consertou está em [[feedback_decidir_por_topicos_um_de_cada_vez]], [[feedback_resultado_primeiro_em_medicao]] e
 [[feedback_pergunta_so_no_texto]]: pergunta direta → resposta direta, na ordem em que ele perguntou, e só.
+
+**"Seja breve" pedido em 10 falas seguidas (2026-11-11, conferências das entregas de outras conversas).** Pra
+pergunta de conferência ("consegue ver se está OK"), a resposta é o resultado em uma linha, uma tabela curta de
+conferência → resultado e o que falta — nada de roteiro, de ressalva longa nem de textos que ele não pediu. Ver
+[[feedback-conferir-entrega-de-outra-conversa-so-lendo]] (F-064).

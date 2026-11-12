@@ -30,3 +30,12 @@ cada guardrail citado antes de gravar.
 **How to apply:** no modo `capturar` do `/mss-spec:memory`, antes do rascunho: lista numerada dos itens da
 conversa (início ao fim), com a fala exata e o lar de cada um; depois, os índices pra não duplicar. Parente de
 [[feedback-diagnostico-disciplinado]] (evidência antes de concluir).
+
+**As decisões do que fazer vêm primeiro; conversa longa se varre pelo texto inteiro (2026-11-11, F-066).** Na
+captura da conversa da memória em tabela mostrei 17 itens (falhas, anotações, pendências) e o owner respondeu:
+*"está faltando gravar o principal tudo que decidimos em relação ao que fazer"*. Viraram dois registros numerados
+na spec de cada assunto ("Tudo o que o owner decidiu…"). No fim, a 2ª captura foi feita por varredura: o texto
+inteiro da conversa (`templates/conversa_texto.py texto <id>`, 122 falas) lido por um ajudante, que cruzou cada
+decisão, reclamação, acerto e pendência com o repositório — 83 itens: 63 gravados, 8 pela metade, 12 faltando,
+quase todos do último terço. Em conversa que passou de um dia ou foi resumida pelo app, faça assim; a lembrança
+não basta.

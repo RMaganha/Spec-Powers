@@ -34,3 +34,11 @@ itens decididos (F-058). O hook `hooks/passagem_de_conversa.py` devolve o texto 
 na regra 10 da condução, no texto do aprovador (etapa 6) e no chamado `templates/azure-ambiente/permissoes-infra.md`
 (com o código real da conexão). Parente de [[feedback_comando_pro_owner_passo_a_passo]] (o formato dos comandos
 que o próprio owner roda) e de [[feedback_nao_inventar_fatos_concretos]] (valor real só com fonte).
+
+**Um texto por vez, com o item explicado antes, e leitura mínima (2026-11-11, F-065).** O owner pediu "os prompts
+das próximas tarefas" e recebeu 7 blocos seguidos: *"Esse monte de prompt é das decisões que fechamos nessa
+conversa??? O item 1 ,2 e 4 não entendi nada!!!"*. E a conversa que recebeu um deles releu spec, dossiê, hooks e
+falhas: *"ele rele tudo para todo lado!!!"*. Passa a valer: entregue **só o texto da próxima conversa**; antes
+dele, o item em português simples ("Hoje · O que muda · O que você ganha"); e na parte `Regras desta conversa:`
+diga **o mínimo a ler** (a seção exata da spec), nunca "leia a spec e o dossiê". Os textos dos itens seguintes
+ficam guardados no documento do assunto, não na resposta.
