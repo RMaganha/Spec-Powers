@@ -1,13 +1,13 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/comando-guardado-inteiro` (da `main` em `1754def`; `git status -sb` disse `## main...origin/main`) — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) pronta em 2026-11-12, aguardando o owner aprovar o merge na `main`**; suíte 1564 verdes. Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`. A 0.59.0 já está na `main`.
+Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
 
 <!-- histórico do estado anterior -->
 Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
 
 ## Próximo passo
-1. ⬜ **Owner: aprovar o merge da `feature/comando-guardado-inteiro` na `main` (0.60.0) e `git push origin main`** — depois, provar no real: a negação numa captura de verdade e o aviso do `verificar` no Whats.
+1. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
 1a. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
 1b. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
@@ -46,4 +46,4 @@ Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-12 (0.60.0 pronta na branch, aguardando o merge do owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-12 (0.60.0 mesclada na main e publicada pelo owner) · regenerável com /mss-spec:mapa -->
