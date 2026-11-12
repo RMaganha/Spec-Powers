@@ -1,10 +1,10 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
+Branch `feature/conversa-nova-acha-sozinha` (da `main` em `faa1ed3`) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) implementada em 2026-11-12, na branch, sem merge**: o `hooks/passagem_de_conversa.py` guarda o texto pronto no molde e, no 1º pedido da conversa, casa a frase com ele e com a seção `## O que o owner decidiu` da spec. **Falta provar no real: uma conversa nova aberta com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`.
 
 <!-- histórico do estado anterior -->
-Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
+Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
 
 ## Próximo passo
 1. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
