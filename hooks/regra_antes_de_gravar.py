@@ -21,6 +21,10 @@ Contrato:
   silêncio. Este hook nunca trava o trabalho por defeito próprio.
 
 Escape consciente, só do owner: `MSS_REGRA_OFF=1`.
+
+No mesmo processo (0.60.0): **comando guardado inteiro** — gravação em `memory/*.md` ou `memory/sessions/*.md`
+que traz comando ou SQL com reticências nega uma vez por arquivo e por conversa (`hooks/_comando_inteiro.py`;
+não depende da marca; escape próprio `MSS_COMANDO_INTEIRO_OFF=1`).
 """
 import json
 import os
@@ -46,6 +50,15 @@ def _anotar(decisao, detalhe, evento):
             _registrar("regra_antes_de_gravar", decisao, detalhe, evento)
     except Exception:                                # noqa: BLE001
         pass
+
+
+# 2ª conferência no mesmo processo — comando guardado inteiro (`hooks/_comando_inteiro.py`, 0.60.0): anotação ou
+# diário com comando ou SQL com reticências nega UMA vez por arquivo e por conversa. Modo de falha e escape
+# próprios (`MSS_COMANDO_INTEIRO_OFF=1`): uma conferência não liga nem desliga a outra.
+try:
+    import _comando_inteiro
+except Exception:                                    # noqa: BLE001
+    _comando_inteiro = None
 
 
 ENV_DESLIGA = "MSS_REGRA_OFF"
@@ -225,11 +238,39 @@ def _motivo(rel, casadas):
             f"({nomes}):\n\n{blocos}\n\nDepois repita a gravação.")
 
 
+def _motivo_das_regras(evento, ambiente, raiz, rel):
+    """Texto das regras de `.claude/rules/` que casam o arquivo e ainda não foram mostradas, ou None."""
+    if _texto(ambiente.get(ENV_DESLIGA)) or not tem_marca(raiz):   # projeto fora do kit: as regras não agem
+        return None
+    casadas = [r for r in regras_do_projeto(raiz) if any(casa_glob(rel, p) for p in r[1])]
+    if not casadas:
+        return None
+    sessao = evento.get("session_id")
+    feitas = ja_mostradas(sessao)
+    casadas = [r for r in casadas if r[0] not in feitas]
+    if not casadas:
+        return None
+    marcar(sessao, [r[0] for r in casadas])
+    _anotar("negou", ", ".join(r[0] for r in casadas), evento)    # nomes das regras, nunca o caminho
+    return _motivo(rel, casadas)
+
+
+def _motivo_do_comando_cortado(evento, ambiente, raiz, rel):
+    """Motivo do `_comando_inteiro.py` (anotação ou diário com comando cortado), ou None. Falha ABERTA."""
+    try:
+        if _comando_inteiro is None:
+            return None
+        motivo = _comando_inteiro.conferir(evento, rel, raiz, ambiente)
+        if motivo:
+            _anotar("negou", "comando-inteiro", evento)            # nunca o caminho nem o comando
+        return motivo
+    except Exception:                                # noqa: BLE001
+        return None
+
+
 def responder(evento, ambiente=None):
     """Saída de deny do PreToolUse, ou None (libera calado)."""
     ambiente = os.environ if ambiente is None else ambiente
-    if _texto(ambiente.get(ENV_DESLIGA)):
-        return None
     if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_ESCRITA:
         return None
     entrada = evento.get("tool_input")
@@ -240,23 +281,16 @@ def responder(evento, ambiente=None):
         return None
 
     rel = relativo_a_raiz(alvo, raiz, cwd)
-    if rel is None or not tem_marca(raiz):           # projeto fora do kit: este hook não age
+    if rel is None:
         return None
-    casadas = [r for r in regras_do_projeto(raiz) if any(casa_glob(rel, p) for p in r[1])]
-    if not casadas:
+    motivos = [m for m in (_motivo_das_regras(evento, ambiente, raiz, rel),
+                           _motivo_do_comando_cortado(evento, ambiente, raiz, rel)) if m]
+    if not motivos:
         return None
-    sessao = evento.get("session_id")
-    feitas = ja_mostradas(sessao)
-    casadas = [r for r in casadas if r[0] not in feitas]
-    if not casadas:
-        return None
-
-    marcar(sessao, [r[0] for r in casadas])
-    _anotar("negou", ", ".join(r[0] for r in casadas), evento)    # nomes das regras, nunca o caminho
     return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": _motivo(rel, casadas),
+        "permissionDecisionReason": "\n\n".join(motivos),
     }}
 
 

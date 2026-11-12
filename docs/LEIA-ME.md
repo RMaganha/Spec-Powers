@@ -187,6 +187,12 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   que a conversa não abriu é negado se há mudança por commitar e, com a pasta limpa, **pede a sua aprovação com
   um clique**. Na principal, ou na branch que a própria conversa abriu, passa calado. Escape
   `MSS_PASSAGEM_OFF` não vale aqui: o desta trava é `MSS_PASTA_BRANCH_OFF=1`.
+- **Comando guardado inteiro** (0.60.0) — dentro do `hooks/regra_antes_de_gravar.py`: a anotação ou o diário
+  que cita um comando ou SQL que você vai rodar de novo guarda o comando completo. Gravação em `memory/` ou
+  `memory/sessions/` com comando ou SQL com reticências é negada **uma vez**, com o trecho no motivo; o assistente
+  completa o comando ou, se for exemplo de sintaxe, repete a gravação. Senha e token seguem escondidos (`*****`).
+  Anotação antiga só é contada pelo `verificar` da captura. Você não digita nada. Escape
+  `MSS_COMANDO_INTEIRO_OFF=1`.
 - **Âncora do projeto ativo** — a rede que **bloqueia** escrita fora: o hook `hooks/projeto_ativo.py` (ligado
   por padrão) nega `Write`/`Edit`/`NotebookEdit` fora do projeto onde a janela abriu. Outro projeto é
   referência **somente-leitura** — você lê o código dele pelo `precedentes` e traz o padrão pra cá.

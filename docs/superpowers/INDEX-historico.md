@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-12 — fechadas
+
+- [comando guardado inteiro](../specs/comando-guardado-inteiro.md) — comando ou SQL citado em anotação ou diário é gravado completo; senha segue escondida (decisão 23 de `docs/specs/memoria-em-tabela.md`; 0.60.0, 2026-11-12) — fechada
+
 ## 2026-11-11 — fechadas
 
 - [conversa nova não se perde](../specs/conversa-nova-nao-se-perde.md) — a passagem de uma conversa pra outra leva as decisões do owner como decididas, "o kit não aceita" só com arquivo e linha, e duas conversas na mesma pasta não trocam a branch uma da outra — fechada

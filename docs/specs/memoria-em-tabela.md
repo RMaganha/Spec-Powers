@@ -117,7 +117,8 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 
 **Os outros itens de memória (fila, depois da parte 2)**
 23. **Comando guardado inteiro:** comando ou SQL que o owner vai rodar de novo é gravado completo na anotação;
-    senha continua escondida. (Origem: o UPDATE cortado no Whats.)
+    senha continua escondida. (Origem: o UPDATE cortado no Whats.) Spec própria:
+    `docs/specs/comando-guardado-inteiro.md` (0.60.0).
 24. **Consultar pela ação antes de agir — fechada pelo owner em 2026-11-11: amplia-se o gatilho de ação que já
     existe; não nasce busca nova.**
     - **Mantida a decisão de 2026-09-25** (`docs/decisoes.md`): **não** buscar por palavras a cada comando. Medido
@@ -134,7 +135,7 @@ projetos e busca por significado (linhas `#fora-de-escopo` do `to-dolist.md`).
 25. **Ajudante pesquisador:** lê muito e devolve só o resumo; usado só nesse papel, escrito do zero no kit.
     Spec própria: `docs/specs/ajudante-pesquisador.md`.
 
-**Ordem que o owner fixou, e como andou:** tabela (0.55.0) → busca (0.56.0) → comando guardado inteiro (**pulado pelo owner em 2026-11-11; segue aberto**, item 8 do INDEX) → consultar pela ação
+**Ordem que o owner fixou, e como andou:** tabela (0.55.0) → busca (0.56.0) → comando guardado inteiro (pulado pelo owner em 2026-11-11; **feito em 2026-11-12, na 0.60.0**) → consultar pela ação
 (fechada em 2026-11-11 como ampliação do gatilho de ação) → ajudante pesquisador. **Depois** vem a conferência antes de entregar
 (`docs/specs/conferencia-antes-de-entregar.md`).
 
@@ -296,3 +297,6 @@ Tudo em leitura, com roteiros descartáveis fora do repositório (os dados são 
 - 2026-11-11 — parte 3 entregue (0.57.0): a captura cobra o gatilho de ação da anotação de regra e 21 anotações
   do kit ganharam o gatilho (motivo: o owner aprovou a lista de uma vez; cada regex foi medido em 270 conversas
   antes de gravar).
+- 2026-11-12 — decisão 23 (comando guardado inteiro) entregue na 0.60.0, com spec própria
+  `docs/specs/comando-guardado-inteiro.md` (motivo: o owner aprovou o desenho; a regra entra na captura e a
+  gravação de anotação ou diário com comando cortado é negada uma vez).

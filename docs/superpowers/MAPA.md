@@ -1,10 +1,10 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
+Branch `feature/comando-guardado-inteiro` (da `main` em `1754def`; `git status -sb` disse `## main...origin/main`) — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) pronta em 2026-11-12, aguardando o owner aprovar o merge na `main`**: regra na captura (`commands/memory.md`) + conferência na hora de gravar anotação ou diário (`hooks/_comando_inteiro.py`, dentro do `regra_antes_de_gravar.py`; nega uma vez) + aviso das antigas no `verificar`. Suíte 1564 verdes. Spec: `docs/specs/comando-guardado-inteiro.md`. A 0.59.0 e a captura de 2026-11-11 já estão na `main`.
 
 <!-- histórico do estado anterior -->
-Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decisão 25) mesclada na `main` e publicada em 2026-11-11** (`0fd5b73`; `git status -sb` disse `## main...origin/main`). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova.** Spec: `docs/specs/ajudante-pesquisador.md`.
+Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
 
 ## Próximo passo
 1. ⬜ **Owner: aprovar o merge da `feature/conversa-nova-nao-se-perde` na `main` (0.59.0) e `git push origin main`**
@@ -19,7 +19,7 @@ Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decis�
 8. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
 9. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 10. ⬜ **Owner: decidir se o aviso automático de 3 anotações troca de motor** — números em `docs/specs/memoria-em-tabela.md` ("Conferido no real — parte 2").
-11. ⬜ **Próximo da fila de memória: comando guardado inteiro na anotação** (item 8 do INDEX), em conversa nova.
+11. ⬜ **Owner: aprovar o merge da `feature/comando-guardado-inteiro` na `main` (0.60.0) e `git push origin main`** — depois, provar no real: a negação numa captura de verdade e o aviso do `verificar` no Whats.
 
 <!-- histórico do próximo passo anterior -->
 1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
