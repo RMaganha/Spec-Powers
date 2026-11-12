@@ -237,4 +237,13 @@
 - `test_nao_e_troca_de_branch` (11) / `test_powershell_tambem` / `test_git_c_e_cd_apontam_a_pasta` — `git checkout <arquivo>` e texto de mensagem não são troca; `-C` e `cd`
 - `test_sem_numero_de_conversa_nao_age` / `test_escape_do_owner` / `test_pasta_sem_git_ou_head_solto_libera` / `test_o_hook_nega_e_pergunta` / `test_merge_aprovado_nao_perde_a_pergunta` / `test_processo_com_git_de_verdade` / `test_documentado_no_readme_e_na_spec` — garantias, dentro do hook e com repositório git real (`ask` sai 0; `deny` sai 2)
 
-**Último 100% verde:** 2026-11-11 · branch feature/conversa-nova-nao-se-perde (conversa nova não se perde) · commit 0d10b8c · 1501 passed
+`tests/test_hook_comando_inteiro.py` — comando guardado inteiro (0.60.0; `hooks/_comando_inteiro.py`, dentro do `regra_antes_de_gravar.py`; decisão 23 da memória em tabela):
+- `test_detector_acha_comando_ou_sql_com_reticencias` (8) / `test_detector_deixa_passar_o_que_nao_e_corte` (12) / `test_detector_devolve_a_linha_do_comando` / `test_detector_nao_levanta_com_entrada_estranha` — o que é comando cortado (bloco de SQL, de terminal, sem língua, entre crases) e o que não é (`*****`, intervalo do git, marcador entre `<` e `>`, outra língua, saída de programa, prosa)
+- `test_so_anotacao_e_diario_sao_conferidos` (9) / `test_arquivo_que_nao_e_anotacao_nem_diario_nao_e_conferido` (4) — só `memory/<nome>.md` e `memory/sessions/<nome>.md`
+- `test_write_de_anotacao_com_sql_cortado_nega_uma_vez_e_a_repeticao_passa` / `test_write_de_diario_com_comando_cortado_nega` / `test_uma_vez_por_arquivo_e_por_conversa` / `test_write_de_anotacao_sem_corte_passa_calado` (12) — nega uma vez, com o trecho no motivo
+- `test_edit_dentro_de_bloco_que_ja_existe_e_pego_pelo_arquivo_resultante` / `test_corte_que_ja_estava_no_arquivo_nao_e_cobrado_de_quem_edita_outro_trecho` / `test_multiedit_soma_as_trocas` / `test_edit_cujo_trecho_antigo_nao_existe_confere_so_o_texto_novo` — confere o arquivo como vai ficar; só o corte novo é cobrado
+- `test_escape_do_owner_desliga_so_esta_conferencia` / `test_sem_numero_de_conversa_nao_age` / `test_defeito_na_conferencia_nao_trava_a_gravacao` / `test_regra_por_tipo_de_arquivo_e_comando_cortado_saem_numa_negacao_so` — garantias, dentro do hook
+- `test_modo_capturar_manda_gravar_o_comando_inteiro` / `test_readme_dos_hooks_fala_da_conferencia` — a frase da captura e a documentação
+- `test_com_comando_cortado_lista_anotacoes_e_diarios` / `test_verificar_avisa_quantas_sao_e_nao_altera_nenhuma` / `test_verificar_sem_corte_nao_avisa` — o `verificar` só conta as antigas
+
+**Último 100% verde:** 2026-11-12 · branch feature/comando-guardado-inteiro (comando guardado inteiro) · commit 874296f · 1564 passed
