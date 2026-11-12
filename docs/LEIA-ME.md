@@ -182,6 +182,12 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   conversa, "o kit não aceita / o hook negou" só sai com a regra em `arquivo:linha` e uma pergunta a você. Você
   não digita nada: basta o pedido trazer `Já decidido` (ou `O que eu já decidi`) com a lista. Falha aberta;
   escape `MSS_PASSAGEM_OFF=1`.
+- **A conversa nova acha sozinha o que você já decidiu** (0.61.0) — no mesmo hook. Você abre a conversa com uma
+  frase comum ("vamos continuar a memória em tabela"), sem colar texto e sem comando: no 1º pedido o kit casa a
+  frase com o assunto e entrega ao assistente os itens decididos, com a regra de não reabrir. Os itens vêm do
+  texto pronto que outra conversa entregou (guardado sozinho na pasta temporária, 7 dias, nada no git) ou da seção
+  `## O que o owner decidiu` da spec do assunto. Dois assuntos empatados: o assistente pergunta qual. Nada casa:
+  tudo igual a antes, e colar o texto continua funcionando. Só informa — não faz resposta voltar.
 - **Duas conversas na mesma pasta não trocam a branch uma da outra** (0.59.0) — dentro do
   `hooks/git_publicacao.py`: criar branch com a pasta fora da principal é negado; trocar de branch numa branch
   que a conversa não abriu é negado se há mudança por commitar e, com a pasta limpa, **pede a sua aprovação com
