@@ -89,6 +89,10 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 - **Guardrail:** nenhum ainda. Duas linhas no `to-dolist.md` (2026-11-12): o rodízio enxergar o separador do kit; e
   rodar só o que falhou mais os arquivos tocados depois de uma falha (muda regra crítica, decisão do owner).
 - **Teste:** `tests/test_orcamento_contexto.py::test_mapa_carrega_um_estado_anterior` (pega, mas tarde).
+- **Reincidiu (2026-11-12, conversa nova acha sozinha, 0.61.0):** ao abrir a branch editei de novo o "Onde estamos"
+  à mão e ficaram dois blocos de histórico. O hook não moveu nenhum; desta vez avisou pelo tamanho (6289 > 6000 B),
+  e movi o bloco mais antigo para o `MAPA-historico.md` antes da suíte, que passou. O guardrail continua sendo a
+  linha do `to-dolist.md`: sem o aviso de tamanho, só a suíte de 41 minutos teria acusado.
 
 ### F-066 — captura sem as decisões do que fazer e sem o último terço da conversa (aberto)
 

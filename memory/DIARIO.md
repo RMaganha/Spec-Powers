@@ -5,6 +5,7 @@
 
 ## 2026-11-12
 
+- [conversa-nova-acha-sozinha] 0.61.0: o owner abre a conversa com uma frase comum e o kit traz o que ele já decidiu — o `hooks/passagem_de_conversa.py` guarda o texto pronto no molde (pasta temporária, 7 dias) e, no 1º pedido, casa a frase com ele e com a seção `## O que o owner decidiu` da spec; só informa; régua pelo termo curto do tema (a "2 de 3 palavras do nome" foi rejeitada); item inteiro ou `arquivo:linha` (o corte apareceu na prova real); MAPA com 2 blocos de novo (F-067); push da `main` recusado pela trava e feito pelo owner → sessions/2026-11-12-conversa-nova-acha-sozinha.md
 - [comando-guardado-inteiro] 0.60.0: decisão 23 — a captura manda gravar inteiro o comando ou SQL citado, e a gravação de anotação ou diário com comando com reticências é negada uma vez (`hooks/_comando_inteiro.py`, dentro do `regra_antes_de_gravar.py`); só o corte novo é cobrado; medido no kit: 4 de 77 anotações, todas legítimas; a suíte acusou o MAPA com 2 blocos de histórico (F-067: o rodízio não enxerga o separador do kit — ajuste no to-dolist por ordem do owner); hook provado pelo Bash, porque pelo PowerShell chega com marca e sai calado; captura refeita com a varredura (reincidência do F-063) → sessions/2026-11-12-comando-guardado-inteiro.md
 
 ## 2026-11-11

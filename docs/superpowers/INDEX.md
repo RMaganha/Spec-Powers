@@ -6,7 +6,6 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [conversa nova acha sozinha o que o owner já decidiu](../specs/conversa-nova-nao-se-perde.md) — o owner abre a conversa com uma frase comum e o kit traz o que ele já decidiu sobre o assunto, sem colar texto nem comando — em andamento
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

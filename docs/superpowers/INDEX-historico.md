@@ -5,6 +5,10 @@
 
 ## 2026-11-12 — fechadas
 
+- [conversa nova acha sozinha o que o owner já decidiu](../specs/conversa-nova-nao-se-perde.md) — o owner abre a conversa com uma frase comum e o kit traz o que ele já decidiu sobre o assunto, sem colar texto nem comando (0.61.0, 2026-11-12) — fechada
+
+## 2026-11-12 — fechadas
+
 - [comando guardado inteiro](../specs/comando-guardado-inteiro.md) — comando ou SQL citado em anotação ou diário é gravado completo; senha segue escondida (decisão 23 de `docs/specs/memoria-em-tabela.md`; 0.60.0, 2026-11-12) — fechada
 
 ## 2026-11-11 — fechadas
