@@ -3,9 +3,10 @@
 ## Estado atual
 **Entregue na 0.59.0 (2026-11-11), branch `feature/conversa-nova-nao-se-perde`.** Vale para todos os projetos,
 porque é hook do plugin — nenhum projeto precisa de upgrade. Falta provar no real, com o owner: o clique de
-aprovação da troca de branch no app e a regra chegando numa conversa nova aberta com `Já decidido`.
+aprovação da troca de branch no app. Provado no real em 2026-11-12: a regra chegou numa conversa nova aberta com
+`Ja decidido - nao reabrir` (2 itens), a da 0.61.0.
 
-- **A conversa nova acha sozinha** (0.61.0, 2026-11-12, branch `feature/conversa-nova-acha-sozinha`): o owner abre
+- **A conversa nova acha sozinha** (0.61.0, 2026-11-12, mesclada na `main` em `7e641b9` e publicada): o owner abre
   a conversa com uma frase comum — sem colar texto e sem comando. No **1º pedido** da conversa, se ele não traz
   `Já decidido` colado, o kit casa a frase com o assunto e entrega os itens decididos ao assistente, com a regra de
   não reabrir. De onde vêm os itens, nesta ordem: (a) o texto pronto que outra conversa entregou — o bloco no molde
@@ -138,3 +139,7 @@ originais do "o plugin não aceita" foi vista. Roteiro da medição fora do repo
 - 2026-11-12 — a conversa nova acha sozinha o que o owner já decidiu (0.61.0): o texto pronto no molde fica
   guardado e, no 1º pedido, a frase é casada com ele e com a seção `## O que o owner decidiu` da spec (motivo: o
   owner não quer colar texto nem digitar comando; decidiu que não é comando novo e que não trava).
+- 2026-11-12 — dois pivôs da construção da 0.61.0: a régua "2 de 3 palavras do nome do assunto" foi rejeitada antes
+  de ser escrita (motivo: "abri conversa nova pra ver o bug do login" casaria com esta spec); e o item, que saía
+  cortado em 300 caracteres, passou a ir inteiro ou virar `arquivo:linha` (motivo: na prova com a frase real do
+  owner o item 1 desta spec chegou cortado no meio da frase). Mesclada na `main` (`7e641b9`) e publicada pelo owner.

@@ -1,15 +1,16 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/conversa-nova-acha-sozinha` (da `main` em `faa1ed3`) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) implementada em 2026-11-12, na branch, sem merge**: o `hooks/passagem_de_conversa.py` guarda o texto pronto no molde e, no 1º pedido da conversa, casa a frase com ele e com a seção `## O que o owner decidiu` da spec. **Falta provar no real: uma conversa nova aberta com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`.
+Branch `docs/captura-conversa-nova-acha-sozinha` (captura e MAPA) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) mesclada na `main` e publicada pelo owner em 2026-11-12** (`7e641b9`); suíte 1594 verdes. Nenhuma tarefa em andamento no INDEX. **Falta provar no real: uma conversa nova aberta só com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-12-conversa-nova-acha-sozinha.md`.
 
 <!-- histórico do estado anterior -->
 Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
 
 ## Próximo passo
-1. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
-1a. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
-1b. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
+1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1594).
+1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
+1b. ⬜ **Provar a 0.59.0 no real** — falta o clique de aprovação ao trocar de branch numa branch que a conversa não abriu (a regra chegando numa conversa aberta com `Já decidido`: ✅ 2026-11-12).
+1c. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
 3. ⬜ **Nos outros projetos, na conversa de cada um: lista das anotações antigas sem gatilho de ação** — `memoria_indice.py fila`; o owner aprova de uma vez. E o caso F-060 (aberto) espera o guardrail.
 4. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
@@ -46,4 +47,4 @@ Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-12 (0.60.0 mesclada na main e publicada pelo owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-12 (0.61.0 mesclada na main e publicada pelo owner) · regenerável com /mss-spec:mapa -->
