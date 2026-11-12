@@ -342,6 +342,26 @@ def sem_gatilho_de_acao(memdir: Path) -> list:
     return out
 
 
+# ------------------------------------------------------------------ comando guardado inteiro (decisão 23, 0.60.0)
+# Anotação ou diário ANTIGO com comando ou SQL com reticências: só se conta. O comando original não está no arquivo,
+# então o assistente não completa sozinho — a lista vai ao owner. O detector é o mesmo da conferência ao gravar
+# (`hooks/_comando_inteiro.py`); sem ele (ou com defeito) a lista sai vazia.
+def com_comando_cortado(memdir: Path) -> list:
+    """Nomes (relativos a `memory/`, com `/`) das anotações e diários com comando ou SQL com reticências."""
+    try:
+        import importlib.util
+        caminho = Path(__file__).resolve().parents[1] / "hooks" / "_comando_inteiro.py"
+        spec = importlib.util.spec_from_file_location("_comando_inteiro_do_verificar", caminho)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        memdir = Path(memdir)
+        arquivos = _memorias(memdir) + sorted((memdir / "sessions").glob("*.md"))
+        return [p.relative_to(memdir).as_posix() for p in arquivos
+                if mod.trechos_cortados(p.read_text(encoding="utf-8", errors="replace"))]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
     """`sem_commit`: nomes das anotações novas (default: o que o git ainda não tem commitado em `memory/`)."""
     memdir = Path(memdir)
@@ -770,6 +790,12 @@ def main(argv=None) -> int:
             print(f"aviso: {len(antigas)} anotação(ões) antiga(s) de regra sem gatilho de ação — NÃO corrija por "
                   f"conta própria: `memoria_indice.py fila` lista, e o owner aprova de uma vez quais ganham "
                   f"`gatilho_comando:`/`gatilho_resposta:` e quais ficam com `{CAMPO_SEM_ACAO}: <motivo>`")
+        cortadas = com_comando_cortado(memdir) if memdir.is_dir() else []
+        if cortadas:
+            print(f"aviso: {len(cortadas)} anotação(ões) ou diário(s) com comando ou SQL com reticências "
+                  f"({', '.join(cortadas[:10])}{' …' if len(cortadas) > 10 else ''}) — NÃO complete por conta "
+                  f"própria: o comando inteiro não está no arquivo. Leve a lista ao owner: ele diz qual ainda roda "
+                  f"e de onde tirar o comando; exemplo de sintaxe fica como está")
         if probs:
             print("problemas:\n- " + "\n- ".join(probs))
             return 1

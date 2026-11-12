@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-12 — saiu do MAPA (abertura da `feature/comando-guardado-inteiro`, 0.60.0)
+
+**Onde estávamos:** Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decisão 25) mesclada na `main` e publicada em 2026-11-11** (`0fd5b73`; `git status -sb` disse `## main...origin/main`). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova.** Spec: `docs/specs/ajudante-pesquisador.md`.
+
 ## 2026-11-11 — saiu do MAPA (fecho da `feature/conversa-nova-nao-se-perde`, 0.59.0)
 
 **Onde estávamos:** Branch `feature/consultar-pela-acao` (da `main` em `52b347e`) — **0.57.0 (consultar a memória pela ação, decisão 24) mesclada na `main` em `43b2eae` (2026-11-11); a publicação é do owner**: a captura cobra `gatilho_comando:`/`gatilho_resposta:` (ou `sem_gatilho_de_acao:`) da anotação de regra nova, e 21 anotações do kit ganharam o gatilho (lista aprovada por ele; valem em todo projeto). Spec: `docs/specs/memoria-em-tabela.md` (parte 3). Diário: `memory/sessions/2026-11-11-consultar-pela-acao.md`.

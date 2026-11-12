@@ -228,6 +228,12 @@ APROVADOS = [
     ("feedback_diagnostico_disciplinado", "resposta",
      ["Cole aqui a saída dos dois comandos e eu interpreto.", "Me mande o print das últimas linhas do log."],
      ["Colei a saída abaixo.", "O log mostra o erro na linha 12."]),
+    # aprovado pelo owner na captura de 2026-11-12 (0.60.0): hook chamado pelo pipe do PowerShell sai calado
+    ("project_hook_pelo_powershell_chega_com_marca", "comando",
+     ['Get-Content "C:\\TMP\\evento.json" -Raw | python hooks\\regra_antes_de_gravar.py',
+      "type evento.json | python.exe C:\\kit\\hooks\\teto_ao_gravar.py"],
+     ['python hooks/regra_antes_de_gravar.py < "$EV"', "python -m pytest tests/ -q | Select-Object -Last 4",
+      "git log --oneline | python scripts/conta.py"]),
 ]
 
 
@@ -248,11 +254,12 @@ def test_gatilho_aprovado_casa_o_caso_real_e_nao_casa_o_vizinho(nome, lado, casa
         assert not rx.search(texto), f"{nome}: não devia casar {texto!r}"
 
 
-def test_sao_os_21_aprovados_mais_os_5_que_ja_existiam():
+def test_sao_os_aprovados_pelo_owner_mais_os_5_que_ja_existiam():
+    """21 aprovados em 2026-11-11 + 5 que já existiam + 1 aprovado na captura de 2026-11-12."""
     acao = _acao()
     com = {n for lado in ("comando", "resposta") for n, _, _, _ in acao.memorias(str(REPO), lado)}
     assert {a[0] for a in APROVADOS} <= com
-    assert len(com) == 26, sorted(com)
+    assert len(com) == 27, sorted(com)
 
 
 # --- a captura manda cobrar (wiring do comando-prosa) -----------------------------------------------------

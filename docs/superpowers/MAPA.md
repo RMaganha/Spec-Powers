@@ -1,13 +1,13 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
+Branch `feature/comando-guardado-inteiro` (da `main` em `1754def`; `git status -sb` disse `## main...origin/main`) — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) pronta em 2026-11-12, aguardando o owner aprovar o merge na `main`**; suíte 1564 verdes. Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`. A 0.59.0 já está na `main`.
 
 <!-- histórico do estado anterior -->
-Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decisão 25) mesclada na `main` e publicada em 2026-11-11** (`0fd5b73`; `git status -sb` disse `## main...origin/main`). **Falta provar no real: o ajudante aparecer na lista de uma conversa nova.** Spec: `docs/specs/ajudante-pesquisador.md`.
+Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.
 
 ## Próximo passo
-1. ⬜ **Owner: aprovar o merge da `feature/conversa-nova-nao-se-perde` na `main` (0.59.0) e `git push origin main`**
+1. ⬜ **Owner: aprovar o merge da `feature/comando-guardado-inteiro` na `main` (0.60.0) e `git push origin main`** — depois, provar no real: a negação numa captura de verdade e o aviso do `verificar` no Whats.
 1a. ⬜ **Provar a 0.59.0 no real** — o clique de aprovação ao trocar de branch numa branch que a conversa não abriu, e a regra chegando numa conversa nova aberta com `Já decidido`.
 1b. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
@@ -19,7 +19,8 @@ Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decis�
 8. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
 9. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 10. ⬜ **Owner: decidir se o aviso automático de 3 anotações troca de motor** — números em `docs/specs/memoria-em-tabela.md` ("Conferido no real — parte 2").
-11. ⬜ **Próximo da fila de memória: comando guardado inteiro na anotação** (item 8 do INDEX), em conversa nova.
+11. ⬜ **Os 4 itens de 2026-11-12 no `to-dolist.md`** (o 1º é o guardrail do F-067) — cada um em conversa nova.
+12. ⬜ **Próximo da fila do owner: lista de conferência antes de entregar** (item 13 do INDEX), em conversa nova.
 
 <!-- histórico do próximo passo anterior -->
 1. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).
@@ -45,4 +46,4 @@ Branch `feature/ajudante-pesquisador` — **0.58.0 (ajudante pesquisador, decis�
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-11 (0.59.0 pronta na branch, aguardando o merge do owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-12 (0.60.0 pronta na branch, aguardando o merge do owner) · regenerável com /mss-spec:mapa -->

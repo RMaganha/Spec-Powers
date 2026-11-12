@@ -13,7 +13,7 @@ Os dezoito anotam no **registro local** cada vez que **agem** (seção no fim de
 | `teto_ao_gravar.py` | `PostToolUse` Write/Edit/MultiEdit/Bash/PowerShell | **ligado por padrão** | não (move e avisa) | rede: gravou MAPA/INDEX acima do teto → o excesso sai na hora pra arquivo próprio, com ponteiro (F-030); recado só pro assistente, uma vez por sessão (0.52.0) |
 | `orcamento_partida.py` | `SessionStart` | **ligado por padrão** | não (só avisa) | rede: partida acima do teto → diz o que estourou, o que ler e que backlog não é fato (F-030); "avise o owner" só pra `CLAUDE.md`/`MEMORY.md` (0.52.0) |
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
-| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado |
+| `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado · e **comando guardado inteiro** (`_comando_inteiro.py`, 0.60.0): anotação ou diário com comando ou SQL com reticências nega uma vez por arquivo e por conversa |
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
 | `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
 | `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
@@ -59,6 +59,35 @@ pedido, respondeu "Tópico 1 — …". O próprio texto pronto pedia "um tópico
   `_prompt.py` (tira a marca `<pasted_content …>` — caso F-053), usado também pelo `kit_primeiro.py` e pelo
   `um_item_por_janela.py`.
 - Escape consciente, só do owner: `MSS_PASSAGEM_OFF=1`. Spec `docs/specs/conversa-nova-nao-se-perde.md`.
+
+---
+
+# Cerca ligada — comando guardado inteiro (`_comando_inteiro.py`, 0.60.0)
+
+**Por que existe (decisão 23 da memória em tabela):** no Whats uma anotação guardou o começo de um `UPDATE`, sem o
+`WHERE`, e o owner precisou reconstituir o comando. Nada na captura mandava guardar o comando inteiro e nada
+conferia. Roda dentro do `regra_antes_de_gravar.py` (mesmo evento e mesmo processo; não depende da marca do
+`CLAUDE.md`).
+
+| Gravação (Write/Edit/MultiEdit) | O que acontece |
+|---|---|
+| `memory/<nome>.md` ou `memory/sessions/<nome>.md` que **traz** comando ou SQL com reticências (`...` ou `…`) | **nega uma vez** por arquivo e por conversa, com o trecho no motivo; repetir passa |
+| o mesmo arquivo, quando o corte **já estava** nele e a gravação mexe em outro trecho | passa (anotação antiga é do `verificar` e do owner) |
+| `MEMORY.md`, `DIARIO.md`, `memory/indice/`, `docs/` e o resto | não confere |
+
+- **Conta:** reticências em bloco de código de SQL, em bloco de terminal (a linha do comando e as de continuação),
+  em bloco sem língua na linha que começa como SQL ou comando conhecido, e em trecho entre crases que começa assim.
+- **Não conta:** `*****` (senha escondida), intervalo do git (`main...HEAD`), marcador entre `<` e `>` (exemplo de
+  sintaxe), bloco de outra língua (python, text, json), saída de programa depois do comando e prosa.
+- No Edit e no MultiEdit confere-se o arquivo **como vai ficar** (o texto novo costuma vir sem a cerca do bloco).
+- **Medido antes de ligar** (2026-11-12, só neste projeto, uma medição): 4 das 77 anotações e 0 dos 36 diários
+  seriam pegos; os 6 trechos, conferidos à mão, descrevem o formato de um comando (`pytest … && git commit`) — nenhum
+  é comando cortado. Por isso nega uma vez e a repetição passa. O caso do Whats não foi lido; os casos cortados da
+  suíte foram escritos a partir da descrição dele.
+- Anotações antigas: `memoria_indice.py verificar` só avisa quantas têm comando com reticências.
+- Sem número de conversa não age; **falha ABERTA**. Registra `negou` (`comando-inteiro`), nunca o caminho nem o
+  comando. Escape consciente, só do owner: `MSS_COMANDO_INTEIRO_OFF=1`. Spec `docs/specs/comando-guardado-inteiro.md`.
+  Testes: `tests/test_hook_comando_inteiro.py`.
 
 ---
 
