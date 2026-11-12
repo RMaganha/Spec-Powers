@@ -1,8 +1,8 @@
 # Comando guardado inteiro — comando ou SQL citado em anotação ou diário é gravado completo
 
 ## Estado atual
-**Pronto na branch `feature/comando-guardado-inteiro` (0.60.0, 2026-11-12), aguardando o owner aprovar o merge na
-`main`.** Falta provar no real: a negação aparecendo numa captura de verdade.
+**Entregue na 0.60.0 (2026-11-12), mesclada na `main` e publicada pelo owner (`2a3d58f`).** Falta provar no real:
+a negação aparecendo numa captura de verdade.
 
 - **Regra na captura:** o passo 2 do modo capturar de `commands/memory.md` manda gravar inteiro o comando ou SQL
   que o owner vai rodar de novo, na anotação e no diário; senha e token viram `*****` mais onde o valor vive; sem
