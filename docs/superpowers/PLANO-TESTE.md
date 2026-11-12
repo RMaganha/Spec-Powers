@@ -206,7 +206,7 @@
 - `test_anotacao_nova_de_regra_sem_gatilho_de_acao_e_acusada_pelo_nome` / `test_anotacao_nova_com_gatilho_de_acao_ou_com_o_motivo_passa` (3) / `test_so_a_anotacao_de_regra_e_cobrada` (4) / `test_anotacao_obsoleta_nao_e_cobrada` — a cobrança do `memoria_indice.py verificar`: só `type: feedback`, só a nova, e os três campos que resolvem
 - `test_antiga_nao_vira_problema_e_entra_na_lista_do_owner` / `test_sem_git_ninguem_e_nova` / `test_no_repositorio_a_nova_e_a_que_ainda_nao_tem_commit` — nova = sem commit (git de verdade); antiga vai pro `fila`, nunca vira problema
 - `test_regex_quebrado_no_gatilho_de_acao_e_acusado` / `test_cli_verificar_avisa_das_antigas_sem_virar_problema` / `test_cli_fila_lista_as_antigas_sem_gatilho_de_acao` — regex que não compila e a linha de comando com os padrões
-- `test_toda_regra_do_kit_tem_gatilho_de_acao_ou_o_motivo` / `test_gatilho_aprovado_casa_o_caso_real_e_nao_casa_o_vizinho` (21) / `test_sao_os_21_aprovados_mais_os_5_que_ja_existiam` — o próprio kit: cada gatilho aprovado pelo owner contra o comando ou a frase real e 2 ou 3 vizinhos
+- `test_toda_regra_do_kit_tem_gatilho_de_acao_ou_o_motivo` / `test_gatilho_aprovado_casa_o_caso_real_e_nao_casa_o_vizinho` (21) / `test_sao_os_aprovados_pelo_owner_mais_os_5_que_ja_existiam` — o próprio kit: cada gatilho aprovado pelo owner contra o comando ou a frase real e 2 ou 3 vizinhos
 - `test_a_captura_cobra_o_gatilho_de_acao_da_anotacao_de_regra` / `test_o_molde_da_memoria_explica_os_tres_campos` — prosa da captura e do molde
 - em `tests/test_hook_memoria_de_acao.py`: `test_sem_numero_de_sessao_a_memoria_nao_age` — evento sem sessão não dispara nem gasta a vez do gatilho
 

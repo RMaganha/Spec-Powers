@@ -75,6 +75,20 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-064 | 2026-11-11 | quando conferir, numa conversa, a entrega que outra conversa fez ou está fazendo na mesma pasta | **suíte rodada na pasta em uso por outra conversa, e o pedido respondido com outra coisa**: o owner pediu "ver se está OK" e o texto da próxima etapa; rodei a suíte inteira enquanto a outra conversa fazia o merge (35 falhas falsas na troca de branch), tentei rodar de novo e fui interrompido | conferência de entrega de outra conversa = só leitura, usando o resultado que ela registrou; nada roda com a pasta em uso — memória `feedback_conferir_entrega_de_outra_conversa_so_lendo` | aberto |
 | F-065 | 2026-11-11 | quando entregar ao owner os textos prontos das próximas conversas | **7 textos de uma vez, sem explicar cada item, e mandando a conversa nova reler tudo**: o owner não entendeu 3 dos itens e a conversa que recebeu um dos textos releu spec, dossiê, hooks e falhas antes de mostrar a decisão que vetava o desenho | um texto por vez, com o item explicado em português simples antes, e leitura mínima no texto — nota de 2026-11-11 em `feedback_texto_pronto_pra_colar`; molde de três partes da 0.59.0 | aberto |
 | F-066 | 2026-11-11 | quando rodar a captura de uma sessão em que o owner tomou decisões sobre o que fazer | **captura sem o principal (mesmo padrão do F-063)**: a 1ª captura listou 17 itens (falhas, anotações, pendências) e deixou fora as decisões do owner sobre o que construir; e o último terço da conversa (conferências, teste no DeRe, decisão 24) ficou sem registro até ele pedir | as decisões do que fazer vêm primeiro e num registro só (a spec do assunto); conversa longa se captura por varredura do texto inteiro, com ajudante — nota de 2026-11-11 em `feedback_captura_varre_a_conversa_inteira` | aberto |
+| F-067 | 2026-11-12 | quando abrir uma branch (ou fechar uma feature) e atualizar à mão o "Onde estamos" do `docs/superpowers/MAPA.md` | **segundo bloco de histórico posto à mão no MAPA; o hook não viu e só a suíte de 20 minutos acusou**: ao abrir a `feature/comando-guardado-inteiro` empurrei o estado anterior para baixo de um novo `<!-- histórico do estado anterior -->` sem tirar o mais antigo; o `hooks/teto_ao_gravar.py` chama o rodízio, que separa os blocos por linha `---`, e o MAPA do kit separa por comentário | nenhum ainda — o ajuste do rodízio está no `to-dolist.md` (2026-11-12, por ordem do owner) · `tests/test_orcamento_contexto.py::test_mapa_carrega_um_estado_anterior` acusa, mas só na suíte | aberto |
+
+### F-067 — MAPA com dois blocos de histórico: o hook não viu, só a suíte (aberto)
+
+- **Falhou:** ao abrir a branch da 0.60.0 editei o "Onde estamos" à mão e deixei dois blocos de histórico (o limite
+  é 1). O hook que roda depois de cada gravação do MAPA não moveu nada; a suíte inteira, 19 minutos depois, acusou
+  1 falha em 1564. O owner: *"então tem que ajustar o hook para não comenter mais esses erros, e rodar o plano que
+  furou não sei se faz sentido a cada um rodar a suite interira"*.
+- **Verdade:** `templates/rodizio_partida.py` (`blocos`) separa os blocos por linha `---`; o MAPA do kit separa por
+  comentário, que é o que o teste conta. O "Próximo passo" tem hoje 2 blocos de histórico no mesmo formato e nenhum
+  teste conta. Corrigi movendo o bloco mais antigo para o `MAPA-historico.md`.
+- **Guardrail:** nenhum ainda. Duas linhas no `to-dolist.md` (2026-11-12): o rodízio enxergar o separador do kit; e
+  rodar só o que falhou mais os arquivos tocados depois de uma falha (muda regra crítica, decisão do owner).
+- **Teste:** `tests/test_orcamento_contexto.py::test_mapa_carrega_um_estado_anterior` (pega, mas tarde).
 
 ### F-066 — captura sem as decisões do que fazer e sem o último terço da conversa (aberto)
 
@@ -121,6 +135,10 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 - **Guardrail:** nenhum mecânico. Candidato pro owner decidir: o `diario_junto.py` cobrar, junto do diário, a lista
   numerada da varredura.
 - **Teste:** nenhum.
+- **Reincidiu (2026-11-12, fecho da 0.60.0):** mostrei os rascunhos da captura resumidos, sem a lista numerada, e
+  editei o MAPA à mão em vez de fazer os passos do `/mss-spec:mapa`. Só apareceu quando o owner perguntou:
+  *"executou o /mss-spec:memory capturar e o /mss-spec:mapa ?"*. Nada tinha sido gravado; a captura foi refeita com
+  a varredura (17 itens). A condição do candidato a guardrail acima se cumpriu de novo.
 
 ### F-062 — ajudante pesquisador chamado sem o texto da conversa (aberto)
 

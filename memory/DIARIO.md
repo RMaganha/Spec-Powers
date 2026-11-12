@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-12
+
+- [comando-guardado-inteiro] 0.60.0: decisão 23 — a captura manda gravar inteiro o comando ou SQL citado, e a gravação de anotação ou diário com comando com reticências é negada uma vez (`hooks/_comando_inteiro.py`, dentro do `regra_antes_de_gravar.py`); só o corte novo é cobrado; medido no kit: 4 de 77 anotações, todas legítimas; a suíte acusou o MAPA com 2 blocos de histórico (F-067: o rodízio não enxerga o separador do kit — ajuste no to-dolist por ordem do owner); hook provado pelo Bash, porque pelo PowerShell chega com marca e sai calado; captura refeita com a varredura (reincidência do F-063) → sessions/2026-11-12-comando-guardado-inteiro.md
+
 ## 2026-11-11
 
 - [conferencias-e-captura-final] a conversa da análise passou a só conferir as entregas das outras (0.56.0 a 0.59.0): conferir é LER, nunca rodar suíte na pasta em uso (F-064); texto pronto um por vez, com o item explicado (F-065); captura por varredura do texto inteiro — 83 itens, 12 faltavam (F-066); prova ao vivo no DeRe (54 linhas, sem `upgrade`); os 4 textos prontos que faltam na seção 9 do dossiê → sessions/2026-11-11-conferencias-e-captura-final.md
