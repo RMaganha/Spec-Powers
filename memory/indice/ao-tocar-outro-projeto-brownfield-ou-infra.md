@@ -5,3 +5,5 @@
 - **quando trabalhar em projeto que já existia** → [Brownfield: entender e registrar](../feedback_brownfield_entender_nao_aplicar.md) — nunca aplicar molde por cima do que funciona
 - **quando o kit for gravar algo sobre infra** → [Kit não assume o ambiente de origem](../project_kit_nao_assume_ambiente_de_origem.md) — infra é pergunta no kickoff, não premissa
 - **quando montar build Docker com ODBC atrás do proxy** → [Build Docker + FortiGate](../project_docker_build_fortigate.md) — 3 fixes de build + rotação de proxy/CA
+- **quando a tarefa de um projeto estiver sendo conduzida também numa conversa de outro projeto** → [Uma tarefa, numa conversa só](../feedback_uma_tarefa_numa_conversa_so.md) — a do projeto; daqui, 1 texto pronto e pronto
+- **quando achar, na janela de um projeto, um erro ou melhoria de um comando do kit** → [Correção do kit vale pro kit todo](../feedback_correcao_do_kit_vale_pro_kit_todo.md) — conserta no kit, chega pelo `upgrade`; nunca exceção no projeto (decisão recuperada)

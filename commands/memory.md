@@ -159,8 +159,8 @@ As conversas **não** entram na tabela de memória: o caminho é conversa → so
    bloco `## Acrescentado no sono de <data>` no fim dele; sem diário → diário retroativo
    `memory/sessions/<data da conversa>-<assunto>.md` (Conversamos · Pivôs · Rejeitado · Fizemos · Próximo), com a
    linha `conversa: <id>` (chave pra próxima rodada, não fonte) e 1 linha no `memory/DIARIO.md`.
-6. **Diário da rodada** `memory/sessions/<hoje>-sono-conversas.md` com `conversas lidas até: <dia da conversa mais
-   nova lida>` e os números: conversas lidas, notas corrigidas, rebaixadas, aprendizados, decisões e diários
+6. **Diário da rodada** `memory/sessions/<hoje>-sono-da-memoria-conversas.md` com `conversas lidas até: <véspera da
+   rodada>` (as conversas do próprio dia ainda podem mudar; a próxima rodada as relê) e os números: conversas lidas, notas corrigidas, rebaixadas, aprendizados, decisões e diários
    recuperados, ajudantes e letras lidas, e o uso da conversa. Essa linha recomeça a conta do aviso.
 7. **Feche** como o acervo (passo 8) e apague a pasta temporária dos textos.
 

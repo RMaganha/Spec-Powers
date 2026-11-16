@@ -10,8 +10,19 @@ e guarda na linha de controle a data do último sono e o "agora não" do owner (
 abertura, o `hooks/memoria_tabela_em_dia.py` conta só nome e data das conversas do projeto desde o último sono; com 10
 ou mais, pede ao assistente que ofereça o sono em 1 linha.
 
-Fora de escopo: ler as conversas (parte 2), completar os 4 comandos cortados (esperam o owner), regenerar as frases dos
-subíndices e medir o uso das notas (itens 4.1 e 4.3 de `docs/analise/2026-11-13-sono-da-memoria.md`).
+**Parte 2 (conversas) — 0.63.0.** O sono também lê as conversas gravadas do projeto: `conversa_texto.py lote [--desde]`
+grava o texto delas (só falas) numa pasta temporária; ajudantes pesquisadores leem em grupos; a conversa principal
+confere cada achado na fala e grava. Nota que a conversa contradiz fica confirmada com `substituiu:`; só rebaixa com
+fala que mostra falha ou dúvida; aprendizado novo vira anotação; decisão do owner achada só na conversa vira anotação
+e linha em `docs/decisoes.md` ("recuperada no sono"). A evidência entra antes no diário (retroativo, com `conversa:
+<id>`, ou bloco "Acrescentado no sono") e a nota cita o diário — o `verificar` acusa fonte em `.jsonl`. O diário da
+rodada guarda `conversas lidas até: <véspera>`; o `sono` mostra a data e o comando da próxima rodada, e o `montar` a
+usa como último sono.
+
+Fora de escopo: completar os 4 comandos cortados (esperam o owner), os 2 conflitos (Tailwind × Mantine;
+`UserPromptSubmit` exit 0 × exit 2), regenerar as frases dos subíndices e medir o uso das notas (itens 4.1 e 4.3 de
+`docs/analise/2026-11-13-sono-da-memoria.md`); saída de ferramenta das conversas; registrar no `docs/EVALS.md` as
+reincidências que a rodada viu.
 
 ## O que o owner decidiu
 > Quem abrir este assunto numa conversa nova lê esta seção primeiro. Nada aqui se reabre.
@@ -163,7 +174,27 @@ subíndices e medir o uso das notas (itens 4.1 e 4.3 de `docs/analise/2026-11-13
 - **Observado, sem mexer:** `docs/decisoes.md:62` cita uma decisão de 2026-07-22 que não está no arquivo; os 4
   comandos cortados seguem esperando o owner.
 
+## Conferido no real — parte 2 (2026-11-16, a 1ª rodada no kit)
+- **Lidas:** 67 gravações (66 conversas; uma gravada duas vezes), 3.083.103 letras, em 14 grupos por data (até ~260
+  mil letras; as 4 maiores sozinhas). 14 ajudantes `mss-spec:pesquisador`, só leitura: 2.402.331 tokens, 559 leituras.
+- **Reincidência não é "enfraquece":** a 1ª leva marcou o assistente descumprindo uma regra como nota enfraquecida;
+  as levas seguintes separaram `reincidência`. Dos 7 "enfraquece" conferidos na fala: 2 viraram correção, 2 parágrafo
+  novo em nota confirmada, 1 é conflito fora desta parte, 1 sem mudança, 1 reincidência — **0 rebaixadas**.
+- **Corrigidas pela conversa (confirmada + `substituiu:`):** `feedback_credencial_reusar_env_precedente` (o Transportes
+  V2 é só modelo, nunca fonte de credencial), `project_marketplace_relative_path_serve_git_e_local` (`"source": "./"`),
+  `feedback_visualizacao_usa_lib_consagrada` (0.9.0, não 0.11.0), `project_kit_nao_assume_ambiente_de_origem`
+  (repositório que já mostra a infra não pergunta). **Não confirmada → confirmada:** `project_troca_por_script_em_arquivo_crlf`.
+- **Recuperado:** 14 anotações novas; 1 decisão do owner (correção do kit vale pro kit todo) em `docs/decisoes.md`;
+  2 linhas velhas de `docs/decisoes.md` marcadas como substituídas; 27 diários retroativos (30 conversas sem diário) e
+  17 blocos em diários que cobriam só parte da conversa.
+- **Estado depois:** 90 confirmadas, 0 não confirmadas, 2 em conflito, 1 nunca conferida; `verificar` e `citacoes` limpos.
+- **Credencial:** senha dita em texto em 4 falas de uma conversa — não copiada.
+- **Suíte:** com o código da parte 2, 1626 verdes e 1 falha em `tests/test_hook_outro_projeto_shell.py`, que passa
+  sozinho (25 de 25) — teste instável, não ligado a esta entrega.
+
 ## Histórico
+- 2026-11-16 — parte 2 entregue (0.63.0) e 1ª rodada no kit (motivo: o acervo nunca tinha sido conferido contra as
+  conversas; os "enfraquece" dos ajudantes eram, na maioria, reincidência — separados na instrução das levas seguintes).
 - 2026-11-16 — parte 2 aberta (conversas): desenho aprovado pelo owner com 2 ajustes — só rebaixa com fala que mostra
   falha ou dúvida; decisão recuperada vai pra `memory/` e `docs/decisoes.md` (motivo: o acervo nunca foi conferido
   contra conversa, e conversa antiga pode sumir).

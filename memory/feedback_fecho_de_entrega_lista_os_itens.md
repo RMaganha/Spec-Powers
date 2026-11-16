@@ -3,7 +3,7 @@ name: feedback_fecho_de_entrega_lista_os_itens
 description: O fecho de uma entrega com vários itens lista cada item com onde ele está (commit), antes do passo do owner — quem só lê a última mensagem (ou chega depois de compactar) tem de ver o quadro inteiro
 gatilho: quando fechar uma entrega de vários itens, ou escrever a 1ª resposta depois de compactar a janela
 sem_gatilho_de_acao: o fecho de entrega não tem frase fixa — o que marca é a ausência da tabela, que um regex não mede
-conferida: 2026-11-13 — confirmada — fonte: memory/sessions/2026-11-06-benchmark-msig-agentes.md:32
+conferida: 2026-11-16 — confirmada — fonte: memory/sessions/2026-11-06-benchmark-msig-agentes.md:72
 metadata:
   type: feedback
 ---
@@ -21,3 +21,9 @@ faltam a média e alta"* — tudo estava feito; a resposta certa foi a tabela it
 esforço, por parte, por ordem). Não substitui [[feedback_resposta_do_tamanho_do_pedido]]: o inventário **é** a
 resposta ao pedido "implementar os 13"; o passo do owner (push, OK) vem depois dele, em passo numerado
 ([[feedback_comando_pro_owner_passo_a_passo]]).
+
+**A tabela leva as colunas que o owner pediu (recuperado no sono de 2026-11-16).** Três dias depois, na mesma entrega,
+o owner: *"os itens 1, 2, 5 e 13 são todos alto, mas no commit só mencionou 1, então não tenho certeza se fez todos os
+13 itens!"* — a tabela agrupada por esforço escondeu a coluna **Ganho**, que ele tinha pedido; os 4 eram de ganho
+alto (memory/sessions/2026-11-06-benchmark-msig-agentes.md:72). Agrupar do jeito pedido não basta: as colunas que o
+owner pediu ficam na tabela.

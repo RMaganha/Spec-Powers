@@ -3,8 +3,13 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-16
+
+- [sono-da-memoria-conversas] 0.63.0: o sono leu as 67 conversas gravadas com 14 ajudantes; 4 notas corrigidas pela conversa, 1 não confirmada virou confirmada, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada, 27 diários retroativos e 17 blocos acrescentados; `conversas lidas até` registrado → sessions/2026-11-16-sono-da-memoria-conversas.md
+
 ## 2026-11-13
 
+- [analise-do-sono-da-memoria] (retroativo, sono 2026-11-16) dois artigos da Anthropic; acervo primeiro, conversas depois; texto em dobro; `Falta decidir:` deveria vir com a resposta → sessions/2026-11-13-analise-do-sono-da-memoria.md
 - [sono-da-memoria-acervo] 0.62.0: cada anotação de `memory/` ganha `conferida:` (estado, data e fonte), a tabela copia o estado e o hook de abertura oferece o sono com 10 conversas; passada no kit com 6 ajudantes — 75 confirmadas, 1 não confirmada, 2 conflitos pro owner, citações mortas 40 → 0; correção posterior clara não é conflito (revisão do owner) → sessions/2026-11-13-sono-da-memoria-acervo.md
 
 ## 2026-11-12
@@ -27,6 +32,7 @@
 
 ## 2026-11-09
 
+- [conferencia-do-upgrade-no-transportes] (retroativo, sono 2026-11-16) 3 rodadas do upgrade no Transportes; raiz sem git; anotação de subpasta não dispara → sessions/2026-11-09-conferencia-do-upgrade-no-transportes.md
 - [upgrade-em-uma-rodada] 0.54.0: o `/mss-spec:upgrade` do Transportes V2 virou 3 conversas paradas na mesma pergunta sobre trabalho pendente em outra branch; agora os 3 passes rodam numa conversa, uma branch `chore/upgrade-kit`, um commit por passe, stash único do pendente do owner (nunca commitar), `--ff-only` de volta pra branch dele e conferência colada; pivô: ordem e situação do git viram script só-leitura (`templates/upgrade_plano.py`, 12 testes) porque prosa não se testa; rejeitado: script que faz o git, só prosa; F-053 (comando colado não visto pelo `kit_primeiro.py`) → sessions/2026-11-09-upgrade-em-uma-rodada.md
 
 ## 2026-11-06
@@ -35,18 +41,26 @@
 
 ## 2026-11-03
 
+- [doctor-do-kit] (retroativo, sono 2026-11-16) doctor no kit: 13 checks, infra própria, `.claude/worktrees/` contra a regra → sessions/2026-11-03-doctor-do-kit.md
 - [teto-so-pro-assistente] 0.52.0: o owner, cansado do "alerta do MAPA no limite de 6k" em toda conversa e do upgrade refazendo infra nos projetos em produção; diagnóstico pelo `/mss-spec:bug`, simulação em cópias do Whats e do MSS-SSC antes do código (reproduziu 36 repetições e derrubou a premissa dos comentários do molde — F-051); o teto passa a falar só com o assistente, uma vez por sessão, MAPA/INDEX medidos sem comentário, e o upgrade nunca reescreve os 4 arquivos do Docker que existem — [sessão](sessions/2026-11-03-teto-so-pro-assistente.md)
 - [guardiao-sem-script] 0.51.1: ao registrar a tarefa agendada do guardião, o owner foi contactado pela infra e pela Segurança da Informação — script PowerShell e tarefa agendada não são permitidos; hook do settings.json removido, .ps1 e testes fora do kit, memória vira política com gatilho_comando (F-050); pivô: automação na máquina do owner passa pela SI antes de existir; alternativa (marketplace local sem junção × hook Python) é escolha dele → sessions/2026-11-03-guardiao-sem-script.md
 
 ## 2026-10-30
 
+- [versao-do-superpowers-por-projeto] (retroativo, sono 2026-11-16) cópia do superpowers por projeto presa na versão do dia → sessions/2026-10-30-versao-do-superpowers-por-projeto.md
 - [guardiao-da-juncao] 0.51.0: o owner perguntou o que é "refazer a junção" e pediu algo automático porque o app atualiza sempre; nasceu o guardião fora do kit (hook no settings.json do usuário + tarefa agendada), com captura de evidência; pivô: a 1ª rodada real falhou ($PSScriptRoot vazio) com os testes verdes — teste que passa o parâmetro não prova o padrão → sessions/2026-10-30-kit-entra-primeiro.md
 - [kit-entra-primeiro] 0.50.0: o owner mandou olhar a conversa do Whats ("péssimo, não lê memória, chuta servidor"); a leitura achou 3 causas e uma 4ª escondida: a devolução do Stop nunca chegou nesta máquina (exit 2 + `setlocale` = "script ausente", 40+ vezes); saíram os hooks `kit_primeiro` e `diario_junto`, o Stop por JSON, o lembrete ligado, `docs/AMBIENTES.md` e o diário no passo 1; pivô central: o kit precisa de cerca, não de prosa — e hook se prova no transcript → sessions/2026-10-30-kit-entra-primeiro.md
 
 ## 2026-10-28
 
+- [agentes-ou-comandos-e-upgrade-do-mss-utils] (retroativo, sono 2026-11-16) por que comandos e não agentes; "registre como crítico" = linha no to-dolist; uma tarefa numa conversa só → sessions/2026-10-28-agentes-ou-comandos-e-upgrade-do-mss-utils.md
 - [upgrade-converte-to-dolist] 0.48.0: o upgrade converte o to-dolist e o fora de escopo em dois tempos (original no git → prévia com soma e 3 linhas reais → OK); pivô central: "linha por linha" virou "um recado por linha" depois de ler o Whats real; F-045/F-046 → sessions/2026-10-28-upgrade-converte-to-dolist.md
 - [fora-de-escopo-no-to-dolist] 0.47.0: "não agora" vira linha `#fora-de-escopo` no to-dolist (no git), a busca automática não lê mais, 61 itens do kit convertidos; pivô central: formato antigo dos outros projetos aceito como provisório até o upgrade (escolha do owner) → sessions/2026-10-28-fora-de-escopo-no-to-dolist.md
+
+## 2026-10-27
+
+- [mapa-e-index-no-modo-do-memory] (retroativo, sono 2026-11-16) MAPA e INDEX no modo do MEMORY (0.44.0); proposta sem medir derrubada → sessions/2026-10-27-mapa-e-index-no-modo-do-memory.md
+- [bug-e-duvida-pelo-kit] (retroativo, sono 2026-11-16) `bug` e `duvida` (0.43.0 → 0.45.0); o plugin segue a branch aberta na pasta do kit → sessions/2026-10-27-bug-e-duvida-pelo-kit.md
 
 ## 2026-10-23
 
@@ -56,22 +70,49 @@
 
 - [azure-ambiente] do "TerraForm?" ao MSS-UTILS em produção pelo pipeline (Bicep + `app_settings.py` + aprovação), 0.37.0 → 0.41.0; pivô central: 3 rodadas de permissão pra identidade errada → `object id` no log (F-039); homologação nova e nome `azure-ambiente` → sessions/2026-10-21-azure-ambiente.md
 
+## 2026-10-15
+
+- [novidades-do-app-desktop] (retroativo, sono 2026-11-16) novidade do app está nas notas de versão do app, não no changelog da CLI → sessions/2026-10-15-novidades-do-app-desktop.md
+
+## 2026-10-14
+
+- [protecao-do-historico-de-conversas] (retroativo, sono 2026-11-16) o Claude Code apaga conversa parada há mais de `cleanupPeriodDays`; nada implementado → sessions/2026-10-14-protecao-do-historico-de-conversas.md
+
 ## 2026-09-25
 - [janela-afogada-e-partida-que-nao-cresce] janela do Whats afogada (160 KB de partida, backlog virou fato) → 0.32.0 aviso na abertura + trava sem backlog · enxugamento do Whats · 0.33.0 teto na gravação (`enxugar` + `teto_ao_gravar`) e cerca de outro repositório pelo shell · 0.34.1 resposta do tamanho do pedido; F-030, F-031, F-033, F-034 · 0.35.0 fonte ou não sei (verificador de citações no Stop, F-035) · 0.36.0 memória com gatilho de ação e rotas não pedidas (F-034 fechado) → sessions/2026-09-23-janela-afogada-e-partida-que-nao-cresce.md
+- [claude-md-na-raiz-do-kit] (retroativo, sono 2026-11-16) regras "Fonte ou não sei" e "Responda só o que eu pedi" não carregavam no kit → `CLAUDE.md` na raiz → sessions/2026-09-25-claude-md-na-raiz-do-kit.md
 - [um-item-por-chat] chat novo bloqueado por 6 abertas no Whats → a trava conta por chat (0.34.0); 3 revisões: substring → palavra inteira, foto do INDEX retirada (adivinhava o dono da linha), encerrada olha toda linha que casa; 676 verdes → sessions/2026-09-25-um-item-por-chat.md
 
 ## 2026-09-23
 - [cerca-por-destino-e-teto-claude-md] "negar todo merge trava o dia a dia" → cerca por destino (push em homologação/produção e deploy negados; merge/rebase/push de feature com `ask`, validado no Desktop) + teto do CLAUDE.md em 10 KB com frases-chave travadas (F-029) — 0.31.0/0.31.1 → sessions/2026-09-23-cerca-por-destino-e-teto-claude-md.md
+- [alerta-de-contexto-e-catalogo] (retroativo, sono 2026-11-16) alerta em 75% (escolha do owner); hook assumia 200 mil → 0.29.1; catálogo do kit → sessions/2026-09-23-alerta-de-contexto-e-catalogo.md
 - [analise-externa-cerca-pipe-registro] duas análises externas do kit (ChatGPT/Gemini) cruzadas com o repo → metade já existia ou contrariava decisão; das 4 recomendadas, a 2ª checagem derrubou 2 (F-028) e entraram a cerca do pipe (F-025 fechado) e o registro dos hooks (0.30.0) → sessions/2026-09-23-analise-externa-cerca-pipe-registro.md
+
+## 2026-09-22
+
+- [inventario-do-banco-vivo] (retroativo, sono 2026-11-16) 0.28.0: inventário do banco que a `analise` dispara; subagentes lentos → direto + revisor → sessions/2026-09-22-inventario-do-banco-vivo.md
+
+## 2026-09-14
+
+- [sessao-perdida-e-travas-de-publicacao] (retroativo, sono 2026-11-16) push quebrou a homologação de outro projeto → travas por hook (0.26.0) → sessions/2026-09-14-sessao-perdida-e-travas-de-publicacao.md
 
 ## 2026-09-02
 - [orcamento-de-partida-e-recall] hook mandou podar índice de 25 KB; era 12% de 214 KB de partida → índice em dois níveis + recall por hook + rodízio MAPA/INDEX (0.27.0), Whats 190 → 108 KB → sessions/2026-09-15-orcamento-de-partida-e-recall.md
 - [bpmn] o infográfico "Elementos do Bizagi" virou a 0.24.0: `/mss-spec:bpmn` + gerador determinístico que lê o código por `ast` e desenha um processo por porta de entrada (`bpmn.md` pro assistente + `bpmn.html` pro humano, fora do git); pivôs: a premissa que decidia tudo (processo = **execução do código**, não processo de negócio) foi declarada `sem fonte` e aprovada direto · gate do `divergir` aplicado e **negado** de novo (precedente do mapa-neural/anatomia decide a forma; a altitude é barata de reverter) · o **dogfood achou 3 bugs com a suíte verde**, o pior deles `gerar` homônimo fazendo um processo desenhar as caixas internas do outro → caso **F-016** · e a guarda determinística de layout (duas caixas na mesma coluna/linha) pegou colisão de gateway aninhado sem dirigir browser → sessions/2026-09-02-bpmn.md
 
+## 2026-08-26
+
+- [teimosia-no-deploy-e-diagnostico] (retroativo, sono 2026-11-16) 6 rodadas de 503 → regra crítica 11 e `/mss-spec:diagnostico` (0.23.0) → sessions/2026-08-26-teimosia-no-deploy-e-diagnostico.md
+
 ## 2026-08-25
 - [anatomia] "algo melhor que um diagrama" pra avaliar o kit virou a 0.22.0: `/mss-spec:anatomia` + gerador determinístico (números MEDIDOS: 22 comandos, hooks, orçamento, corpus; metadado curado com `alvos` travados por teste; BOM → `utf-8-sig` + regressão); pivôs: mapa-neural não servia (estrutura ≠ tempo/risco), gate do divergir aplicado e negado (barato de reverter → piso bastou), e o owner estranhou o número da fila → leitura "soma ≠ taxa por sessão" (o painel incomodando é o painel funcionando) → sessions/2026-08-25-anatomia.md
 - [divergir] avaliação do repo `adhd` virou a 0.21.0: ideia acolhida (divergência isolada + crítico mecânico + armadilha sedutora), stack npm rejeitado (3º ideia-vs-stack); pivô central: o owner derrubou o opt-in puro ("pode ser que eu esqueça de chamar") → 3 camadas com **auto-proposta** no `nova-feature` quando a decisão é aberta E cara de reverter (precedente MSIG vence divergência) → caso F-014; tropeço: BOM do PS 5.1 nos manifestos derrubou 3 testes → sessions/2026-08-25-divergir.md
 - [evals-e-context-engineering] o kit fecha o laço falha → caso → guardrail → teste (0.19.0): premissa **com fonte** antes do OK, `docs/EVALS.md` com 12 casos reais, `gatilho:` nas 34 memórias + índice agrupado por gatilho, `.claude/rules/` path-scoped, a nativa virando ponteiro, `capturar` colhendo o acerto e `release` cobrando caso aberto; pivôs: o owner cortou meu 1º desenho por **raso** (transcrevi o item do to-dolist), a pesquisa em **fonte Anthropic** destampou 4 mecanismos que o kit não usava, e o achado de que o índice auto-carregado é o **nativo com 6 de 33 entradas** trocou 'espelhar o índice' por 'ponteiro de uma linha'; achei ainda uma memória que **mentia** ('o MEMORY.md já vem carregado') ; **2ª metade (0.20.0)**: o owner apontou que faltava o context engineering — medi o kit (CLAUDE.md 17.920 B em toda sessão, 79% do MAPA em histórico) e a partida caiu de 12.976 → 6.374 tokens (−51%), com o teto virando teste → sessions/2026-08-18-evals-e-context-engineering.md
+
+## 2026-08-14
+
+- [cards-contra-o-kit] (retroativo, sono 2026-11-16) 10 cards contra o kit; não cobrar no molde antes de doer; RLS/RBAC/WAF fora → sessions/2026-08-14-cards-contra-o-kit.md
+- [avaliacao-da-skill-caveman] (retroativo, sono 2026-11-16) caveman avaliada e não instalada; 5 regras no `CLAUDE.md` global → sessions/2026-08-14-avaliacao-da-skill-caveman.md
 
 ## 2026-07-31
 - [infra-msig-ou-propria] o kit deixou de assumir a infra MSIG: `kickoff` pergunta e grava na linha `**Infra:**` do `CLAUDE.md`; com infra própria caem CA, compose office, proxy, rede externa e o `get_connection` corporativo, e o `doctor` pula proxy/CA/rede; pivôs: meu jargão ("chave MSIG") travou a conversa até eu trocar por tabela do-que-acontece-onde, o owner cravou o escopo, e ao escrever apareceu que a categoria 1 do `upgrade` reintroduziria tudo (freio) e que projeto antigo tem de receber a linha **perguntando** → sessions/2026-07-31-infra-msig-ou-propria.md
@@ -81,11 +122,43 @@
 ## 2026-07-28
 - [analise-projeto-existente] `/mss-spec:analise` — porta de entrada do brownfield (2 fases de leitura → dossiê `ARQUITETURA.md`); pivôs: a restrição "não pode ajustar / pode parar tudo" virou o **eixo** (regra não-destrutiva), UI própria intocável, spec retroativa só com evidência lida; achados: `upgrade` sobrescrevia infra de brownfield (freio) e eu mesmo escrevi em arquivo de categoria 1 (fronteira prescritivo × descritivo); release 0.14.0 → sessions/2026-07-28-analise-projeto-existente.md
 
+## 2026-07-24
+
+- [kit-diz-que-o-frontend-nao-existe] (retroativo, sono 2026-11-16) "frontend não existe" no Energy; `/plugin` não aparece no app (0.13.x) → sessions/2026-07-24-kit-diz-que-o-frontend-nao-existe.md
+
 ## 2026-07-21
 - [doctor-check-versao] check de versão do kit no doctor (instalada × publicada no remoto via git fetch no clone); pivôs: doctor≠upgrade (diagnostica plugin × conserta arquivos), semver≠commit; release 0.12.0 → sessions/2026-07-21-doctor-check-versao.md
+- [conferir-se-falta-captura] (retroativo, sono 2026-11-16) nada pendente para capturar → sessions/2026-07-21-conferir-se-falta-captura.md
 - [mapa-neural-v0.11.0] datas (mtime) + camada associativa (só no hover, bojando à direita, com setas/realce) + layout tidy-tree horizontal; SOM descartado; fix tela branca (`})` a mais, parse-time) → guarda node --check → sessions/2026-07-21-mapa-neural-datas-associacoes-layout.md
 - [mapa-neural-abrir-md] clique num balão-folha .md abre o arquivo renderizado em nova aba; escolha: nova aba + markdown vanilla inline (sem CDN, self-contained) → sessions/2026-07-21-mapa-neural-abrir-md.md
 - [captura-de-memoria] avaliação do claude-mem → não integrar (bate nos pilares); nasceu o modo `capturar` + diário de sessão em 3 camadas, foco nos pivôs → sessions/2026-07-21-captura-de-memoria.md
 - [ancora-projeto-ativo] acidente real ("olha como o projeto B fez" → assistente adotou o B e quebrou o B) → 3 camadas: regra crítica 8 (âncora não migra, outro projeto é read-only) + read-only no precedentes + hook PreToolUse ligado por padrão; pivôs: owner escolheu bloquear (inverteu a política de hook opt-in do kit), Bash fora, sonda de worktree fail-CLOSED na revisão; canário do hook por junction pendente; **emenda 0.15.1** = a face de leitura ("PERGUNTE, não vasculhe"), cujo repeteco veio de a regra morar só na pasta volátil do ~/.claude → sessions/2026-07-30-ancora-projeto-ativo.md
 - [fora-de-escopo-e-texto-colado] texto colado de outra conversa conferido fato a fato (premissa falsa: a decisão de 23/10 foi lida e desrespeitada) → worktree limpo; "fora de escopo" = "não agora", vira tag no to-dolist (no git); doctor aponta, upgrade converte → sessions/2026-10-28-fora-de-escopo-e-texto-colado.md
 - [memoria-na-hora-da-proposta] o nova-feature se perdeu no Whats (memória que vetava o desenho não chegou: o recall olha o pedido, não a proposta) e eu contrariei o relato ("não se perdeu") → conferência no Stop pelo tema da proposta + sintoma do owner é fato; pivôs: texto inteiro → termo curto; 314 → 75 voltas; owner deixou como está (0.49.0) → sessions/2026-10-29-memoria-na-hora-da-proposta.md
+
+## 2026-07-20
+
+- [ci-documentacao-e-graphify] (retroativo, sono 2026-11-16) CI (0.8.5), PRIMEIRO-DIA (0.8.6), graphify fora → sessions/2026-07-20-ci-documentacao-e-graphify.md
+- [redes-dry-run-e-distribuicao-por-git] (retroativo, sono 2026-11-16) 0.8.2 a 0.8.4: redes de segurança, `upgrade --dry-run`, instalar pela URL do repo → sessions/2026-07-20-redes-dry-run-e-distribuicao-por-git.md
+- [mapa-de-contexto-e-mapa-neural] (retroativo, sono 2026-11-16) 0.9.0: MAPA por projeto e mapa neural; SVG à mão trocado pela `vis-network` no mesmo dia → sessions/2026-07-20-mapa-de-contexto-e-mapa-neural.md
+
+## 2026-07-17
+
+- [branch-da-main-e-um-assunto-por-janela] (retroativo, sono 2026-11-16) 0.8.1: branch sempre da `main`; um assunto por janela nasceu como alerta → sessions/2026-07-17-branch-da-main-e-um-assunto-por-janela.md
+
+## 2026-07-16
+
+- [spec-viva-por-assunto] (retroativo, sono 2026-11-16) spec viva por assunto (Estado atual + Histórico) → sessions/2026-07-16-spec-viva-por-assunto.md
+- [analises-externas-backlog-e-features] (retroativo, sono 2026-11-16) análises do Gemini e do GPT; nomes do owner, não nomes-código; `.gitignore` ancorado → sessions/2026-07-16-analises-externas-backlog-e-features.md
+
+## 2026-07-14
+
+- [proxy-plano-teste-e-seguranca] (retroativo, sono 2026-11-16) CA do FortiGate novo; UI só determinística; `/mss-spec:seguranca` → sessions/2026-07-14-proxy-plano-teste-e-seguranca.md
+
+## 2026-07-08
+
+- [review-do-kit-banco-e-front-mantine] (retroativo, sono 2026-11-16) v0.2.0 a v0.7.0; Transportes V2 só modelo, nunca fonte de credencial; correção e padrão vêm primeiro pro kit → sessions/2026-07-08-review-do-kit-banco-e-front-mantine.md
+
+## 2026-06-30
+
+- [nascimento-do-plugin] (retroativo, sono 2026-11-16) da pasta de moldes ao plugin mss-spec; memória no repositório; junção → sessions/2026-06-30-nascimento-do-plugin.md

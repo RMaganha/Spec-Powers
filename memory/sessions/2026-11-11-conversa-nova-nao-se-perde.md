@@ -46,3 +46,11 @@
 - Provar no real: o clique de aprovação ao trocar de branch e a regra chegando numa conversa nova aberta com
   `Já decidido`.
 - Fora deste item: commit feito na branch errada; a ordem "regra antes do desenho" (F-060).
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `dbf36b0c-211b-43a2-ada0-d1a99c98b987` (só falas; sem saída de ferramenta).
+
+- O MAPA gravado antes do merge ficou dizendo "aguardando o merge" e precisou de uma branch curta depois (fala
+  012) — repetiu em `dfeb9bc5` (falas 016-018) e em `e9deb630` (fala 024, `docs/mapa-sono-mesclado`: "senão a
+  próxima conversa leria um estado falso").

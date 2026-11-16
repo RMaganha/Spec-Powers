@@ -3,7 +3,7 @@ name: feedback_visualizacao_usa_lib_consagrada
 description: Desenho/diagrama/grafo/layout — use a biblioteca consagrada VENDORIZADA (o kit já faz isso); geometria escrita à mão sai ilegível
 gatilho: quando a feature pedir desenho, diagrama, grafo ou layout visual
 sem_gatilho_de_acao: a ação é gravar arquivo de desenho, que o gatilho de comando e de resposta não enxerga
-conferida: 2026-11-13 — confirmada — fonte: docs/decisoes.md:31
+conferida: 2026-11-16 — confirmada — fonte: docs/decisoes.md:31
 metadata:
   type: feedback
 ---
@@ -11,7 +11,8 @@ metadata:
 Feature que pede **desenho** (diagrama, grafo, fluxo, organograma, timeline): procure a **biblioteca
 consagrada** do domínio e **vendorize** — não escreva geometria. "Self-contained, zero CDN" neste kit
 **nunca** significou desenhar à mão: significa **lib embutida**. O precedente estava aqui desde a
-0.11.0, `templates/vendor/vis-network.min.js` (673 KB), usado pelo `mapa-neural`.
+0.9.0, `templates/vendor/vis-network.min.js` (673 KB), usado pelo `mapa-neural` — e nasceu do mesmo erro: o
+mapa neural saiu primeiro em SVG à mão e foi trocado pela `vis-network` no mesmo dia, por escolha do owner.
 
 **Why:** na 0.24.x eu escrevi um layout SVG próprio pro `/mss-spec:bpmn` — raias como faixas de Y,
 colunas de 236 px, setas em cotovelo. Rodado num projeto real (MSS-SSC, 24 rotas), o maior diagrama
@@ -32,3 +33,5 @@ Relacionado: [[feedback_avaliar_tool_externa_ideia_vs_stack]] (aqui a decisão f
 **casa** com os pilares porque vendorizar não adiciona runtime), [[feedback_so_dependencia_estavel]]
 (bpmn-js 18.27.0, sem beta), [[feedback_testar_js_gerado_node_check]] (o que ainda pode quebrar na
 página gerada) e [[project_dogfood_gerador_diff_antes_depois]] (foi o projeto real que expôs tudo).
+
+substituiu: "desde a 0.11.0" — a `vis-network` entrou na 0.9.0 (CHANGELOG.md:570; memory/sessions/2026-07-20-mapa-de-contexto-e-mapa-neural.md:17, 2026-07-20)

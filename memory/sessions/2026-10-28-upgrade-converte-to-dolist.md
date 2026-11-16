@@ -31,3 +31,11 @@
 ## Próximo
 - Owner: /mss-spec:upgrade no Whats (árvore limpa antes), no Transportes e no Energy.
 - Depois de todos: tirar do kit o código do formato antigo (#fora-de-escopo).
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `7b12e702-43a6-4e49-b740-62d727f05063` (só falas; sem saída de ferramenta).
+
+- O commit da captura caiu direto na `main`: o owner tinha feito o merge e o push enquanto o assistente gravava —
+  "você já tinha feito o merge e o push … meu commit da captura entrou nela" (fala 006). Depois o assistente pediu
+  um merge que já tinha sido feito ("que merge???", fala 039).

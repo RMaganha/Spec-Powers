@@ -7,3 +7,4 @@
 - **quando escolher o ritual da tarefa** → [Nível de cerimônia / velocidade](../feedback_nivel_cerimonia_velocidade.md) — padrão médio; alto só p/ feature grande
 - **quando começar tarefa de domínio (UI, banco, segurança, infra)** → [Assumir papel de especialista](../feedback_assumir_papel_especialista.md) — persona sênior do domínio; anuncia, faz, OK, volta
 - **quando gravar memória ou aprendizado durável** → [Memória vive dentro do repo](../project_memoria_local_ao_repo.md) — `memory/` do projeto, nunca só a pasta nativa volátil
+- **quando o owner perguntar o que mudou no app Desktop do Claude** → [Novidades do app nas notas de versão](../reference_novidades_do_app_nas_notas_de_versao.md) — o changelog da CLI não traz; ler só ele deu "não mudou nada"

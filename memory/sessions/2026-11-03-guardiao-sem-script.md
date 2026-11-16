@@ -26,3 +26,16 @@ Owner escolhe a alternativa pra junção que some: (A) instalar o kit pelo marke
 cuida; depois de mudar o kit, `marketplace update`; ou (B) hook Python só de conferência no `settings.json` do usuário
 (mesma classe dos hooks Python que o kit já roda). Qualquer uma passa pela SI antes. E apagar a tarefa agendada se chegou
 a ser criada (Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir), sem comando.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `71d6a992-dbf9-4978-a87d-19717bb48820` (só falas; sem saída de ferramenta).
+
+O trecho final da conversa (falas 037-052) ficou fora deste diário e do `2026-10-30-kit-entra-primeiro.md`:
+- A escolha "A: marketplace" e o registro do plugin no `settings.json`: o app Desktop não abre o painel do
+  `/plugin` e nesta máquina não existe o programa `claude` (fala 042).
+- O `marketplace.json` usava uma forma antiga: "a documentação oficial diz que o `marketplace.json` deve declarar
+  o plugin como `"source": "./"`, e o nosso usava uma forma antiga… Corrigi" (fala 042, 2026-11-03) — hoje
+  `.claude-plugin/marketplace.json:9`.
+- O owner: "ficou confuso" (fala 039), "hora fala para rodar o doctor ou para rodar o upgrade" (fala 049),
+  "respondeu, mas não respondeu nada" (fala 051).

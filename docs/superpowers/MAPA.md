@@ -1,7 +1,7 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/sono-da-memoria-conversas` — **sono da memória, parte 2 (conversas), 0.63.0 em andamento**: código (`conversa_texto.py lote`, data das conversas lidas, `verificar` acusa `.jsonl`) e depois a rodada nas 67 conversas com ajudantes que só leem. Saída: o diff pro OK do owner antes do merge. Spec: `docs/specs/sono-da-memoria.md` (decisões 16-24).
+Branch `feature/sono-da-memoria-conversas` — **sono da memória, parte 2 (conversas), 0.63.0 pronta, falta o OK do owner e o merge**: `conversa_texto.py lote`, `conversas lidas até:` no `sono` e no `montar`, `verificar` acusa `.jsonl`; 1ª rodada nas 67 conversas — 4 notas corrigidas, 1 confirmada, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada, 27 diários retroativos. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-16-sono-da-memoria-conversas.md`.
 
 <!-- histórico do estado anterior (0.62.0) -->
 Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1: acervo) mesclada na `main` e publicada pelo owner em 2026-11-16** (`a98c410`); suíte 1617 verdes. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.

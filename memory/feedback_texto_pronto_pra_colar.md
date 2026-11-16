@@ -3,7 +3,7 @@ name: feedback_texto_pronto_pra_colar
 description: Quando o owner precisa repassar algo a outra janela, a um aprovador ou à infra, entregue o texto pronto pra colar — completo, com os valores reais preenchidos e um exemplo de como fica; nunca placeholder sem dizer de onde tirar
 gatilho: quando o owner precisar repassar algo a outra janela do Claude, a um aprovador ou à equipe de infra
 gatilho_resposta: (?i)\b(?:conversa nova|outra janela|janela nova|outro chat|chat novo)\b[^\n]{0,120}\b(?:col[ea]|colar|texto pronto)\b|\b(?:col[ea]|colar|texto pronto)\b[^\n]{0,120}\b(?:conversa nova|outra janela|janela nova|outro chat|chat novo)\b
-conferida: 2026-11-13 — confirmada — fonte: hooks/passagem_de_conversa.py:18
+conferida: 2026-11-16 — confirmada — fonte: hooks/passagem_de_conversa.py:18
 metadata:
   type: feedback
 ---
@@ -43,3 +43,10 @@ falhas: *"ele rele tudo para todo lado!!!"*. Passa a valer: entregue **só o tex
 dele, o item em português simples ("Hoje · O que muda · O que você ganha"); e na parte `Regras desta conversa:`
 diga **o mínimo a ler** (a seção exata da spec), nunca "leia a spec e o dossiê". Os textos dos itens seguintes
 ficam guardados no documento do assunto, não na resposta.
+
+**Curto, e o `Falta decidir:` já com a resposta (recuperado no sono de 2026-11-16).** Em 2026-11-12 o texto saiu em
+dois blocos longos e o owner: *"nossa me deu 2 prompts gigante… sem objetividade"*; o que abriu a 0.61.0 foi o texto
+curto — os itens decididos, `Falta decidir: nada`, 2 regras (memory/sessions/2026-11-11-conferencias-e-captura-final.md:59).
+Em 2026-11-13 de novo dois textos (*"mandou 2 prompts, péssimo isso qual é um qual é outro"*) e o `Falta decidir:`
+sem resposta: *"deveria ter vindo com as respostas já"* (memory/sessions/2026-11-13-analise-do-sono-da-memoria.md:15).
+Passa a valer: o texto é curto, um só, e cada item de `Falta decidir:` vem com a sua recomendação.

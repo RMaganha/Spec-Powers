@@ -39,3 +39,13 @@ atualizada (F2.2/F2.3 + fix). `COMO-FUNCIONA.html`: card C19 em dia + seção "m
 
 ## Próximo
 Aguardando próxima feature (`/mss-spec:nova-feature`). Polimento futuro possível: ícone dentro do balão.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `a228b8f9-bfa3-4da7-a8c3-f7e07e9431b6` (só falas; sem saída de ferramenta).
+
+O trecho de 2026-07-22 (falas 033-040) ficou fora deste diário:
+- **Conversamos:** o mapa no MSS-SSC com caixas sobrepostas, sem arraste e abrindo com clique.
+- **Pivôs:** duplo clique abre o `.md`; caixas arrastáveis de novo; versão 0.12.1 e não 0.11.1, porque a `main`
+  tinha avançado; o assistente mandou "marketplace update" sem conferir, e a instalação é por junção (fala 036).
+- **Fizemos:** v0.12.1, a anotação da junção, push. **Próximo:** recarregar a sessão no MSS-SSC.

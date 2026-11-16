@@ -57,3 +57,15 @@ guardrail no `nova-feature` e a memória [[feedback-medir-antes-de-afirmar-ganho
 ## Próximo
 F-010 segue **aberto** (jargão inventado ao explicar desenho — sem guardrail). Item 5 do to-dolist
 (garantir COMO-FUNCIONA/MAPA/mapa-neural no fecho) continua na fila, em janela própria.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `e7400661-f048-490f-9eb9-bab14ecd4ffa` (só falas; sem saída de ferramenta).
+
+O fim da conversa ficou fora deste diário:
+- 0.20.1 (F-010, fala 020) e o push feito a pedido do owner (fala 021).
+- "Agentes fora" (fala 016) — substituído depois pelo ajudante em `agents/` (`docs/decisoes.md:71`).
+- A "poda dos comandos" foi descartada pelo owner, porque rende só ~976 tokens por sessão: "remova o item 5 e
+  junte no item do fecho" (falas 028-029). A mudança foi só no to-dolist, e o MAPA continuou dizendo "podar os
+  comandos" (fala 020); por isso a poda voltou como próximo passo em `2026-08-25-divergir.md:11` e
+  `2026-08-25-anatomia.md:11`.
