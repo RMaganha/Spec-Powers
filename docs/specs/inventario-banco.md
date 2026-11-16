@@ -158,7 +158,7 @@ Existe porque o próximo leitor desse arquivo provavelmente é um assistente, e 
 
 | destino | o que é | git |
 |---|---|---|
-| `docs/banco.md` | retrato em texto: listas, tabelas, contagens, cruzamento, lacunas — o que o **assistente** lê | **fora** (`/docs/banco.md` ancorado no `.gitignore`) |
+| `<projeto>/docs/banco.md` | retrato em texto: listas, tabelas, contagens, cruzamento, lacunas — o que o **assistente** lê | **fora** (linha /docs/banco.md ancorada no `.gitignore` do projeto) |
 | `docs/banco/<schema>.<objeto>.sql` | os corpos, um arquivo por objeto, **UTF-8 com BOM** (base brasileira de 2019: comentário com acento; sem BOM o SSMS antigo e o VS embaralham) | **versionado** |
 | `docs/ARQUITETURA.md` (seção *Dados*) + `MAPA.md` (*Conexões*) | o destilado: contagens, modelo em prosa, linked servers e jobs | versionado |
 
@@ -186,7 +186,7 @@ rollback (mesma regra da `analise`).
 
 **Brownfield — só mexe no que é seu.** Todo `.sql` gerado começa com a marca
 `-- [inventario-banco]` e o `banco.md` com `<!-- [inventario-banco] ... -->`. Só arquivo com a marca é
-sobrescrito ou removido: um `docs/banco.md` que o time já tinha faz o script **parar sem gravar**
+sobrescrito ou removido: um `<projeto>/docs/banco.md` que o time já tinha faz o script **parar sem gravar**
 (use `--out`); `.sql` alheio em `docs/banco/` fica intocado e listado; e se ele tem o **mesmo nome** de
 um objeto, o corpo daquele objeto **não é gravado** (vai pra *conflitos* no relatório e o `banco.md` diz
 "não gravado"). Só se remove `.sql` nosso de objeto que **sumiu do catálogo** — objeto que existe mas
@@ -238,7 +238,7 @@ estoura no Python 3.14 (memória `project_importlib_dataclass_precisa_de_sys_mod
 ## Fora de escopo
 Ler dado de negócio (amostra de linha, `SELECT *` em tabela da aplicação) · `COUNT(*)` real em vez da
 estimativa de partição · gerar par Fernet novo ou gravar credencial em qualquer arquivo do projeto
-analisado · arquivo de configuração próprio pro inventário (`docs/banco.md` como config, ponteiro no
+analisado · arquivo de configuração próprio pro inventário (`<projeto>/docs/banco.md` como config, ponteiro no
 `CLAUDE.md`, subcomando do `/mss-spec:banco`) — o ponteiro vive no `ARQUITETURA.md` · HTML na v1 (o
 visual é do `/mss-spec:documentacao`) · `/mss-spec:banco` virar porta de credencial do inventário (ele
 é **prescritivo**, o inventário é **descritivo** — mesma fronteira de `ESTRUTURA.md` × `ARQUITETURA.md`)

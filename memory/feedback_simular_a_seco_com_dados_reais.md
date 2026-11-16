@@ -3,6 +3,7 @@ name: feedback_simular_a_seco_com_dados_reais
 description: mecanismo novo que vai mexer em arquivos de um projeto real se prova primeiro numa simulação a seco sobre os arquivos reais (tabela antes/depois + teste de recall), no scratchpad, sem gravar nada
 gatilho: quando propor mecanismo novo que vai mexer em arquivos de um projeto real (índice, MAPA, migração, rodízio)
 gatilho_resposta: (?is)\b(?:proponho|minha proposta|o desenho (?:é|fica|proposto)|desenho proposto|sugiro)\b.{0,1500}\b(?:nos projetos|outros projetos|projeto real|projetos reais|no Whats|no Transportes|no Energy)\b
+conferida: 2026-11-13 — confirmada — fonte: docs/superpowers/specs/2026-09-15-orcamento-de-partida-e-recall-deterministico-design.md:242
 metadata:
   type: feedback
 ---

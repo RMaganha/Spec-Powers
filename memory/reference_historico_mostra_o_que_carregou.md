@@ -2,6 +2,7 @@
 name: reference-historico-mostra-o-que-carregou
 description: Os históricos .jsonl do Claude Code mostram quando uma regra, memória ou arquivo de instrução entrou de fato na janela — attachment nested_memory (no meio da conversa) e instructions (na abertura)
 gatilho: quando precisar saber se uma regra, memória ou CLAUDE.md entrou de fato na janela de um projeto
+conferida: 2026-11-13 — confirmada — fonte: docs/specs/regras-do-kit-pelo-plugin.md:33
 metadata:
   type: reference
 ---

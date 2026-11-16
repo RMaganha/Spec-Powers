@@ -3,6 +3,7 @@ name: feedback-perguntar-em-vez-de-vasculhar
 description: Falta um fato concreto que o owner tem na cabeça (caminho, nome de container/variável, qual arquivo é o compose)? Perguntar na hora — nunca varrer o disco
 gatilho: quando faltar um fato concreto que o owner tem na cabeça
 gatilho_comando: (?im)(?:^|[;&|(])\s*(?:find\s+(?:~|/c/Users/[\w.-]+|/c/Ronaldo|/c|/)(?=\s|$)|(?:Get-ChildItem|gci|dir)\b(?=[^|\n]*-Recurse)(?=[^|\n]*(?:C:\\Users\\[\w.-]+(?![\w.\\-])|\$env:USERPROFILE(?![\\\w])|\$HOME(?![\\\w]))))
+conferida: 2026-11-13 — confirmada — fonte: templates/regras-do-kit/1-modo-de-trabalho.md:15
 metadata:
   node_type: memory
   type: feedback
@@ -20,7 +21,7 @@ e sim perguntar!!!"* (2026-07-24, o projeto de leads estava em `Energy`, não on
 *"estava a 5 minutos gastando tokens a toa para tentar achar!!"* + *"não é para investigar, me
 pergunte"* (2026-07-30, procurando o `evolution-go` e o compose dele em outro projeto). A segunda vez
 aconteceu porque este aprendizado morava **só** na pasta volátil `~/.claude/projects/<proj>/memory/` —
-não viajava pra outro projeto. Por isso a regra virou item do **`templates/CLAUDE.md`** (que o kit copia
+não viajava pra outro projeto. Por isso a regra virou item do **`templates/CLAUDE.md`** (hoje mora em `templates/regras-do-kit/1-modo-de-trabalho.md`) (que o kit copia
 pra todo projeto): memória de um projeto não protege os outros.
 
 **How to apply:** uma linha, direta: "onde fica X nesta máquina?" / "qual o nome exato da variável?" —

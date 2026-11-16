@@ -3,6 +3,7 @@ name: feedback-nao-inventar-fatos-concretos
 description: Nunca chutar caminhos/hosts/nomes de recurso concretos — usar só o que está no repo/projeto.md ou o que o owner confirmar
 gatilho: quando citar caminho, host, nome de container, variável ou recurso
 sem_gatilho_de_acao: já tem cerca própria — `hooks/confere_citacoes.py` devolve a resposta com citação que não existe
+conferida: 2026-11-13 — confirmada — fonte: commands/kickoff.md:11
 metadata: 
   node_type: memory
   type: feedback
@@ -11,7 +12,7 @@ metadata:
 
 Ao propor opções, rascunhos de contexto ou qualquer detalhe de infraestrutura, NUNCA inventar fatos
 concretos: caminhos de deploy, paths, hosts, portas, nomes de container/recurso, estrutura de pastas.
-Usar só o que está no repositório, no `projeto.md`, ou o que o owner disser explicitamente.
+Usar só o que está no repositório, no `<projeto>/projeto.md`, ou o que o owner disser explicitamente.
 
 **Why:** no `/mss-spec:kickoff` do projeto do painel de atas, o comando chutou o path
 `/mnt/f/Deploy/IaBotAgent` numa opção (A) — caminho que não existia. O owner (engenheiro sênior,
@@ -20,5 +21,5 @@ avesso a vibecoding) teve que corrigir na mão e reclamou ("ficou bem fora"). Um
 
 **How to apply:** quando não tiver o valor verificado, deixe genérico ("um diretório de deploy", "o
 host do Postgres"), marque `<a confirmar>`, ou pergunte. Vale pra entrevistas de kickoff, specs, e
-qualquer resposta. Já embutido como regra no `commands/kickoff.md` e no `templates/CLAUDE.md` do plugin
+qualquer resposta. Já embutido como regra no `commands/kickoff.md` e no `templates/CLAUDE.md` do plugin (hoje mora em `templates/regras-do-kit/1-modo-de-trabalho.md`)
 mss-spec. Relacionado a [[project-memoria-local-ao-repo]] (mesmo repo/plugin).

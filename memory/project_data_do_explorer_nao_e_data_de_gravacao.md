@@ -2,6 +2,7 @@
 name: project_data_do_explorer_nao_e_data_de_gravacao
 description: a "Data de modificação" do Explorer é reescrita por git checkout/merge e não diz quando o conteúdo foi gravado — a prova de gravação é o git log e a transcrição (Write/Edit no .jsonl); nunca afirmar nem negar "foi gravado" pela data do arquivo
 gatilho: quando o owner disser que um arquivo não foi gravado ou não tem a data em que mexeu, ou ao conferir quando algo foi escrito no projeto
+conferida: 2026-11-13 — confirmada — fonte: memory/sessions/2026-10-30-kit-entra-primeiro.md:20
 metadata:
   type: project
 ---
@@ -12,7 +13,7 @@ do Whats fizeram **649 gravações, todas na pasta do projeto** (zero na pasta n
 projeto), e 10 das 11 conversas com trabalho tinham diário em `memory/sessions/` e commit no mesmo dia. O que
 enganava era a **data do Explorer**: um `git checkout dev` + `git merge main` do owner às 17:18 carimbou 31
 arquivos de `memory/` e `docs/` com aquela hora, e **91 das 190 memórias** mostravam no Explorer uma data diferente
-da do commit. Exemplo: `memory/sessions/2026-10-29-codigo-fonte-v2.md`, commit de 29/10, "modificado em" 30/10.
+da do commit. Exemplo: `<Whats>/memory/sessions/2026-10-29-codigo-fonte-v2.md`, commit de 29/10, "modificado em" 30/10.
 
 **Why:** afirmar ou negar "foi gravado" pela data do arquivo erra nos dois sentidos — e aqui quase levou o
 owner a apagar tudo.

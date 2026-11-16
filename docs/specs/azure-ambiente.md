@@ -19,7 +19,7 @@ receita aponta o plano pelo grupo dele (`grupoPlano`). Na janela do projeto: lê
 como pendência, se não existe pipeline de código de produção) → o owner exporta o Web App da homologação
 pelo portal ("Exportar modelo", Bicep) → o assistente monta `infra/main.bicep` (nomes, plano, subnet e
 **imagem** como parâmetros; **sem nenhuma variável de ambiente**), `infra/hml.bicepparam`,
-`infra/prd.bicepparam`, `infra/app_settings.py`, `infra/app-settings.json` e o pipeline
+`infra/prd.bicepparam`, `infra/app_settings.py`, `<projeto>/infra/app-settings.json` e o pipeline
 `azure-pipelines-infra.yml` (modelo `templates/azure-ambiente/azure-pipelines-infra.yml`).
 
 O pipeline roda à mão com a escolha **hml** ou **prd**. `hml`: só o estágio Simular — `az bicep build` +
@@ -31,7 +31,7 @@ rodando é lida do Web App e passada em `IMAGEM` (`readEnvironmentVariable` sem 
 sobe sem o pipeline de código de produção); sem nenhuma das duas, o pipeline falha em vez de criar.
 
 **Variáveis de ambiente** (`templates/azure-ambiente/app_settings.py`, fora do Bicep porque `appSettings`
-substitui a coleção inteira): todas as da homologação vão; o `infra/app-settings.json` (só nomes) marca
+substitui a coleção inteira): todas as da homologação vão; o `<projeto>/infra/app-settings.json` (só nomes) marca
 cada uma `"copiar"`, `"senha"` (grava `*****` só se ainda não existe em produção — nunca sobrescreve a
 verdadeira) ou `{"prd": "<valor>"}` (que também cria variável só de produção, como a
 `WEBSITE_DNS_ALT_SERVER=168.63.129.16`). Plano, VNet/subnet e DNS de produção vêm do `docs/AMBIENTE.md` §5,
@@ -52,10 +52,10 @@ Critérios de aceite:
 - DADO a senha do registro de imagens marcada `copiar`, QUANDO o pipeline grava produção, ENTÃO ela vem do
   registro; se não der, vira "falta preencher" — nunca é gravada vazia.
 - DADO o projeto em homologação, QUANDO o owner roda `/mss-spec:azure-ambiente`, ENTÃO saem a receita, os dois
-  `.bicepparam`, o `app_settings.py`, o `app-settings.json` e o pipeline — e nenhum passo pede comando
+  `.bicepparam`, o `app_settings.py`, o `<projeto>/infra/app-settings.json` e o pipeline — e nenhum passo pede comando
   local contra o Azure.
 - DADO o pipeline com ambiente `hml`, QUANDO roda, ENTÃO o `what-if` contra `RG-MSSAI-DEV` dá "nada muda"
-  e nenhuma variável da homologação fica fora do `app-settings.json`.
+  e nenhuma variável da homologação fica fora do `<projeto>/infra/app-settings.json`.
 - DADO o pipeline com ambiente `prd`, QUANDO roda, ENTÃO para no botão e só cria depois da aprovação.
 - DADO uma senha já preenchida em produção, QUANDO o pipeline `prd` roda de novo, ENTÃO ela não muda.
 - DADO o assistente, QUANDO tenta `az deployment group create`, ENTÃO o hook nega; o `what-if` passa.

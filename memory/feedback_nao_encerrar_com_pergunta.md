@@ -3,6 +3,7 @@ name: feedback_nao_encerrar_com_pergunta
 description: não terminar respostas com pergunta/oferta de próximo passo não solicitada
 gatilho: quando fechar uma resposta ou entrega
 gatilho_resposta: (?is)\b(?:quer que eu|posso (?:seguir|prosseguir|continuar)|deseja que eu|gostaria que eu|prefere que eu)\b[^?\n]{0,160}\?\s*\Z
+conferida: 2026-11-13 — confirmada — fonte: tests/test_memoria_gatilho_de_acao.py:203
 metadata:
   type: feedback
 ---

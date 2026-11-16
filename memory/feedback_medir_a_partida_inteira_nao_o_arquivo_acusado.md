@@ -3,11 +3,12 @@ name: feedback_medir_a_partida_inteira_nao_o_arquivo_acusado
 description: quando um hook/teto acusa UM arquivo, meça o conjunto inteiro contra os tetos antes de consertar o acusado — o que grita raramente é o que mais custa
 gatilho: quando uma ferramenta, hook ou teto acusar UM arquivo (tamanho, lint, limite) e a reação natural for consertar só ele
 sem_gatilho_de_acao: dispara por aviso de hook, teto ou lint, não por ação do assistente
+conferida: 2026-11-13 — confirmada — fonte: docs/superpowers/specs/2026-09-15-orcamento-de-partida-e-recall-deterministico-design.md:21
 metadata:
   type: feedback
 ---
 
-Em 2026-09-14 o kit acusou o `memory/MEMORY.md` do Whats (25.421 bytes, teto 25.600) e mandou podar. Medida
+Em 2026-09-14 o kit acusou o `memory/MEMORY.md` do Whats (25.421 bytes em 2026-09-14, pela spec de 2026-09-15; o `CHANGELOG.md:336` registra 25.711 bytes na 0.29.0, de 2026-09-23 — dois momentos; teto 25.600) e mandou podar. Medida
 a partida inteira do projeto (o que o `CLAUDE.md` do kit manda ler em toda janela): **214 KB ≈ 53 mil
 tokens** — o índice acusado era **12%**; o MAPA estava 15× acima do teto e o INDEX 9×, sem ninguém reclamar,
 porque o `doctor` só reporta e ninguém lê o reporte quando nada bloqueia.

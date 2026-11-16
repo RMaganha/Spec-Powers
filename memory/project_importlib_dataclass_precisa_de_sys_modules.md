@@ -2,6 +2,7 @@
 name: project_importlib_dataclass_precisa_de_sys_modules
 description: módulo carregado por spec_from_file_location (padrão dos testes de hook/script do kit) com @dataclass precisa de sys.modules[spec.name] = mod antes de exec_module no Python 3.14
 gatilho: quando carregar um módulo por importlib.util.spec_from_file_location num teste e ele tiver @dataclass
+conferida: 2026-11-13 — confirmada — fonte: hooks/recall_memoria.py:56
 metadata:
   type: project
 ---

@@ -1,12 +1,12 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+Branch `feature/sono-da-memoria-acervo` — **0.62.0 (sono da memória, parte 1: acervo) pronta, commit `0554ba7` + captura; aguardando o OK do owner pro merge na `main`**; suíte 1617 verdes. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.
+
+<!-- histórico do estado anterior (0.61.0) -->
 Branch `docs/captura-conversa-nova-acha-sozinha` (captura e MAPA) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) mesclada na `main` e publicada pelo owner em 2026-11-12** (`7e641b9`); suíte 1594 verdes. Nenhuma tarefa em andamento no INDEX. **Falta provar no real: uma conversa nova aberta só com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-12-conversa-nova-acha-sozinha.md`.
-
-<!-- histórico do estado anterior -->
-Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
-
 ## Próximo passo
+0. ⬜ **Owner: OK do merge da 0.62.0 na `main`** (e o push é dele); depois, **decidir os 2 conflitos** (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2) e abrir a **parte 2 do sono** em conversa nova (item 16 do INDEX).
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1594).
 1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
 1b. ⬜ **Provar a 0.59.0 no real** — falta o clique de aprovação ao trocar de branch numa branch que a conversa não abriu (a regra chegando numa conversa aberta com `Já decidido`: ✅ 2026-11-12).
@@ -17,7 +17,7 @@ Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro
 5. ⬜ **Conversa nova — trocar a junção pelo marketplace local (escolha A, decisão 2026-11-03)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md); só a partir daí o `marketplace update` passa a ser o passo pós-publicação.
 6. ⬜ **`/mss-spec:upgrade` no Whats e no Energy, quando abrir cada um** — com a 0.54.0 é uma rodada só. **Transportes V2: ✅ feito em 2026-11-09** (`0190dfc` na `master` de lá, sem push; 1ª rodada real da 0.54.0). Detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 7. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
-8. ⬜ **Dogfood no kit: as 40 citações mortas** (`python templates/memoria_indice.py citacoes`) — corrigir o caminho ou marcar a memória `obsoleta:`; e a autoria do MSIG_Agentes (`<a confirmar>` no dossiê).
+8. ⬜ **Autoria do MSIG_Agentes** (`<a confirmar>` no dossiê). As 40 citações mortas: ✅ 0 na 0.62.0.
 9. ⬜ **Conversa nova por item — memória em tabela (passo 1) e conferência antes de entregar (passo 2)** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 10. ⬜ **Owner: decidir se o aviso automático de 3 anotações troca de motor** — números em `docs/specs/memoria-em-tabela.md` ("Conferido no real — parte 2").
 11. ⬜ **Os 4 itens de 2026-11-12 no `to-dolist.md`** (o 1º é o guardrail do F-067) — cada um em conversa nova.

@@ -3,6 +3,7 @@ name: feedback_sintoma_do_owner_e_fato
 description: o owner relatou que o assistente/plugin se perdeu ou errou → isso é fato; se a leitura não mostra, falta ler, e a resposta diz onde ainda não achou e pergunta — nunca "não se perdeu"
 gatilho: quando o owner relatar que o assistente ou o plugin se perdeu, errou ou repetiu o problema
 gatilho_resposta: (?i)(?:assistente|plugin|\bkit\b|comando|conversa|nova-feature|\bel[ea]\b)[^.\n]{0,40}\bn[ãa]o (?:se perdeu|errou)\b
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:276
 metadata:
   type: feedback
 ---

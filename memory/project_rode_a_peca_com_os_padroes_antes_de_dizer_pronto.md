@@ -3,11 +3,12 @@ name: project_rode_a_peca_com_os_padroes_antes_de_dizer_pronto
 description: teste que passa o parâmetro não prova o valor padrão — antes de dizer "pronto", rode a peça de verdade como ela será chamada (sem parâmetros); no PowerShell 5.1 com -File, $PSScriptRoot chega vazio no default do param
 gatilho: quando declarar pronto um script, hook ou comando que tem valor padrão (default de param, variável de ambiente, caminho calculado) e os testes só passam valores explícitos
 gatilho_resposta: (?i)\b\d[\d.]*\s+(?:testes?\s+)?verdes?\b|\b100\s?% verde|\bsu[íi]te (?:inteira |toda )?verde
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:60
 metadata:
   type: project
 ---
 
-O guardião da junção (`templates/guardiao-da-juncao.ps1`, 0.51.0) passou nos 8 testes e **falhou na 1ª rodada de
+O guardião da junção (script guardiao-da-juncao.ps1 da 0.51.0, removido na 0.51.1) passou nos 8 testes e **falhou na 1ª rodada de
 verdade**: `Split-Path : Não é possível associar o argumento ao parâmetro 'Path' porque ele é uma cadeia de
 caracteres vazia`. Os testes passavam `-Alvo` explícito; chamado sem parâmetros, como o hook e a tarefa agendada
 chamam, o default `[string]$Alvo = (Split-Path -Parent $PSScriptRoot)` recebia `$PSScriptRoot` **vazio** — no

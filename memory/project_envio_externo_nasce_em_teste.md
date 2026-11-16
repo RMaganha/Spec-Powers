@@ -2,6 +2,7 @@
 name: project-envio-externo-nasce-em-teste
 description: Código que envia pra fora (e-mail, webhook, mensagem) nasce com 3 modos em flags separadas — dry-run padrão, destino de teste, real — e fallback nunca silencioso
 gatilho: quando escrever ou revisar código que envia e-mail, webhook, SMS ou mensagem pra fora do app
+conferida: 2026-11-13 — confirmada — fonte: .claude/rules/envio-externo.md:16
 metadata:
   type: project
 ---

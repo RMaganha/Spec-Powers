@@ -188,6 +188,11 @@ Dez redes prontas para quando algo dá errado — nenhuma é comando novo:
   texto pronto que outra conversa entregou (guardado sozinho na pasta temporária, 7 dias, nada no git) ou da seção
   `## O que o owner decidiu` da spec do assunto. Dois assuntos empatados: o assistente pergunta qual. Nada casa:
   tudo igual a antes, e colar o texto continua funcionando. Só informa — não faz resposta voltar.
+- **Sono da memória** (0.62.0) — cada anotação de `memory/` diz se foi conferida, quando e contra o quê
+  (`conferida: <data> — confirmada | não confirmada | conflito — fonte: <arquivo:linha>`); conflito mostra as duas
+  fontes sem escolher lado — quem escolhe é você. Depois de 10 conversas sem conferência, o assistente oferece em 1
+  linha conferir a memória; você só responde sim (ele trabalha numa branch e te mostra o diff) ou não (a conta
+  recomeça). Sem comando e sem tarefa agendada: quem conta é o hook de abertura da tabela de memória.
 - **Duas conversas na mesma pasta não trocam a branch uma da outra** (0.59.0) — dentro do
   `hooks/git_publicacao.py`: criar branch com a pasta fora da principal é negado; trocar de branch numa branch
   que a conversa não abriu é negado se há mudança por commitar e, com a pasta limpa, **pede a sua aprovação com

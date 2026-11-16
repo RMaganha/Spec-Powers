@@ -3,6 +3,7 @@ name: feedback-validacao-ui-deterministica
 description: Nunca validar UI dirigindo o browser ao vivo (clicar/screenshot em loop); tela = teste determinístico e smoke visual = humano
 gatilho: quando for validar uma tela ou UI
 gatilho_comando: (?im)(?:^|[;&|(])\s*(?:npx\s+|python[\d.]*\s+-m\s+)?(?:playwright|puppeteer)\b|\b(?:from|import)\s+(?:playwright|selenium)\b
+conferida: 2026-11-13 — confirmada — fonte: commands/plano-teste.md:24
 metadata:
   type: feedback
 ---

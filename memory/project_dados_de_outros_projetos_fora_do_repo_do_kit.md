@@ -2,6 +2,7 @@
 name: project-dados-de-outros-projetos-fora-do-repo-do-kit
 description: Dado gerado a partir das conversas ou dos arquivos de outros projetos (gabarito com pedidos reais do owner, tabela de teste, lotes) nunca entra no repositório do kit — só o roteiro que o gera
 gatilho: quando guardar no repositório do kit algo gerado a partir de conversas ou arquivos de outros projetos (gabarito, tabela de teste, lotes, amostras de pedidos)
+conferida: 2026-11-13 — confirmada — fonte: .gitignore:55
 metadata:
   type: project
 ---

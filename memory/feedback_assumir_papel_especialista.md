@@ -3,6 +3,7 @@ name: feedback-assumir-papel-especialista
 description: "Para cada tarefa, assumir o papel de especialista sênior do domínio (UI, dev, DBA, segurança…); anunciar, trabalhar sob essa ótica até o OK, voltar ao padrão (arquiteto/eng sênior)"
 gatilho: quando começar uma tarefa de domínio (UI, banco, segurança, infra)
 sem_gatilho_de_acao: vale no começo de toda tarefa de domínio — não há comando nem frase que marque
+conferida: 2026-11-13 — confirmada — fonte: templates/regras-do-kit/1-modo-de-trabalho.md:18
 metadata: 
   node_type: memory
   type: feedback
@@ -20,6 +21,6 @@ pedir explicitamente "comporte-se como especialista sênior em UI", a qualidade 
 genérica sai pior que a de um especialista com a persona certa.
 
 **How to apply:** vale para qualquer domínio, em qualquer projeto. Já embutido como regra no
-`templates/CLAUDE.md` do plugin mss-spec (Modo de trabalho) — então todo projeto novo já nasce com
+`templates/CLAUDE.md` do plugin mss-spec (Modo de trabalho; hoje mora em `templates/regras-do-kit/1-modo-de-trabalho.md`) — então todo projeto novo já nasce com
 isso. Relacionado a [[feedback-nao-inventar-fatos-concretos]] e
 [[feedback-frontend-tailwind-arquivos-separados]] (mesmo plugin, mesma pegada de qualidade/UI).

@@ -2,6 +2,7 @@
 name: project-regra-por-tipo-carrega-ao-ler
 description: Regra em .claude/rules/ com paths: entra na janela quando o assistente LÊ um arquivo que casa — não quando ele CRIA um arquivo novo nem quando edita sem ter lido; fato do projeto nunca fica atrás desse gatilho
 gatilho: quando um desenho depender de uma regra de .claude/rules/ com paths: entrar na janela
+conferida: 2026-11-13 — confirmada — fonte: docs/specs/regras-do-kit-pelo-plugin.md:30
 metadata:
   type: project
 ---

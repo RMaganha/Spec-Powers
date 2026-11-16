@@ -34,6 +34,11 @@
        O recall aponta com o prefixo PROCEDIMENTO: ler INTEIRO, seguir na ordem anunciando
        `Seguindo [[slug]] — passo k/N`, fechar com feitos × pendentes (inclusive os de terceiros).
      - Memória superada ganha `obsoleta: <data> — superada por [[slug]]` e SAI do subíndice.
+     - Estado da nota (sono da memória, `docs/specs/sono-da-memoria.md` do kit): quem confere grava
+           conferida: <AAAA-MM-DD> — <confirmada|não confirmada|conflito> — fonte: <arquivo:linha>
+       Correção posterior clara não é conflito: fica o valor atual, confirmada, com `substituiu: <velho> (<fonte, data>)`.
+       Conflito (nenhuma fonte diz qual vale) leva no corpo `CONFLITO: <fonte A, data> diz …; <fonte B, data> diz …`.
+       A captura NÃO carimba: anotação nova nasce "nunca conferida" e entra no próximo sono.
      - Memória `type: feedback` é REGRA sobre o que o assistente faz, e leva também o GATILHO DE AÇÃO — uma
        linha a mais no frontmatter, logo abaixo do `gatilho:` (o `memoria_indice.py verificar` cobra a nova):
            gatilho_comando: <regex>    casa o comando de Bash/PowerShell; o hook nega UMA vez por sessão
