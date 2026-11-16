@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-16 — fechadas
+
+- [sono da memória — parte 1 (acervo)](../specs/sono-da-memoria.md) — conferir, juntar e marcar o estado das notas que já existem — fechada
+
 ## 2026-11-12 — fechadas
 
 - [conversa nova acha sozinha o que o owner já decidiu](../specs/conversa-nova-nao-se-perde.md) — o owner abre a conversa com uma frase comum e o kit traz o que ele já decidiu sobre o assunto, sem colar texto nem comando (0.61.0, 2026-11-12) — fechada

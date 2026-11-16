@@ -76,6 +76,30 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-065 | 2026-11-11 | quando entregar ao owner os textos prontos das próximas conversas | **7 textos de uma vez, sem explicar cada item, e mandando a conversa nova reler tudo**: o owner não entendeu 3 dos itens e a conversa que recebeu um dos textos releu spec, dossiê, hooks e falhas antes de mostrar a decisão que vetava o desenho | um texto por vez, com o item explicado em português simples antes, e leitura mínima no texto — nota de 2026-11-11 em `feedback_texto_pronto_pra_colar`; molde de três partes da 0.59.0 | aberto |
 | F-066 | 2026-11-11 | quando rodar a captura de uma sessão em que o owner tomou decisões sobre o que fazer | **captura sem o principal (mesmo padrão do F-063)**: a 1ª captura listou 17 itens (falhas, anotações, pendências) e deixou fora as decisões do owner sobre o que construir; e o último terço da conversa (conferências, teste no DeRe, decisão 24) ficou sem registro até ele pedir | as decisões do que fazer vêm primeiro e num registro só (a spec do assunto); conversa longa se captura por varredura do texto inteiro, com ajudante — nota de 2026-11-11 em `feedback_captura_varre_a_conversa_inteira` | aberto |
 | F-067 | 2026-11-12 | quando abrir uma branch (ou fechar uma feature) e atualizar à mão o "Onde estamos" do `docs/superpowers/MAPA.md` | **segundo bloco de histórico posto à mão no MAPA; o hook não viu e só a suíte de 20 minutos acusou**: ao abrir a `feature/comando-guardado-inteiro` empurrei o estado anterior para baixo de um novo `<!-- histórico do estado anterior -->` sem tirar o mais antigo; o `hooks/teto_ao_gravar.py` chama o rodízio, que separa os blocos por linha `---`, e o MAPA do kit separa por comentário | nenhum ainda — o ajuste do rodízio está no `to-dolist.md` (2026-11-12, por ordem do owner) · `tests/test_orcamento_contexto.py::test_mapa_carrega_um_estado_anterior` acusa, mas só na suíte | aberto |
+| F-068 | 2026-11-13 | quando um ajudante devolver um achado que vai virar marca ou correção gravada | achado de ajudante gravado sem conferir na fonte | proposto: achado do tipo "não existe / não faz" se confere no código antes de gravar (passo do "Uso interno: sono" do `commands/memory.md`) · sem teste | aberto |
+| F-069 | 2026-11-13 | quando o sono comparar duas fontes que discordam | correção posterior marcada como conflito | regra gravada: correção posterior clara não é conflito (`commands/memory.md`, "Uso interno: sono"; spec `docs/specs/sono-da-memoria.md`, decisão 14) · sem teste | aberto |
+
+### F-069 — correção posterior marcada como conflito (aberto)
+
+- **Falhou:** a 1ª passada do sono (2026-11-13) marcou 9 anotações e 4 linhas do EVALS e das decisões como
+  conflito. O owner revisou pelo critério do cookbook: 7 das 9 eram correção posterior clara (a fonte nova diz que
+  reverte ou substitui, ou a mudança está registrada), e uma era só dois números de momentos diferentes.
+- **Verdade:** conflito é quando duas fontes discordam e nenhuma diz qual vale. Correção posterior fica com o valor
+  atual, confirmada, e a linha `substituiu: <velho> (<fonte, data>)`.
+- **Guardrail:** a regra no "Uso interno: sono" do `commands/memory.md` e a decisão 14 da spec.
+- **Teste:** nenhum — a passada é feita pelo assistente; o `verificar` só cobra o formato.
+
+### F-068 — achado de ajudante gravado sem conferir na fonte (aberto)
+
+- **Falhou:** um ajudante pesquisador do sono devolveu que o recall não pula `obsoleta:`/`pausada:` — procurou só
+  em `hooks/recall_memoria.py`. Gravei isso como marca de conflito no F-030 sem abrir o código. O owner desconfiou
+  e pediu a conferência antes do merge.
+- **Verdade:** o hook só chama o motor; o filtro mora em `templates/memoria_indice.py` (`fontes`) e o recall pula.
+  O teste escrito na conferência achou outra brecha, real: anotação `obsoleta:` com linha esquecida no subíndice
+  voltava pelo recall — fechada na 0.62.0.
+- **Guardrail:** proposto — achado de ajudante do tipo "não existe / não faz" se confere no código antes de virar
+  marca ou correção gravada. Vale a anotação `feedback_analise_externa_cruzar_com_o_repo`.
+- **Teste:** nenhum.
 
 ### F-067 — MAPA com dois blocos de histórico: o hook não viu, só a suíte (aberto)
 

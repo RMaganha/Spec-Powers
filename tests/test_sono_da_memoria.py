@@ -287,8 +287,11 @@ def test_kit_sem_citacao_morta():
     assert _indice().citacoes_mortas(REPO) == []
 
 
-def test_toda_anotacao_viva_do_kit_foi_conferida_no_formato():
+def test_acervo_do_kit_foi_conferido_no_formato():
+    """As 78 anotações da passada de 2026-11-13 têm `conferida:` válido; anotação gravada depois pode nascer sem ele
+    (a captura não carimba — entra no próximo sono)."""
     mod = _indice()
     r = mod.roteiro_do_sono(REPO)
-    assert r["nunca"] == [], f"anotações sem `conferida:`: {r['nunca']}"
+    conferidas = sum(n for e, n in r["por_estado"].items() if e != mod.NUNCA)
+    assert conferidas >= 78, f"só {conferidas} anotações conferidas; nunca conferidas: {r['nunca']}"
     assert [p for p in mod.verificar(REPO / "memory") if "conferida" in p] == []

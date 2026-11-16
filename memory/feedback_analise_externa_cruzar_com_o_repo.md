@@ -23,6 +23,10 @@ ser justamente uma delas. O owner confirmou o formato: tabela sugestão × nosso
 um a um, 1 estava desatualizado e a premissa central era falsa (F-044). O owner confia no que foi conferido, não
 no que foi colado.
 
+**Vale também pro ajudante pesquisador (2026-11-13):** no sono, um ajudante devolveu que o recall não pula
+`obsoleta:` — o grep foi no arquivo errado (o hook só chama o motor, `templates/memoria_indice.py`). Achado do tipo
+"não existe / não faz" se confere no código antes de virar marca gravada (F-068).
+
 **How to apply:** pra cada sugestão, antes de opinar: (1) já existe? (Grep no código/docs);
 (2) contraria `docs/decisoes.md` ou o "Fora de escopo" do INDEX?; (3) tem caso real que doeu
 (EVALS, git log)? Só o que passa nos três vira proposta — e aí vale [[feedback-medir-antes-de-afirmar-ganho]].

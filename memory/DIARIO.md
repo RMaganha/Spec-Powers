@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-13
+
+- [sono-da-memoria-acervo] 0.62.0: cada anotação de `memory/` ganha `conferida:` (estado, data e fonte), a tabela copia o estado e o hook de abertura oferece o sono com 10 conversas; passada no kit com 6 ajudantes — 75 confirmadas, 1 não confirmada, 2 conflitos pro owner, citações mortas 40 → 0; correção posterior clara não é conflito (revisão do owner) → sessions/2026-11-13-sono-da-memoria-acervo.md
+
 ## 2026-11-12
 
 - [conversa-nova-acha-sozinha] 0.61.0: o owner abre a conversa com uma frase comum e o kit traz o que ele já decidiu — o `hooks/passagem_de_conversa.py` guarda o texto pronto no molde (pasta temporária, 7 dias) e, no 1º pedido, casa a frase com ele e com a seção `## O que o owner decidiu` da spec; só informa; régua pelo termo curto do tema (a "2 de 3 palavras do nome" foi rejeitada); item inteiro ou `arquivo:linha` (o corte apareceu na prova real); MAPA com 2 blocos de novo (F-067); push da `main` recusado pela trava e feito pelo owner → sessions/2026-11-12-conversa-nova-acha-sozinha.md

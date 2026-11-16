@@ -6,7 +6,6 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [sono da memória — parte 1 (acervo)](../specs/sono-da-memoria.md) — conferir, juntar e marcar o estado das notas que já existem — aberta
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
@@ -14,3 +13,4 @@
 13. conferência antes de entregar — lista do projeto alimentada pelos apontamentos do revisor (decisões do owner: `docs/specs/conferencia-antes-de-entregar.md`)
 14. ajudante revisor — confere a mudança pela lista do item 13
 15. teste automático do kit a cada publicação — aguardando o owner decidir entre GitLab (decisão de 2026-07-20) e GitHub
+16. sono da memória — parte 2 (ler as conversas novas e corrigir ou recuperar memória, no formato da parte 1) — spec `docs/specs/sono-da-memoria.md`, em conversa nova
