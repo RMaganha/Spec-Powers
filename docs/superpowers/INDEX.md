@@ -6,7 +6,7 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [sono da memória — parte 2](../specs/sono-da-memoria.md) — ler as conversas gravadas e corrigir, rebaixar ou recuperar memória no formato da parte 1 — em andamento: 0.63.0 e a 1ª rodada na branch `feature/sono-da-memoria-conversas`; falta o OK do owner e o merge
+- nenhuma
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real
