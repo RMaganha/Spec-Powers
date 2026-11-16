@@ -1,7 +1,7 @@
 # Sono da memória — conferir, juntar e marcar o estado das notas
 
 ## Estado atual
-**Parte 1 (acervo) — 0.62.0, na branch `feature/sono-da-memoria-acervo`, aguardando o OK do owner.** Cada anotação de
+**Parte 1 (acervo) — 0.62.0.** Cada anotação de
 `memory/` carrega `conferida: <data> — <confirmada|não confirmada|conflito> — fonte: <arquivo:linha>`; conflito leva
 no corpo `CONFLITO: <fonte A, data> diz …; <fonte B, data> diz …`, sem escolher lado. O `memoria_indice.py verificar`
 cobra o formato; o `memoria_indice.py sono` dá o roteiro; o passo a passo da passada mora em `commands/memory.md`
