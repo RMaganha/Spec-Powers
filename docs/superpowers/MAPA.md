@@ -1,12 +1,12 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/sono-da-memoria-conversas` — **sono da memória, parte 2 (conversas), 0.63.0 pronta, falta o OK do owner e o merge**: `conversa_texto.py lote`, `conversas lidas até:` no `sono` e no `montar`, `verificar` acusa `.jsonl`; 1ª rodada nas 67 conversas — 4 notas corrigidas, 1 confirmada, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada, 27 diários retroativos. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-16-sono-da-memoria-conversas.md`.
+Branch `docs/mapa-sono-parte-2-mesclado` (MAPA) — **0.63.0 (sono da memória, parte 2: conversas) mesclada na `main` em 2026-11-16** (`229726b`), **falta o push do owner**; suíte 1625 verdes + 2 falhas do limite de 5 s do hook de outro projeto (o arquivo sozinho: 25 verdes): `conversa_texto.py lote`, `conversas lidas até:` no `sono` e no `montar`, `verificar` acusa `.jsonl`; 1ª rodada nas 67 conversas — 4 notas corrigidas, 1 confirmada, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada, 27 diários retroativos. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-16-sono-da-memoria-conversas.md`.
 
 <!-- histórico do estado anterior (0.62.0) -->
 Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1: acervo) mesclada na `main` e publicada pelo owner em 2026-11-16** (`a98c410`); suíte 1617 verdes. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.
 ## Próximo passo
-0. ⬜ **Owner: decidir os 2 conflitos** (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2). A parte 2 do sono está em andamento nesta branch.
+0. ⬜ **Owner: decidir os 2 conflitos** (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2). Owner: push da `main` (0.63.0).
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1594).
 1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
 1b. ⬜ **Provar a 0.59.0 no real** — falta o clique de aprovação ao trocar de branch numa branch que a conversa não abriu (a regra chegando numa conversa aberta com `Já decidido`: ✅ 2026-11-12).
@@ -47,4 +47,4 @@ Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1:
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-12 (0.61.0 mesclada na main e publicada pelo owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-16 (0.63.0 mesclada na main; falta o push do owner) · regenerável com /mss-spec:mapa -->

@@ -5,6 +5,7 @@
 
 ## 2026-11-16 — fechadas
 
+- [sono da memória — parte 2 (conversas)](../specs/sono-da-memoria.md) — ler as conversas gravadas e corrigir, rebaixar ou recuperar memória no formato da parte 1; 1ª rodada nas 67 conversas (0.63.0, 2026-11-16) — fechada
 - [sono da memória — parte 1 (acervo)](../specs/sono-da-memoria.md) — conferir, juntar e marcar o estado das notas que já existem — fechada
 
 ## 2026-11-12 — fechadas
