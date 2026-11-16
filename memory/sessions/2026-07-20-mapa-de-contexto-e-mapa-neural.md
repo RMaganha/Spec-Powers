@@ -16,7 +16,7 @@ conversa: 743aa556-9e60-48e1-b0b6-1c5242e1ff9e
 - **O SVG feito à mão saiu no mesmo dia:** o owner cobrou "o .js que eu havia escolhido… opção b" (fala 037) e o
   assistente trocou pela `vis-network` vendorizada — "O SVG+vanilla… foi descartado" (fala 038). A linha de
   `docs/decisoes.md` de 2026-07-20 ficou dizendo "SVG + JS vanilla". A versão que saiu com a `vis-network` foi a
-  0.9.0 (fala 056; `CHANGELOG.md:570`).
+  0.9.0 (fala 056; `CHANGELOG.md:579`).
 - Física do grafo desligada (fala 042); o owner pegou releitura de arquivo (fala 029) e consulta ao visual (fala 045).
 - Um padrão do `.gitignore` sem âncora engoliu `commands/mapa-neural.md` (fala 052).
 - Mensagem de commit com here-string do PowerShell (`@'...'@`) num shell Bash deixou o título como `@` (fala 052);
