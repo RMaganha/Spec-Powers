@@ -34,3 +34,12 @@
 ## Próximo
 - O owner abre a conversa nova com o texto entregue (INDEX item 2).
 - Depois, a padronização dos projetos (INDEX item 3).
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `6eb8f8d0-e6aa-4a5e-9f86-2be46130f530` (só falas; sem saída de ferramenta).
+
+As falas 042-049 ficaram fora deste diário: o assistente recomendou para outra conversa "Sim, até o upgrade"
+(fala 043), contrariando a decisão gravada na mesma manhã, e admitiu: "Isso contraria o que você mesmo
+decidiu" (fala 045). O F-046 registra só o lado da outra conversa. A conversa `6d66a9b0` (a trava "nunca
+worktree", 0.46.0) está resumida na linha 30 deste diário.

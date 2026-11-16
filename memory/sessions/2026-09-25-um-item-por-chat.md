@@ -29,3 +29,10 @@ arquivo no scratchpad resolveu; e um teste que passou por comparação de string
 
 **Próximo:** push da `main` pelo owner · canário ao vivo (`canario-a`/`canario-b` no mesmo chat) ·
 no Whats, marcar `pausada:` as abertas paradas.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `04551dfd-d76a-4b40-8601-c65e628894a0` (só falas; sem saída de ferramenta).
+
+- O heredoc quebrou de novo em 2026-09-25: "O heredoc transformou `\t`/`\n` em caracteres reais dentro da regex"
+  (fala 008), com a anotação `project_heredoc_grande_com_acento_quebra_no_git_bash` já mandando gravar por `Write`.

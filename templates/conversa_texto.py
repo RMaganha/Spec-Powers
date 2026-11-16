@@ -24,6 +24,8 @@ Contrato:
 
 Uso: `python conversa_texto.py listar [--pasta DIR] [--quantas N]`
      `python conversa_texto.py texto <começo do id | caminho | palavras do primeiro pedido> [--pasta DIR] [--saida DIR]`
+     `python conversa_texto.py lote [--desde AAAA-MM-DD] --saida DIR [--pasta DIR]` — o sono da memória, parte 2:
+     todas as conversas mudadas depois do dia (sem data: todas), menos a em curso; 1 = nenhuma.
 Saída: 0 = feito · 1 = nenhuma conversa casa, mais de uma casa, ou a conversa não tem fala · 2 = não achei a
 pasta das conversas (ou a linha de comando veio errada).
 """
@@ -226,11 +228,11 @@ def pasta_de_saida(ambiente=None) -> Path:
     return Path(informada) if informada else Path.home() / "mss-spec" / "conversas"
 
 
-def gravar_texto(arquivo, pasta_saida=None):
+def gravar_texto(arquivo, pasta_saida=None, lista=None):
     """Grava `<pasta_saida>/<id>.txt` com as falas numeradas e devolve o caminho; `None` se a conversa não tem
-    fala nenhuma (nada é gravado)."""
+    fala nenhuma (nada é gravado). `lista`: as falas já lidas (o `lote` não relê o arquivo)."""
     arquivo = Path(arquivo)
-    lista = falas(arquivo)
+    lista = falas(arquivo) if lista is None else lista
     if not lista:
         return None
     datas = [f.quando for f in lista if f.quando]
@@ -316,6 +318,46 @@ def achar(pasta, pedaco: str) -> list:
     return achadas
 
 
+@dataclass
+class ItemDoLote:
+    ident: str
+    quando: str               # última gravação do arquivo
+    periodo: str              # "<primeira fala> a <última fala>" ou ""
+    falas: int
+    letras: int
+    pedido: str
+    texto: Path = None        # None = a conversa não tem fala (nada gravado)
+
+
+def _dia_do_arquivo(p: Path) -> str:
+    return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")
+
+
+def lote(pasta, desde: str, pasta_saida, ambiente=None) -> list:
+    """Grava o texto de todas as conversas da pasta mudadas DEPOIS do dia `desde` ('' = todas), menos a conversa em
+    curso e as de ajudante, e devolve um item por conversa, da mais nova pra mais velha (o sono da memória, parte 2,
+    `docs/specs/sono-da-memoria.md`). O dia é o da última gravação do arquivo, como na conta do aviso de sono."""
+    ambiente = os.environ if ambiente is None else ambiente
+    em_curso = str(ambiente.get("CLAUDE_CODE_SESSION_ID") or "").strip()
+    itens = []
+    for arq in _conversas(pasta):
+        try:
+            dia = _dia_do_arquivo(arq)
+        except OSError:
+            continue
+        if arq.stem == em_curso or (desde and dia <= desde):
+            continue
+        lista = falas(arq)
+        datas = [f.quando for f in lista if f.quando]
+        destino = gravar_texto(arq, pasta_saida, lista) if lista else None
+        letras = len(destino.read_text(encoding="utf-8")) if destino else 0
+        pedido = next((f.texto for f in lista if f.quem == "OWNER"), "")
+        itens.append(ItemDoLote(arq.stem, datetime.fromtimestamp(arq.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                                f"{datas[0]} a {datas[-1]}" if datas else "", len(lista), letras,
+                                pedido[:TETO_PEDIDO_NA_LISTA], destino))
+    return itens
+
+
 def _caminho_direto(pedaco: str):
     """O próprio `.jsonl`, quando `pedaco` é o caminho de um arquivo que existe; senão `None`."""
     try:
@@ -361,9 +403,15 @@ def main(argv=None) -> int:
     p_texto = sub.add_parser("texto", help="grava uma conversa em texto e imprime o caminho")
     p_texto.add_argument("pedaco", nargs="+", help="começo do id, caminho do .jsonl ou palavras do primeiro pedido")
     p_texto.add_argument("--saida", help="pasta do texto (padrão: ~/mss-spec/conversas)")
-    for p in (p_listar, p_texto):
+    p_lote = sub.add_parser("lote", help="grava em texto todas as conversas mudadas depois de um dia (sono da memória)")
+    p_lote.add_argument("--desde", default="", help="AAAA-MM-DD: só as gravadas depois deste dia (padrão: todas)")
+    p_lote.add_argument("--saida", required=True, help="pasta dos textos (use uma pasta temporária: pode haver senha)")
+    for p in (p_listar, p_texto, p_lote):
         p.add_argument("--pasta", help="pasta das conversas (padrão: a deste projeto)")
     a = ap.parse_args(argv)
+    if a.modo == "lote" and a.desde and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.desde):
+        print(f"--desde tem de ser AAAA-MM-DD; veio {a.desde!r}.")
+        return 2
 
     pasta = Path(a.pasta) if a.pasta else pasta_das_conversas()
     sem_pasta = pasta is None or not Path(pasta).is_dir()
@@ -383,6 +431,20 @@ def main(argv=None) -> int:
         for r in resumos:
             print(_linha(r))
         print("pra pôr uma em texto: `conversa_texto.py texto <começo do id>`")
+        return 0
+
+    if a.modo == "lote":
+        itens = lote(pasta, a.desde, a.saida)
+        if not itens:
+            print(f"nenhuma conversa em {pasta}" + (f" gravada depois de {a.desde}" if a.desde else "") + ".")
+            return 1
+        print(f"textos em {a.saida} (mais nova primeiro) — id · período das falas · falas · letras · primeiro pedido:")
+        for i in itens:
+            letras = f"{i.letras:,}".replace(",", ".")
+            print(f"{i.ident}  {i.periodo or i.quando}  {i.falas} falas  {letras} letras  "
+                  + (i.pedido or "(sem fala do owner)") + ("" if i.texto else "  — sem fala, nada gravado"))
+        total = f"{sum(i.letras for i in itens):,}".replace(",", ".")
+        print(f"{len(itens)} conversas, {total} letras — passe os textos ao ajudante {AJUDANTE}.")
         return 0
 
     pedaco = " ".join(a.pedaco)

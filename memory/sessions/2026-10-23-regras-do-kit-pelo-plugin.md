@@ -42,3 +42,11 @@ dry-run daqui; o `testes.md` que fica vazio pode ficar (o hook ignora regra vazi
 conferir numa janela nova que o bloqueio funciona (pedir um `.sql` novo: a 1ª tentativa volta com o texto da regra
 de banco) · `/mss-spec:upgrade` nos outros projetos, um por janela · pendências que podem esperar estão na spec
 `docs/specs/regras-do-kit-pelo-plugin.md`.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `87ac98e1-ed18-4207-8d4a-8fdcd6185342` (só falas; sem saída de ferramenta).
+
+O fim da conversa ficou fora deste diário: a 0.42.1 (Conexões só com os nomes, merge `7948da0`) e a queixa do
+owner "eu pedi para voce ver tudo!!!" (fala 045) — o assistente tinha corrigido só o `CLAUDE.md`, com o doctor
+já mostrando o MAPA em 5.921 de 6.000 B (fala 046).

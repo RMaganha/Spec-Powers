@@ -46,3 +46,20 @@ conversas entregaram (0.56.0 a 0.59.0) e fechou a captura. Branch `docs/captura-
 - Do owner: GitLab ou GitHub; se o aviso automático de 3 anotações troca de motor; se as 31 decisões estão
   completas (ele tem anotações próprias que nunca foram comparadas).
 - Pro kit tratar (`to-dolist.md`): captura aos poucos em conversa longa; o custo de uma conversa só pra conferir.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `4486f0ad-5904-4ab1-bfe1-10607bf7fd8a` (só falas; sem saída de ferramenta).
+
+O trecho de 2026-11-12 (falas 125-136) ficou fora deste diário:
+- **Conversamos:** merge da branch da captura final (`1754def`); conferência da "conversa nova não se perde";
+  lentidão no DeRe.
+- **Pivôs:** o assistente conferiu o fim da conversa errada (fala 130; o owner: "está errado", fala 129); o owner
+  recusou fazer a mudança ali e recusou comando novo (fala 131). O texto para a conversa nova saiu em dois blocos
+  longos (fala 132); o owner: "nossa me deu 2 prompts gigante… sem objetividade" (fala 133). O que funcionou foi o
+  texto curto da fala 134 — 2 itens, "Falta decidir: nada", 2 regras —, que abriu a 0.61.0.
+- **Rejeitado:** os 2 textos longos; mudar o kit nesta conversa.
+- **Fizemos:** o texto curto; a medição do DeRe (fala 136: o tempo vem da planilha; os hooks custam 3 a 7 s por
+  resposta).
+- **Próximo:** decidir se cortar as conferências do fim da resposta vira item; o aviso de passagem disparou num
+  texto que o owner colou só para reclamar (falas 130, 132).

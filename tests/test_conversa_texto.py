@@ -304,6 +304,67 @@ def test_pasta_das_conversas_pelo_caminho_do_projeto(tmp_path):
     assert m.apelido_da_pasta(Path(r"C:\Ronaldo\_Mitsui\Python\Spec-Powers")) == "C--Ronaldo--Mitsui-Python-Spec-Powers"
 
 
+# --- lote (o sono da memória, parte 2) ---------------------------------------------------------------
+
+def _dia(arq, dia):
+    """Põe a data de gravação do arquivo ao meio-dia (hora local) do `dia`."""
+    import time as _t
+    marca = _t.mktime(_t.strptime(dia + " 12:00", "%Y-%m-%d %H:%M"))
+    os.utime(arq, (marca, marca))
+
+
+@pytest.fixture
+def pasta_lote(tmp_path):
+    p = tmp_path / "proj"
+    _dia(_conversa(p, "aaaa-antes", [_owner(PEDIDO, quando="2026-11-10T13:00:00.000Z"),
+                                     _assistente(_texto("Feito."), quando="2026-11-10T14:00:00.000Z")]), "2026-11-10")
+    _dia(_conversa(p, "bbbb-no-dia", [_owner("Conversa gravada no próprio dia do último sono, já lida")]), "2026-11-13")
+    _dia(_conversa(p, "cccc-depois", [_owner("Quero trocar a junção pelo marketplace local nesta máquina",
+                                             quando="2026-11-14T09:00:00.000Z"),
+                                      _assistente(_texto("Vou abrir o comando."), quando="2026-11-15T10:00:00.000Z")]),
+         "2026-11-15")
+    _dia(_conversa(p, "dddd-vazia", [_resultado("só ferramenta")]), "2026-11-14")
+    _dia(_conversa(p, "eeee-em-curso", [_owner("A conversa do próprio sono não se lê a si mesma")]), "2026-11-16")
+    _dia(_conversa(p, "agent-xyz", [_owner("fala de ajudante gravada em arquivo próprio, não é conversa do owner")]),
+         "2026-11-16")
+    return p
+
+
+def test_lote_sem_data_grava_todas_menos_a_em_curso_e_as_de_ajudante(pasta_lote, tmp_path):
+    destino = tmp_path / "saida"
+    itens = _mod().lote(pasta_lote, "", destino, ambiente={"CLAUDE_CODE_SESSION_ID": "eeee-em-curso"})
+    assert [i.ident for i in itens] == ["cccc-depois", "dddd-vazia", "bbbb-no-dia", "aaaa-antes"], "mais nova primeiro"
+    assert sorted(p.name for p in destino.iterdir()) == ["aaaa-antes.txt", "bbbb-no-dia.txt", "cccc-depois.txt"]
+    vazia = itens[1]
+    assert vazia.texto is None and vazia.falas == 0, "conversa sem fala entra na lista, sem texto"
+
+
+def test_lote_com_data_so_as_mudadas_depois_do_dia(pasta_lote, tmp_path):
+    destino = tmp_path / "saida"
+    itens = _mod().lote(pasta_lote, "2026-11-13", destino, ambiente={"CLAUDE_CODE_SESSION_ID": "eeee-em-curso"})
+    assert [i.ident for i in itens] == ["cccc-depois", "dddd-vazia"], "o dia do último sono já foi lido"
+    cccc = itens[0]
+    assert cccc.periodo == "2026-11-14 09:00 a 2026-11-15 10:00" and cccc.falas == 2
+    assert cccc.letras == len(cccc.texto.read_text(encoding="utf-8")) and cccc.pedido.startswith("Quero trocar")
+
+
+def test_cli_lote_imprime_uma_linha_por_conversa_e_o_total(pasta_lote, tmp_path):
+    destino = tmp_path / "saida"
+    codigo, saida, _ = _rodar("lote", "--desde", "2026-11-13", "--pasta", str(pasta_lote), "--saida", str(destino),
+                              env={"CLAUDE_CODE_SESSION_ID": "eeee-em-curso"})
+    assert codigo == 0, saida
+    assert "cccc-depois" in saida and "dddd-vazia" in saida and "aaaa-antes" not in saida
+    assert "sem fala" in saida and "2 conversas" in saida and str(destino) in saida
+    codigo, saida, _ = _rodar("lote", "--desde", "2026-12-01", "--pasta", str(pasta_lote), "--saida", str(destino))
+    assert codigo == 1 and "nenhuma conversa" in saida
+
+
+def test_cli_lote_data_torta_sai_com_2(pasta_lote, tmp_path):
+    codigo, saida, erro = _rodar("lote", "--desde", "13/11/2026", "--pasta", str(pasta_lote),
+                                 "--saida", str(tmp_path / "s"))
+    assert codigo == 2 and "AAAA-MM-DD" in saida + erro
+
+
 # --- linha de comando --------------------------------------------------------------------------------
 
 def _rodar(*args, env=None):

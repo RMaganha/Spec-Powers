@@ -2,13 +2,13 @@
 name: marketplace-relative-path-serve-git-e-local
 description: marketplace.json com source relative-path serve tanto add por pasta local quanto por URL git — o Code clona o repo e resolve o plugin dentro do clone; não precisa source separado
 gatilho: quando publicar ou instalar o kit por marketplace
-conferida: 2026-11-13 — confirmada — fonte: docs/LEIA-ME.md:14
+conferida: 2026-11-16 — confirmada — fonte: .claude-plugin/marketplace.json:9
 metadata:
   type: project
 ---
 
-No `.claude-plugin/marketplace.json`, um plugin com `source` **relative-path** (ex.: `path: "."`, plugin
-na raiz do próprio repo do marketplace) resolve **igual** nas duas vias de distribuição: quando o
+No `.claude-plugin/marketplace.json`, um plugin com `source` **relative-path** (hoje `"source": "./"`, a forma
+documentada; plugin na raiz do próprio repo do marketplace) resolve **igual** nas duas vias de distribuição: quando o
 marketplace é adicionado por **pasta local** (`/plugin marketplace add ./pasta`) **e** quando é
 adicionado por **URL git** (`/plugin marketplace add <url>#ref`). No caso git, o Claude Code **clona o
 repo** e resolve o `relative-path` **relativo ao clone** — então o **mesmo manifesto serve às duas vias,
@@ -24,3 +24,6 @@ nenhum ajuste no `source`. **Pegadinha:** só
 quebra se alguém apontar o marketplace direto pro **arquivo** `marketplace.json` cru (aí só o arquivo é
 baixado, e o relative-path não resolve) — tem que apontar pro **repo**. Relacionado:
 [[plugin-load-cross-marketplace]] (por que a dependência superpowers ainda não é declarada).
+
+substituiu: `path: "."` e "nenhum ajuste no `source`" — em 2026-11-03 o `source` passou para a forma documentada
+`"./"` (memory/sessions/2026-11-03-guardiao-sem-script.md:37, 2026-11-03)

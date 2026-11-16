@@ -53,3 +53,11 @@ Branch `feature/sono-da-memoria-acervo`, commit `0554ba7` (a captura vai num com
 - Owner: as 2 duplicatas possíveis do EVALS (F-051 × F-028; F-060 × F-047); `docs/decisoes.md:62` cita uma decisão
   de 2026-07-22 que não está no arquivo; os 4 comandos cortados.
 - Só se prova no real: o aviso aparecendo numa conversa nova depois de 10 conversas.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `e9deb630-81ff-4abf-bd36-5791622a7d62` (só falas; sem saída de ferramenta).
+
+As falas 021-024 ficaram fora deste diário: o MAPA com dois blocos de histórico pela 3ª vez (fala 020; o F-067
+só registra a de 2026-11-12); o owner: "Não vamos rodar a suite inteira, já fizemos isso algumas vezes nessa
+janela e não faz sentido rodar novamente" (fala 023); a branch curta `docs/mapa-sono-mesclado` (fala 024).

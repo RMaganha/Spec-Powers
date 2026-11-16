@@ -63,3 +63,13 @@ Branch `feature/absorver-msig-agentes` (da `main` em `4d28026`), 0.53.0. Dossiê
   marcar `obsoleta:`.
 - Autoria do kit de lá segue `<a confirmar>` (owner disse "outra empresa"; os arquivos apontam Rafael
   Formenton, MSIG).
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `a91443bb-3148-43af-93c3-413bd3fb005c` (só falas; sem saída de ferramenta).
+
+O dia 2026-11-09 (falas 029-038) ficou fora deste diário:
+- O owner: "os itens 1, 2, 5 e 13 são todos alto, mas no commit só mencionou 1, então não tenho certeza se fez
+  todos os 13 itens!" (fala 033). A tabela agrupada por esforço escondeu a coluna **Ganho**, que o owner tinha
+  pedido (fala 007): os 4 são de ganho alto; de esforço alto, só o 5 (fala 034).
+- O `capturar` depois de compactar depende do resumo (fala 030) — item no to-dolist (fala 032).

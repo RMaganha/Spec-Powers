@@ -2,7 +2,7 @@
 name: project_kit_nao_assume_ambiente_de_origem
 description: O kit nasceu na MSIG e tratava a infra corporativa como universal — a correção é PERGUNTAR na constituição e gravar a resposta no CLAUDE.md, não detectar
 gatilho: quando o kit for gravar algo sobre infra (rede, proxy, CA, banco corporativo)
-conferida: 2026-11-13 — confirmada — fonte: commands/kickoff.md:17
+conferida: 2026-11-16 — confirmada — fonte: CLAUDE.md:14
 metadata:
   type: project
 ---
@@ -25,11 +25,18 @@ toda sessão, então os comandos leem sem procurar e **nenhum formato de configu
 Duas contrapartidas obrigatórias, aprendidas nesta rodada:
 1. **quem sobrescreve tem que respeitar a declaração** — a categoria 1 do `upgrade` reintroduziria
    tudo; e
-2. **projeto anterior à mudança recebe a linha PERGUNTANDO** (`<MSIG | própria — a confirmar>`),
-   nunca com o default antigo assumido em silêncio — assumir é o erro que se está consertando.
+2. **projeto anterior à mudança recebe a linha a partir do que o repositório mostra** — o molde define
+   "própria" como sem proxy no `.env`, sem `docker-compose.office.yml` e sem `get_connection.py`: conferido
+   isso no repositório, grava sem perguntar; pergunta (`<MSIG | própria — a confirmar>`) só quando o
+   repositório não decide. Nunca o default antigo assumido em silêncio — assumir é o erro que se está consertando.
 
 Nunca **detectar** o ambiente por heurística (nome do projeto/pasta): é pergunta ao owner.
 
 Relacionado: [[feedback_regra_unica_em_vez_de_config]] (declaração no que já existe, em vez de
 formato novo), [[project_upgrade_categoria1_sobrescreve]] (a categoria que precisa do freio) e
 [[feedback_brownfield_entender_nao_aplicar]] (não aplicar molde por cima do que o projeto já é).
+
+substituiu: "projeto anterior à mudança recebe a linha PERGUNTANDO" — o owner, quando o assistente perguntou da infra
+com o fato já no repositório: "Porque está perguntando de infra??Não há infra nesse projeto, já deveria saber disso"
+(memory/sessions/2026-11-03-teto-so-pro-assistente.md:49, 2026-11-03); no kit, `CLAUDE.md:14` diz "nunca perguntar
+de infra neste repo". O texto do `commands/upgrade.md` ainda manda perguntar (não mexido pelo sono).

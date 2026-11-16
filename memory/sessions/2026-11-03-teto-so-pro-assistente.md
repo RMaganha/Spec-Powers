@@ -41,3 +41,13 @@ silêncio; MSS-SSC → só `CLAUDE.md`/`MEMORY.md` na abertura. Suíte inteira r
 Owner: merge `--no-ff` da branch na `main` (com aprovação ao assistente) e push; `/mss-spec:upgrade` nos projetos quando abrir
 cada um (agora sem reescrever infra). Em aberto: F-051 (gatilho do recall casar com a própria proposta), `LC_ALL=enu`, escolha A
 da junção (marketplace local).
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `0fc6414d-7838-41b3-924c-f22dbcf8c339` (só falas; sem saída de ferramenta).
+
+- O assistente perguntou da infra com o fato já no repositório. O owner: "Porque está perguntando de infra??Não há
+  infra nesse projeto, já deveria saber disso" (fala 011, 2026-11-03). O assistente: "o próprio molde define
+  'própria' como 'sem proxy no `.env`, sem `docker-compose.office.yml`, sem `get_connection.py`', e eu já tinha
+  conferido que nada disso existe aqui. Dava pra fechar sem perguntar" (fala 012). O conserto foi a linha Infra
+  do `CLAUDE.md` do kit ("nunca perguntar de infra neste repo").

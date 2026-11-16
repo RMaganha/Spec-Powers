@@ -3,7 +3,7 @@ name: credencial-reusar-env-precedente
 description: Segredo de conexão — env-var (recomendado pra web app Azure: .env dev → App Settings prod) OU Fernet-no-código (continuidade, é ofuscação); escolha por-projeto no /mss-spec:banco; nunca pedir credencial digitada nem pôr segredo no código/commit
 gatilho: quando configurar conexão de banco ou qualquer segredo da aplicação
 sem_gatilho_de_acao: já tem cerca própria — regra por tipo de arquivo `.claude/rules/banco-e-segredo.md`
-conferida: 2026-11-13 — confirmada — fonte: docs/decisoes.md:7
+conferida: 2026-11-16 — confirmada — fonte: memory/sessions/2026-07-08-review-do-kit-banco-e-front-mantine.md:15
 metadata:
   type: feedback
 ---
@@ -30,9 +30,12 @@ reescreve `get_connection.py` existente; o `/mss-spec:upgrade` trata código com
 **How to apply:** conexão SQL nova → `/mss-spec:banco` oferece (a) **variável de ambiente
 [recomendado]** — conn string no `.env`/App Settings, lida via `os.getenv`, sem `cryptography`; ou
 (b) **Fernet [continuidade]** — copiar `templates/get_connection.py`, pares por base/ambiente no
-código. Base MSIG conhecida (SSC, MS10=`tkgs_corp`, TRP, OnBase) → apontar constantes no Transportes
-V2 pro owner colar (copiar credencial entre projetos é decisão DELE); base nova → gerar par
-localmente, sem ecoar segredo. Nunca conn string em texto plano no chat (usar `mask_password`).
+código. Base MSIG conhecida (SSC, MS10=`tkgs_corp`, TRP, OnBase) → a credencial é a que o owner der
+para o SQL Server certo (D0, HML ou PRD); o Transportes V2 é só o **modelo** do `get_connection.py`,
+nunca fonte de credencial; base nova → gerar par localmente, sem ecoar segredo. Nunca conn string em texto plano no chat (usar `mask_password`).
 Portas verificadas (2026-07-08): SSC dev `10.170.210.36,1435`; `tkgs_corp`/`MSS_TRP` dev sem porta;
 SSC prod `10.170.210.48`. Erro 53/timeout fora da rede corporativa é rede, não credencial.
 Relacionado: [[nao-inventar-fatos-concretos]].
+
+substituiu: "apontar constantes no Transportes V2 pro owner colar" — o owner: "esse projeto não é de transportes
+eu nunca disse isso, é só deve apontar para o sqlserver certo" (memory/sessions/2026-07-08-review-do-kit-banco-e-front-mantine.md:15, 2026-07-10)

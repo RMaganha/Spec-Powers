@@ -53,3 +53,11 @@ Decisão 23 da memória em tabela. Branch `feature/comando-guardado-inteiro`, co
 - Owner: aprovar o merge da `feature/comando-guardado-inteiro` na `main` e fazer o push.
 - Provar no real: a negação aparecendo numa captura de verdade; o aviso do `verificar` no Whats, na conversa dele.
 - Fila do owner: lista de conferência → ajudante revisor → teste automático do kit.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `dfeb9bc5-1cdc-43ae-862c-e6b92548ac15` (só falas; sem saída de ferramenta).
+
+As falas 016-022 ficaram fora deste diário: o MAPA corrigido numa branch curta depois do merge (falas 016-018); o
+hook da passagem não reconheceu o título "Já decidido — não reabrir" escrito com acento — causa não confirmada,
+contornada escrevendo sem acento (fala 020).

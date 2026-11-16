@@ -33,3 +33,13 @@
 
 ## Próximo
 - Owner: merge e push da 0.49.0 na `main`.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `2a05ca2e-e9c3-4402-ab83-2de81e50c792` (só falas; sem saída de ferramenta).
+
+- No fecho da 0.49.0, "Um script de edição quebrou por causa do fim de linha dos arquivos" (fala 018) — origem
+  de `memory/project_troca_por_script_em_arquivo_crlf.md`, gravada na fala 028. Em 2026-11-16 o `docs/EVALS.md`
+  segue com fim de linha CRLF (404 linhas `\r\n`, medido no sono).
+- O commit da captura (`7e5d505`) caiu direto na `main`: "eu não conferi a branch antes" (fala 028) — 2ª vez
+  (a 1ª está em `2026-10-28-upgrade-converte-to-dolist.md`).

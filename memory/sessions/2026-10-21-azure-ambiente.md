@@ -59,3 +59,14 @@ prefixo não é lido pelo app — quem decide o banco é a `CADASTROCORRETOR_SQL
   se o pipeline parar por permissão, vai a seção 4 do chamado, uma vez só.
 - **Kit:** o F-033 reincidiu → reavaliar o item adiado "hook `Stop` medindo a resposta contra o pedido";
   o F-038 fecha quando um projeto for do zero à produção sem reclamação de condução.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `2d907b39-f1bb-45a6-9e28-c828d97761f2` (só falas; sem saída de ferramenta).
+
+- **Correção do kit vale pro kit todo:** "tem que corrigir tudo, não vou ficar tratando exceções em janelas de
+  outros projetos" (fala 026, 2026-10-15).
+- No PowerShell, o 1º `bash` do PATH é o do WSL (`System32\bash.exe`), que não roda; os testes que chamam bash
+  pulam (fala 053).
+- O PowerShell gravou os manifestos com BOM e os testes recusaram (fala 080, 2026-10-16) — já tinha acontecido em
+  2026-08-25 (`2026-08-25-divergir.md:9`).

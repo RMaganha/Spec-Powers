@@ -25,3 +25,14 @@ smoke `test_doctor_check_versao_wiring`; spec + plano; release **0.12.0** (bump 
 2 manifestos + CHANGELOG). Suíte **63 verde**.
 
 **Próximo** — merge `--no-ff` na `main` (finishing); `git push` a pedido.
+
+## Acrescentado no sono de 2026-11-16
+
+> A partir do texto da conversa `8a576c2d-082a-4837-8ed5-21cee3792d0a` (só falas; sem saída de ferramenta).
+
+O trecho de 2026-07-22 (falas 023-040) ficou fora deste diário:
+- **Conversamos:** como atualizar outro projeto.
+- **Pivôs:** o assistente mandou `/plugin marketplace update mss-local` duas vezes; o owner: "eu avisei que está
+  errado!!!" (fala 027); o disco mostrou a junção. No app Desktop do owner o `/plugin` não existe (fala 028).
+- **Rejeitado:** marketplace para o owner (naquela data). **Fizemos:** nada gravado.
+- **Próximo:** corrigir o COMO-FUNCIONA (`/plugin` × app Desktop).

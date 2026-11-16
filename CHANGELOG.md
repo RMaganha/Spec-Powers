@@ -2,6 +2,15 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.63.0 — 2026-11-16 (sono da memória, parte 2: ler as conversas gravadas e corrigir, rebaixar ou recuperar memória)
+- **o que motivou:** o acervo nunca tinha sido conferido contra as conversas, e o Claude Code apaga conversa antiga. Decisões do owner na spec `docs/specs/sono-da-memoria.md` (16 a 24).
+- feat(**`templates/conversa_texto.py`**): modo `lote [--desde AAAA-MM-DD] --saida <pasta>` — grava em texto todas as conversas do projeto mudadas depois do dia (sem data: todas), menos a em curso e as de ajudante; lista período, falas e letras de cada uma.
+- feat(**`templates/memoria_indice.py`**): o roteiro do `sono` mostra `conversas lidas até:` (do diário da rodada) e o comando `lote` da próxima rodada ("1ª rodada: todas" sem ele); o `verificar` acusa `conferida:` com fonte no `.jsonl` da conversa.
+- feat(**`templates/memoria_tabela.py`**): o `montar` usa o dia das conversas lidas como último sono quando é o mais novo — a rodada que não muda nota nenhuma também recomeça a conta do aviso.
+- docs(**`commands/memory.md`**): "Uso interno: sono", parte 2 — quais conversas, ajudantes, conferir na fala, o que cada achado vira (contradiz, enfraquece só com fala de falha ou dúvida, aprendizado, decisão recuperada, conflito), fonte nunca no `.jsonl`.
+- 1ª rodada no kit (14 ajudantes pesquisadores, só leitura; 67 gravações, 3,08 milhões de letras): 4 notas corrigidas pela conversa (`substituiu:`), 1 não confirmada → confirmada, 2 notas com aprendizado acrescentado, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada em `docs/decisoes.md` + 2 linhas velhas marcadas como substituídas, 27 diários retroativos e 17 blocos acrescentados; nenhuma credencial copiada. Diário: `memory/sessions/2026-11-16-sono-da-memoria-conversas.md`.
+- test: `tests/test_conversa_texto.py` (+4) e `tests/test_sono_da_memoria.py` (+6).
+
 ## 0.62.0 — 2026-11-13 (sono da memória, parte 1: conferir, juntar e marcar o estado das notas que já existem)
 - **o que motivou:** análise `docs/analise/2026-11-13-sono-da-memoria.md` — nota errada vira armadilha e ninguém relia o acervo: 40 citações mortas e 0 de 78 anotações conferidas. Decisões do owner na spec `docs/specs/sono-da-memoria.md` ("O que o owner decidiu", 1 a 13).
 - feat(**`templates/memoria_indice.py`**): campo `conferida: <data> — <confirmada|não confirmada|conflito> — fonte: <arquivo:linha>` no frontmatter; o `verificar` acusa pelo nome o que estiver fora do formato (confirmada sem `arquivo:linha`, conflito sem a linha `CONFLITO:` no corpo); sem o campo = nunca conferida, não é erro. Modo novo `sono`: o roteiro (contagem por estado, nunca conferidas, conferidas há mais tempo, citações mortas, duplicatas).
