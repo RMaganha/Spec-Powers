@@ -389,11 +389,38 @@ def conferida_fora_do_formato(valor: str, texto_corpo: str = "") -> str:
         return (f"esperado `{CAMPO_CONFERIDA}: AAAA-MM-DD — <{'|'.join(ESTADOS)}> — fonte: <arquivo:linha>`, "
                 f"veio `{valor}`")
     _, estado, fonte = lido
+    if ".jsonl" in fonte.casefold():
+        return ("fonte aponta o `.jsonl` da conversa (volátil, fora do git) — ponha a evidência no diário "
+                "(`memory/sessions/`) e cite o diário")
     if estado == "confirmada" and not RE_ARQ_LINHA.search(fonte):
         return "confirmada sem `arquivo:linha` na fonte"
     if estado == "conflito" and not RE_LINHA_CONFLITO.search(texto_corpo or ""):
         return "conflito sem a linha `CONFLITO: <fonte A, data> diz …; <fonte B, data> diz …` no corpo"
     return ""
+
+
+# Parte 2 (conversas, 0.63.0): o diário da rodada guarda até que dia as conversas foram lidas; a próxima rodada lê
+# só as gravadas depois dele, e a tabela conta esse dia como último sono (o aviso de 10 conversas recomeça).
+RE_LIDAS_ATE = re.compile(r"(?im)^[\s\-*]*conversas lidas até:\**\s*(\d{4}-\d{2}-\d{2})")
+
+
+def conversas_lidas_ate(proj: Path) -> tuple:
+    """(dia, diário) da leitura de conversas mais nova registrada em `memory/sessions/`; ('', '') = nunca leu."""
+    pasta = Path(proj) / "memory" / "sessions"
+    achado = ("", "")
+    try:
+        diarios = sorted(pasta.glob("*.md")) if pasta.is_dir() else []
+    except OSError:
+        return achado
+    for md in diarios:
+        try:
+            texto = md.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for dia in RE_LIDAS_ATE.findall(texto):
+            if dia > achado[0]:
+                achado = (dia, f"memory/sessions/{md.name}")
+    return achado
 
 
 def roteiro_do_sono(proj: Path) -> dict:
@@ -420,7 +447,8 @@ def roteiro_do_sono(proj: Path) -> dict:
     datas.sort()
     return {"por_estado": por_estado, "nunca": sorted(nunca), "conflitos": sorted(conflitos),
             "ultimo_sono": datas[-1][0] if datas else "", "mais_velhas": [n for _, n in datas[:10]],
-            "citacoes": citacoes_mortas(proj), "duplicatas": duplicatas(memdir) if memdir.is_dir() else []}
+            "citacoes": citacoes_mortas(proj), "duplicatas": duplicatas(memdir) if memdir.is_dir() else [],
+            "conversas_lidas_ate": conversas_lidas_ate(proj)}
 
 
 def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
@@ -898,6 +926,14 @@ def main(argv=None) -> int:
         print(f"duplicatas pelo método de hoje ({len(r['duplicatas'])}):")
         for x, y, motivo in r["duplicatas"]:
             print(f"  - {x} × {y} — {motivo}")
+        dia, diario = r["conversas_lidas_ate"]
+        lote = Path(__file__).resolve().parent / "conversa_texto.py"
+        if dia:
+            print(f"conversas lidas até: {dia} ({diario}) — a próxima rodada lê só as gravadas depois:")
+            print(f'  python "{lote}" lote --desde {dia} --saida <pasta temporária>')
+        else:
+            print("conversas: nenhuma rodada de leitura registrada — 1ª rodada: todas as conversas do projeto:")
+            print(f'  python "{lote}" lote --saida <pasta temporária>')
         return 0
     if a.modo == "fila":
         f = fila(memdir)

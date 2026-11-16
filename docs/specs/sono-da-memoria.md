@@ -49,7 +49,39 @@ subíndices e medir o uso das notas (itens 4.1 e 4.3 de `docs/analise/2026-11-13
 15. Antes do merge, conferir que o recall não devolve o que o sono aposenta (`obsoleta:`/`pausada:`), porque o sono
     vai gerar mais `obsoleta:`.
 
+### Parte 2 (conversas) — decidido pelo owner em 2026-11-16
+16. A parte 2 lê as conversas gravadas e corrige ou recupera memória no formato da parte 1. A 1ª rodada lê todas as
+    conversas gravadas do projeto (67 em 2026-11-16); as seguintes, só as de depois do último sono — o acervo nunca
+    foi conferido contra conversa, e o Claude Code pode apagar conversa antiga.
+17. O texto de cada conversa sai do `templates/conversa_texto.py` (só as falas do owner e do assistente); saída de
+    ferramenta fica fora nesta parte.
+18. Fonte gravada nunca aponta pro `.jsonl` da conversa (volátil, fora do git). Evidência que só existe na conversa
+    entra antes no diário (`memory/sessions/`) e a nota cita o diário. Conversa sem diário ganha um diário curto
+    retroativo (Conversamos · Pivôs · Rejeitado · Fizemos · Próximo).
+19. O que a parte 2 grava: nota que a conversa contradiz é corrigida (confirmada + `substituiu:`); nota que a conversa
+    enfraquece cai pra não confirmada; aprendizado que nenhuma captura gravou vira anotação nova no formato da captura.
+20. **Só rebaixa quando uma fala mostra que a nota falhou ou ficou em dúvida.** Ausência de prova no texto nunca
+    rebaixa — o texto não traz saída de ferramenta, e nota sem evidência fica como está (critério do cookbook).
+21. Decisão do owner achada só na conversa, que vale pro kit todo, vira anotação em `memory/` **e** uma linha em
+    `docs/decisoes.md` (como a captura, `commands/memory.md:54`), marcada "recuperada no sono de <data>" — e só entra
+    se nenhuma decisão posterior já a substituiu.
+22. Achado de ajudante do tipo "não existe / não faz" é conferido no código antes de virar marca ou correção (F-068).
+    Credencial nunca entra em nota nem em diário. Ajudantes pesquisadores autorizados, como na parte 1.
+23. Os 2 conflitos da parte 1 (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2) ficam fora da parte 2.
+24. Medição de partida (2026-11-16): 67 conversas gravadas (3 desde 2026-11-13); 39 diários; 81 anotações — 75
+    confirmadas, 1 não confirmada, 2 em conflito, 1 nunca conferida. Meta: notas corrigidas, rebaixadas, aprendizados
+    e diários recuperados, e o custo da rodada.
+
 ## Escolhas do assistente (o owner pode trocar)
+- **Parte 2 (aprovadas em 2026-11-16):** `conversa_texto.py lote [--desde] --saida` grava o texto das conversas em
+  lote, com período, falas e letras de cada uma; o diário da rodada leva `conversas lidas até: AAAA-MM-DD`, que o
+  `sono` mostra e o `montar` usa como último sono quando é a data mais nova (o "agora não" não conta pra leitura); o
+  texto das conversas fica no rascunho temporário da conversa do sono; ajudantes em levas, até ~200 mil letras cada,
+  devolvendo ~1.200 letras por conversa; todo achado é conferido na fala citada antes de gravar; "contradiz" só com
+  fala posterior à fonte da nota em que o owner decide ou que mostra a mudança no código; nota enfraquecida ganha
+  `rebaixada: <o que a conversa mostrou> (<diário:linha>, <data>)`; anotação nova nasce confirmada com fonte no
+  diário; diário existente ganha o bloco "Acrescentado no sono de <data>", diário retroativo leva `conversa: <id>`
+  (chave, não fonte); o `verificar` acusa `fonte:` que cite `.jsonl`; conflito novo é marcado como na parte 1.
 - **O que vale cada estado:** confirmada = há fonte no repositório hoje que diz o mesmo (código, spec, decisão, caso
   do EVALS ou diário), citada como `arquivo:linha`; não confirmada = nenhuma fonte achada; conflito = duas fontes
   discordam — o corpo da nota ganha `CONFLITO: <fonte A, data> diz …; <fonte B, data> diz …`, sem escolher lado; frase
@@ -82,6 +114,19 @@ subíndices e medir o uso das notas (itens 4.1 e 4.3 de `docs/analise/2026-11-13
    controle e a conta recomeça dali; remontar a tabela não perde o adiamento.
 6. DADO o kit depois da passada, QUANDO rodo `citacoes`, ENTÃO 0 citações mortas; toda anotação não obsoleta tem
    `conferida:` válido; nenhuma duplicata fica sem `obsoleta:`.
+
+**Parte 2:**
+7. DADO conversas com datas diferentes, QUANDO rodo `conversa_texto.py lote --desde 2026-11-13`, ENTÃO sai só o
+   texto das mudadas depois do dia, sem a conversa em curso nem as de ajudante; sem `--desde`, saem todas.
+8. DADO um diário com `conversas lidas até:`, QUANDO rodo `memoria_indice.py sono`, ENTÃO o roteiro mostra a data e
+   o comando `lote`; sem diário assim, mostra "1ª rodada: todas".
+9. DADO essa data mais nova que o último `conferida:`, QUANDO rodo `montar`, ENTÃO a linha de controle guarda essa
+   data como último sono.
+10. DADO uma anotação com `fonte:` apontando para `.jsonl`, QUANDO rodo `verificar`, ENTÃO ela é acusada pelo nome.
+11. DADO uma nota sem nenhuma fala que mostre que ela falhou ou ficou em dúvida, QUANDO a rodada passa, ENTÃO ela fica
+    como está — ausência de prova no texto nunca rebaixa.
+12. DADO o kit depois da rodada, ENTÃO `verificar` e `citacoes` limpos, suíte verde, e o diário da rodada traz os
+    números da meta e o custo.
 
 ## Conferido no real (2026-11-13, a passada no kit)
 - **Leitura:** 6 ajudantes pesquisadores (só leitura), famílias pequenas agrupadas; um deles só para decisões, EVALS
@@ -119,6 +164,9 @@ subíndices e medir o uso das notas (itens 4.1 e 4.3 de `docs/analise/2026-11-13
   comandos cortados seguem esperando o owner.
 
 ## Histórico
+- 2026-11-16 — parte 2 aberta (conversas): desenho aprovado pelo owner com 2 ajustes — só rebaixa com fala que mostra
+  falha ou dúvida; decisão recuperada vai pra `memory/` e `docs/decisoes.md` (motivo: o acervo nunca foi conferido
+  contra conversa, e conversa antiga pode sumir).
 - 2026-11-13 — revisão do owner: correção posterior clara não é conflito (7 dos 9 viraram confirmadas com
   `substituiu:`; 2 ficam pra ele); conferido que o recall não devolve o que o sono aposenta, e fechada a brecha da
   linha de subíndice esquecida (motivo: critério do cookbook; o sono vai gerar mais `obsoleta:`).

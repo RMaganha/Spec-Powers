@@ -1,16 +1,16 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1: acervo) mesclada na `main` em 2026-11-16** (`6ad095a`); falta o push do owner; suíte 1617 verdes. Nenhuma tarefa em andamento no INDEX. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.
+Branch `feature/sono-da-memoria-conversas` — **sono da memória, parte 2 (conversas), 0.63.0 em andamento**: código (`conversa_texto.py lote`, data das conversas lidas, `verificar` acusa `.jsonl`) e depois a rodada nas 67 conversas com ajudantes que só leem. Saída: o diff pro OK do owner antes do merge. Spec: `docs/specs/sono-da-memoria.md` (decisões 16-24).
 
-<!-- histórico do estado anterior (0.61.0) -->
-Branch `docs/captura-conversa-nova-acha-sozinha` (captura e MAPA) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) mesclada na `main` e publicada pelo owner em 2026-11-12** (`7e641b9`); suíte 1594 verdes. Nenhuma tarefa em andamento no INDEX. **Falta provar no real: uma conversa nova aberta só com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-12-conversa-nova-acha-sozinha.md`.
+<!-- histórico do estado anterior (0.62.0) -->
+Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1: acervo) mesclada na `main` e publicada pelo owner em 2026-11-16** (`a98c410`); suíte 1617 verdes. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.
 ## Próximo passo
-0. ⬜ **Owner: push da `main` (0.62.0)**; depois, **decidir os 2 conflitos** (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2) e abrir a **parte 2 do sono** em conversa nova (item 16 do INDEX).
+0. ⬜ **Owner: decidir os 2 conflitos** (Tailwind × Mantine; `UserPromptSubmit` exit 0 × exit 2). A parte 2 do sono está em andamento nesta branch.
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1594).
 1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
 1b. ⬜ **Provar a 0.59.0 no real** — falta o clique de aprovação ao trocar de branch numa branch que a conversa não abriu (a regra chegando numa conversa aberta com `Já decidido`: ✅ 2026-11-12).
-1c. ⬜ **Owner: em conversa nova, conferir que `mss-spec:pesquisador` aparece na lista de ajudantes** — se não aparecer, o kit carregado pela junção não lê `agents/`; as portas já mandam usar o ajudante genérico nesse caso.
+1c. ✅ **`mss-spec:pesquisador` aparece na lista de ajudantes** de uma conversa nova (visto em 2026-11-16, na abertura da parte 2 do sono).
 2. ⬜ **Medição do gatilho de ação — leituras em 2026-11-25 e 2026-12-11** — o que medir está na spec ("Conferido no real — parte 3").
 3. ⬜ **Nos outros projetos, na conversa de cada um: lista das anotações antigas sem gatilho de ação** — `memoria_indice.py fila`; o owner aprova de uma vez. E o caso F-060 (aberto) espera o guardrail.
 4. ⬜ **Owner: apagar a tarefa agendada, se chegou a ser criada** — Agendador de Tarefas → Biblioteca → "mss-spec guardiao da juncao" → Excluir (sem comando).

@@ -441,7 +441,8 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
         conn.execute("DELETE FROM memoria WHERE raiz = ? AND tipo = ?", (raiz_txt, TIPO_CONTROLE))
         conn.execute(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
                      tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": disco,
-                            "data": _ultima_conferencia(linhas), "estado": adiado}.get(c, "")
+                            "data": max(_ultima_conferencia(linhas), _motor().conversas_lidas_ate(raiz)[0]),
+                            "estado": adiado}.get(c, "")
                            for c in COLUNAS))
         conn.execute("UPDATE memoria SET projeto = ? WHERE raiz = ? AND projeto <> ?", (projeto, raiz_txt, projeto))
         conn.commit()
@@ -458,6 +459,8 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
 # ---------------------------------------------------------------- sono da memória (0.62.0)
 
 def _ultima_conferencia(linhas: list) -> str:
+    # O último sono é a mais nova entre esta data e a da leitura de conversas registrada no diário da rodada
+    # (`memoria_indice.conversas_lidas_ate`, parte 2): a rodada que não muda nota nenhuma também recomeça a conta.
     """A data mais nova do `conferida:` entre as anotações lidas ('' = o projeto nunca dormiu)."""
     datas = [l["estado"][:10] for l in linhas if l.get("tipo") == "anotacao" and RE_DATA.match(l.get("estado", "")[:10])]
     return max(datas) if datas else ""

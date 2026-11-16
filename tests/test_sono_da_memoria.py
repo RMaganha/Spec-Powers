@@ -281,6 +281,66 @@ def test_obsoleta_que_ficou_no_subindice_e_acusada_e_nao_volta_pelo_recall(proj)
     assert not any("nota_b" in p.ponteiro or "— B" in p.ponteiro for p in mod.casar(proj, "nota_b", minimo=1, limite=10))
 
 
+# ------------------------------------------------------------------ parte 2 (conversas) — AC8: até onde as conversas foram lidas
+
+def _diario(raiz, nome, corpo):
+    _grava(raiz, f"memory/sessions/{nome}.md", corpo)
+
+
+def test_roteiro_sem_diario_de_leitura_diz_primeira_rodada_todas(proj, capsys):
+    r = _indice().roteiro_do_sono(proj)
+    assert r["conversas_lidas_ate"] == ("", "")
+    assert _indice().main(["sono", "--proj", str(proj)]) == 0
+    saida = capsys.readouterr().out
+    assert "1ª rodada: todas" in saida and "conversa_texto.py" in saida and "lote --saida" in saida
+
+
+def test_roteiro_mostra_a_leitura_mais_nova_e_o_comando_do_lote(proj, capsys):
+    _diario(proj, "2026-11-16-sono-conversas", "# Sono\n\n- **conversas lidas até:** 2026-11-16\n")
+    _diario(proj, "2026-11-20-sono-conversas", "# Sono\n\nconversas lidas até: 2026-11-20\n")
+    _diario(proj, "2026-11-21-outro", "# Outro\n\nfalou de conversas lidas até ontem, sem data\n")
+    r = _indice().roteiro_do_sono(proj)
+    assert r["conversas_lidas_ate"] == ("2026-11-20", "memory/sessions/2026-11-20-sono-conversas.md")
+    assert _indice().main(["sono", "--proj", str(proj)]) == 0
+    saida = capsys.readouterr().out
+    assert "conversas lidas até: 2026-11-20" in saida and "lote --desde 2026-11-20" in saida
+
+
+# ------------------------------------------------------------------ parte 2 — AC9: a leitura conta como último sono
+
+def test_leitura_mais_nova_que_a_conferencia_vira_o_ultimo_sono(tmp_path):
+    raiz, tabela, mod = _projeto(tmp_path), tmp_path / "t.sqlite3", _tabela_mod()
+    _anotacao(raiz, "nota_a", "2026-11-13 — confirmada — fonte: hooks/x.py:12")
+    _diario(raiz, "2026-11-16-sono-conversas", "# Sono\n\nconversas lidas até: 2026-11-16\n")
+    mod.montar(raiz, tabela, usar_git=False)
+    assert mod.ultimo_sono(raiz, tabela) == "2026-11-16"
+
+
+def test_conferencia_mais_nova_que_a_leitura_continua_valendo(tmp_path):
+    raiz, tabela, mod = _projeto(tmp_path), tmp_path / "t.sqlite3", _tabela_mod()
+    _anotacao(raiz, "nota_a", "2026-11-20 — confirmada — fonte: hooks/x.py:12")
+    _diario(raiz, "2026-11-16-sono-conversas", "# Sono\n\nconversas lidas até: 2026-11-16\n")
+    mod.montar(raiz, tabela, usar_git=False)
+    assert mod.ultimo_sono(raiz, tabela) == "2026-11-20"
+
+
+# ------------------------------------------------------------------ parte 2 — AC10: fonte nunca aponta pro `.jsonl`
+
+def test_fonte_que_cita_jsonl_da_conversa_e_acusada_pelo_nome(proj):
+    _anotacao(proj, "nota_c", "2026-11-16 — confirmada — fonte: C:/Users/x/.claude/projects/p/abc.jsonl:120")
+    probs = _conferida_probs(_indice(), proj)
+    assert len(probs) == 1 and "nota_c.md" in probs[0] and ".jsonl" in probs[0]
+    _anotacao(proj, "nota_c", "2026-11-16 — confirmada — fonte: memory/sessions/2026-11-16-sono-conversas.md:12")
+    assert _conferida_probs(_indice(), proj) == []
+
+
+def test_rebaixada_com_fonte_no_diario_passa(proj):
+    _anotacao(proj, "nota_c", "2026-11-16 — não confirmada — fonte: memory/sessions/2026-10-02-x.md:12",
+              corpo="corpo\n\nrebaixada: a conversa mostrou que o aviso não disparou "
+                    "(memory/sessions/2026-10-02-x.md:12, 2026-10-02)\n")
+    assert _conferida_probs(_indice(), proj) == []
+
+
 # ------------------------------------------------------------------ AC6 — o acervo do kit depois da passada
 
 def test_kit_sem_citacao_morta():
