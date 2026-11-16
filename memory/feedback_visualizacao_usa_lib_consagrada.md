@@ -34,4 +34,4 @@ Relacionado: [[feedback_avaliar_tool_externa_ideia_vs_stack]] (aqui a decisão f
 (bpmn-js 18.27.0, sem beta), [[feedback_testar_js_gerado_node_check]] (o que ainda pode quebrar na
 página gerada) e [[project_dogfood_gerador_diff_antes_depois]] (foi o projeto real que expôs tudo).
 
-substituiu: "desde a 0.11.0" — a `vis-network` entrou na 0.9.0 (CHANGELOG.md:570; memory/sessions/2026-07-20-mapa-de-contexto-e-mapa-neural.md:17, 2026-07-20)
+substituiu: "desde a 0.11.0" — a `vis-network` entrou na 0.9.0 (CHANGELOG.md:579; memory/sessions/2026-07-20-mapa-de-contexto-e-mapa-neural.md:17, 2026-07-20)
