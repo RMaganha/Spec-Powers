@@ -3,6 +3,7 @@ name: feedback_visual_pro_humano_dados_pro_assistente
 description: visualização (grafo/HTML/dashboard) é pro humano; o ganho de performance/entendimento do assistente vem de dados agregados em TEXTO consultável
 gatilho: quando propor visualização (grafo, dashboard, HTML) como ganho pro assistente
 sem_gatilho_de_acao: depende do argumento da proposta — não há frase que separe
+conferida: 2026-11-13 — confirmada — fonte: docs/superpowers/specs/2026-07-20-mapa-de-contexto-design.md:23
 metadata:
   type: feedback
 ---

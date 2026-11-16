@@ -2,6 +2,7 @@
 name: project-upgrade-categoria1-sobrescreve
 description: Nunca gravar conteúdo levantado do projeto em arquivo que o /mss-spec:upgrade sobrescreve sozinho (categoria 1) — é apagado no próximo upgrade
 gatilho: quando gravar conteúdo levantado do projeto num arquivo de doc
+conferida: 2026-11-13 — confirmada — fonte: commands/upgrade.md:73
 metadata:
   node_type: memory
   type: project

@@ -4,6 +4,10 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-13 — saiu do MAPA (abertura da `feature/sono-da-memoria-acervo`, 0.62.0)
+
+**Onde estávamos:** Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
+
 ## 2026-11-12 — saiu do MAPA (abertura da `feature/conversa-nova-acha-sozinha`, 0.61.0)
 
 **Onde estávamos:** Branch `feature/conversa-nova-nao-se-perde` (da `main` em `0fd5b73`) — **0.59.0 (conversa nova não se perde, item CRÍTICO do to-dolist) pronta em 2026-11-11, aguardando o owner aprovar o merge na `main`**: hook `passagem_de_conversa.py` (o que chega sob `Já decidido` vale como decidido; texto pronto só no molde; "o kit não aceita" só com arquivo e linha e pergunta), trava de branch entre conversas (`_pasta_e_branch.py`) e comando colado reconhecido (F-053). Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-11-conversa-nova-nao-se-perde.md`.

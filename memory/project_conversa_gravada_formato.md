@@ -2,6 +2,7 @@
 name: project_conversa_gravada_formato
 description: Ler a conversa gravada pelo app (.jsonl) por código — a fala que o owner digita no meio do trabalho não é registro `user`, há registros do app que parecem fala, e o filtro de tag da busca não serve pra ler conversa
 gatilho: quando escrever ou alterar código que lê a conversa gravada pelo app (o .jsonl de ~/.claude/projects)
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:72
 metadata:
   type: project
 ---

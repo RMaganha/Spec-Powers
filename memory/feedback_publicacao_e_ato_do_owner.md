@@ -3,6 +3,7 @@ name: feedback_publicacao_e_ato_do_owner
 description: Push em dev/homologação/produção e deploy (docker push, az, gh pr merge) é ato do OWNER — o assistente roda /mss-spec:release e PEDE; merge/rebase/push de feature rodam com a aprovação do owner; e feature nova só quando não há feature aberta (um item por janela é trava, não alerta)
 gatilho: quando for publicar/integrar/fazer deploy (git push, merge, rebase, docker/az) ou quando surgir um 2º assunto na janela de uma feature
 sem_gatilho_de_acao: já tem cerca própria — `hooks/git_publicacao.py` nega ou pede aprovação
+conferida: 2026-11-13 — confirmada — fonte: docs/decisoes.md:50
 metadata:
   type: feedback
 ---
@@ -18,7 +19,7 @@ travou o dia a dia (*"a atualização minha no merge está impactando o dia a di
 dano do F-022 foi o push que faz deploy, e só esse segue travado. **E um item por janela é trava — por CHAT:** o hook `hooks/um_item_por_janela.py`
 bloqueia `/mss-spec:nova-feature` quando **este chat** já abriu outra feature que não está `fechada`
 nem `pausada: <motivo>` (retomar a mesma passa). **Chat novo sempre abre**: feature aberta de outro
-chat no `docs/superpowers/INDEX.md` só gera aviso + worktree (desde a 0.34.0 — contar por projeto
+chat no `docs/superpowers/INDEX.md` só gera aviso, e pasta na branch de outra feature faz parar e perguntar ao owner — nunca worktree (desde a 0.34.0 — contar por projeto
 travou o chat novo e o owner passou a tirar o comando do prompt, 2026-09-24). Surgiu 2º assunto no meio (bug em homologação incluso)? **Não aja sobre ele**:
 anote o estado da feature no `MAPA.md`, `to-dolist adicionar`, janela nova.
 
@@ -38,3 +39,5 @@ pare, rode o `release` e peça. Instrumentação de diagnóstico não altera con
 merge sem OK. Parente de [[feedback_feature_a_partir_da_master]] (branch nasce da main; integrar é
 voltar pra ela — pelo owner), de [[feedback-diagnostico-disciplinado]] (o 2º assunto da sessão era um
 diagnóstico que virou código) e de [[feedback_projeto_ativo_read_only]] (a outra cerca mecânica do kit).
+
+substituiu: só gera aviso + worktree, de 0.34.0 (`docs/decisoes.md:50`, 2026-10-27)

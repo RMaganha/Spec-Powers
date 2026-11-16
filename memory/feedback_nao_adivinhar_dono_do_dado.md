@@ -3,6 +3,7 @@ name: feedback_nao_adivinhar_dono_do_dado
 description: Hook/script que precisa atribuir um dado a um dono (chat, sessão, usuário) que o dado não registra NÃO adivinha — fica com o que dá pra afirmar e declara o custo; a "foto do INDEX" errou nas duas direções
 gatilho: quando um hook ou script precisar atribuir um dado a um dono (chat, sessão, usuário) que o próprio dado não registra
 sem_gatilho_de_acao: depende do desenho do código — não aparece em comando nem em frase
+conferida: 2026-11-13 — confirmada — fonte: hooks/um_item_por_janela.py:18
 metadata:
   type: feedback
 ---
@@ -21,6 +22,6 @@ paralelo; numa cerca, o erro vira bloqueio indevido do owner (o pior modo de fal
 afirmar (ali: a linha achada pelo **nome**, por palavra inteira; sem ela, "nada aberto e algo fechou
 desde a abertura") e **declare o custo** na spec e na mensagem ao owner ("não achei a linha dela pelo
 nome… abra um chat novo") em vez de esconder o caso. **O que deu certo** e vale repetir: revisão de
-código em rodadas, com o revisor rodando os cenários num script (`scratchpad/cenarios.py`, `rev2.py`,
-`rev3.py`) — pegou 3 furos que a suíte verde não pegava (662 → 676 testes, cada cenário virou teste).
+código em rodadas, com o revisor rodando os cenários em scripts descartáveis do scratchpad (cenarios, rev2,
+rev3; os cenários viraram teste em `tests/test_hook_um_item_por_janela.py`) — pegou 3 furos que a suíte verde não pegava (662 → 676 testes, cada cenário virou teste).
 Ver [[feedback_regra_unica_em_vez_de_config]] e [[project_hook_ask_aparece_no_desktop]].

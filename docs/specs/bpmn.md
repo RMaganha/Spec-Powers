@@ -7,9 +7,9 @@ puro, sem Node nem npm — que lê o código do projeto por **`ast`** e produz *
 
 | saída | o que é | pra quem |
 |---|---|---|
-| `docs/bpmn.html` | o desenho, renderizado pelo **bpmn-js 18.27.0** sobre coordenadas do **bpmn-auto-layout 1.3.0** (bpmn.io), ambos **vendorizados** em `templates/vendor/` — self-contained, zero CDN | **humano** |
+| `<projeto>/docs/bpmn.html` | o desenho, renderizado pelo **bpmn-js 18.27.0** sobre coordenadas do **bpmn-auto-layout 1.3.0** (bpmn.io), ambos **vendorizados** em `templates/vendor/` — self-contained, zero CDN | **humano** |
 | `docs/bpmn/<slug>.bpmn` | um **BPMN 2.0 XML** por diagrama; abre no **Bizagi**/Camunda Modeler pra editar, organizar e publicar | **humano**, na ferramenta dele |
-| `docs/bpmn.md` | os processos em texto: passos, tipo de elemento, raia, desfechos, integrações | **assistente** |
+| `<projeto>/docs/bpmn.md` | os processos em texto: passos, tipo de elemento, raia, desfechos, integrações | **assistente** |
 
 **O gerador não calcula coordenada.** Emite XML semântico; quem posiciona é o `bpmn-auto-layout`,
 empacotado uma vez com `esbuild` (`--format=iife`, 83 KB) e rodando **no navegador** — é isso que

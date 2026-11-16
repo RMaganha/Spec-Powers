@@ -362,6 +362,67 @@ def com_comando_cortado(memdir: Path) -> list:
         return []
 
 
+# ------------------------------------------------------------------ sono da memória (estado da nota)
+# docs/specs/sono-da-memoria.md (0.62.0): o sono confere cada anotação contra o repositório e grava o resultado
+# no frontmatter — `conferida: <data> — <estado> — fonte: <arquivo:linha>`. Sem o campo = nunca conferida (não é
+# erro: a anotação nova nasce assim e entra no próximo sono).
+CAMPO_CONFERIDA = "conferida"
+ESTADOS = ("confirmada", "não confirmada", "conflito")
+NUNCA = "nunca conferida"
+RE_CONFERIDA = re.compile(r"^(\d{4}-\d{2}-\d{2})\s+[—–]\s+(.+?)\s+[—–]\s+fonte:\s*(\S.*)$")
+RE_ARQ_LINHA = re.compile(r"\S+:\d+")
+RE_LINHA_CONFLITO = re.compile(r"^\s*(?:[-*]\s*)?\**CONFLITO:", re.M)
+
+
+def ler_conferida(valor: str):
+    """(data, estado, fonte) do campo `conferida:`, ou None quando não está no formato."""
+    m = RE_CONFERIDA.match((valor or "").strip())
+    if not m or m.group(2) not in ESTADOS:
+        return None
+    return m.group(1), m.group(2), m.group(3).strip()
+
+
+def conferida_fora_do_formato(valor: str, texto_corpo: str = "") -> str:
+    """Motivo (str) se o `conferida:` está fora do formato; '' se está bom."""
+    lido = ler_conferida(valor)
+    if lido is None:
+        return (f"esperado `{CAMPO_CONFERIDA}: AAAA-MM-DD — <{'|'.join(ESTADOS)}> — fonte: <arquivo:linha>`, "
+                f"veio `{valor}`")
+    _, estado, fonte = lido
+    if estado == "confirmada" and not RE_ARQ_LINHA.search(fonte):
+        return "confirmada sem `arquivo:linha` na fonte"
+    if estado == "conflito" and not RE_LINHA_CONFLITO.search(texto_corpo or ""):
+        return "conflito sem a linha `CONFLITO: <fonte A, data> diz …; <fonte B, data> diz …` no corpo"
+    return ""
+
+
+def roteiro_do_sono(proj: Path) -> dict:
+    """O que o sono tem pela frente: contagem por estado, as nunca conferidas, a data do último sono (a conferência
+    mais nova), as citações mortas e as duplicatas pelo método de hoje. Anotação `obsoleta:` fica fora."""
+    proj = Path(proj)
+    memdir = proj / "memory"
+    por_estado = {e: 0 for e in ESTADOS}
+    por_estado[NUNCA] = 0
+    nunca, conflitos, datas, mais_velhas = [], [], [], []
+    for md in _memorias(memdir) if memdir.is_dir() else []:
+        fm = frontmatter(md)
+        if fm.get("obsoleta"):
+            continue
+        lido = ler_conferida(fm.get(CAMPO_CONFERIDA, ""))
+        if lido is None:
+            por_estado[NUNCA] += 1
+            nunca.append(md.name)
+            continue
+        por_estado[lido[1]] += 1
+        datas.append((lido[0], md.name))
+        if lido[1] == "conflito":
+            conflitos.append(md.name)
+    datas.sort()
+    return {"por_estado": por_estado, "nunca": sorted(nunca), "conflitos": sorted(conflitos),
+            "ultimo_sono": datas[-1][0] if datas else "", "mais_velhas": [n for _, n in datas[:10]],
+            "citacoes": citacoes_mortas(proj), "duplicatas": duplicatas(memdir) if memdir.is_dir() else []}
+
+
 def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
     """`sem_commit`: nomes das anotações novas (default: o que o git ainda não tem commitado em `memory/`)."""
     memdir = Path(memdir)
@@ -393,6 +454,9 @@ def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
         fm = frontmatter(md)
         if not onde and not fm.get("obsoleta"):
             probs.append(f"{md.name} sem linha em nenhum subíndice (memória invisível)")
+        if onde and fm.get("obsoleta"):
+            probs.append(f"{md.name} é `obsoleta:` e ainda tem linha no subíndice ({', '.join(onde)}) — tire a "
+                         f"linha: memória superada sai do subíndice (o arquivo fica)")
         if len(onde) > 1:
             probs.append(f"{md.name} tem mais de uma linha: {', '.join(onde)}")
         if not fm.get("obsoleta") and fm.get("gatilho"):
@@ -405,6 +469,10 @@ def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
                 probs.append(f"procedimento sem `gatilho:` em {md.name} — sem gatilho ele nunca chega ao assistente")
             for erro in validar_procedimento(corpo(md)):
                 probs.append(f"procedimento fora do formato em {md.name}: {erro}")
+        if not fm.get("obsoleta") and fm.get(CAMPO_CONFERIDA):
+            motivo = conferida_fora_do_formato(fm[CAMPO_CONFERIDA], corpo(md))
+            if motivo:
+                probs.append(f"`{CAMPO_CONFERIDA}:` fora do formato em {md.name}: {motivo}")
         for campo in CAMPOS_DE_ACAO:
             if not fm.get("obsoleta") and fm.get(campo):
                 try:
@@ -656,9 +724,11 @@ def fontes(proj: Path, diario: bool = True) -> list:
     out = []
     if not memdir.is_dir():
         return out
+    aposentadas = set()                  # o sono gera `obsoleta:`; linha de subíndice esquecida não pode trazê-la de volta
     for md in _memorias(memdir):
         fm = frontmatter(md)
         if fm.get("obsoleta"):
+            aposentadas.add(md.name)
             continue
         texto = " ".join(x for x in (fm.get("name"), fm.get("description"), fm.get("gatilho")) if x)
         if texto.strip():
@@ -675,7 +745,7 @@ def fontes(proj: Path, diario: bool = True) -> list:
         rel = sub.relative_to(proj).as_posix()
         for n, l in enumerate(texto.split("\n"), 1):
             m = RE_ITEM.match(l)
-            if m and "indice/" not in m.group("arquivo"):
+            if m and "indice/" not in m.group("arquivo") and _sem_prefixo(m.group("arquivo")) not in aposentadas:
                 out.append(Fonte(l, f"{rel}:{n} — {m.group('titulo')}", PRIO["indice"], _sem_prefixo(m.group("arquivo"))))
     ev = proj / "docs" / "EVALS.md"
     if ev.is_file():
@@ -761,7 +831,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("modo", choices=["dividir", "verificar", "fila", "buscar", "citacoes"])
+    ap.add_argument("modo", choices=["dividir", "verificar", "fila", "buscar", "citacoes", "sono"])
     ap.add_argument("termo", nargs="?", default="")
     ap.add_argument("--proj", default=".", help="raiz do projeto (default: diretório atual)")
     ap.add_argument("--aplicar", action="store_true", help="grava (sem isto é dry-run)")
@@ -810,6 +880,24 @@ def main(argv=None) -> int:
             print("corrija o caminho, ou marque a memória `obsoleta:` se o que ela descreve não existe mais.")
             return 1
         print("citações: ok (todo caminho citado em memory/ e docs/specs/ existe)")
+        return 0
+    if a.modo == "sono":
+        r = roteiro_do_sono(proj)
+        print("roteiro do sono da memória (docs/specs/sono-da-memoria.md) — o que conferir:")
+        print("estado das anotações: " + " · ".join(f"{e} {n}" for e, n in r["por_estado"].items()))
+        print(f"último sono: {r['ultimo_sono'] or 'nunca'}")
+        print(f"{NUNCA} ({len(r['nunca'])}):")
+        for n in r["nunca"]:
+            print("  -", n)
+        if r["conflitos"]:
+            print(f"em conflito ({len(r['conflitos'])}) — o lado a manter é do owner: " + ", ".join(r["conflitos"]))
+        print(f"conferidas há mais tempo: {', '.join(r['mais_velhas']) or '—'}")
+        print(f"citações mortas ({len(r['citacoes'])}):")
+        for onde, cit in r["citacoes"]:
+            print(f"  - {onde}: `{cit}`")
+        print(f"duplicatas pelo método de hoje ({len(r['duplicatas'])}):")
+        for x, y, motivo in r["duplicatas"]:
+            print(f"  - {x} × {y} — {motivo}")
         return 0
     if a.modo == "fila":
         f = fila(memdir)

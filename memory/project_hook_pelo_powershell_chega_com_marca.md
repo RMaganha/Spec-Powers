@@ -3,6 +3,7 @@ name: project_hook_pelo_powershell_chega_com_marca
 description: Provar um hook do kit como processo — pelo pipe do PowerShell 5.1 o evento chega com a marca de codificação no começo e o hook sai calado; chame pelo Bash, lendo o evento de um arquivo
 gatilho: quando provar um hook do kit como processo, mandando o evento JSON pela entrada do programa
 gatilho_comando: \|\s*python(?:\.exe)?\s+["']?\S*hooks[\\/]\w+\.py
+conferida: 2026-11-13 — confirmada — fonte: memory/sessions/2026-11-12-comando-guardado-inteiro.md:25
 metadata:
   type: project
 ---

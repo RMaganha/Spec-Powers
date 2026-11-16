@@ -3,6 +3,7 @@ name: feedback_ler_a_outra_conversa_antes_de_nao_sei
 description: o owner cita outra conversa → ler a transcrição dela (~/.claude/projects/<pasta>/*.jsonl) e comparar ponto a ponto antes de responder; "não sei" sem ler é resposta sem fonte
 gatilho: quando o owner citar outra conversa ("em outro chat você disse…", "a outra conversa falou…")
 gatilho_resposta: (?i)não (sei|tenho acesso).{0,40}(outra conversa|outro chat)
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:296
 metadata:
   type: feedback
 ---

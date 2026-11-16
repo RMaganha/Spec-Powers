@@ -3,6 +3,7 @@ name: feedback-conferir-entrega-de-outra-conversa-so-lendo
 description: Conferir a entrega que outra conversa fez na mesma pasta é só LER (git, spec, o resultado da suíte que ela registrou) — nunca rodar suíte nem git que troque estado com a pasta em uso
 gatilho: quando o owner pedir pra ver se está OK o que outra conversa entregou ou está entregando neste mesmo projeto
 sem_gatilho_de_acao: a condição (outra conversa usando a pasta) não aparece no texto do comando nem da resposta
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:125
 metadata:
   type: feedback
 ---

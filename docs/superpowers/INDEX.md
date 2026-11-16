@@ -6,6 +6,7 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
+- [sono da memória — parte 1 (acervo)](../specs/sono-da-memoria.md) — conferir, juntar e marcar o estado das notas que já existem — aberta
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

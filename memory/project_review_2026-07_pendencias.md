@@ -2,6 +2,7 @@
 name: review-2026-07-pendencias
 description: Review completo do kit (2026-07-08) — achados confirmados, correções APLICADAS na v0.2.0; resta o Dockerfile real do painel
 gatilho: quando revisar pendências antigas do kit
+conferida: 2026-11-13 — confirmada — fonte: CHANGELOG.md:658
 metadata:
   type: project
 ---

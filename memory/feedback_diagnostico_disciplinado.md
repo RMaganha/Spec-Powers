@@ -3,6 +3,7 @@ name: feedback-diagnostico-disciplinado
 description: Falha que não fecha em 2 rodadas? Pare o loop de hipóteses — diff completo contra o precedente que funciona (código de boot incluso) ANTES de pedir evidência ao owner; fato do owner não se re-litiga
 gatilho: quando entrar em loop de diagnóstico (falha que não fecha em 2 rodadas)
 gatilho_resposta: (?i)\b(?:me (?:mande|envie|passe|mostre|cole)|cole aqui|pode (?:rodar|colar|conferir|verificar|me)|consegue (?:rodar|colar|conferir|verificar|me))\b[^.\n]{0,80}\b(?:log|sa[íi]da|print|erro|console|tela|resultado)\b
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:28
 metadata:
   node_type: memory
   type: feedback
@@ -18,7 +19,7 @@ boot/entrypoint, não só infra — vem ANTES de pedir qualquer evidência ao ow
 **Why:** 2026-08-26, deploy do MSS-SSC na Azure: 6 rodadas de owner perdidas num 503 listando
 hipóteses de plataforma (porta, Route All, ACR, sidecar), quando o diff contra o projeto de
 referência — que o owner tinha apontado **desde o kickoff** e cobrou de novo no meio ("todos os
-outros subiram de primeira") — achava a causa em minutos: caminho relativo no `main.py`, processo
+outros subiram de primeira") — achava a causa em minutos: caminho relativo no `<projeto>/main.py`, processo
 morrendo no import. O "testei local e passou" ancorou tudo: o teste rodava de `/app` e nunca
 reproduziu o CWD da nuvem. Depois, mais 2 rodadas re-litigando uma App Setting **correta** ("acabei
 de afirmar que já estava lá certa, que inferno") quando a resposta era "reiniciar". Nas palavras do

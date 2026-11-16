@@ -2,6 +2,7 @@
 name: project_hook_ask_aparece_no_desktop
 description: Pra um hook ALERTAR o owner no app Desktop, o único canal que aparece é o `permissionDecision: "ask"` do PreToolUse (exit 0) — systemMessage não aparece e additionalContext depende do assistente relatar
 gatilho: quando desenhar hook que precisa alertar o owner ou pedir confirmação antes de uma ação
+conferida: 2026-11-13 — confirmada — fonte: hooks/README.md:316
 metadata:
   type: project
 ---

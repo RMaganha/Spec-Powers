@@ -2,11 +2,12 @@
 name: project-seguranca-appsec-kit
 description: Capacidade de segurança do kit — baseline SEGURANCA.md, /mss-spec:seguranca, e os princípios decididos (obscuridade≠segurança, frontend público, auth 2 baldes)
 gatilho: quando criar ou alterar rota/endpoint, ou revisar segurança
+conferida: 2026-11-13 — confirmada — fonte: docs/superpowers/specs/2026-07-16-seguranca-appsec-design.md:81
 metadata:
   type: project
 ---
 
-O kit ganhou frente de segurança (spec `specs/2026-07-16-seguranca-appsec-design.md`): baseline
+O kit ganhou frente de segurança (spec `docs/superpowers/specs/2026-07-16-seguranca-appsec-design.md`): baseline
 `templates/SEGURANCA.md` (OWASP-adaptado ao stack), regra secure-by-default no `CLAUDE.md`, e comando
 `/mss-spec:seguranca` (audita o app inteiro, relatório priorizado, corrige com OK; complementa o
 `/security-review` nativo que só vê o diff).

@@ -2,6 +2,7 @@
 name: project_dogfood_gerador_diff_antes_depois
 description: Gerador/CLI do kit — antes de fechar, rode no repo REAL e faça diff da saída antiga × nova; teste com fixture não vê o que só o projeto de verdade tem
 gatilho: quando fechar mudança em gerador ou CLI do kit
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:29
 metadata:
   type: project
 ---
@@ -35,8 +36,8 @@ O que o diff revelar vira teste antes de fechar.
 
 Valeu de novo na **0.44.0** (`templates/rodizio_partida.py`), por outro caminho: o teste foi montado
 **copiando o MAPA real do Whats** (fixture `_mapa_whats()` em `tests/test_rodizio_partida.py`) e pegou dois
-defeitos antes de qualquer simulação — o rodapé `---`/"Atualizado em" iria parar no `CONEXOES.md`, e uma linha
-antiga de ponteiro pro `CONEXOES.md`, fora do formato, travaria a gravação na conferência de linhas. Depois, a
+defeitos antes de qualquer simulação — o rodapé `---`/"Atualizado em" iria parar no `<projeto>/docs/superpowers/CONEXOES.md`, e uma linha
+antiga de ponteiro pro `<projeto>/docs/superpowers/CONEXOES.md`, fora do formato, travaria a gravação na conferência de linhas. Depois, a
 simulação numa **cópia** do Whats (o original intocado, conferido por hash) mediu o ganho real.
 
 Relacionado: [[feedback_testar_js_gerado_node_check]] (suíte verde ≠ saída correta — lá o parse do JS,

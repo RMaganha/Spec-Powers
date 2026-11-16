@@ -14,6 +14,9 @@ Contrato:
 - evento `PostToolUse` de Write/Edit/MultiEdit: age só quando o arquivo gravado é `.md`/`.html` de `memory/`,
   de `docs/`, o `to-dolist.md` ou o `projeto.md` DESTE projeto. Sempre calado, dê certo ou não (a busca confere
   de novo antes de procurar);
+- **sono da memória** (0.62.0, `docs/specs/sono-da-memoria.md`, decisão 10 do owner): na abertura (não em resume
+  nem compact), conta só nome e data dos arquivos de conversa da pasta do `transcript_path` mudados depois do
+  último sono (linha de controle da tabela); 10 ou mais → recado pro assistente oferecer o sono em 1 linha;
 - projeto sem a pasta `memory/` → nada (não é projeto com memória do kit);
 - recado só pro ASSISTENTE: nunca `systemMessage`, nunca "avise o owner" — ele não tem nada a fazer
   (`docs/decisoes.md`, 2026-11-03: hook que fica alarmando o owner não serve);
@@ -87,6 +90,22 @@ def no_alcance(evento, raiz: Path) -> bool:
     return rel in SOLTOS or rel.split("/", 1)[0] in PASTAS
 
 
+def _aviso_de_sono(motor, raiz: Path, tabela: Path, evento):
+    """Sono da memória (docs/specs/sono-da-memoria.md, decisão 10): na abertura, conta as conversas do projeto
+    desde o último sono — a pasta é a do arquivo desta conversa (`transcript_path`); só nome e data. Retomar ou
+    compactar a mesma conversa não repete. Qualquer defeito → None (falha aberta)."""
+    try:
+        if evento.get("source") in motor.SOURCES_SEM_AVISO:
+            return None
+        atual = evento.get("transcript_path")
+        if not isinstance(atual, str) or not atual.strip():
+            return None
+        atual = Path(atual)
+        return motor.aviso_de_sono(raiz, tabela, atual.parent, atual)
+    except Exception:                                # noqa: BLE001
+        return None
+
+
 def _para_o_assistente(nome, texto):
     return {"hookSpecificOutput": {"hookEventName": nome, "additionalContext": texto}}
 
@@ -116,17 +135,22 @@ def responder(evento, ambiente=None):
         informada = str(ambiente.get("MSS_MEMORIA_TABELA", "")).strip()
         tabela = Path(informada) if informada else motor.caminho_tabela()
         feito = motor.atualizar(raiz, tabela)
-        if feito is None:
-            return None                              # em dia
-        linhas = sum(feito.por_tipo.values())
-        do_zero = feito.novos > 0 and not (feito.refeitos or feito.removidos or feito.iguais)
-        _anotar("montou" if do_zero else "atualizou",
-                f"{feito.novos} novo(s) · {feito.refeitos} refeito(s) · {feito.removidos} removido(s)", evento)
-        if nome == "SessionStart" and do_zero:
-            return _para_o_assistente(nome, f"[mss-spec] tabela de memória deste projeto montada agora ({linhas} "
-                                            f"linhas, em {tabela}). É cópia pra busca: o arquivo no git segue sendo o "
-                                            "original. Recado só pra você — o owner não precisa fazer nada.")
-        return None
+        recados = []
+        if feito is not None:
+            linhas = sum(feito.por_tipo.values())
+            do_zero = feito.novos > 0 and not (feito.refeitos or feito.removidos or feito.iguais)
+            _anotar("montou" if do_zero else "atualizou",
+                    f"{feito.novos} novo(s) · {feito.refeitos} refeito(s) · {feito.removidos} removido(s)", evento)
+            if nome == "SessionStart" and do_zero:
+                recados.append(f"[mss-spec] tabela de memória deste projeto montada agora ({linhas} linhas, em "
+                               f"{tabela}). É cópia pra busca: o arquivo no git segue sendo o original. Recado só "
+                               "pra você — o owner não precisa fazer nada.")
+        if nome == "SessionStart":
+            sono = _aviso_de_sono(motor, raiz, tabela, evento)
+            if sono:
+                _anotar("sono_atrasado", sono[:80], evento)
+                recados.append(sono)
+        return _para_o_assistente(nome, "\n\n".join(recados)) if recados else None
     except Exception as erro:                        # noqa: BLE001 — falha ABERTA
         _anotar("falhou", type(erro).__name__, evento)
         if nome == "SessionStart":

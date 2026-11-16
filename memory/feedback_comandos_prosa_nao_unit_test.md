@@ -3,12 +3,13 @@ name: feedback_comandos_prosa_nao_unit_test
 description: comandos do kit são prosa markdown, não código — testar por wiring no smoke, nunca por unit test de comportamento
 gatilho: quando for escrever teste pra um comando ou skill do kit (.md)
 sem_gatilho_de_acao: a ação é gravar arquivo de teste, que o gatilho de comando e de resposta não enxerga
+conferida: 2026-11-13 — confirmada — fonte: tests/test_smoke_kit.py:81
 metadata:
   type: feedback
 ---
 
 Os comandos do mss-spec (`doctor`, `upgrade`, `nova-feature`, etc.) são **prosa markdown** que o
-assistente executa — não há `doctor.py` nem `upgrade.py`. Logo, **não** se escreve pytest de
+assistente executa — não há script Python do doctor nem do upgrade. Logo, **não** se escreve pytest de
 "idempotência do doctor" ou "merge do upgrade": não há função com entrada/saída pra exercitar, e a
 idempotência do doctor é verdadeira por construção (ele é read-only, "só reporta"). O nível certo de
 teste pra comando-prosa é o **wiring** que o `tests/test_smoke_kit.py` já faz (o caminho citado existe,

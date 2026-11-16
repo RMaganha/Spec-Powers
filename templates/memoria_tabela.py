@@ -30,22 +30,29 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-VERSAO_ESQUEMA = 1
+VERSAO_ESQUEMA = 2            # 2 (0.62.0): coluna `estado` — cópia do `conferida:` da anotação (sono da memória)
 TETO_ARQUIVO = 1_500_000      # bytes — acima disso o arquivo é pulado e listado nas pendências
 TETO_TRECHO = 6000            # caracteres por linha da tabela; seção maior vira mais de uma linha
 PASTAS = ("memory", "docs")
 SOLTOS = ("to-dolist.md", "projeto.md")
 EXTENSOES = (".md", ".html")
-COLUNAS = ("projeto", "raiz", "tipo", "classe", "arq", "ponteiro", "data", "dono", "assinatura",
+COLUNAS = ("projeto", "raiz", "tipo", "classe", "arq", "ponteiro", "data", "dono", "assinatura", "estado",
            "titulo", "quando", "resumo", "texto")
 TIPO_CONTROLE = "controle"    # 1 linha por projeto, dentro da mesma tabela: a assinatura do disco na última montagem
+# Sono da memória (docs/specs/sono-da-memoria.md, decisões 9 e 10 do owner): a linha de controle guarda em `data` a
+# data do último sono (a conferência mais nova entre as anotações) e em `estado` o "agora não" do owner. O aviso
+# conta só nome e data dos arquivos de conversa; nunca o conteúdo.
+CONVERSAS_PARA_O_SONO = 10
+PREFIXO_ADIADO = "adiado: "
+SOURCES_SEM_AVISO = ("resume", "compact")   # a mesma conversa voltando: o aviso já foi dado na abertura
 VIGIADOS = ("CLAUDE.md", ".gitignore")   # não entram na tabela, mas mudam o nome do projeto ou o que o git enxerga
 MUITOS_ARQUIVOS = 40          # acima disso o `git log` de dono e data olha as pastas, não arquivo por arquivo
 LIMITE_BUSCA = 30             # linhas que a busca devolve: 30 arquivos diferentes, o assistente escolhe (decisão 18)
-PESOS = "0, 0, 0, 0, 0, 0, 0, 0, 0, 3.0, 4.0, 2.0, 1.0"   # 9 colunas que não entram na busca + título, quando, resumo, texto
+PESOS = "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3.0, 4.0, 2.0, 1.0"   # 10 colunas que não entram na busca + título, quando, resumo, texto
 TETO_TITULO_DA_LINHA = 80     # letras do título na linha devolvida
 TETO_TRECHO_DA_LINHA = 170    # letras do trecho na linha devolvida
 PEDIDOS_NA_BUSCA = 4          # o pedido atual + os 3 anteriores do owner (decisão 17; medido: 32% → 41%)
@@ -281,12 +288,12 @@ def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
     sub, diario = _subindice(raiz, rels, mi), _linhas_do_diario(raiz, mi)
     linhas, grandes = [], []
 
-    def junta(tipo, classe, rel, ponteiro, titulo, quando, resumo, texto, data, assinatura):
+    def junta(tipo, classe, rel, ponteiro, titulo, quando, resumo, texto, data, assinatura, estado=""):
         feito = criacao.get(rel, ("", ""))
         for i in range(0, max(len(texto), 1), TETO_TRECHO):
             linhas.append(dict(projeto=projeto, raiz=raiz_txt, tipo=tipo, classe=classe, arq=rel, ponteiro=ponteiro,
-                               data=data or feito[0], dono=feito[1], assinatura=assinatura, titulo=titulo,
-                               quando=quando, resumo=resumo, texto=texto[i:i + TETO_TRECHO]))
+                               data=data or feito[0], dono=feito[1], assinatura=assinatura, estado=estado,
+                               titulo=titulo, quando=quando, resumo=resumo, texto=texto[i:i + TETO_TRECHO]))
 
     for rel in rels:
         p = raiz / rel
@@ -310,7 +317,8 @@ def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
                 resumo = " · ".join(x for x in [str(fm.get("description") or "")] + ganchos if x)
                 junta("anotacao", str(fm.get("type") or ""), rel, rel,
                       str(fm.get("name") or p.stem).replace("-", " ").replace("_", " "),
-                      quando, resumo, corpo.strip(), "", assina(quando + "\0" + resumo))
+                      quando, resumo, corpo.strip(), "", assina(quando + "\0" + resumo),
+                      estado=str(fm.get("conferida") or "") if not fm.get("obsoleta") else "")
             elif len(partes) == 3 and partes[1] == "sessions" and rel.endswith(".md"):
                 slug, data = p.stem[11:], p.stem[:10]
                 resumo = diario.get(slug, "")
@@ -352,7 +360,7 @@ def _abrir(tabela: Path):
         conn.execute("DROP TABLE IF EXISTS memoria")
         conn.execute("CREATE VIRTUAL TABLE memoria USING fts5("
                      "projeto UNINDEXED, raiz UNINDEXED, tipo UNINDEXED, classe UNINDEXED, arq UNINDEXED, "
-                     "ponteiro UNINDEXED, data UNINDEXED, dono UNINDEXED, assinatura UNINDEXED, "
+                     "ponteiro UNINDEXED, data UNINDEXED, dono UNINDEXED, assinatura UNINDEXED, estado UNINDEXED, "
                      "titulo, quando, resumo, texto, tokenize=\"unicode61 remove_diacritics 2\")")
         conn.execute(f"PRAGMA user_version = {VERSAO_ESQUEMA}")
         conn.commit()
@@ -427,9 +435,13 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
         for arq in novos + refeitos:
             conn.executemany(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
                              [tuple(l[c] for c in COLUNAS) for l in grupos[arq]])
+        antes = conn.execute("SELECT estado FROM memoria WHERE raiz = ? AND tipo = ? LIMIT 1",
+                             (raiz_txt, TIPO_CONTROLE)).fetchone()
+        adiado = antes[0] if antes and str(antes[0]).startswith(PREFIXO_ADIADO) else ""
         conn.execute("DELETE FROM memoria WHERE raiz = ? AND tipo = ?", (raiz_txt, TIPO_CONTROLE))
         conn.execute(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
-                     tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": disco}.get(c, "")
+                     tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": disco,
+                            "data": _ultima_conferencia(linhas), "estado": adiado}.get(c, "")
                            for c in COLUNAS))
         conn.execute("UPDATE memoria SET projeto = ? WHERE raiz = ? AND projeto <> ?", (projeto, raiz_txt, projeto))
         conn.commit()
@@ -441,6 +453,85 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
     if grandes:
         pendencias.append(f"{len(grandes)} arquivo(s) acima de 1,5 MB ficaram fora: " + ", ".join(grandes[:5]))
     return Resultado(tabela, projeto, por_tipo, len(novos), len(refeitos), len(removidos), iguais, pendencias)
+
+
+# ---------------------------------------------------------------- sono da memória (0.62.0)
+
+def _ultima_conferencia(linhas: list) -> str:
+    """A data mais nova do `conferida:` entre as anotações lidas ('' = o projeto nunca dormiu)."""
+    datas = [l["estado"][:10] for l in linhas if l.get("tipo") == "anotacao" and RE_DATA.match(l.get("estado", "")[:10])]
+    return max(datas) if datas else ""
+
+
+def ultimo_sono(raiz: Path, tabela: Path = None) -> str:
+    """Data a partir da qual as conversas contam: o último sono ou o último "agora não" do owner, o mais novo
+    ('' = nunca). Lê só a linha de controle; tabela sem ela → ''."""
+    raiz = Path(raiz).resolve()
+    tabela = Path(tabela) if tabela else caminho_tabela()
+    if not tabela.is_file():
+        return ""
+    conn = sqlite3.connect(str(tabela), timeout=2)
+    try:
+        if conn.execute("PRAGMA user_version").fetchone()[0] != VERSAO_ESQUEMA:
+            return ""
+        achado = conn.execute("SELECT data, estado FROM memoria WHERE raiz = ? AND tipo = ? LIMIT 1",
+                              (raiz.as_posix(), TIPO_CONTROLE)).fetchone()
+    finally:
+        conn.close()
+    if not achado:
+        return ""
+    adiado = str(achado[1] or "")[len(PREFIXO_ADIADO):][:10] if str(achado[1] or "").startswith(PREFIXO_ADIADO) else ""
+    return max(str(achado[0] or ""), adiado)
+
+
+def adiar_sono(raiz: Path, tabela: Path = None, hoje: str = None, usar_git: bool = True) -> str:
+    """O owner disse "agora não": guarda a data na linha de controle e a conta das conversas recomeça dali."""
+    raiz = Path(raiz).resolve()
+    tabela = Path(tabela) if tabela else caminho_tabela()
+    hoje = hoje or time.strftime("%Y-%m-%d")
+    atualizar(raiz, tabela, usar_git=usar_git)
+    conn = sqlite3.connect(str(tabela), timeout=5)
+    try:
+        conn.execute("UPDATE memoria SET estado = ? WHERE raiz = ? AND tipo = ?",
+                     (PREFIXO_ADIADO + hoje, raiz.as_posix(), TIPO_CONTROLE))
+        conn.commit()
+    finally:
+        conn.close()
+    return hoje
+
+
+def conversas_desde(pasta: Path, desde: str, atual: Path = None) -> int:
+    """Quantos arquivos de conversa (`*.jsonl`) da pasta mudaram DEPOIS do dia `desde` ('' = todos), sem contar a
+    conversa atual. Só nome e data do arquivo — o conteúdo nunca é aberto."""
+    pasta = Path(pasta)
+    atual_nome = Path(atual).name if atual else ""
+    n = 0
+    try:
+        for p in pasta.glob("*.jsonl"):
+            if p.name == atual_nome:
+                continue
+            dia = time.strftime("%Y-%m-%d", time.localtime(p.stat().st_mtime))
+            if not desde or dia > desde:
+                n += 1
+    except OSError:
+        return 0
+    return n
+
+
+def aviso_de_sono(raiz: Path, tabela: Path, pasta_conversas: Path, atual: Path = None,
+                  limite: int = CONVERSAS_PARA_O_SONO):
+    """Recado de 1 parágrafo pro ASSISTENTE quando há `limite` conversas ou mais desde o último sono; senão None."""
+    desde = ultimo_sono(raiz, tabela)
+    n = conversas_desde(pasta_conversas, desde, atual)
+    if n < limite:
+        return None
+    script = Path(__file__).resolve()
+    quando = f"desde {desde}" if desde else "e o projeto nunca passou pelo sono"
+    return (f"[mss-spec] sono da memória atrasado: {n} conversas {quando}. No fim da sua 1ª resposta, ofereça ao "
+            "owner em 1 linha conferir a memória do projeto (o sono) — ele só responde sim ou não. Sim → siga "
+            "\"Uso interno: sono\" do `commands/memory.md` do kit, numa branch, com o diff pro OK dele. Não → rode "
+            f"`python \"{script}\" adiar-sono --proj \"{Path(raiz).resolve()}\"` e a conta recomeça hoje. "
+            "Recado só pra você; não repita o aviso nesta conversa.")
 
 
 # ---------------------------------------------------------------- buscar (parte 2)
@@ -619,7 +710,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("modo", choices=["montar", "status", "onde", "buscar"])
+    ap.add_argument("modo", choices=["montar", "status", "onde", "buscar", "adiar-sono"])
     ap.add_argument("texto", nargs="*", help="buscar: o que procurar; vazio = o último pedido do owner + os 3 anteriores")
     ap.add_argument("--conversa", default="", help="buscar: arquivo .jsonl da conversa (default: o desta sessão)")
     ap.add_argument("--limite", type=int, default=LIMITE_BUSCA, help="buscar: quantas linhas devolver (default: 30)")
@@ -635,6 +726,10 @@ def main(argv=None) -> int:
     if a.modo == "buscar":
         return _modo_buscar(raiz, tabela, a)
     try:
+        if a.modo == "adiar-sono":
+            hoje = adiar_sono(raiz, tabela, usar_git=not a.sem_git)
+            print(f"sono adiado: a conta de {CONVERSAS_PARA_O_SONO} conversas recomeça em {hoje}.")
+            return 0
         if a.modo == "status":
             s = status(raiz, tabela, usar_git=not a.sem_git)
             print(s.mensagem)

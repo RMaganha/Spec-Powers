@@ -2,6 +2,7 @@
 name: project-remontar-a-tabela-de-memoria
 description: Passo a passo pra remontar a tabela local de memória (cópia SQLite em ~/mss-spec/) quando trocar de máquina, a tabela sumir ou o status acusar
 gatilho: quando trocar de máquina, reinstalar o Windows ou o app, a tabela de memória sumir, ou o `memoria_tabela.py status` disser que ela não existe ou está desatualizada
+conferida: 2026-11-13 — confirmada — fonte: docs/decisoes.md:68
 metadata:
   type: procedimento
 ---

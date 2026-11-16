@@ -1,11 +1,10 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
+Branch `feature/sono-da-memoria-acervo` — **sono da memória, parte 1 (acervo)**: estado de cada anotação (`conferida:`), coluna na tabela, aviso de 10 conversas no hook de abertura, passada com 6 pesquisadores. Spec: `docs/specs/sono-da-memoria.md`. Saída: diff pro OK do owner.
+
+<!-- histórico do estado anterior (0.61.0) -->
 Branch `docs/captura-conversa-nova-acha-sozinha` (captura e MAPA) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) mesclada na `main` e publicada pelo owner em 2026-11-12** (`7e641b9`); suíte 1594 verdes. Nenhuma tarefa em andamento no INDEX. **Falta provar no real: uma conversa nova aberta só com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-12-conversa-nova-acha-sozinha.md`.
-
-<!-- histórico do estado anterior -->
-Branch `feature/comando-guardado-inteiro` — **0.60.0 (comando guardado inteiro, decisão 23 da memória em tabela) mesclada na `main` e publicada pelo owner em 2026-11-12** (`2a3d58f`; `git status -sb` disse `## main...origin/main`); suíte 1564 verdes. **Falta provar no real: a negação numa captura de verdade.** Spec: `docs/specs/comando-guardado-inteiro.md`. Diário: `memory/sessions/2026-11-12-comando-guardado-inteiro.md`.
-
 ## Próximo passo
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1594).
 1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.

@@ -24,7 +24,7 @@ do projeto. Medido em 2026-10-23:
 - o Whats já usa índice: 7 arquivos em `.claude/rules/` desde 2026-09-23. Mesmo assim tem **10.096 B**, porque
   a cópia velha das regras do kit ocupa ~6,4 KB e o mesmo ponteiro aparece 4 vezes;
 - **o "perdeu a memória" (F-040):** em 2026-09-23 os **fatos** de infra do Whats ("Como roda", "Homologação (Azure)",
-  "Versionamento") foram para `.claude/rules/deploy-e-ambiente.md`, que só carrega ao tocar `Dockerfile`,
+  "Versionamento") foram para `<Whats>/.claude/rules/deploy-e-ambiente.md`, que só carrega ao tocar `Dockerfile`,
   `docker-compose*.yml`, `azure-pipelines*.yml`… Nas 76 conversas do Whats essa regra entrou em **4**. Numa conversa
   sobre infra sem abrir esses arquivos, o assistente não sabia o nome do Web App nem a porta, e o owner repetia;
 - **regra por tipo de arquivo funciona ao LER, falha ao CRIAR:** nas conversas depois de 2026-09-23, toda leitura de
@@ -102,7 +102,7 @@ Novo `templates/CLAUDE.md`, nesta ordem:
 **Teto da parte do projeto: 10.000 B, e ele é orçamento, não trava.** Estimativa pro Whats depois da migração:
 ~4.200 B da parte do projeto − ~900 B de ponteiros + ~3.800 B dos itens que voltam pro `## Contexto` (Como roda 874,
 Versionamento 561, Homologação 466 de `deploy-e-ambiente.md`; Banco 997 de `banco.md`; Testes 613 de `testes.md`;
-UI 263 de `ui-propria.md`) + ~800 B das linhas-ponteiro pra `docs/MODO-DE-TRABALHO.md` + ~1.100 B de índice,
+UI 263 de `ui-propria.md`) + ~800 B das linhas-ponteiro pra `<Whats>/docs/MODO-DE-TRABALHO.md` + ~1.100 B de índice,
 comentário e marca ≈ **9.000 B**. O Whats é o maior projeto; os outros cabem com folga. Passou do teto → aviso, e o
 conserto continua sendo mover bloco com ponteiro, nunca comprimir; o que nunca pode sair é a seção `## Contexto`.
 Total sempre-ativo por janela: ~8 KB do kit + até 10 KB do projeto (~4.500 tokens; hoje o Whats tem 10 KB, mas com os
@@ -133,7 +133,7 @@ Chamado pelo `/mss-spec:upgrade`. Dry-run por padrão; `--aplicar` grava. Etapas
      de escrita segue coberta;
    - **ponteiro repetido** → fica uma linha no índice;
    - **linha com título de regra do kit + ponteiro pra um documento do projeto** (no Whats, `CLAUDE.md:12,15,16,22` →
-     `docs/MODO-DE-TRABALHO.md`, onde mora "o assistente não executa nada que escreva no git") → **é do projeto,
+     `<Whats>/docs/MODO-DE-TRABALHO.md`, onde mora "o assistente não executa nada que escreva no git") → **é do projeto,
      fica** em `## Regras obrigatórias do projeto`. É por ela que a exceção do projeto vence a regra do kit. A
      migração não toca no documento apontado;
    - **o resto** → fica no `CLAUDE.md`, na seção correspondente.
@@ -151,7 +151,7 @@ Chamado pelo `/mss-spec:upgrade`. Dry-run por padrão; `--aplicar` grava. Etapas
 5. **Passou** → com `--aplicar`, grava os arquivos e **para aí**: o script não faz nada no git. Desfazer é
    `git restore` nos arquivos tocados, porque o working tree estava limpo. Branch e commit seguem a regra de git **do
    projeto**: no padrão do kit, o assistente abre `chore/migrar-claude-md` a partir da principal e commita com stage
-   nominal; no Whats, onde o assistente não escreve no git (`memory/git-e-do-owner.md` do Whats), ele entrega os
+   nominal; no Whats, onde o assistente não escreve no git (`<Whats>/memory/git-e-do-owner.md`), ele entrega os
    comandos passo a passo pro owner.
 6. Relatório pro owner, curto: quantas linhas saíram como do kit, quantas mudaram de lugar, quais ficaram por dúvida.
 

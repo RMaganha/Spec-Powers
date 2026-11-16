@@ -2,6 +2,7 @@
 name: project_hook_stop_devolve_por_json_nao_por_exit_2
 description: hook Stop que devolve a resposta sai por JSON {"decision":"block","reason":…} com exit 0 — exit 2 + motivo no stderr era lido nesta máquina como "Hook script appears to be missing" (setlocale do Git Bash) e nunca chegou; hook novo se prova no transcript, não só no registro
 gatilho: quando escrever ou alterar um hook do kit que bloqueia ou devolve, ou quando um hook parecer não agir ao vivo
+conferida: 2026-11-13 — conflito — fonte: docs/decisoes.md:56
 metadata:
   type: project
 ---
@@ -31,3 +32,5 @@ devolução do `confere_citacoes.py` chegou às 20:06, na sessão em que fora co
 perdidas às 18:54, 19:17 e 19:24. Prova de hook novo = abrir conversa nova e achar a ação no transcript.
 Relacionado: [[project_hook_ask_aparece_no_desktop]], [[project_heredoc_grande_com_acento_quebra_no_git_bash]],
 [[reference-historico-mostra-o-que-carregou]].
+
+CONFLITO: esta anotação (2026-10-30) diz que `UserPromptSubmit` que bloqueia devolve JSON e `sys.exit(0)`; `hooks/um_item_por_janela.py:359` (sem data) bloqueia o `UserPromptSubmit` com `sys.exit(2)`; a decisão `docs/decisoes.md:56` só fala do `Stop`. O lado a manter é do owner.

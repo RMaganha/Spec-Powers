@@ -39,6 +39,6 @@ entrar pelo `mss-spec:bug`.
 - 2026-10-27 — criado: nasce da análise das 4 últimas conversas do Whats. Os 3 incidentes foram direto
   à `systematic-debugging` (a regra 11 mandava) e o `/mss-spec:diagnostico` (travado) nunca entrou, nem
   com o owner dizendo "novamente perdido"; no `nova-feature` de 26/10 o assistente leu
-  `memory/codigo-do-portal-e-login-nao-cod-corr.md`, desenhou certo e abandonou a memória quando o owner
+  `<projeto>/memory/codigo-do-portal-e-login-nao-cod-corr.md`, desenhou certo e abandonou a memória quando o owner
   contestou — retrabalho de 4 mensagens. A memória do repo foi lida nas 4 (106 leituras, 0 da pasta
   nativa): o furo era a porta de entrada, não a memória.

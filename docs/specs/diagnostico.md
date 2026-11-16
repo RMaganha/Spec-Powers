@@ -23,7 +23,7 @@ não-recorrência (instrução mitiga, não elimina — a meta é encurtar o loo
 
 ## Histórico
 - 2026-08-26 — criado: nasce da sessão de deploy do MSS-SSC na Azure (~3h, PDF analisado nesta
-  janela): 6 rodadas de owner num 503 cuja causa (caminho relativo no `main.py`) um diff contra o
+  janela): 6 rodadas de owner num 503 cuja causa (caminho relativo no `<projeto>/main.py`) um diff contra o
   precedente achava de imediato, + 2 rodadas re-litigando App Setting correta (resposta: reiniciar).
   A `systematic-debugging` existia e nunca foi invocada — por isso a camada sempre-ativa + a
   alavanca humana, não só registro em EVALS (lido no kickoff, não na hora 2).

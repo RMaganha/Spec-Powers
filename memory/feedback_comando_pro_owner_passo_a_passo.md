@@ -3,6 +3,7 @@ name: feedback_comando_pro_owner_passo_a_passo
 description: Comando que o OWNER vai rodar (git sempre; e qualquer outro) sai em passo numerado — título em negrito dizendo o que faz, o comando sozinho num bloco bash logo abaixo, e a linha do que conferir na saída; um comando por bloco
 gatilho: quando for passar ao owner um comando git (ou qualquer comando) pra ele rodar no terminal
 gatilho_resposta: (?im)^```(?:bash|sh|powershell|ps1)?[ \t]*\n(?:(?!```).*\n)*?git\s.*\n(?:(?!```).*\n)*?git\s|\b(?:rode|execute|digite)\b[^\n]{0,60}\bgit\s+(?:push|merge|pull|switch|checkout|rebase|stash|commit|add)\b
+conferida: 2026-11-13 — confirmada — fonte: templates/regras-do-kit/1-modo-de-trabalho.md:20
 metadata:
   type: feedback
 ---
@@ -45,5 +46,5 @@ num bloco ` ```bash `, junto de `az version`; o owner achou que era comando de t
   inteiro (*"Não entendi eu não juntei nada"*, 2026-10-21).
 
 **How to apply:** vale em toda resposta que entrega comando pro owner rodar — no fecho de feature, no release, no
-merge/push, e na mensagem pronta pra outra janela. Mora também no `templates/CLAUDE.md` (regra sempre-ativa) com a
+merge/push, e na mensagem pronta pra outra janela. Mora também em `templates/regras-do-kit/1-modo-de-trabalho.md` (regra sempre-ativa) com a
 frase-chave travada em `tests/test_orcamento_contexto.py`. Relacionada: [[feedback_estilo_resposta_direto]].

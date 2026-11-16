@@ -3,6 +3,7 @@ name: project_mss_spec_instalado_por_junction
 description: na máquina do owner o mss-spec é carregado por JUNCTION em ~/.claude/skills/mss-spec → este clone de dev; edições são live em TODO projeto; NÃO precisa marketplace update / pull / push — só recarregar a sessão
 gatilho: quando pensar em atualizar ou reinstalar o mss-spec nesta máquina — ou for dizer ao owner que falta atualizar, reinstalar, dar pull ou "atualizar o marketplace" pra algo valer (F-034: disse isso em 2026-09-23 sem abrir esta memória; F-052: de novo em 2026-11-06, com "atualização do marketplace")
 gatilho_resposta: (?i)(?:\b(?:atualiz\w*|reinstal\w*|fa(?:zer|ça) (?:o )?pull)\b[^.\n]{0,40}(?<![-/\w])(?:plugin|kit|mss-spec)(?![-/\w]|`?\.json)|\bmarketplace\b[^.\n]{0,12}\b(?:update|atualiz\w*)|\batualiza\w*\b[^.\n]{0,12}\bmarketplace\b)
+conferida: 2026-11-13 — confirmada — fonte: docs/AMBIENTES.md:20
 metadata:
   type: project
 ---
@@ -15,7 +16,7 @@ como **skill de nível de usuário via junction** (symlink do Windows):
 ```
 
 Confirmado (2026-07-22): **não** aparece em `~/.claude/plugins/installed_plugins.json` nem em
-`known_marketplaces.json`; o `~/.claude/settings.json` só habilita o `superpowers`. O item
+`~/.claude/plugins/known_marketplaces.json`; o `~/.claude/settings.json` registra o `mss-local` e habilita o `mss-spec@mss-local` (desde 2026-11-03, `docs/AMBIENTES.md:20`). O item
 `~/.claude/skills/mss-spec` é um **Junction** apontando pro clone.
 
 **Consequências (importantes pra não mandar o owner numa corrida à toa):**
@@ -37,6 +38,8 @@ janela nova **sem nada em `settings.json`** (global ou do projeto). Não é prec
 Relacionado: [[project_plugin_load_cross_marketplace]] (por que o load é via skills-dir/symlink, não
 dependência declarada), [[project_marketplace_relative_path_serve_git_e_local]].
 
-**2026-11-03 — guardião RETIRADO (0.51.1).** O guardião da 0.51.0 (script `.ps1` por hook `SessionStart` + tarefa agendada) foi removido no mesmo dia útil: ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação — **scripts PowerShell e tarefas agendadas não são permitidos na máquina**. Nada do kit pode rodar `.ps1` nem criar tarefa, e o assistente não executa mais esses comandos ([[project_sandbox_do_claude_nao_registra_tarefa_agendada]]). A pendência segue aberta; a alternativa sem script (instalar pelo marketplace local, sem junção, ou hook Python só de conferência) é decisão do owner (`docs/superpowers/MAPA.md`).
+**2026-11-03 — guardião RETIRADO (0.51.1).** Scripts PowerShell e tarefas agendadas não são permitidos na máquina (o owner foi contactado pela infra e pela Segurança da Informação) — detalhe em [[project_sandbox_do_claude_nao_registra_tarefa_agendada]]. A pendência segue aberta; a alternativa sem script (marketplace local, sem junção, ou hook Python só de conferência) é decisão do owner (`docs/superpowers/MAPA.md`).
 
 **2026-11-06 — reincidência (F-052).** A decisão de 2026-11-03 escolheu o marketplace local, mas a **troca ainda não foi feita** (MAPA, "Próximo passo"): a decisão registrada não é o estado do disco — `ls -ld ~/.claude/skills/mss-spec` é quem diz. Enquanto a junção existir: versão nova vale em todo projeto **ao mesclar na `main`**; o que leva arquivo novo do molde a cada projeto é o `/mss-spec:upgrade`; o `doctor` só mede. Feita a troca: marcar esta memória `obsoleta:` e o passo pós-publicação passa a ser `/plugin marketplace update mss-local`.
+
+substituiu: o `~/.claude/settings.json` só habilita o `superpowers`, de 2026-07-22 (`docs/AMBIENTES.md:20`, 2026-11-03)

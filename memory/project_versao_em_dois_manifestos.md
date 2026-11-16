@@ -3,6 +3,7 @@ name: project_versao_em_dois_manifestos
 description: a versão do kit vive em DOIS manifestos (plugin.json + marketplace.json) e há teste de coerência — bumpe os dois juntos e re-rode a suíte APÓS o bump
 gatilho: quando bumpar a versão do kit
 gatilho_comando: (?m)(?:^|[;&|(])\s*git\s+add\b[^;&|\n]*(?:plugin|marketplace)\.json
+conferida: 2026-11-13 — confirmada — fonte: tests/test_smoke_kit.py:51
 metadata:
   type: project
 ---

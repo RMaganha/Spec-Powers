@@ -30,7 +30,7 @@ dizer o que existe.
 **(5) Teto na gravação (0.33.0)** — `hooks/teto_ao_gravar.py` (PostToolUse Write/Edit/MultiEdit; Bash/PowerShell que
 cita o arquivo) roda `templates/rodizio_partida.py enxugar --aplicar` quando MAPA/INDEX passam do teto: rodízio de
 sempre → INDEX: Backlog, Fora de escopo, Assuntos existentes pra arquivo próprio, linha longa de Em andamento →
-`EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim) · MAPA: Conexões → `CONEXOES.md` (fica a lista de
+`<projeto>/docs/superpowers/EM-ANDAMENTO.md` (fica nome/link — ponteiro — status verbatim) · MAPA: Conexões → `<projeto>/docs/superpowers/CONEXOES.md` (fica a lista de
 nomes) e, se preciso, só o bloco atual fica. Move, nunca apaga; conservação conferida; para assim que cabe; destino
 existente recebe prepend; conflito de merge não é tocado. Dogfood no Whats de antes da limpeza (`6d28a04`): INDEX
 70.546 → 1.892 bytes sozinho, 0 linha perdida; MAPA 59.463 → 22.709 (o bloco atual do Painel V2 é conteúdo vivo — o
@@ -40,12 +40,12 @@ hook pede o resumo). `CLAUDE.md` > 10 KB só avisa. Escape `MSS_TETO_OFF=1`.
 e `>`/`tee` num repositório git diferente do da âncora, com o comando verbatim pra colar na janela dele. Leitura,
 pasta fora de repo e worktree do mesmo repo passam. Falha aberta; `MSS_ANCORA_OFF=1`. Testado ao vivo nesta janela.
 
-**(7) Recall** — lê `docs/superpowers/FORA-DE-ESCOPO.md` (saiu da partida) e pula linha com status `pausada:`/`obsoleta:`.
+**(7) Recall** — lê o antigo docs/superpowers/FORA-DE-ESCOPO.md (saiu da partida; trocado pelo `to-dolist.md` em `docs/decisoes.md:51`) e pula linha com status `pausada:`/`obsoleta:`.
 
 **(8) Forma do MAPA e do INDEX em toda gravação (0.44.0)** — três regras valem mesmo **abaixo** do teto (o resto do
 `enxugar` segue só acima): MAPA → item do `## Próximo passo` com mais de 300 bytes e título em negrito fica
 `N. ⬜ **título** — detalhe em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)`, e o texto inteiro vai pro `PROXIMO-PASSO.md`
-(prepend datado); `## Conexões`, quando já existe `CONEXOES.md`, fica só com a linha de nomes e as linhas detalhadas
+(prepend datado); `## Conexões`, quando já existe `<projeto>/docs/superpowers/CONEXOES.md`, fica só com a linha de nomes e as linhas detalhadas
 vão pra lá (rodapé `---`/`Atualizado em` e comentário ficam no MAPA) · INDEX → linha `fechada` vai pro
 `INDEX-historico.md`. Arquivo já na forma não muda. O `CLAUDE.md` **não** entra (decisão do owner em 2026-10-27:
 o que se combinou em 2026-10-23 fica). Os comandos que escrevem no MAPA (`/mss-spec:mapa`, `nova-feature`) já escrevem

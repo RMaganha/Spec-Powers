@@ -2,6 +2,7 @@
 name: project_kit_nao_assume_ambiente_de_origem
 description: O kit nasceu na MSIG e tratava a infra corporativa como universal — a correção é PERGUNTAR na constituição e gravar a resposta no CLAUDE.md, não detectar
 gatilho: quando o kit for gravar algo sobre infra (rede, proxy, CA, banco corporativo)
+conferida: 2026-11-13 — confirmada — fonte: commands/kickoff.md:17
 metadata:
   type: project
 ---

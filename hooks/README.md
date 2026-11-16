@@ -579,6 +579,12 @@ Decisão dele (2026-11-11): grava-se no arquivo e a tabela acompanha; busca-se n
 - Projeto sem a pasta `memory/` → nada.
 - Motor: `templates/memoria_tabela.py` (`atualizar`), o mesmo do `buscar` das portas e do `/mss-spec:memory buscar`.
   Medido no kit (170 arquivos): 0,5 a 0,8 s por disparo quando nada mudou, quase tudo a partida do Python.
+- **Sono da memória (0.62.0, `docs/specs/sono-da-memoria.md`):** na abertura (startup e clear; retomar ou compactar
+  a mesma conversa não repete), conta os arquivos de conversa da pasta do `transcript_path` que mudaram depois do
+  último sono — **só nome e data, nunca o conteúdo**, e sem a conversa atual. Com **10 ou mais**, um recado pro
+  assistente oferecer o sono ao owner em 1 linha. A data do último sono fica na linha de controle da tabela
+  (`data` = a conferência mais nova entre as anotações; `estado` = o "agora não" do owner, gravado pelo
+  `memoria_tabela.py adiar-sono`). Nada de hook novo.
 
 ## Garantias
 
@@ -714,7 +720,7 @@ Cada hook, **só quando age**, anexa uma linha JSON em `~/.claude/mss-spec/regis
 | `regras_do_kit` | `entregou` · `falhou` | `bloco=1 caracteres=5604` · `bloco=2 FileNotFoundError` |
 | `confere_citacoes` | `devolveu` | `citacoes=2` · `rotas` · `memoria=<nome>` — nunca o texto da resposta |
 | `teto_ao_gravar` | `moveu` · `avisou` | `INDEX.md=70546->1892` · `CLAUDE.md=27933` |
-| `memoria_tabela_em_dia` | `montou` · `atualizou` · `falhou` | `3 novo(s) · 1 refeito(s) · 0 removido(s)` · `OperationalError` |
+| `memoria_tabela_em_dia` | `montou` · `atualizou` · `falhou` · `sono_atrasado` | `3 novo(s) · 1 refeito(s) · 0 removido(s)` · `OperationalError` |
 
 Ver o resumo (contagem por hook e decisão, os 3 detalhes mais comuns):
 

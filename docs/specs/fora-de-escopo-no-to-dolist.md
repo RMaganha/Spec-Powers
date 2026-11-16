@@ -13,9 +13,9 @@ O motivo longo fica em `docs/decisoes.md`. O `to-dolist.md` **vai pro git** (o m
 ignora mais); custo aceito: item anotado numa branch só aparece na `main` depois do merge. Quem grava: o
 `/mss-spec:to-dolist adicionar <texto> #fora-de-escopo` (pergunta o motivo se faltar) e o
 `/mss-spec:memory capturar` (decisão "não agora" da sessão). O assistente **nunca cita fora de escopo sozinho**:
-a busca automática (`templates/memoria_indice.py`) não lê o to-dolist nem o antigo `FORA-DE-ESCOPO.md`; o item
+a busca automática (`templates/memoria_indice.py`) não lê o to-dolist nem o antigo FORA-DE-ESCOPO.md; o item
 aparece quando o owner pede — `/mss-spec:to-dolist listar #fora-de-escopo`. Não existem mais a seção
-"Fora de escopo" do INDEX (molde e kit) nem o `docs/superpowers/FORA-DE-ESCOPO.md` do kit.
+"Fora de escopo" do INDEX (molde e kit) nem o antigo docs/superpowers/FORA-DE-ESCOPO.md do kit.
 
 **Conversão dos projetos que nasceram antes** (0.48.0): o `/mss-spec:upgrade` chama o
 `templates/converter_to_dolist.py`, sozinho na rodada, com o OK do owner. Em dois tempos, pra nunca perder nada:
@@ -31,7 +31,7 @@ sem gravar: Whats 1.066 linhas (601 convertidas, 292 na lista), Energy 68 (5 na 
 lista), soma batendo nos três.
 
 **Formato antigo, provisório até o upgrade converter cada projeto** (escolha do owner, 2026-10-28): o
-`rodizio_partida.py` ainda tira uma seção "Fora de escopo" antiga do INDEX pro `FORA-DE-ESCOPO.md` quando o INDEX
+`rodizio_partida.py` ainda tira uma seção "Fora de escopo" antiga do INDEX pro `<projeto>/docs/superpowers/FORA-DE-ESCOPO.md` quando o INDEX
 passa do teto, o `um_item_por_janela.py` ainda não conta os itens dela como feature aberta, e o `doctor` cita
 essa limpeza — tudo marcado como formato antigo.
 

@@ -3,12 +3,13 @@ name: feedback_feature_a_partir_da_master
 description: Fluxo de branch do kit — main é a linha principal atualizada; toda feature nova sai da main
 gatilho: quando abrir branch de feature ou fix
 gatilho_comando: (?m)(?:^|[;&|(])\s*git\s+(?:switch\s+(?:-c|--create)|checkout\s+-[bB])\b
+conferida: 2026-11-13 — confirmada — fonte: CLAUDE.md:21
 metadata:
   type: feedback
 ---
 
 O owner definiu (2026-07-17): a **linha principal é única e fica sempre atualizada** — todo
-trabalho concluído é integrado nela (fast-forward quando possível). **Toda tarefa/feature nova nasce
+trabalho concluído é integrado nela (merge `--no-ff`). **Toda tarefa/feature nova nasce
 de uma branch criada a partir da principal** (`git checkout main && git checkout -b <tipo>/<nome>`),
 nunca direto na principal. **Nota (2026-07-21):** ao publicar no GitHub a principal foi renomeada
 `master`→`main` (`git branch -M main`); agora a principal é a **`main`**.
@@ -39,3 +40,5 @@ se outra conversa está usando a pasta, não "devolver" por conta própria: cada
 a pasta fora da principal é negado; trocar de branch numa branch que a conversa não abriu é negado com mudança por
 commitar e, com a pasta limpa, pede a aprovação do owner com um clique. O aviso de uma vez por conversa ao criar
 branch continua (é o `gatilho_comando` desta anotação).
+
+substituiu: fast-forward quando possível (`CLAUDE.md:21`, sem data)

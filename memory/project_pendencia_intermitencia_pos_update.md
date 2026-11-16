@@ -2,6 +2,7 @@
 name: project_pendencia_intermitencia_pos_update
 description: PENDÊNCIA ABERTA — o mss-spec (junction skills-dir) às vezes para de funcionar DEPOIS de o app Claude Code atualizar, e sessão nova NÃO resolve; causa-raiz ainda não achada (falta capturar o estado quebrado)
 gatilho: quando o mss-spec parar de responder depois de o app atualizar
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:61
 metadata:
   type: project
 ---
@@ -26,11 +27,13 @@ $c = Get-ChildItem "$env:APPDATA\Claude\claude-code" -Recurse -Filter claude.exe
 ```
 Discriminador: **junction sumida/quebrada** → é infra (recriar); **`loaded` mas comando erra** → é outra coisa (ver `${CLAUDE_PLUGIN_ROOT}` / versão nova sem re-scan).
 
-Restaurar na hora (se a junction sumiu):
+Restaurar na hora (se a junction sumiu): **não** por comando — criar junção e rodar script PowerShell são proibidos pela Segurança da Informação (F-050, [[project_sandbox_do_claude_nao_registra_tarefa_agendada]]); a saída é a troca pelo marketplace local, decisão do owner (`docs/decisoes.md:62`). O comando antigo, só como registro (não rodar nem propor):
 ```powershell
 $l="$env:USERPROFILE\.claude\skills\mss-spec"; if(Test-Path $l){(Get-Item $l -Force).Delete()}; New-Item -ItemType Junction -Path $l -Target "C:\Ronaldo\_Mitsui\Python\Spec-Powers"
 ```
 
 Hipótese candidata a testar quando houver captura: update do app troca a versão ativa do claude-code e o re-scan de skills-dir não repega a junction até ela ser recriada. **Não cravar sem a evidência.**
 
-**2026-11-03 — guardião RETIRADO (0.51.1).** O guardião da 0.51.0 (script `.ps1` por hook `SessionStart` + tarefa agendada) foi removido no mesmo dia útil: ao registrar a tarefa, o owner foi contactado pela infra e pela Segurança da Informação — **scripts PowerShell e tarefas agendadas não são permitidos na máquina**. Nada do kit pode rodar `.ps1` nem criar tarefa, e o assistente não executa mais esses comandos ([[project_sandbox_do_claude_nao_registra_tarefa_agendada]]). A pendência segue aberta; a alternativa sem script (instalar pelo marketplace local, sem junção, ou hook Python só de conferência) é decisão do owner (`docs/superpowers/MAPA.md`).
+**2026-11-03 — guardião RETIRADO (0.51.1).** Scripts PowerShell e tarefas agendadas não são permitidos na máquina (o owner foi contactado pela infra e pela Segurança da Informação) — detalhe em [[project_sandbox_do_claude_nao_registra_tarefa_agendada]]. A pendência segue aberta; a alternativa sem script (marketplace local, sem junção, ou hook Python só de conferência) é decisão do owner (`docs/superpowers/MAPA.md`).
+
+substituiu: recriar a junção com `New-Item -ItemType Junction` no PowerShell, de 2026-07-25 (`docs/EVALS.md:61`, F-050, 2026-11-03)

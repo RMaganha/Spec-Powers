@@ -2,6 +2,17 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.62.0 — 2026-11-13 (sono da memória, parte 1: conferir, juntar e marcar o estado das notas que já existem)
+- **o que motivou:** análise `docs/analise/2026-11-13-sono-da-memoria.md` — nota errada vira armadilha e ninguém relia o acervo: 40 citações mortas e 0 de 78 anotações conferidas. Decisões do owner na spec `docs/specs/sono-da-memoria.md` ("O que o owner decidiu", 1 a 13).
+- feat(**`templates/memoria_indice.py`**): campo `conferida: <data> — <confirmada|não confirmada|conflito> — fonte: <arquivo:linha>` no frontmatter; o `verificar` acusa pelo nome o que estiver fora do formato (confirmada sem `arquivo:linha`, conflito sem a linha `CONFLITO:` no corpo); sem o campo = nunca conferida, não é erro. Modo novo `sono`: o roteiro (contagem por estado, nunca conferidas, conferidas há mais tempo, citações mortas, duplicatas).
+- feat(**`templates/memoria_tabela.py`**): coluna `estado` (cópia do `conferida:`; esquema 2 — a tabela se refaz sozinha); a linha de controle guarda a data do último sono e o "agora não" do owner; modo `adiar-sono`.
+- feat(**`hooks/memoria_tabela_em_dia.py`**, `SessionStart`): com 10 ou mais conversas do projeto desde o último sono, um recado pro assistente oferecer o sono em 1 linha; conta só nome e data dos arquivos de conversa, nunca o conteúdo; retomar ou compactar não repete. Nada de hook novo.
+- docs(**`commands/memory.md`**): "Uso interno: sono" — o roteiro da passada (não é modo do owner). `templates/MEMORY.md`: o campo `conferida:`.
+- passada no acervo do kit (6 ajudantes pesquisadores, só leitura): 78 anotações conferidas — 75 confirmadas (7 delas com `substituiu:`: correção posterior clara não é conflito, revisão do owner), 1 não confirmada, 2 em conflito que o owner decide (linha `CONFLITO:` com as duas fontes, sem escolher lado); 0 duplicatas de anotação (um parágrafo repetido em duas anotações da junção virou link pra anotação que já o tinha); 40 → 0 citações mortas (17 em `memory/`, 23 em `docs/specs/`); 6 endereços velhos da regra sempre-ativa (`templates/CLAUDE.md` → `templates/regras-do-kit/`); em `docs/EVALS.md` 4 correções posteriores (`substituiu`) e 2 duplicatas possíveis marcadas, em `docs/decisoes.md` 1 decisão marcada como substituída; nenhuma credencial.
+- fix(**`templates/memoria_indice.py`**): anotação `obsoleta:` que ficasse com linha no subíndice voltava pelo recall e passava calada — o `verificar` acusa e o recall pula a linha (o sono vai gerar mais `obsoleta:`).
+- test: `tests/test_sono_da_memoria.py` (21).
+- só se prova no real: o aviso aparecendo numa conversa nova depois de 10 conversas, e o owner escolhendo o lado de cada conflito.
+
 ## 0.61.0 — 2026-11-12 (a conversa nova acha sozinha o que o owner já decidiu)
 - **o que motivou:** pedido do owner (2026-11-12): *"Conversa nova tem de achar sozinha o que eu já decidi - sem eu colar texto nem digitar comando."* Decidido por ele: abre a conversa com uma frase comum, o kit acha o assunto e traz o que já foi decidido; não é comando novo e não pode travar.
 - feat(**`hooks/passagem_de_conversa.py`**, `Stop`): o bloco de texto pronto que está no molde fica guardado sozinho — assunto (1ª linha) e itens decididos, inteiros — na pasta temporária do sistema (`mss_passagens_<projeto>.json`, 7 dias, os 10 últimos; nada no git; bloco com `<private>` e o molde do próprio hook não são guardados). Vale também para a resposta refeita depois de devolvida (`stop_hook_active`).

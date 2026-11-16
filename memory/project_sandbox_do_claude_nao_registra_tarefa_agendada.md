@@ -3,6 +3,7 @@ name: project_sandbox_do_claude_nao_registra_tarefa_agendada
 description: scripts PowerShell (.ps1) e tarefas agendadas NÃO SÃO PERMITIDOS pela Segurança da Informação na máquina do owner (2026-11-03) — nem pelo Claude, nem pelo owner; e o sandbox em que o Claude roda comandos não registra tarefa agendada do Windows — Register-ScheduledTask, schtasks.exe e o COM Schedule.Service devolvem "Acesso negado" — e a ferramenta PowerShell pode ficar sem abrir processo (EPERM) depois; configuração de sistema é comando entregue ao owner, em passo a passo
 gatilho: quando a solução pedir script PowerShell (.ps1), tarefa agendada, serviço, junção ou outra configuração persistente do Windows — pelo Claude ou pelo owner
 gatilho_comando: (?i)Register-ScheduledTask|schtasks(\.exe)?\s+/create|ComObject\s+Schedule\.Service|powershell(\.exe)?[^\n]*-File\s+\S*\.ps1|New-Item\s+-ItemType\s+Junction
+conferida: 2026-11-13 — confirmada — fonte: docs/EVALS.md:61
 metadata:
   type: project
 ---

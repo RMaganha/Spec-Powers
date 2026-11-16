@@ -3,6 +3,7 @@ name: docker-build-fortigate
 description: Build Docker com ODBC atrás do FortiGate — 3 armadilhas (base bookworm, apt via HTTPS, repo MS sem duplo colchete) + rotação de proxy/appliance quebra por CA faltando no corp-ca.pem ("issuer unknown")
 gatilho: quando montar build Docker com ODBC atrás do proxy corporativo
 gatilho_comando: (?im)(?:^|[;&|(])\s*(?:docker\s+(?:compose\s+)?build\b|docker\s+buildx\b|docker-compose\s+build\b|docker(?:\s+compose|-compose)\b[^|;&\n]*--build\b)
+conferida: 2026-11-13 — confirmada — fonte: templates/docker/Dockerfile:3
 metadata:
   type: project
 ---
@@ -15,7 +16,7 @@ novo é outro appliance (`CN=FG2H0GT924902724`) e essa CA **não estava** no `ce
 antigo, 68 certs). Fix: atualizar `corp-ca.pem` (reexportar raízes do Windows) — o Transportes/V2 já
 tinha (69 certs) e buildava OK; copiei o bundle dele pro MSS-SSC e pro template do plugin. Diagnóstico:
 `openssl x509 -subject` em cada cert do bundle e `comm` contra o de um projeto que builda.
-Dois fatos que reconciliam tudo: (1) **Docker Desktop `config.json` (`proxies.default`) injeta proxy em
+Dois fatos que reconciliam tudo: (1) **Docker Desktop `~/.docker/config.json` (`proxies.default`) injeta proxy em
 TODO build** (pull do FROM E apt/pip) — logo o build é interceptado com ou sem overlay; a nota antiga
 "config.json só cobre o FROM" estava errada. (2) "issuer unknown" = CA defasada, NÃO rota de proxy.
 Codificado no plugin (AMBIENTE §2 pegadinhas + CHANGELOG 0.7.0).
