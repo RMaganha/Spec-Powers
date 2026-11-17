@@ -27,9 +27,14 @@ jobs:
         shell: bash
         # O log do Actions só abre logado; a anotação, a API pública mostra. A lista do que falhou vai numa anotação
         # só (uma linha por teste), e o código de saída continua sendo o do pytest.
+        # O Actions roda o bash com `-e -o pipefail`: sem o `set +e`, o passo morre no pytest e a lista não sai.
         run: |
+          set +e
           python -m pytest -q -rfE 2>&1 | tee saida.txt
           codigo=${PIPESTATUS[0]}
           falhas=$(grep -E '^(FAILED|ERROR) ' saida.txt | head -200 | sed ':a;N;$!ba;s/\n/%0A/g')
+          if [ -z "$falhas" ] && [ "$codigo" != "0" ]; then
+            falhas=$(tail -40 saida.txt | sed ':a;N;$!ba;s/\n/%0A/g')
+          fi
           if [ -n "$falhas" ]; then echo "::error title=testes que falharam::$falhas"; fi
           exit $codigo

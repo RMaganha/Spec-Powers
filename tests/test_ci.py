@@ -38,6 +38,7 @@ def test_github_actions_roda_a_suite_inteira_a_cada_push():
     assert "python -m pytest -q" in rodar and "pip install" in rodar
     # o log do Actions só abre logado; a anotação a API pública mostra — a lista do que falhou vai numa anotação
     assert "::error" in rodar and "PIPESTATUS" in rodar, "falhas do CI não saem como anotação legível sem login"
+    assert "set +e" in rodar, "o bash do Actions (-e -o pipefail) mata o passo antes de a lista sair"
 
 
 def _ci_doc():
