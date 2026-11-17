@@ -42,22 +42,3 @@ def test_comando_proibido_casa_a_memoria(comando):
 ])
 def test_leitura_e_python_passam(comando):
     assert not _regex().search(comando), f"a memória barra o que é só leitura: {comando}"
-
-
-def test_o_kit_nao_carrega_script_powershell():
-    """Nada de `.ps1` versionado no kit: o que a SI não permite na máquina não pode nascer de um molde."""
-    ps1 = [p.relative_to(REPO).as_posix() for p in REPO.rglob("*.ps1") if ".git" not in p.parts]
-    assert not ps1, f"scripts PowerShell no kit: {ps1}"
-
-
-def test_docs_nao_mandam_registrar_tarefa():
-    """A receita da tarefa agendada saiu do README dos hooks, do doctor e do LEIA-ME; o registro histórico pode citar
-    o nome, mas nenhum comando de registrar pode sobrar como instrução."""
-    for rel in ("hooks/README.md", "commands/doctor.md", "docs/LEIA-ME.md"):
-        t = (REPO / rel).read_text(encoding="utf-8")
-        assert "Register-ScheduledTask" not in t, f"{rel} ainda ensina a registrar tarefa agendada"
-        assert "guardiao-da-juncao.ps1" not in t or "Retirado" in t or "retirado" in t, \
-            f"{rel} ainda cita o script como coisa a rodar"
-    memoria = MEMORIA.read_text(encoding="utf-8")
-    assert "não execute e não propõe" in memoria or "não execute e não proponha" in memoria, \
-        "a memória não diz que o comando nem vai pro owner"

@@ -43,7 +43,7 @@ def _git(cwd, *args):
 
 def _commitar(proj: Path) -> None:
     """Repo git LOCAL do teste (nunca o do owner): init + identidade local + commit de tudo."""
-    _git(proj, "init", "-q")
+    _git(proj, "init", "-q", "--template=")
     _git(proj, "config", "user.name", "Teste mss-spec")
     _git(proj, "config", "user.email", "teste@exemplo.invalid")
     _git(proj, "config", "commit.gpgsign", "false")

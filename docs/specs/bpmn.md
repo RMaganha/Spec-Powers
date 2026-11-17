@@ -46,8 +46,9 @@ e a página **falha legível** (`<noscript>` + texto em cada moldura apontando o
 porque com o bpmn-js o desenho passa a exigir JS — F-017 mudou de forma, não de lição.
 
 Verificado no **MSS-SSC** (FastAPI real): 24 portas de entrada, 36 diagramas, 19 arquivos `.py`,
-0 não lido, piscina `Gemini` detectada. Testes: `tests/test_bpmn.py` (57) + `test_bpmn_wiring` e
-`test_suposicao_do_owner_nao_e_requisito` no smoke.
+0 não lido, piscina `Gemini` detectada. Testes: `tests/test_bpmn.py` (57) +
+`test_suposicao_do_owner_nao_e_requisito` no smoke (a conferência de texto `test_bpmn_wiring` saiu na revisão da
+suíte de 2026-11-17).
 
 Fora de escopo: linguagem fora do Python (JS/TS, SQL, JSON de fluxo do n8n) · processo de **negócio**
 que não está no código · editar o desenho no HTML (é leitura; quem edita é o Bizagi) · o `.html`

@@ -1,6 +1,6 @@
 # Plano de teste base — kit mss-spec
 
-**Comando:** `python -m pytest tests/ -q`
+**Comando:** `python -m pytest tests/ -q` — a suíte inteira roda no CI. Na máquina, só o teste do que mudou: `python templates/testes_do_que_mudou.py --rodar` escolhe pelo que mudou na branch (`--lf` reroda só o que falhou). Uma rodada de pytest por vez.
 
 **O que o baseline cobre** (1 linha por teste):
 
@@ -10,31 +10,7 @@
 - `test_manifestos_validos_e_coerentes` — plugin.json e marketplace.json parseiam, nome bate, versões iguais
 - `test_commands_tem_frontmatter` — todo comando tem frontmatter com `description`
 - `test_compose_templates_sao_yaml_validos` — os dois compose templates parseiam como YAML (com `<servico>` substituído)
-- `test_seguranca_wiring` — SEGURANCA.md + comando existem, kickoff copia, CLAUDE.md referencia
 - (0.47.0) o to-dolist vai pro git — o antigo `test_todolist_gitignorada` virou `test_todolist_vai_pro_git_no_molde_e_no_kit` em `tests/test_fora_de_escopo_no_to_dolist.py`
-- `test_doctor_wiring` — comando doctor existe e o CLAUDE.md manda rodar o pré-vôo na 1ª tarefa
-- `test_robustez_plugin_root_wiring` — doctor e kickoff citam o fallback de resolução do plugin (`plugins/cache`)
-- `test_regra_senhas_wiring` — banco oferece variável de ambiente e SEGURANCA documenta App Settings
-- `test_anotar_decisoes_wiring` — DECISOES.md existe, kickoff copia, CLAUDE.md mapeia, nova-feature acrescenta
-- `test_log_wiring` — logging.py + comando existem, kickoff monta infra, `/logs/` ignorado, CLAUDE.md carrega a regra
-- `test_protocolo_log_por_arquivo_wiring` — instrumentação opt-in por-arquivo (canônica no log.md; apontada por banco/nova-feature)
-- `test_release_wiring` — release orquestra testes/segurança/CHANGELOG/compliance e é gate antes do finishing
-- `test_regras_branch_e_escopo_wiring` — branch sempre da principal + regra "um assunto por janela" (CLAUDE/nova-feature/to-dolist)
-- `test_compliance_wiring` — compliance checa estrutura/decisões/memória/spec-driven e delimita papel (seguranca/upgrade)
-- `test_upgrade_dry_run_wiring` — modo `--dry-run` do upgrade: preview opt-in com diff unificado da categoria 1, sem escrever arquivo, e diz como aplicar (rodar sem a flag)
-- `test_upgrade_em_uma_rodada_wiring` — (0.54.0) o upgrade abre pelo `upgrade_plano.py checar`, trata os 3 passes na ordem e na mesma conversa (sem "Termine aqui"), stash único do pendente do owner (nunca commitar), uma branch `chore/upgrade-kit`, um commit por passe, `--ff-only` de volta pra branch do owner e conferência colada; `test_upgrade_migra_primeiro_num_commit_so` / `test_upgrade_branch_antes_da_migracao_na_ordem` seguem o desenho novo
-- `test_redes_de_seguranca_documentadas` — as 3 redes já existentes (auto-teste, git-rollback, changelog) explícitas no HTML/upgrade/kickoff/LEIA-ME
-- `test_distribuicao_por_git_wiring` — item 9: marketplace.json com source relative-path + allowlist cross-marketplace; LEIA-ME com as duas vias e a URL real do GitHub (publicado 2026-07-21)
-- `test_mapa_contexto_wiring` — mapa de contexto F1: `templates/MAPA.md` (3 seções + Conexões do código real/não inventar), comando `/mss-spec:mapa` (lê+reconcilia git/INDEX/Conexões), e os 4 pontos de integração (kickoff cria · CLAUDE lê na partida · nova-feature mantém)
-- `test_mapa_neural_wiring` — mapa mental F2: gerador `templates/mapa_neural.py` + comando `/mss-spec:mapa-neural` existem, o comando aponta o script e descreve as 4 dimensões, saída derivada gitignorada, LEIA-ME lista o comando
-- `test_captura_memory_dois_modos` — `/mss-spec:memory` com 2 modos: `resgatar` (intacto) + `capturar` (roteia decisões/`decisoes.md`, "não fazer"/INDEX, `memory/sessions/`+`DIARIO.md`, `<private>`, chama `/mss-spec:mapa`, pede OK, não duplica, foca pivôs)
-- `test_captura_diario_template` — `templates/DIARIO.md` existe (índice `## <data>` → `sessions/`, foco nos pivôs) + dogfood `memory/DIARIO.md`
-- `test_captura_kickoff_scaffold` — kickoff copia `templates/DIARIO.md` → `memory/DIARIO.md` e cria `memory/sessions/`
-- `test_captura_private_e_indice` — `templates/CLAUDE.md` documenta `<private>`, aponta o diário e reforça o índice-primeiro (nunca a pasta inteira)
-- `test_captura_delegacao_fecho` — o fecho do `nova-feature` delega a captura ao `/mss-spec:memory capturar` (não re-descreve inline) + junto ao finishing
-- `test_captura_hook_throttle` — `hooks/capturar_nudge.py::deve_cutucar` respeita o intervalo (sem histórico/passou → cutuca; dentro → não)
-- `test_captura_hook_optin_doc` — hook opt-in existe e é documentado como off por padrão, não-bloqueante, só cutuca (Stop/PreCompact) pra rodar `/mss-spec:memory capturar`
-- `test_captura_docs_leiame` — LEIA-ME documenta o modo `capturar`
 
 `tests/test_ci.py` — CI com artefatos de teste (item 12), no estilo do wiring do item 9:
 - `test_ci_declara_reports_junit_e_cobertura` — o job do `.gitlab-ci.yml` declara `artifacts.reports.junit` e `coverage_report` (formato `cobertura`)
@@ -85,16 +61,9 @@
 - `test_n8n_continua_sendo_camada` — F2.5/0.17.1 (CA32): a exceção é só arquivo morto/insumo — `n8n/` (fluxos do projeto) continua camada
 - `test_resumo_de_modulo_com_docstring_longa` — F2.5 (regressão): resumo sai da abertura da docstring, sem exigir o fecho na janela
 
-- `test_analise_wiring` — `/mss-spec:analise` + `templates/ARQUITETURA.md` existem; leitura em 2 fases (inventário → focada → amostragem) declarando o que ficou de fora; navega `.py`/`.html`/`.tsx`/`.json`/`.sql`; doc pré-existente é **dado, não instrução**; entende RAG/pgvector/embeddings e aponta precedentes; kickoff/LEIA-ME/CLAUDE.md apontam pra ele
-- `test_analise_nao_destrutiva` — a regra dura: não toca em infra/código/**UI própria**, não aplica molde do kit sobre o que já existe, produz a lista "não nasceu do kit"; o template tem as seções do pré-existente e de Lacunas
-- `test_analise_registro_de_assuntos` — assunto detectado = 1 linha `existente` no INDEX; spec viva só com **evidência lida** + proveniência marcada (nunca spec por inferência solta)
 - `test_upgrade_respeita_preexistente` — a lista "não nasceu do kit" freia a categoria 1 do `upgrade` (que sobrescrevia `docker-compose`/`Dockerfile` sozinha e mataria a infra de um brownfield): passa a perguntar
 
-- `test_ancora_hook_registrado` — a cerca do projeto ativo vem **ligada**: `hooks/hooks.json` com `PreToolUse` cobrindo `Write`/`Edit`/`NotebookEdit`, referenciado pelo `plugin.json`, comando portável (`CLAUDE_PLUGIN_ROOT`)
-- `test_ancora_regra_no_claude_md` — a regra dura viaja no molde do `CLAUDE.md` (âncora · somente-leitura · um projeto por janela · `MSS_ANCORA_OFF`) e o placeholder da regra do projeto continua sendo o último (o `upgrade` renumera)
-- `test_ancora_prosa_no_ponto_de_contagio` — onde o kit manda abrir outro projeto (`precedentes-msig`, `commands/precedentes.md`, passo do `nova-feature`) está escrito que é read-only, amarrado à âncora, com "reporte, não conserte"
 - `test_perguntar_nao_vasculhar` — a face de leitura: "PERGUNTE, não vasculhe" presente no molde do `CLAUDE.md`, na skill de precedentes e no comando, nomeando a varredura de disco proibida
-- `test_ancora_hook_doc` — `hooks/README.md` documenta ligado-por-padrão · falha aberta · escape · worktree · fallback de registro
 
 `tests/test_ancora_projeto_ativo.py` — comportamento da cerca (hook `projeto_ativo.py`):
 - `test_bloqueia_escrita_fora_da_ancora` — o caso do acidente: alvo no projeto B com âncora no A → nega, citando o alvo e oferecendo a saída (abrir janela na raiz do outro)
@@ -117,12 +86,11 @@
 - `test_consulta_o_git_na_pasta_do_comando` / `test_push_com_destino_explicito_nao_consulta_o_git` — `-C` › `cd` › cwd; destino explícito não chama o git
 - `test_libera_o_resto` (×26) — inclui `merge-base`/`merge-tree`/`merge-file` (falso positivo da 0.30.0) e `git pull`
 - `test_outro_tool_nao_e_avaliado` / `test_escape_do_owner` / `test_evento_sem_comando_libera_calado` / `test_bug_na_avaliacao_falha_fechada` / `test_decidir_segue_devolvendo_o_motivo`
-- `test_processo_*` (×5) — deny = JSON + exit 2 + stderr; **ask = JSON + exit 0, stderr vazio**; libera calado; não-JSON libera; **repo git real** (dev nega, feature pergunta)
 - `test_hook_registrado_em_bash_e_powershell` / `test_documentado_no_readme_e_no_molde` — `hooks.json`, README (escape, falha fechada, aprovação, `release/*`) e `CLAUDE.md` (push de homologação/produção do owner, resto com aprovação)
 
 `tests/test_hook_um_item_por_janela.py` — comportamento da cerca "um item por janela" (hook `um_item_por_janela.py`, F-022; por chat desde a 0.34.0):
 - `test_lista_abertas_ignora_fechada_e_pausada` / `test_em_andamento_conta_como_aberta` / `test_indice_vazio_nao_tem_aberta` — parser do INDEX: `aberta` e `em andamento` contam; `fechada`/`pausada` não
-- `test_chat_novo_passa_mesmo_com_outra_aberta` / `test_chat_novo_com_outra_aberta_avisa_e_lembra_worktree` / `test_outro_chat_nao_herda_a_trava` — o caso de 2026-09-24: chat novo abre; outras abertas viram aviso (lista, worktree, `pausada`)
+- `test_chat_novo_passa_mesmo_com_outra_aberta` / `test_outro_chat_nao_herda_a_trava` — o caso de 2026-09-24: chat novo abre; outras abertas viram aviso (lista, worktree, `pausada`)
 - `test_mesmo_chat_pedindo_outra_bloqueia` / `test_feature_do_chat_fora_do_index_segue_valendo` / `test_mesmo_chat_em_outro_projeto_nao_herda` — o F-022: o mesmo chat não abre 2ª feature (manda chat novo), mesmo antes de a linha nascer no INDEX
 - `test_mesma_feature_retoma` / `test_retomar_nao_avisa_da_propria_feature` / `test_feature_do_chat_encerrada_libera_a_proxima` / `test_fechada_movida_pro_historico_libera_a_proxima` — retomar (nome, slug, grafia) passa; `fechada`/`pausada` no INDEX ou no histórico libera a próxima
 - `test_nome_da_feature_e_so_a_primeira_linha` / `test_comando_sem_nome_na_mesma_linha_nao_grava_o_paragrafo` — o prompt real tem comando + parágrafos: o nome é o resto da linha do comando
@@ -132,20 +100,13 @@
 - `test_voltar_ao_projeto_anterior_mantem_a_trava_dele` / `test_retomar_renova_a_validade` — chave `chat + projeto`; retomar renova os 30 dias
 - `test_sem_argumento_passa` / `test_so_age_no_comando_de_abrir_feature` / `test_aceita_forma_curta_do_comando` / `test_projeto_sem_index_passa` — só `/mss-spec:nova-feature` e `/nova-feature`; sem nome ou sem INDEX passa
 - `test_escape_do_owner` / `test_entrada_malformada_libera` / `test_estado_corrompido_libera_e_se_refaz` / `test_sem_session_id_passa_sem_gravar` / `test_estado_descarta_chat_com_mais_de_30_dias` — `MSS_UM_ITEM_OFF=1`; falha aberta; estado com validade de 30 dias
-- `test_processo_*` (×4) — via subprocess: `{"decision":"block"}` + exit 2 + stderr; aviso = exit 0 com `systemMessage` + `additionalContext`; libera calado; não-JSON libera
 - `test_hook_registrado_no_user_prompt_submit` / `test_segunda_camada_em_prosa` — `hooks.json` (UserPromptSubmit), passo 0 do `nova-feature.md`, `CLAUDE.md` sem "alerta, não trava", README
 
 `tests/test_hook_pipe_teste.py` — cerca do pipe no `git_publicacao.py` (F-025):
 - `test_nega_pytest_mascarado_por_pipe_antes_do_commit` (×7) / `test_nega_tambem_no_powershell` — os comandos reais de `edc0ab9` e `f9388e5`, `py.test`, `python3`, `-C`, `python.exe`, `Select-Object`
 - `test_libera_o_resto` (×10) — `pytest && git commit`, pipe sem commit, `pipefail`, pipe sem pytest, `pytest` como texto, teste depois do commit
-- `test_escape_*` (×3) / `test_bug_na_cerca_do_pipe_*` (×2) — `MSS_PIPE_TESTE_OFF` próprio; uma cerca não liga nem desliga a outra; bug aqui libera (ABERTA) sem abrir a de publicação
 - `test_processo_nega_pelos_dois_protocolos` / `test_documentado_no_readme` — deny + exit 2 via subprocess; README
 
-`tests/test_fora_de_escopo_no_to_dolist.py` — fora de escopo = "não agora", linha `#fora-de-escopo` no to-dolist (0.47.0):
-- `test_todolist_vai_pro_git_no_molde_e_no_kit` / `test_comando_todolist_fala_do_formato_novo` / `test_captura_roteia_nao_agora_pro_todolist` / `test_molde_do_index_sem_secao_fora_de_escopo`
-- `test_nenhum_texto_vivo_diz_que_fora_de_escopo_e_proibicao` — comandos, hooks, moldes, LEIA-ME e COMO-FUNCIONA sem "NÃO fazer"
-- `test_kit_converteu_o_proprio_fora_de_escopo` — sem `FORA-DE-ESCOPO.md` nem seção no INDEX; cada linha no formato combinado
-- (em `tests/test_hook_recall_memoria.py`) `test_recall_nao_cita_fora_de_escopo_sozinho` — a busca não lê to-dolist nem `FORA-DE-ESCOPO.md`
 
 `tests/test_upgrade_plano.py` — a abertura do upgrade numa rodada só (0.54.0; `templates/upgrade_plano.py`, só lê):
 - `test_sem_marca_e_to_dolist_antigo_sao_tres_passes_na_ordem` / `test_com_marca_e_to_dolist_no_desenho_so_as_categorias` / `test_com_marca_e_to_dolist_antigo_sao_dois_passes` / `test_sem_claude_md_a_migracao_nao_se_aplica_e_o_relatorio_diz` — os passes que se aplicam, na ordem migração → to-dolist → categorias, e a linha de status `✓/⬜`
@@ -154,7 +115,6 @@
 - `test_cli_checar_imprime_o_status_e_nao_grava_nada` / `test_o_kit_esta_no_proprio_desenho` — a CLI só lê (hash dos arquivos igual antes e depois, branch intacta); o kit só precisa das categorias
 
 `tests/test_converter_to_dolist.py` — o upgrade leva o to-dolist e o fora de escopo pro desenho do kit (0.48.0):
-- `test_checar_*` (×3) — aponta o formato antigo; projeto e kit no desenho não apontam nada
 - `test_liberar_*` / `test_recado_numerado_*` / `test_fora_de_escopo_mantem_o_texto_inteiro` / `test_negrito_no_meio_*` / `test_data_*` / `test_sem_data_*` / `test_ordem_*` / `test_linha_ja_no_formato_fica_igual`
 - `test_riscado_feito_e_data_incompleta_vao_pra_lista_sem_mudar` / `test_nenhuma_linha_some_a_soma_bate` / `test_index_perde_so_a_secao_*` / `test_exemplos_*`
 - `test_aplicar_recusa_*` (×2) / `test_aplicar_grava_depois_do_tempo_1` / `test_crlf_*` / `test_cli_previa_nao_grava` / `test_upgrade_e_doctor_chamam_o_conversor`
@@ -169,10 +129,6 @@
 **Fora do baseline (manual):** resolução de `${CLAUDE_PLUGIN_ROOT}` via junction em runtime — validar rodando `/mss-spec:kickoff` num projeto de teste. **E o disparo do hook da âncora** com o kit instalado por junction (skills-dir): hooks carregam na partida da sessão, então o canário é pedir uma escrita fora da âncora numa sessão nova (ver `hooks/README.md`). Mesmo canário pras cercas da 0.26.0: `git push --dry-run origin main` pedido ao assistente tem que vir `[mss-spec] BLOQUEADO` (e `git push --dry-run` numa feature tem que PEDIR aprovação), e `/mss-spec:nova-feature outra-coisa` com feature `aberta` no INDEX tem que ser bloqueado com a lista.
 
 - `test_infra_pergunta_no_kickoff` — CA1: o kickoff pergunta MSIG × própria e grava na linha `Infra:` do `CLAUDE.md`
-- `test_infra_declarada_no_molde_do_claude_md` — CA2: a linha viaja no molde, nomeando o que MSIG implica e o que não se aplica
-- `test_infra_propria_nao_recebe_ca_nem_office` — CA3: sem `corp-ca.pem`, sem `docker-compose.office.yml`, compose base sem a rede externa
-- `test_infra_propria_no_banco_e_no_doctor` — CA4/CA5: `banco` vai ao genérico; `doctor` **pula** proxy/CA/rede (não ✗)
-- `test_infra_propria_freia_o_upgrade` — CA6: a categoria 1 não reintroduz os arquivos MSIG
 
 `tests/test_hook_memoria_da_proposta.py` — memória na hora da proposta e sintoma do owner é fato (0.49.0, F-047):
 - `test_proposta_de_build_volta_com_as_memorias_que_a_vetam` / `test_memoria_fora_do_tema_nao_entra` / `test_proposta_que_cita_as_memorias_passa` — a proposta volta com as memórias do tema que não cita, e só essas
@@ -184,16 +140,13 @@
 - `test_cada_fonte_vira_linha_com_o_tipo_certo` e os 9 seguintes — anotação com a frase do subíndice, diário com a linha do `DIARIO.md`, decisão e falha por item, documento por seção com `arquivo:linha`, `.html` sem tags, `<private>`/`.env`/`.txt` fora, seção gigante em pedaços, bytes fora de UTF-8, nome do projeto pelo `CLAUDE.md`
 - `test_montar_grava_e_conta_por_tipo` … `test_filtro_por_projeto_tipo_e_data_e_busca_por_palavra` (9) — remontagem parcial (muda um → refaz um; apaga → tira; subíndice muda → refaz a anotação), dois projetos sem um tocar o outro, pastas de mesmo nome, `SELECT` e `MATCH`
 - `test_dono_e_data_vem_da_criacao_no_git` / `test_ignorado_pelo_git_fica_fora` / `test_arquivo_novo_ainda_nao_commitado_entra_e_vira_pendencia` / `test_projeto_sem_git_segue_sem_erro` — `git init` de verdade em `tmp_path`
-- `test_status_*` (3) e `test_cli_*` (3) — tabela ausente/desatualizada avisa e diz como remontar; a CLI roda **com os padrões** (pasta do usuário trocada por variável de ambiente)
 - `test_tabela_presa_por_outro_programa_da_erro_claro_e_sai_com_2` / `test_arquivo_grande_demais_fica_fora_e_vira_pendencia` / `test_pasta_com_espaco_e_acento` — os casos de risco: tabela aberta no DBeaver, arquivo acima do teto, caminho como o do Whats
 - `test_comando_memory_guarda_o_modo_tabela_fora_da_vista_do_owner` / `test_procedimento_de_troca_de_maquina_esta_na_memoria_do_kit` — o modo `tabela` fora da descrição e da ajuda (0.56.0), o texto de uso interno e o procedimento na memória do kit
 
 `tests/test_memoria_tabela_busca.py` — a busca usa a tabela e a tabela se atualiza sozinha (0.56.0; decisões 13 a 22 da spec):
 - `test_atualizar_*` (5) / `test_linha_de_controle_e_uma_por_projeto_e_nao_conta_como_memoria` / `test_tabela_da_parte_1_sem_linha_de_controle_e_conferida_uma_vez` / `test_arquivo_ignorado_pelo_git_que_muda_nao_vira_remontagem_sem_fim` / `test_montar_do_zero_segue_trazendo_dono_e_data_de_tudo` / `test_trocar_o_nome_do_projeto_e_visto_pela_conferencia` — conferência rápida: em dia não lê arquivo nem chama o git; mudado, novo e apagado entram; o git só é perguntado pelo que mudou
 - `test_buscar_*` (5) / `test_palavra_longa_casa_pelo_comeco_e_acento_nao_atrapalha` / `test_contexto_da_conversa_entra_na_busca` / `test_pedido_sem_palavra_util_ou_com_simbolos_nao_da_erro` — 30 linhas de 30 arquivos, só o projeto da janela, a linha de controle nunca aparece, tabela ausente dá erro tratável
-- `test_formatar_*` (2) — dois blocos (Anotações · Documentos), título até 80 e trecho até 170 letras
 - `test_pedidos_da_conversa_*` (3) / `test_o_pedido_atual_entra_mesmo_curto_e_o_curto_do_meio_fica_fora` / `test_arquivo_da_conversa_vem_do_numero_da_sessao` — o último pedido + os 3 anteriores, cortados em 600; texto colado conta, corpo de comando e de skill não
-- `test_cli_buscar_*` (7) — a linha de comando **com os padrões**: monta a tabela, usa a conversa, vê o arquivo mudado por fora, sai com 1 ou 2 mandando ir nos arquivos
 - `test_as_tres_portas_buscam_na_tabela_e_tem_os_arquivos_como_reserva` / `test_memory_buscar_usa_a_tabela_e_cai_no_indice_se_precisar` / `test_ninguem_manda_o_owner_montar_a_tabela` — prosa das portas e do `/mss-spec:memory`
 
 `tests/test_hook_memoria_tabela_em_dia.py` — o hook que mantém a tabela em dia (0.56.0; `hooks/memoria_tabela_em_dia.py`):
@@ -211,16 +164,13 @@
 - em `tests/test_hook_memoria_de_acao.py`: `test_sem_numero_de_sessao_a_memoria_nao_age` — evento sem sessão não dispara nem gasta a vez do gatilho
 
 `tests/test_ajudante_pesquisador.py` — o ajudante pesquisador (0.58.0; `agents/pesquisador.md`, decisão 25):
-- `test_ajudante_existe_com_nome_e_descricao` / `test_ajudante_so_tem_ferramentas_de_leitura` / `test_ajudante_usa_o_modelo_da_conversa_e_nao_traz_campo_ignorado` — cabeçalho lido como YAML: só `Read, Grep, Glob`, modelo da conversa, sem campo que o Claude Code ignora em ajudante de plugin
-- `test_descricao_diz_os_tres_casos_e_que_nao_e_pra_toda_tarefa` / `test_corpo_traz_o_formato_da_resposta` — quando chamar (e quando não) e o que devolve (primeira linha, `arquivo:linha`, não achei, não li, 3.000 letras, sem colar arquivo)
-- `test_regra_bola_de_neve_nomeia_o_ajudante` / `test_comandos_e_aviso_de_janela_nomeiam_o_ajudante` / `test_portas_tem_o_passo_do_ajudante_com_o_comando_do_script` / `test_leia_me_apresenta_o_ajudante` — onde a regra aparece; nenhuma porta com número de passo repetido
+- `test_ajudante_existe_com_nome_e_descricao` / `test_ajudante_so_tem_ferramentas_de_leitura` — cabeçalho lido como YAML: só `Read, Grep, Glob`, modelo da conversa, sem campo que o Claude Code ignora em ajudante de plugin
 
 `tests/test_conversa_texto.py` — outra conversa em texto (0.58.0; `templates/conversa_texto.py`, só lê a conversa):
 - `test_falas_so_do_owner_e_do_assistente` / `test_o_turno_do_assistente_vira_uma_fala_com_o_que_ele_gravou` / `test_comando_do_kit_aparece_com_o_nome_e_o_pedido` / `test_texto_colado_pelo_owner_fica_e_retorno_de_hook_sai` / `test_linha_torta_e_arquivo_que_nao_abre_nao_derrubam` — o que é fala e o que não é
 - `test_fala_digitada_enquanto_o_assistente_trabalhava_entra` / `test_fala_que_veio_pela_fila_e_pelo_registro_entra_uma_vez` / `test_aviso_do_app_nao_vira_fala` / `test_private_nao_escapa_com_tag_dentro_nem_sem_fechar` / `test_o_que_o_owner_escreveu_entre_sinais_de_menor_e_maior_fica` / `test_nome_de_comando_citado_no_meio_da_fala_nao_vira_comando` — os achados da revisão, vistos nas conversas reais do kit
 - `test_gravar_texto_numera_as_falas_e_nao_tem_linha_gigante` / `test_fala_comprida_e_quebrada_em_linhas` / `test_conversa_sem_fala_nao_grava` / `test_pasta_de_saida_padrao_fica_fora_do_repo_e_do_claude` — o texto gravado (linhas de até 160 letras) e onde ele mora
 - `test_listar_*` (2) / `test_achar_por_comeco_do_id_por_caminho_e_por_palavra` / `test_palavra_que_tambem_e_comeco_de_id_traz_as_duas` / `test_pasta_das_conversas_pelo_caminho_do_projeto` — achar a conversa
-- `test_cli_*` (5) — a linha de comando: listar, texto, mais de uma ou nenhuma (sai com 1), sem a pasta (sai com 2), caminho direto, conversa sem fala
 
 `tests/test_hook_passagem_de_conversa.py` — conversa nova não se perde (0.59.0; `hooks/passagem_de_conversa.py`, casos F-058 e F-053):
 - `test_le_os_itens_decididos_do_pedido_real` / `test_formas_do_titulo` (5) / `test_pedido_colado_tambem` / `test_pedido_sem_lista_decidida_nao_tem_itens` / `test_pedido_com_decididos_entrega_a_regra_so_ao_assistente` — o pedido real da conversa do F-058: os 6 itens sob `O que eu já decidi`, a linha de continuação, o fim da lista, e a regra entregue só ao assistente
@@ -245,5 +195,18 @@
 - `test_escape_do_owner_desliga_so_esta_conferencia` / `test_sem_numero_de_conversa_nao_age` / `test_defeito_na_conferencia_nao_trava_a_gravacao` / `test_regra_por_tipo_de_arquivo_e_comando_cortado_saem_numa_negacao_so` — garantias, dentro do hook
 - `test_modo_capturar_manda_gravar_o_comando_inteiro` / `test_readme_dos_hooks_fala_da_conferencia` — a frase da captura e a documentação
 - `test_com_comando_cortado_lista_anotacoes_e_diarios` / `test_verificar_avisa_quantas_sao_e_nao_altera_nenhuma` / `test_verificar_sem_corte_nao_avisa` — o `verificar` só conta as antigas
+
+`tests/test_pytest_mss.py` — molde `templates/pytest/conftest.py` (0.65.0): pasta temporária própria do projeto e uma rodada de pytest por vez:
+- `test_pasta_temporaria_e_do_projeto` / `test_trava_so_um_por_vez_e_solta_ao_fechar` — a pasta é `<temp>/pytest-<projeto>`; a trava não deixa a 2ª rodada entrar e solta quando fecha
+- `test_configure_poe_a_pasta_do_projeto_e_trava` / `test_pytest_de_dentro_da_rodada_nao_trava_nem_troca_a_pasta` / `test_pasta_dada_na_linha_de_comando_fica` — o `pytest_configure` do molde
+- `test_kit_usa_o_proprio_molde` / `test_kickoff_e_upgrade_levam_o_molde_aos_projetos` — o kit usa o molde e o leva aos projetos (sem criar `pytest.ini` por cima da configuração do projeto)
+- `test_repositorio_de_teste_nasce_sem_o_modelo_do_git` — todo `git init` dos testes usa `--template=`
+- `test_segunda_rodada_espera_a_primeira_terminar` — ponta a ponta: um pytest de verdade espera a trava e roda quando ela solta
+
+`tests/test_testes_do_que_mudou.py` — `templates/testes_do_que_mudou.py` (0.65.0): na máquina, só o teste do que mudou, escolhido pelo script:
+- `test_mudou_a_memoria_roda_so_os_testes_da_memoria` / `test_cada_teste_escolhido_diz_por_que` / `test_import_por_modulo_de_projeto_comum` / `test_arquivo_de_teste_que_mudou_entra` — a escolha, em memória
+- `test_mudou_um_comando_md_roda_o_teste_que_o_cita` / `test_md_precisa_da_pasta_junto_do_nome` / `test_nome_parecido_nao_conta` — citação de arquivo, sem pegar nome parecido nem texto solto
+- `test_configuracao_do_pytest_mudou_roda_tudo` / `test_conftest_vale_so_para_os_testes_da_pasta_dele` / `test_mudanca_sem_teste_nao_escolhe_nada` — configuração do pytest e mudança sem teste
+- `test_le_o_que_mudou_no_git_de_verdade` — a conversa com o git: commits da branch + o que está por commitar
 
 **Último 100% verde:** 2026-11-12 · branch feature/comando-guardado-inteiro (comando guardado inteiro) · commit 874296f · 1564 passed

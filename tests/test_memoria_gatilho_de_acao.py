@@ -120,7 +120,7 @@ def test_no_repositorio_a_nova_e_a_que_ainda_nao_tem_commit(proj):
         subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t.t", *args], cwd=proj, check=True,
                        capture_output=True)
     _anotacao(proj, "feedback_antiga")
-    git("init", "-q")
+    git("init", "-q", "--template=")
     git("add", "memory")
     git("commit", "-q", "-m", "base")
     _anotacao(proj, "feedback_nova")

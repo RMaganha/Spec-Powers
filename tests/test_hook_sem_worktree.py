@@ -44,12 +44,13 @@ def _git(*args, cwd):
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 
 
-@pytest.fixture()
-def repo_com_worktree(tmp_path):
-    """Repo principal + um worktree de verdade, criado como a conversa da 0.44.0 criou."""
-    principal = tmp_path / "kit"
+@pytest.fixture(scope="module")
+def repo_com_worktree(tmp_path_factory):
+    """Repo principal + um worktree de verdade, criado como a conversa da 0.44.0 criou. Montado uma vez por
+    arquivo: os testes só leem (o hook lê o arquivo `.git` do worktree, sem rodar o git)."""
+    principal = tmp_path_factory.mktemp("sem_worktree") / "kit"
     principal.mkdir()
-    _git("init", "-q", "-b", "main", cwd=principal)
+    _git("init", "-q", "--template=", "-b", "main", cwd=principal)
     _git("-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q", "--allow-empty", "-m", "i", cwd=principal)
     wt = principal / ".claude" / "worktrees" / "partida-em-dois-niveis"
     _git("worktree", "add", "-q", str(wt), "-b", "worktree-partida", cwd=principal)

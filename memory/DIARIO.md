@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-17
+
+- [suite-lenta] 0.65.0: regra 9 roda só o teste do que mudou e a suíte inteira uma vez, antes do merge; molde `templates/pytest/` com pasta temporária por projeto e uma rodada de pytest por vez; suíte do kit em camadas (~422s → 13.74s no arquivo mais pesado) → sessions/2026-11-17-suite-lenta.md
+
 ## 2026-11-16
 
 - [sobras-do-sono-da-memoria] 0.64.0: os 18 hooks leem a entrada em UTF-8 (`hooks/_entrada.py`); regra 3 de front conforme o projeto, nunca Tailwind e Mantine no mesmo app (por tela → por projeto); fecho do sono sem a suíte quando a rodada só toca `memory/**` e `docs/decisoes.md` → sessions/2026-11-16-sobras-do-sono-da-memoria.md

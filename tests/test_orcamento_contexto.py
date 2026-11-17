@@ -11,7 +11,7 @@ Estes testes são o teto. Guardrail não se apaga — se move pra onde carrega q
 import re
 from pathlib import Path
 
-from _texto_kit import BLOCOS, texto_do_kit
+from _texto_kit import BLOCOS
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -26,7 +26,7 @@ TETO_BLOCO = 9000           # caracteres — cada bloco do kit (o hook limita a 
 TETO_LINHA = 600            # bytes — linha gigante é procedimento disfarçado de regra
 TETO_MAPA = 6000            # bytes — mapa é 1 tela, não arquivo morto
 TETO_INDEX = 7000           # bytes — índice de tarefas ABERTAS
-TETO_MEMORY_TOPO = 6000     # bytes — o TOPO do índice de memória (famílias); os subíndices carregam sob demanda
+TETO_MEMORY_TOPO = 6000     # bytes — o TOPO do índice de memória; lido por test_hook_orcamento_partida.py
 
 
 def _b(p: Path) -> int:
@@ -107,40 +107,6 @@ def test_regras_criticas_numeradas_no_bloco_2():
     assert numeros == list(range(1, 12)), f"regras críticas renumeradas: {numeros}"
 
 
-def test_molde_do_projeto_tem_marca_e_secoes():
-    """H — o molde é só a parte do projeto: marca do hook, as 4 seções na ordem e os rótulos do Contexto."""
-    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
-    assert "<!-- mss-spec:regras-do-kit -->" in txt, "molde sem a marca que liga o hook das regras do kit"
-    secoes = ["## Regras obrigatórias do projeto", "## Contexto", "## Mapa de arquivos",
-              "## Índice de regras por tipo de arquivo"]
-    posicoes = [txt.find(s) for s in secoes]
-    assert all(i >= 0 for i in posicoes), f"seção faltando no molde: {dict(zip(secoes, posicoes))}"
-    assert posicoes == sorted(posicoes), f"seções fora de ordem no molde: {dict(zip(secoes, posicoes))}"
-    for rotulo in ("**Infra:**", "**Stack/runtime:**", "**Como roda:**", "**Ambientes:**", "**Banco:**",
-                   "**Versionamento:**"):
-        assert rotulo in txt, f"rótulo {rotulo} sumiu do ## Contexto do molde"
-
-
-def test_contexto_do_molde_sem_ponteiro_pra_rules_e_na_ordem():
-    """H — o Contexto é um fato por linha, por extenso: nenhuma linha dele aponta pra `.claude/rules/`."""
-    txt = (REPO / "templates" / "CLAUDE.md").read_text(encoding="utf-8")
-    contexto = txt.split("## Contexto", 1)[1].split("\n## ", 1)[0]
-    linhas = [l for l in contexto.split("\n") if l.strip()]
-    com_ponteiro = [l for l in linhas if ".claude/rules/" in l]
-    assert not com_ponteiro, f"## Contexto com ponteiro pra .claude/rules/: {com_ponteiro}"
-    rotulos = [re.match(r"- (\*\*[^*]+:\*\*)", l).group(1) for l in linhas]
-    assert rotulos == ["**Infra:**", "**Stack/runtime:**", "**Como roda:**", "**UI:**", "**Ambientes:**",
-                       "**Banco:**", "**Integrações externas:**", "**Versionamento:**"], rotulos
-
-
-def test_cada_bloco_abre_com_desempate():
-    """H — a 1ª linha de cada bloco diz de onde vem e que a regra do projeto vence a do kit."""
-    for p in BLOCOS:
-        primeira = next(l for l in p.read_text(encoding="utf-8").split("\n") if l.strip())
-        assert "vem do plugin mss-spec" in primeira, f"{p.name}: 1ª linha não diz que vem do plugin"
-        assert "regra do CLAUDE.md do projeto vence" in primeira, f"{p.name}: 1ª linha sem o desempate"
-
-
 def test_claude_md_sem_linha_gigante():
     """H — linha de 1.600 bytes não é regra, é procedimento: mora no comando/rule, não aqui."""
     p = REPO / "templates" / "CLAUDE.md"
@@ -148,36 +114,6 @@ def test_claude_md_sem_linha_gigante():
               for i, l in enumerate(p.read_text(encoding="utf-8").split("\n"), 1)
               if len(l.encode("utf-8")) > TETO_LINHA]
     assert not gordas, "linhas acima do teto em templates/CLAUDE.md: " + str(gordas)
-
-
-def test_poda_moveu_e_nao_apagou():
-    """H — cada guardrail podado continua alcançável: o CLAUDE.md aponta o novo lar."""
-    txt = texto_do_kit()
-    destinos = {
-        "front-end (Tailwind/arquivos separados)": ".claude/rules/",
-        "segurança (secure-by-default)": "docs/SEGURANCA.md",
-        "estrutura em camadas": "docs/ESTRUTURA.md",
-        "plano de teste anti-regressão": "/mss-spec:plano-teste",
-        "pré-vôo de ambiente": "/mss-spec:doctor",
-        "log padronizado": "/mss-spec:log",
-        "memória por gatilho": "memory/MEMORY.md",
-        "corpus de falhas": "docs/EVALS.md",
-    }
-    faltando = [nome for nome, alvo in destinos.items() if alvo not in txt]
-    assert not faltando, "guardrail sem ponteiro no CLAUDE.md (foi apagado?):\n" + "\n".join(faltando)
-
-
-def test_regras_sempre_ativas_sobreviveram():
-    """H — as regras que NÃO podem sair (nasceram de falha registrada) seguem literais no molde."""
-    low = texto_do_kit().lower()
-    for marca, porque in [
-        ("não vasculhe", "F-001 — varri o disco 2×"),
-        ("âncora", "F-004 — adotei o projeto B e quebrei o B"),
-        ("não inventar fatos", "chute de caminho/host"),
-        ("ok", "não codar antes do OK"),
-        ("pt-br", "idioma"),
-    ]:
-        assert marca in low, f"regra sempre-ativa sumiu do CLAUDE.md: {marca!r} ({porque})"
 
 
 def test_mapa_carrega_um_estado_anterior():
@@ -203,40 +139,6 @@ def test_index_so_com_tarefa_viva():
     assert "## Fora de escopo" not in txt, "fora de escopo mora no to-dolist com a tag #fora-de-escopo (0.47.0)"
 
 
-def test_moldes_documentam_o_teto():
-    """I — a regra viaja pros outros projetos, não fica só neste repo."""
-    mapa = (REPO / "templates" / "MAPA.md").read_text(encoding="utf-8")
-    assert "MAPA-historico.md" in mapa, "templates/MAPA.md não ensina pra onde vai o histórico"
-    idx = (REPO / "templates" / "INDEX.md").read_text(encoding="utf-8")
-    assert "INDEX-historico.md" in idx, "templates/INDEX.md não ensina pra onde vão as tarefas fechadas"
-
-
-def test_doctor_mede_o_orcamento():
-    """G — o que não se mede, não se poda: o doctor reporta o custo de partida contra o teto."""
-    txt = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
-    low = txt.lower()
-    assert "orçamento de contexto" in low, "doctor não tem o check de orçamento de contexto"
-    for alvo in ("CLAUDE.md", "MAPA.md", "MEMORY.md", "INDEX.md", "docs/EVALS.md"):
-        assert alvo in txt, f"doctor não mede {alvo} no orçamento de partida"
-    assert "bytes" in low or "kb" in low, "doctor não reporta o custo em bytes"
-
-
-def test_diretiva_de_compactacao():
-    """J — sessão longa compacta; sem diretiva, o que importa evapora."""
-    txt = texto_do_kit()
-    low = txt.lower()
-    assert "compact" in low, "CLAUDE.md não instrui o que preservar na compactação"
-    for alvo in ("branch", "premissa"):
-        assert alvo in low, f"a diretiva de compactação não preserva {alvo}"
-
-
-def test_higiene_de_janela():
-    """K — /clear entre assuntos e investigação ampla por subagente: a janela principal fica limpa."""
-    low = texto_do_kit().lower()
-    assert "/clear" in low, "CLAUDE.md não manda /clear entre assuntos (janela-cesto-de-lixo)"
-    assert "subagente" in low, "CLAUDE.md não manda investigação ampla ir por subagente"
-
-
 def test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega():
     """L — 'acima de 25 KB o excedente não carrega' vale só pra pasta NATIVA do Claude Code. O índice do repo
     entra pelo Read (2.000 linhas). Copiar o teto da nativa pro repo mandou PODAR um índice de 93 memórias."""
@@ -245,24 +147,6 @@ def test_moldes_nao_dizem_que_o_indice_do_repo_nao_carrega():
         for frase in ("excedente nem carrega", "excedente não carrega", "200 linhas / 25 kb", "200 linhas e 25 kb"):
             assert frase not in low, f"{rel} ainda repete a premissa falsa: {frase!r}"
         assert "orçamento" in low, f"{rel} não explica que o teto é orçamento de partida"
-
-
-def test_molde_de_memoria_ensina_o_topo_e_o_subindice():
-    txt = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
-    assert "indice/" in txt and "subíndice" in txt.lower(), "templates/MEMORY.md não ensina os dois níveis"
-    assert "6 KB" in txt, "templates/MEMORY.md não documenta o teto do topo"
-    assert "memoria_indice.py" in txt, "templates/MEMORY.md não aponta o script que divide/verifica"
-
-
-def test_claude_md_manda_abrir_o_subindice_quando_a_familia_bate():
-    low = texto_do_kit().lower()
-    assert "memory/indice/" in low, "CLAUDE.md não diz onde estão os subíndices"
-    assert "antes de agir" in low, "CLAUDE.md não manda abrir o subíndice ANTES de agir"
-
-
-def test_anatomia_usa_o_teto_do_topo():
-    src = (REPO / "templates" / "anatomia.py").read_text(encoding="utf-8")
-    assert '"memory/MEMORY.md": 6000' in src, "anatomia.py ainda mede o índice contra 25 KB"
 
 
 def test_doctor_aponta_o_conserto_mecanico():

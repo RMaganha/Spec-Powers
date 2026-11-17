@@ -79,8 +79,10 @@ que você mesmo citou, foi o retrabalho do nova-feature no Whats (26/10).
 Depois:
 - branch `fix/<nome>` a partir da principal atualizada (regras de git do projeto valem: se o git é
   do owner, entregue os comandos em passo a passo);
-- **teste que reproduz o bug** primeiro (vermelho pelo motivo certo) → correção → verde → suíte
-  inteira do `docs/superpowers/PLANO-TESTE.md`, com a saída colada;
+- **teste que reproduz o bug** primeiro (vermelho pelo motivo certo) → correção → verde, rodando
+  só o teste do que mudou, escolhido por `python "${CLAUDE_PLUGIN_ROOT}/templates/testes_do_que_mudou.py" --rodar`
+  (nunca a suíte inteira na máquina), com a saída colada → a suíte inteira roda no CI (projeto sem CI: a do
+  `docs/superpowers/PLANO-TESTE.md`, uma vez, antes do merge);
 - a correção mudou um comportamento descrito numa spec? Atualize o "Estado atual" dela (regra 6).
 
 **6. Virou feature?** Se a correção pede comportamento novo (tabela nova, regra de negócio nova, tela

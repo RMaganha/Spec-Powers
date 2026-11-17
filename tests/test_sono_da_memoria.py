@@ -347,6 +347,19 @@ def test_kit_sem_citacao_morta():
     assert _indice().citacoes_mortas(REPO) == []
 
 
+def test_citacao_fora_do_repositorio_nao_e_conferida(tmp_path):
+    """CI de 2026-11-17: `~/.claude/settings.json` (a pasta pessoal de quem roda) e `docs/anatomia.html` (gerado,
+    no `.gitignore`) não existem num clone e não são citação morta. O caminho do repositório continua conferido."""
+    (tmp_path / "memory").mkdir()
+    (tmp_path / ".gitignore").write_text("# gerado\n/docs/relatorio-gerado-fora-do-git.html\n", encoding="utf-8")
+    (tmp_path / "memory" / "nota.md").write_text(
+        "Veja `~/.claude/arquivo-da-casa-que-nao-existe.json`, `docs/relatorio-gerado-fora-do-git.html`, o nome "
+        "solto `relatorio-gerado-fora-do-git.html` e `docs/arquivo-que-sumiu-de-verdade.md`.\n",
+        encoding="utf-8")
+    mortas = [c for _, c in _indice().citacoes_mortas(tmp_path, pastas=("memory",))]
+    assert mortas == ["docs/arquivo-que-sumiu-de-verdade.md"]
+
+
 def test_acervo_do_kit_foi_conferido_no_formato():
     """As 78 anotações da passada de 2026-11-13 têm `conferida:` válido; anotação gravada depois pode nascer sem ele
     (a captura não carimba — entra no próximo sono)."""

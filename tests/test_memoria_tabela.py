@@ -305,7 +305,7 @@ def _repo(tmp_path):
     raiz = _projeto(tmp_path)
     _grava(raiz, ".gitignore", ".env\ndocs/escondido.md\n")
     _grava(raiz, "docs/escondido.md", "# Escondido\n\n## Parte\nconteudo ignorado pelo git papagaio\n")
-    _git(raiz, "init", "-q")
+    _git(raiz, "init", "-q", "--template=")
     _git(raiz, "add", ".gitignore", "CLAUDE.md", "memory", "docs", "to-dolist.md")
     _git(raiz, "commit", "-q", "-m", "inicio")
     return raiz

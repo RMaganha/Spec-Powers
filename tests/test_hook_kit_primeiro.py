@@ -116,7 +116,8 @@ def test_ler_o_comando_do_kit_conta_como_entrada(amb):
 def test_ler_outro_arquivo_nao_conta(amb):
     mod, s = _mod(), _nova()
     mod.decidir(_read(REPO / "hooks" / "README.md", s), amb)
-    mod.decidir(_read(Path("C:/qualquer/projeto/commands/bug.md"), s), amb)   # commands/ de outro lugar
+    # commands/ de outro lugar — absoluto em qualquer sistema (`C:/...` no Linux vira pasta dentro do kit)
+    mod.decidir(_read(Path(REPO.anchor) / "qualquer" / "projeto" / "commands" / "bug.md", s), amb)
     assert mod.decidir(_skill("superpowers:brainstorming", s), amb)
 
 

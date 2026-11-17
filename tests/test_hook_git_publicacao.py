@@ -310,7 +310,7 @@ def test_processo_consulta_o_git_de_verdade(tmp_path):
     """Sem stub: repo real em `dev` → `git push` puro é negado; em feature → pede aprovação."""
     def git(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
-    git("init", "-q", "-b", "dev")
+    git("init", "-q", "--template=", "-b", "dev")
     git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "x")
     assert json.loads(_rodar(_evento("git push", cwd=tmp_path)).stdout)["hookSpecificOutput"][
         "permissionDecision"] == "deny"
