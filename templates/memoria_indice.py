@@ -591,6 +591,24 @@ def _nomes_de_arquivo(raiz: Path) -> set:
         return set()
 
 
+def _ignorado_pelo_git(proj: Path, caminho: str) -> bool:
+    """O `.gitignore` da raiz do projeto ignora `caminho` (padrões simples: `/docs/x.html`, `docs/*.html`, `x.md`)."""
+    from fnmatch import fnmatch
+    try:
+        linhas = (Path(proj) / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return False
+    nome = caminho.rsplit("/", 1)[-1]
+    for linha in linhas:
+        p = linha.strip()
+        if not p or p.startswith(("#", "!")):
+            continue
+        p = p.rstrip("/")
+        if fnmatch(caminho, p.lstrip("/")) or ("/" not in p.lstrip("/") and fnmatch(nome, p)):
+            return True
+    return False
+
+
 def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
     """[(arquivo:linha, citação)] de todo caminho em crase, fora de bloco de código, que não existe no projeto
     nem no kit. Caminho com separador resolve relativo ao projeto (ou ao kit); nome solto vale se existe algum
@@ -602,10 +620,10 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
         if any(x in cit for x in ("<", "${", "{", "*")):
             return True
         c = cit.replace("\\", "/")
-        if c.startswith("~/"):                      # caminho da casa do usuário (ex.: `~/.claude/...`)
-            casa = Path.home()
-            # máquina sem o Claude Code (o CI): a casa de quem roda não é a do owner — não há o que conferir
-            return (casa / c[2:]).exists() or not (casa / ".claude").exists()
+        if c.startswith("~/"):
+            # pasta pessoal de quem roda (`~/.claude/...`): fora do projeto, muda de máquina pra máquina — no CI
+            # (2026-11-17) nem existe. Não é conferida.
+            return True
         p = Path(c)
         if p.is_absolute() and not c.startswith("/"):
             return p.exists()
@@ -618,8 +636,10 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
             nomes["todos"] = _nomes_de_arquivo(proj) | _nomes_de_arquivo(KIT)
             nomes["moldes"] = _nomes_de_arquivo(KIT / "templates")
         if "/" in c:
-            # molde do kit (`docs/ARQUITETURA.md`, `docs/SEGURANCA.md`): nasce no projeto pelo kickoff/upgrade
-            return (proj / c).exists() or (KIT / c).exists() or nome in nomes["moldes"]
+            # molde do kit (`docs/ARQUITETURA.md`, `docs/SEGURANCA.md`): nasce no projeto pelo kickoff/upgrade;
+            # arquivo gerado que o `.gitignore` deixa fora do git (`docs/anatomia.html`) não existe num clone
+            return ((proj / c).exists() or (KIT / c).exists() or nome in nomes["moldes"]
+                    or _ignorado_pelo_git(proj, c))
         return nome in nomes["todos"]
 
     out = []
