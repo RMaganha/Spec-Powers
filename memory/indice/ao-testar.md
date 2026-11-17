@@ -1,6 +1,9 @@
 # Ao testar
 
-- **quando escrever teste pra comando ou skill do kit** → [Comando-prosa não se testa como código](../feedback_comandos_prosa_nao_unit_test.md) — wiring no smoke, nunca unit test teatral
+- **quando escrever teste pra comando ou skill do kit** → [Comando-prosa não se testa como código](../feedback_comandos_prosa_nao_unit_test.md) — só caminho citado e manifesto; frase em `.md` só se for guarda do EVALS
+- **quando escrever ou reescrever teste do kit** → [Teste não cria pasta](../feedback_teste_nao_cria_pasta.md) — a regra em memória; disco, processo e git só no teste que prova a leitura de verdade
+- **quando for rodar pytest na máquina do owner** → [Suíte inteira só no CI](../feedback_suite_inteira_so_no_ci.md) — na máquina, `templates/testes_do_que_mudou.py --rodar`; teste ainda não reescrito só no CI (F-073)
+- **quando o pytest deixar pastas acumulando na pasta temporária ou a máquina ficar lenta depois de interromper o pytest** → [Pasta temporária por projeto](../project_pytest_pasta_temporaria_por_projeto.md) — rodada interrompida trava lixo por 3 dias; o molde `templates/pytest/conftest.py` resolve
 - **quando for validar uma tela ou UI** → [Validação de UI só determinística](../feedback_validacao_ui_deterministica.md) — nunca dirigir o browser ao vivo; smoke visual = humano
 - **quando provar um hook do kit como processo, mandando o evento pela entrada do programa** → [Hook pelo PowerShell chega com marca](../project_hook_pelo_powershell_chega_com_marca.md) — pelo pipe do PowerShell 5.1 o hook sai calado; chame pelo Bash, lendo o evento de um arquivo
 - **quando escrever ou mexer em hook que lê o evento, ou no teste dele com texto acentuado** → [Hook lê a entrada em UTF-8](../project_hook_le_entrada_em_utf8.md) — só por `hooks/_entrada.py`; teste manda bytes UTF-8 crus sem `PYTHONIOENCODING` e prova o vermelho contra os hooks da `main`

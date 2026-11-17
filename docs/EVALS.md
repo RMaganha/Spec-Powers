@@ -79,6 +79,30 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-068 | 2026-11-13 | quando um ajudante devolver um achado que vai virar marca ou correção gravada | achado de ajudante gravado sem conferir na fonte | proposto: achado do tipo "não existe / não faz" se confere no código antes de gravar (passo do "Uso interno: sono" do `commands/memory.md`) · sem teste | aberto |
 | F-069 | 2026-11-13 | quando o sono comparar duas fontes que discordam | correção posterior marcada como conflito | regra gravada: correção posterior clara não é conflito (`commands/memory.md`, "Uso interno: sono"; spec `docs/specs/sono-da-memoria.md`, decisão 14) · sem teste | aberto |
 | F-070 | 2026-11-16 | quando um teste novo sai vermelho antes do conserto | **vermelho pelo motivo errado**: o teste do `Stop` em `tests/test_hook_entrada_utf8.py` comparava bytes com texto (`b'' == ''`) e seguiria vermelho depois do conserto | ler a mensagem do vermelho (não só o FAILED) e provar o teste contra o código antigo (`git archive main hooks`) — anotação `memory/project_hook_le_entrada_em_utf8.md` | aberto |
+| F-071 | 2026-11-17 | quando atribuir lentidão a uma causa fora do código (máquina, antivírus, instalação) | premissa derrubada pelo owner (a TI e o suporte da Dell conferiram a máquina) e fato afirmado a partir de uma consulta que falhou ("nenhum erro de hardware") | proposto: medir o que o código faz antes de culpar o ambiente; afirmar só com a saída da consulta conferida | aberto |
+| F-072 | 2026-11-17 | quando declarar uma parte do plano como feita | "parte 3 feita" com 4 de 54 arquivos de teste reescritos | proposto: contar o feito contra o total antes de dizer pronto | aberto |
+| F-073 | 2026-11-17 | quando rodar teste na máquina do owner | rodou 6 arquivos de teste ainda não reescritos (85 pastas temporárias) depois de reconhecer que eles criam pasta | regra 9 + `templates/testes_do_que_mudou.py`; proposto: teste não reescrito roda só no CI — anotação `memory/feedback_suite_inteira_so_no_ci.md` | aberto |
+
+### F-073 — testes antigos rodados na máquina depois do aviso (aberto)
+
+- **Falhou:** o owner tinha cobrado as milhares de pastas; eu reconheci que os testes antigos criam uma pasta por teste e, para conferir uma troca de uma linha (`git init --template=`), rodei 6 desses arquivos na máquina dele. Ele viu as pastas nascendo: *"está criando as pastas com assunto antigos tudo de novo, eu não aguento mais isso"*.
+- **Verdade:** a conferência cabia no CI, que roda a suíte inteira fora da máquina dele, em 24 a 32 s.
+- **Guardrail:** proposto — teste ainda não reescrito (que cria pasta) não roda na máquina, só no CI; a anotação `memory/feedback_suite_inteira_so_no_ci.md` tem gatilho de ação no comando da suíte inteira.
+- **Teste:** nenhum.
+
+### F-072 — "parte 3 feita" com 4 de 54 arquivos (aberto)
+
+- **Falhou:** a parte 3 era "a suíte do kit nas 3 camadas"; reescrevi os 4 arquivos mais pesados e disse que as 3 partes estavam feitas. As 937 pastas da rodada seguinte mostraram o resto.
+- **Verdade:** 4 de 54 arquivos; os outros cerca de 1000 testes continuavam criando uma pasta cada.
+- **Guardrail:** proposto — antes de dizer pronto, contar o feito contra o total da parte (arquivos, casos) e dizer o que falta.
+- **Teste:** nenhum.
+
+### F-071 — lentidão atribuída à máquina antes de medir o código (aberto)
+
+- **Falhou:** atribuí a lentidão da suíte à máquina, ao antivírus e a uma instalação da Dell, e afirmei "nenhum erro de hardware" a partir de uma consulta ao log do Windows que tinha falhado (não trouxe nem o evento de boot).
+- **Verdade:** a TI e o suporte da Dell conferiram a máquina; a causa era a suíte: milhares de pastas por rodada, lixo travado por 3 dias na pasta temporária do pytest e a regra que rodava tudo a cada ajuste. A mesma suíte leva 24 a 32 s no Linux do CI.
+- **Guardrail:** proposto — medir o que o código faz antes de culpar o ambiente; fato afirmado só com a saída da consulta conferida.
+- **Teste:** nenhum.
 
 ### F-070 — vermelho pelo motivo errado (aberto)
 
