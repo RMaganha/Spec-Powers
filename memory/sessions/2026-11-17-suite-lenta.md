@@ -31,6 +31,16 @@ para separar a suíte (a regra "só o teste do que mudou" já resolve); rodar a 
   ~231s → 70.65s; repositório montado uma vez por arquivo onde só se lê; todo `git init` com `--template=`.
 - 2 linhas em `docs/decisoes.md`; `tests/test_pytest_mss.py` (9) e `tests/test_smoke_kit.py` (+1).
 
+- Virada do fim da conversa: o owner cobrou que rodar o teste do bpmn quando a mudança foi na memória não faz
+  sentido. Na máquina, os testes passam a ser escolhidos pelo `templates/testes_do_que_mudou.py`; a suíte inteira
+  roda no GitHub Actions (`.github/workflows/testes.yml`), que substituiu o GitLab CI nunca ativado.
+- No Linux do GitHub a suíte inteira levou 25 a 32 s (na máquina do owner, 517 a 2379 s). O CI achou 2 testes que
+  só passavam na máquina do owner (caminho `C:/...`; citação de `~/...` e de arquivo gerado fora do git);
+  consertados, CI verde no commit `b3c2b2d`.
+- Rejeitado: login no navegador embutido para ler o log do CI (o painel não ficou logado); o CI publica a lista das
+  falhas numa anotação, que a API pública mostra.
+
 ## Próximo
-Suíte inteira verde, commit da parte 3 e merge com a aprovação do owner; push é do owner. Em cada projeto, o
-`/mss-spec:upgrade` leva o molde, e a suíte de cada projeto grande se reorganiza na conversa dele.
+Merge na `main` com a aprovação do owner; push é do owner. Reescrever os ~50 arquivos de teste antigos (a regra
+testada em memória, sem pasta; disco só no teste da leitura) — até lá eles não rodam na máquina, só no CI. Em cada
+projeto, o `/mss-spec:upgrade` leva o molde, e a suíte de cada projeto grande se reorganiza na conversa dele.
