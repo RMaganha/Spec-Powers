@@ -78,6 +78,18 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-067 | 2026-11-12 | quando abrir uma branch (ou fechar uma feature) e atualizar à mão o "Onde estamos" do `docs/superpowers/MAPA.md` | **segundo bloco de histórico posto à mão no MAPA; o hook não viu e só a suíte de 20 minutos acusou**: ao abrir a `feature/comando-guardado-inteiro` empurrei o estado anterior para baixo de um novo `<!-- histórico do estado anterior -->` sem tirar o mais antigo; o `hooks/teto_ao_gravar.py` chama o rodízio, que separa os blocos por linha `---`, e o MAPA do kit separa por comentário | nenhum ainda — o ajuste do rodízio está no `to-dolist.md` (2026-11-12, por ordem do owner) · `tests/test_orcamento_contexto.py::test_mapa_carrega_um_estado_anterior` acusa, mas só na suíte | aberto |
 | F-068 | 2026-11-13 | quando um ajudante devolver um achado que vai virar marca ou correção gravada | achado de ajudante gravado sem conferir na fonte | proposto: achado do tipo "não existe / não faz" se confere no código antes de gravar (passo do "Uso interno: sono" do `commands/memory.md`) · sem teste | aberto |
 | F-069 | 2026-11-13 | quando o sono comparar duas fontes que discordam | correção posterior marcada como conflito | regra gravada: correção posterior clara não é conflito (`commands/memory.md`, "Uso interno: sono"; spec `docs/specs/sono-da-memoria.md`, decisão 14) · sem teste | aberto |
+| F-070 | 2026-11-16 | quando um teste novo sai vermelho antes do conserto | **vermelho pelo motivo errado**: o teste do `Stop` em `tests/test_hook_entrada_utf8.py` comparava bytes com texto (`b'' == ''`) e seguiria vermelho depois do conserto | ler a mensagem do vermelho (não só o FAILED) e provar o teste contra o código antigo (`git archive main hooks`) — anotação `memory/project_hook_le_entrada_em_utf8.md` | aberto |
+
+### F-070 — vermelho pelo motivo errado (aberto)
+
+- **Falhou:** na 0.64.0 escrevi o teste do `Stop` com `assert proc.stdout.strip() == ""`, mas o `stdout` era
+  bytes: `b'' == ''` é falso. O teste saiu vermelho antes do conserto — pelo motivo errado — e continuaria
+  vermelho depois dele. Só apareceu porque o conserto deixou 22 de 23 verdes e a mensagem mostrava `b''`.
+- **Verdade:** o vermelho só prova o teste quando falha pelo motivo do bug. Corrigido para `b""`, o teste foi
+  rodado contra os hooks da `main` e devolveu o sintoma real ("falta no bloco `Já decidido…`").
+- **Guardrail:** ler a mensagem do vermelho, não só o FAILED, e provar o teste contra o código antigo — na
+  anotação `memory/project_hook_le_entrada_em_utf8.md`. Nenhum mecânico.
+- **Teste:** nenhum.
 
 ### F-069 — correção posterior marcada como conflito (aberto)
 
