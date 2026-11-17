@@ -347,6 +347,14 @@ def test_kit_sem_citacao_morta():
     assert _indice().citacoes_mortas(REPO) == []
 
 
+def test_citacao_da_casa_nao_e_conferida_onde_nao_ha_claude(monkeypatch):
+    """No CI (2026-11-17) a pasta pessoal não tem `~/.claude`: `~/.claude/settings.json` não tem como ser conferido
+    lá e não é citação morta. Na máquina com o Claude Code, continua conferido."""
+    mod = _indice()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: Path(REPO.anchor) / "casa-sem-claude-que-nao-existe"))
+    assert mod.citacoes_mortas(REPO) == []
+
+
 def test_acervo_do_kit_foi_conferido_no_formato():
     """As 78 anotações da passada de 2026-11-13 têm `conferida:` válido; anotação gravada depois pode nascer sem ele
     (a captura não carimba — entra no próximo sono)."""

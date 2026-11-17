@@ -603,7 +603,9 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
             return True
         c = cit.replace("\\", "/")
         if c.startswith("~/"):                      # caminho da casa do usuário (ex.: `~/.claude/...`)
-            return (Path.home() / c[2:]).exists()
+            casa = Path.home()
+            # máquina sem o Claude Code (o CI): a casa de quem roda não é a do owner — não há o que conferir
+            return (casa / c[2:]).exists() or not (casa / ".claude").exists()
         p = Path(c)
         if p.is_absolute() and not c.startswith("/"):
             return p.exists()
