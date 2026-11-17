@@ -169,7 +169,8 @@ def _utf8():
 
 def main():
     try:
-        evento = json.load(sys.stdin)
+        from _entrada import ler_evento          # UTF-8, seja qual for a página de código do console
+        evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)                                  # entrada inválida → libera
     if isinstance(evento, dict) and evento.get("hook_event_name") == "WorktreeCreate":

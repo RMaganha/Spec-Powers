@@ -304,7 +304,8 @@ def zerar(sessao):
 
 def main():
     try:
-        evento = json.load(sys.stdin)
+        from _entrada import ler_evento          # UTF-8, seja qual for a página de código do console
+        evento = ler_evento()
         if "--zerar" in sys.argv[1:]:                # SessionStart `compact`: a regra volta a valer
             zerar(evento.get("session_id"))
             sys.exit(0)

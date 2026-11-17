@@ -1,17 +1,18 @@
 ---
 name: feedback-frontend-tailwind-arquivos-separados
-description: "Front-end/HTML de aplicação — sempre Tailwind CSS + plugin @tailwindcss/typography, e JS/CSS/estilos em arquivos e pastas separadas, nunca tudo inline"
+description: "Front-end/HTML de aplicação — Tailwind + @tailwindcss/typography ou Mantine conforme o projeto (nunca os dois no mesmo app), e JS/CSS/estilos em arquivos e pastas separadas, nunca tudo inline"
 gatilho: quando criar ou editar HTML, CSS ou JS de aplicação
 sem_gatilho_de_acao: já tem cerca própria — regra por tipo de arquivo `.claude/rules/frontend.md`
-conferida: 2026-11-13 — conflito — fonte: .claude/rules/frontend.md:11
+conferida: 2026-11-16 — confirmada — fonte: templates/FRONTEND.md:22
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: db2be446-fcee-4afe-88da-ad226447067e
 ---
 
-Ao construir HTML/front-end de **aplicação**: usar sempre **Tailwind CSS** com o plugin
-**`@tailwindcss/typography`**, e **separar** JS, CSS e estilos em arquivos e pastas próprias
+Ao construir HTML/front-end de **aplicação**: o nível é **do projeto** (linha **UI:** do `CLAUDE.md`) —
+Nível 1 = **Tailwind CSS** com o plugin **`@tailwindcss/typography`**; Nível 2 = **Mantine** (React + TS);
+nunca os dois no mesmo app. Nos dois, **separar** JS, CSS e estilos em arquivos e pastas próprias
 (ex.: `static/js/`, `static/css/`) — nunca tudo inline dentro de um único HTML.
 
 **Why:** preferência de organização/manutenção do owner (engenheiro sênior). Código de front tudo
@@ -23,4 +24,4 @@ mantém-se self-contained, senão perde a portabilidade. Já embutido no `templa
 mss-spec (linha da UI + Regra crítica de front-end). Relacionado a [[project-memoria-local-ao-repo]] e
 [[feedback-nao-inventar-fatos-concretos]] (mesmo plugin).
 
-CONFLITO: `templates/regras-do-kit/2-regras-criticas.md:6` (sem data) diz "Front-end sempre Tailwind"; `templates/FRONTEND.md:22` (decisão de 2026-07-13, [[project_front_moderno_mantine]]) diz que onde a Mantine entra o Tailwind sai. O lado a manter é do owner.
+substituiu: "sempre Tailwind" (decisão do owner, 2026-11-16) — Tailwind ou Mantine conforme o projeto, nunca os dois no mesmo app (`templates/regras-do-kit/2-regras-criticas.md:6`, [[project_front_moderno_mantine]]).

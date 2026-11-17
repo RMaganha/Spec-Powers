@@ -5,6 +5,7 @@
 
 ## 2026-11-16
 
+- [sobras-do-sono-da-memoria] 0.64.0: os 18 hooks leem a entrada em UTF-8 (`hooks/_entrada.py`); regra 3 de front conforme o projeto, nunca Tailwind e Mantine no mesmo app (por tela → por projeto); fecho do sono sem a suíte quando a rodada só toca `memory/**` e `docs/decisoes.md` → sessions/2026-11-16-sobras-do-sono-da-memoria.md
 - [sono-da-memoria-conversas] 0.63.0: o sono leu as 67 conversas gravadas com 14 ajudantes; 4 notas corrigidas pela conversa, 1 não confirmada virou confirmada, 0 rebaixadas, 14 anotações novas, 1 decisão recuperada, 27 diários retroativos e 17 blocos acrescentados; `conversas lidas até` registrado → sessions/2026-11-16-sono-da-memoria-conversas.md
 
 ## 2026-11-13

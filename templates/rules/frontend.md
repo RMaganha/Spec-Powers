@@ -8,10 +8,12 @@ paths:
 
 # Front-end deste projeto
 
-- **Tailwind CSS** + `@tailwindcss/typography`. **JS e CSS em arquivos próprios**, nunca inline no
-  HTML — a exceção é documento standalone que precisa abrir sem servidor.
-- Tela **densa** (grid com sort/filtro, dashboard, muitos campos, date picker) → **React + TypeScript
-  + Mantine**, instalado por `/mss-spec:frontend`. Página simples → Jinja + Tailwind.
+- **Nível conforme o projeto** (linha **UI:** do `CLAUDE.md`; níveis em `docs/FRONTEND.md`): Nível 1 =
+  Jinja + **Tailwind CSS** + `@tailwindcss/typography`; sobe pro Nível 2 = **React + TypeScript +
+  Mantine** (instalado por `/mss-spec:frontend`) quando uma tela pede (grid com sort/filtro, dashboard,
+  muitos campos, date picker). **Nunca os dois no mesmo app.**
+- **JS e CSS em arquivos próprios** nos dois níveis, nunca inline no HTML — a exceção é documento
+  standalone que precisa abrir sem servidor.
 - **HTML com JS inline** (gerador que escreve script na página): valide a **sintaxe** com
   `node --check` no teste. Assert de substring passa com JS quebrado — foi assim que nasceu a tela
   branca (caso **F-007** de `docs/EVALS.md`).

@@ -355,3 +355,15 @@ def test_acervo_do_kit_foi_conferido_no_formato():
     conferidas = sum(n for e, n in r["por_estado"].items() if e != mod.NUNCA)
     assert conferidas >= 78, f"só {conferidas} anotações conferidas; nunca conferidas: {r['nunca']}"
     assert [p for p in mod.verificar(REPO / "memory") if "conferida" in p] == []
+
+
+# ------------------------------------------------------------------ fecho: a suíte só quando a rodada muda código
+
+def test_fecho_do_sono_so_roda_a_suite_quando_a_rodada_muda_codigo():
+    """A 1ª rodada da parte 2 levou 1:50:48 de suíte sem mudar código (owner, 2026-11-16): diff só em `memory/**`
+    e `docs/decisoes.md` fecha com `verificar` e `citacoes` limpos; qualquer outro arquivo → suíte inteira."""
+    texto = (REPO / "commands" / "memory.md").read_text(encoding="utf-8")
+    fecho = texto[texto.index("8. **Feche:**"):texto.index("### Parte 2")]
+    assert "`memory/**`" in fecho and "`docs/decisoes.md`" in fecho, fecho
+    assert "sem a suíte" in fecho and "suíte inteira" in fecho, fecho
+    assert "a suíte do projeto verde" not in fecho, "o fecho ainda cobra a suíte em toda rodada"

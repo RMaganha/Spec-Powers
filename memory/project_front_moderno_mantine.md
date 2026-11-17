@@ -1,8 +1,8 @@
 ---
 name: front-moderno-mantine
-description: Padrão de front em dois níveis — Jinja+Tailwind (simples) × React+TS+Mantine (denso); Mantine escolhida, Next/Remix fora de propósito; decisão por-tela
+description: Padrão de front em dois níveis — Jinja+Tailwind (simples) × React+TS+Mantine (denso); Mantine escolhida, Next/Remix fora de propósito; decisão por projeto, nunca os dois no mesmo app
 gatilho: quando decidir o nível de front de uma tela
-conferida: 2026-11-13 — confirmada — fonte: templates/FRONTEND.md:11
+conferida: 2026-11-16 — confirmada — fonte: templates/FRONTEND.md:11
 metadata:
   type: project
 ---
@@ -10,10 +10,11 @@ metadata:
 Decisão de front do kit (2026-07-13, branch `plugin-v2`), a partir da avaliação dos sistemas legados
 MSIG (MS10/MSS Digital, telas ASP.NET WebForms densas de campos/grids):
 
-- **Dois níveis, decisão por-tela** (não por-projeto): **Nível 1** = Jinja + Tailwind (+ HTMX/Alpine)
-  para telas simples/server-rendered; **Nível 2** = React + TypeScript + Mantine (SPA via Vite) para
-  telas densas (grids sort/filtro, muitos campos, date pickers). Regra: comece no 1, suba pro 2 só
-  quando a tela pedir componentes que doeria fazer à mão.
+- **Dois níveis, decisão por projeto** (declarada na linha **UI:** do `CLAUDE.md`): **Nível 1** = Jinja +
+  Tailwind (+ HTMX/Alpine), server-rendered; **Nível 2** = React + TypeScript + Mantine (SPA via Vite).
+  Regra: o projeto começa no 1 e sobe pro 2 quando uma tela pedir componentes que doeria fazer à mão
+  (grids sort/filtro, muitos campos, date pickers); nunca os dois no mesmo app.
+  substituiu: decisão por-tela, "o mesmo projeto pode ter os dois" (2026-07-13) — por projeto (decisão do owner, 2026-11-16).
 - **Stack estável (verificado no npm em 2026-07-13):** Mantine **9.4.1** + React **19** (o Mantine 9
   exige React 19; `@mantine/dates` peer `react ^19.2`) + `mantine-datatable` **9.3.1** (peer core `>=9`,
   `react >=19`, `clsx`). Os `@mantine/*` ficam na MESMA versão (peer exato entre si). **Lição:** o

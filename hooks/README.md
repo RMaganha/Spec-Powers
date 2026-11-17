@@ -1,5 +1,8 @@
 Dezoito hooks, em duas filosofias **opostas** — de propósito: **cerca** (bloqueia, vem ligada) × **rede** (cutuca, avisa).
 Os dezoito anotam no **registro local** cada vez que **agem** (seção no fim deste arquivo).
+Os dezoito leem o evento por `_entrada.py` (`ler_evento`): bytes do stdin decodificados em **UTF-8**, seja qual for a
+página de código do console — lido como texto, o Windows entregava cp1252 e nenhum gatilho com acento casava (0.64.0);
+entrada que não é UTF-8 → o hook sai calado (falha aberta). Teste: `tests/test_hook_entrada_utf8.py`.
 
 | Hook | Evento | Estado | Bloqueia? | Papel |
 |---|---|---|---|---|

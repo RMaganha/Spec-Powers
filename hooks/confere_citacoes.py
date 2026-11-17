@@ -393,7 +393,8 @@ def decidir(evento, ambiente=None):
 
 def main():
     try:
-        evento = json.load(sys.stdin)
+        from _entrada import ler_evento          # UTF-8, seja qual for a página de código do console
+        evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
     motivo = decidir(evento)
