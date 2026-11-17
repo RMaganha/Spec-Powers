@@ -94,6 +94,17 @@ def test_kit_usa_o_proprio_molde():
     assert (REPO / "pytest.ini").read_bytes() == (REPO / "templates" / "pytest" / "pytest.ini").read_bytes()
 
 
+def test_repositorio_de_teste_nasce_sem_o_modelo_do_git():
+    """Cada `git init` copia 14 scripts de exemplo e mais 4 itens que teste nenhum usa (41 itens contra 23 com
+    `--template=`, medido em 2026-11-17). Repositório de teste nasce com `--template=`."""
+    sem = []
+    for arquivo in sorted((REPO / "tests").glob("*.py")):
+        for n, linha in enumerate(arquivo.read_text(encoding="utf-8").splitlines(), 1):
+            if '"init"' in linha and "--template=" not in linha:
+                sem.append(f"{arquivo.name}:{n}")
+    assert not sem, f"git init sem --template=: {sem}"
+
+
 def test_kickoff_e_upgrade_levam_o_molde_aos_projetos():
     for comando in ("kickoff.md", "upgrade.md"):
         texto = (REPO / "commands" / comando).read_text(encoding="utf-8")

@@ -1,10 +1,11 @@
 # Plano de teste base — kit mss-spec
 
-**Comando:** `python -m pytest tests/ -q` — a suíte inteira roda **uma vez, antes do merge**. Durante o trabalho, só o teste do que mudou: `python -m pytest tests/test_<x>.py -q` (`--lf` reroda só o que falhou). Uma rodada de pytest por vez.
+**Comando:** `python -m pytest tests/ -q` — a suíte inteira roda no CI. Na máquina, só o teste do que mudou: `python templates/testes_do_que_mudou.py --rodar` escolhe pelo que mudou na branch (`--lf` reroda só o que falhou). Uma rodada de pytest por vez.
 
 **O que o baseline cobre** (1 linha por teste):
 
 `tests/test_smoke_kit.py` — smoke do próprio kit (referências, manifestos, wiring de cada capacidade):
+- `test_teste_so_do_que_mudou_e_suite_uma_vez_antes_do_merge` — regra 9 (0.65.0): durante o trabalho só o teste do que mudou; a suíte inteira uma vez, antes do merge
 - `test_plugin_root_refs_existem` — todo `${CLAUDE_PLUGIN_ROOT}/<caminho>` citado em commands/ e skills/ existe no repo (pega referência morta, ex-ff4d384)
 - `test_templates_citados_existem` — todo `` `templates/...` `` citado nos commands existe
 - `test_manifestos_validos_e_coerentes` — plugin.json e marketplace.json parseiam, nome bate, versões iguais
@@ -245,5 +246,18 @@
 - `test_escape_do_owner_desliga_so_esta_conferencia` / `test_sem_numero_de_conversa_nao_age` / `test_defeito_na_conferencia_nao_trava_a_gravacao` / `test_regra_por_tipo_de_arquivo_e_comando_cortado_saem_numa_negacao_so` — garantias, dentro do hook
 - `test_modo_capturar_manda_gravar_o_comando_inteiro` / `test_readme_dos_hooks_fala_da_conferencia` — a frase da captura e a documentação
 - `test_com_comando_cortado_lista_anotacoes_e_diarios` / `test_verificar_avisa_quantas_sao_e_nao_altera_nenhuma` / `test_verificar_sem_corte_nao_avisa` — o `verificar` só conta as antigas
+
+`tests/test_pytest_mss.py` — molde `templates/pytest/conftest.py` (0.65.0): pasta temporária própria do projeto e uma rodada de pytest por vez:
+- `test_pasta_temporaria_e_do_projeto` / `test_trava_so_um_por_vez_e_solta_ao_fechar` — a pasta é `<temp>/pytest-<projeto>`; a trava não deixa a 2ª rodada entrar e solta quando fecha
+- `test_configure_poe_a_pasta_do_projeto_e_trava` / `test_pytest_de_dentro_da_rodada_nao_trava_nem_troca_a_pasta` / `test_pasta_dada_na_linha_de_comando_fica` — o `pytest_configure` do molde
+- `test_kit_usa_o_proprio_molde` / `test_kickoff_e_upgrade_levam_o_molde_aos_projetos` — o kit usa o molde e o leva aos projetos (sem criar `pytest.ini` por cima da configuração do projeto)
+- `test_repositorio_de_teste_nasce_sem_o_modelo_do_git` — todo `git init` dos testes usa `--template=`
+- `test_segunda_rodada_espera_a_primeira_terminar` — ponta a ponta: um pytest de verdade espera a trava e roda quando ela solta
+
+`tests/test_testes_do_que_mudou.py` — `templates/testes_do_que_mudou.py` (0.65.0): na máquina, só o teste do que mudou, escolhido pelo script:
+- `test_mudou_a_memoria_roda_so_os_testes_da_memoria` / `test_cada_teste_escolhido_diz_por_que` / `test_import_por_modulo_de_projeto_comum` / `test_arquivo_de_teste_que_mudou_entra` — a escolha, em memória
+- `test_mudou_um_comando_md_roda_o_teste_que_o_cita` / `test_md_precisa_da_pasta_junto_do_nome` / `test_nome_parecido_nao_conta` — citação de arquivo, sem pegar nome parecido nem texto solto
+- `test_configuracao_do_pytest_mudou_roda_tudo` / `test_conftest_vale_so_para_os_testes_da_pasta_dele` / `test_mudanca_sem_teste_nao_escolhe_nada` — configuração do pytest e mudança sem teste
+- `test_le_o_que_mudou_no_git_de_verdade` — a conversa com o git: commits da branch + o que está por commitar
 
 **Último 100% verde:** 2026-11-12 · branch feature/comando-guardado-inteiro (comando guardado inteiro) · commit 874296f · 1564 passed

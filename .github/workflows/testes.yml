@@ -1,0 +1,27 @@
+# CI do kit mss-spec — a suíte inteira roda aqui, a cada push e pull request; na máquina roda só o teste do que
+# mudou (`templates/testes_do_que_mudou.py`, regra 9). Decisão de 2026-11-17 em docs/decisoes.md.
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # o teste das linhas do kit lê a história inteira do molde
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependências
+        run: pip install --no-cache-dir pytest PyYAML
+      - name: Identidade do git para os testes que fazem commit
+        run: |
+          git config --global user.name "ci"
+          git config --global user.email "ci@example.invalid"
+      - name: Suíte inteira
+        run: python -m pytest -q

@@ -5,9 +5,12 @@ do Energy e do Transportes em 2026-10-28: recado numerado que continua na linha 
 data, item riscado/FEITA, data DD/MM/AAAA, fora de escopo com motivo de um parágrafo.
 """
 import importlib.util
+import os
 import re
 import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "templates" / "converter_to_dolist.py"
@@ -72,11 +75,16 @@ FORA_WHATS = """# Fora de escopo
 """
 
 
+_AUTOR = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+
 def _git(proj, *args):
-    subprocess.run(["git", *args], cwd=proj, check=True, capture_output=True)
+    """Cada git é um processo: o autor vai por variável de ambiente, sem 2 `git config` por projeto."""
+    subprocess.run(["git", *args], cwd=proj, check=True, capture_output=True, env={**os.environ, **_AUTOR})
 
 
-def _projeto(tmp_path, todo=TODO_WHATS, index=INDEX_ENERGY, fora=FORA_WHATS, ignorado=True, commit=True):
+def _projeto(tmp_path, todo=TODO_WHATS, index=INDEX_ENERGY, fora=FORA_WHATS, ignorado=True, commit=False):
+    """Projeto de mentira. Git (`commit=True`) só pra quem testa o `aplicar`, o único que conversa com o git."""
     proj = tmp_path / "proj"
     sp = proj / "docs" / "superpowers"
     sp.mkdir(parents=True)
@@ -89,12 +97,16 @@ def _projeto(tmp_path, todo=TODO_WHATS, index=INDEX_ENERGY, fora=FORA_WHATS, ign
     gi = "# Caixa de captura pessoal do /mss-spec:to-dolist — local, não versionada.\n/to-dolist.md\n\n.env\n"
     (proj / ".gitignore").write_text(gi if ignorado else ".env\n", encoding="utf-8")
     if commit:
-        _git(proj, "init", "-q")
-        _git(proj, "config", "user.email", "t@t")
-        _git(proj, "config", "user.name", "t")
+        _git(proj, "init", "-q", "--template=")
         _git(proj, "add", "-A")
         _git(proj, "commit", "-q", "-m", "inicio")
     return proj
+
+
+@pytest.fixture(scope="module")
+def lido(tmp_path_factory):
+    """Projeto montado uma vez para os testes que só leem (checar e converter sem aplicar não gravam)."""
+    return _projeto(tmp_path_factory.mktemp("lido"))
 
 
 def _linhas_novas(res):
@@ -104,8 +116,8 @@ def _linhas_novas(res):
 
 # ------------------------------------------------------------------ checar (o doctor usa)
 
-def test_checar_aponta_tudo_que_esta_no_formato_antigo(tmp_path):
-    achados = _mod().checar(_projeto(tmp_path))
+def test_checar_aponta_tudo_que_esta_no_formato_antigo(lido):
+    achados = _mod().checar(lido)
     texto = " ".join(achados)
     assert "INDEX.md" in texto and "FORA-DE-ESCOPO.md" in texto and ".gitignore" in texto
     assert any("fora do formato" in a for a in achados)
@@ -135,16 +147,16 @@ def test_liberar_tira_o_to_dolist_do_gitignore_e_o_comentario_dele(tmp_path):
 
 # ------------------------------------------------------------------ tempo 2: converter
 
-def test_recado_numerado_vira_uma_linha_com_o_titulo_e_a_data_da_secao(tmp_path):
-    res = _mod().converter(_projeto(tmp_path), hoje=HOJE)
+def test_recado_numerado_vira_uma_linha_com_o_titulo_e_a_data_da_secao(lido):
+    res = _mod().converter(lido, hoje=HOJE)
     regua = [l for l in _linhas_novas(res) if "Rodar a régua" in l]
     assert regua == ['- Depois do deploy de G1+G2+G3 — 3 recados: **Rodar a régua no dia seguinte ao deploy**: '
                      '`tests/regua.py --dias 1` (comando na spec `docs/specs/regua.md`). Conferir: linha '
                      '"atividade real" aparece. (add: 2026-09-15)']
 
 
-def test_fora_de_escopo_mantem_o_texto_inteiro(tmp_path):
-    linhas = _linhas_novas(_mod().converter(_projeto(tmp_path), hoje=HOJE))
+def test_fora_de_escopo_mantem_o_texto_inteiro(lido):
+    linhas = _linhas_novas(_mod().converter(lido, hoje=HOJE))
     assert ('- PySocks para o psycopg2 #fora-de-escopo (decidido: 2026-08-03, descartado em 2026-08-03: o '
             '`psycopg2` usa a libpq, em C, que ignora proxy do Python.)') in linhas
     assert ('- Key Vault direto #fora-de-escopo (decidido: 2026-07-30, descartado em 2026-07-30: escolhemos '
@@ -160,19 +172,19 @@ def test_negrito_no_meio_da_frase_o_que_vai_ate_o_separador():
     assert m._o_que_e_motivo("Multi-nuvem") == ("Multi-nuvem", "")
 
 
-def test_data_dd_mm_aaaa_vira_aaaa_mm_dd(tmp_path):
-    linhas = _linhas_novas(_mod().converter(_projeto(tmp_path), hoje=HOJE))
+def test_data_dd_mm_aaaa_vira_aaaa_mm_dd(lido):
+    linhas = _linhas_novas(_mod().converter(lido, hoje=HOJE))
     assert any(l.startswith("- Redis para o handoff #fora-de-escopo (decidido: 2026-08-04, ") for l in linhas)
 
 
-def test_sem_data_recebe_a_data_do_upgrade_e_sem_motivo_diz_isso(tmp_path):
-    linhas = _linhas_novas(_mod().converter(_projeto(tmp_path), hoje=HOJE))
+def test_sem_data_recebe_a_data_do_upgrade_e_sem_motivo_diz_isso(lido):
+    linhas = _linhas_novas(_mod().converter(lido, hoje=HOJE))
     assert "- Revisar depois: item sem data nenhuma (add: 2026-11-05)" in linhas
     assert "- Multi-nuvem #fora-de-escopo (decidido: 2026-11-05, motivo não registrado)" in linhas
 
 
-def test_riscado_feito_e_data_incompleta_vao_pra_lista_sem_mudar(tmp_path):
-    res = _mod().converter(_projeto(tmp_path), hoje=HOJE)
+def test_riscado_feito_e_data_incompleta_vao_pra_lista_sem_mudar(lido):
+    res = _mod().converter(lido, hoje=HOJE)
     lista = res.todo_novo.split(_mod().MARCA_LISTA, 1)[1]
     assert "- ~~**Dashboard por região**~~ — **FEITA 2026-07-25** (feature #3)." in lista
     assert "- reiniciar o pool" in lista, "item embaixo de título CONCLUÍDO não é decidido pela conversão"
@@ -181,9 +193,9 @@ def test_riscado_feito_e_data_incompleta_vao_pra_lista_sem_mudar(tmp_path):
     assert not any("Dashboard por região" in l for l in _linhas_novas(res))
 
 
-def test_ordem_pela_data_mais_antiga_em_cima(tmp_path):
+def test_ordem_pela_data_mais_antiga_em_cima(lido):
     datas = [re.search(r"\((?:add|decidido): (\d{4}-\d{2}-\d{2})", l).group(1)
-             for l in _linhas_novas(_mod().converter(_projeto(tmp_path), hoje=HOJE))]
+             for l in _linhas_novas(_mod().converter(lido, hoje=HOJE))]
     assert datas == sorted(datas) and datas[0] == "2026-07-30"
 
 
@@ -194,22 +206,22 @@ def test_linha_ja_no_formato_fica_igual(tmp_path):
                       "- novo sem data (add: 2026-11-05)"]
 
 
-def test_nenhuma_linha_some_a_soma_bate(tmp_path):
-    res = _mod().converter(_projeto(tmp_path), hoje=HOJE)
+def test_nenhuma_linha_some_a_soma_bate(lido):
+    res = _mod().converter(lido, hoje=HOJE)
     c = res.contagem
     assert c["total"] == c["convertidas"] + c["titulos"] + c["lista"] + c["marcacao"]
     assert not res.problemas
 
 
-def test_index_perde_so_a_secao_e_o_arquivo_antigo_sai(tmp_path):
-    res = _mod().converter(_projeto(tmp_path), hoje=HOJE)
+def test_index_perde_so_a_secao_e_o_arquivo_antigo_sai(lido):
+    res = _mod().converter(lido, hoje=HOJE)
     assert res.index_novo == ("# Índice de tarefas\n\n## Em andamento\n- [login](../specs/login.md) — entrar — "
                               "aberta\n\n## Backlog\n- relatório mensal — aberta\n")
     assert res.apagar_fora
 
 
-def test_exemplos_mostram_tres_linhas_reais_antes_e_depois(tmp_path):
-    res = _mod().converter(_projeto(tmp_path), hoje=HOJE)
+def test_exemplos_mostram_tres_linhas_reais_antes_e_depois(lido):
+    res = _mod().converter(lido, hoje=HOJE)
     assert len(res.exemplos) == 3
     assert all(antes and depois.startswith("- ") for antes, depois in res.exemplos)
 
@@ -217,7 +229,7 @@ def test_exemplos_mostram_tres_linhas_reais_antes_e_depois(tmp_path):
 # ------------------------------------------------------------------ nunca perder nada
 
 def test_aplicar_recusa_to_dolist_que_ainda_nao_esta_no_git(tmp_path):
-    proj = _projeto(tmp_path)  # to-dolist ignorado: não entrou no commit
+    proj = _projeto(tmp_path, commit=True)  # to-dolist ignorado: não entrou no commit
     antes = (proj / "to-dolist.md").read_text(encoding="utf-8")
     res = _mod().converter(proj, hoje=HOJE, aplicar=True)
     assert res.problemas and not res.gravou
@@ -225,7 +237,7 @@ def test_aplicar_recusa_to_dolist_que_ainda_nao_esta_no_git(tmp_path):
 
 
 def test_aplicar_grava_depois_do_tempo_1(tmp_path):
-    proj = _projeto(tmp_path)
+    proj = _projeto(tmp_path, commit=True)
     m = _mod()
     m.liberar(proj, aplicar=True)
     _git(proj, "add", ".gitignore", "to-dolist.md")
@@ -242,14 +254,14 @@ def test_aplicar_grava_depois_do_tempo_1(tmp_path):
 
 
 def test_aplicar_recusa_arvore_suja(tmp_path):
-    proj = _projeto(tmp_path, ignorado=False)
+    proj = _projeto(tmp_path, ignorado=False, commit=True)
     (proj / "docs" / "superpowers" / "INDEX.md").write_text(INDEX_ENERGY + "\n- mexido\n", encoding="utf-8")
     res = _mod().converter(proj, hoje=HOJE, aplicar=True)
     assert res.problemas and not res.gravou
 
 
 def test_crlf_do_to_dolist_e_preservado(tmp_path):
-    proj = _projeto(tmp_path, ignorado=False)
+    proj = _projeto(tmp_path, ignorado=False, commit=True)
     (proj / "to-dolist.md").write_bytes(TODO_WHATS.replace("\n", "\r\n").encode("utf-8"))
     _git(proj, "add", "to-dolist.md")
     _git(proj, "commit", "-q", "--allow-empty", "-m", "crlf")  # com core.autocrlf o git pode não ver mudança
@@ -259,8 +271,8 @@ def test_crlf_do_to_dolist_e_preservado(tmp_path):
     assert b.count(b"\r\n") == b.count(b"\n")
 
 
-def test_cli_previa_nao_grava(tmp_path):
-    proj = _projeto(tmp_path)
+def test_cli_previa_nao_grava(lido):
+    proj = lido
     antes = (proj / "to-dolist.md").read_text(encoding="utf-8")
     out = subprocess.run(["python", str(SCRIPT), "converter", "--proj", str(proj), "--hoje", HOJE],
                          capture_output=True, text=True, encoding="utf-8")

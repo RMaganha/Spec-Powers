@@ -8,6 +8,7 @@ Spec: docs/superpowers/specs/2026-07-16-upgrade-design.md ("Estado atual").
 """
 import hashlib
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -30,12 +31,17 @@ def _mod():
     return mod
 
 
+_AUTOR = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+
 def _git(proj, *args):
+    """Cada git é um processo: o autor vai por variável de ambiente, sem 2 `git config` por projeto."""
     return subprocess.run(["git", *args], cwd=proj, check=True, capture_output=True, text=True,
-                          encoding="utf-8").stdout
+                          encoding="utf-8", env={**os.environ, **_AUTOR}).stdout
 
 
 def _projeto(tmp_path, marca=True, todo_antigo=False, git=True, principal="main"):
+    """Projeto de mentira. `git=False` pros testes dos passes, que não olham o git."""
     proj = tmp_path / "proj"
     (proj / "docs" / "superpowers").mkdir(parents=True)
     (proj / "CLAUDE.md").write_text(CLAUDE_COM_MARCA if marca else CLAUDE_SEM_MARCA, encoding="utf-8")
@@ -43,9 +49,7 @@ def _projeto(tmp_path, marca=True, todo_antigo=False, git=True, principal="main"
     (proj / ".gitignore").write_text("/to-dolist.md\n.env\n" if todo_antigo else ".env\n", encoding="utf-8")
     (proj / "app.py").write_text("print(1)\n", encoding="utf-8")
     if git:
-        _git(proj, "init", "-q", "-b", principal)
-        _git(proj, "config", "user.email", "t@t")
-        _git(proj, "config", "user.name", "t")
+        _git(proj, "init", "-q", "--template=", "-b", principal)
         # no desenho do kit o to-dolist está no git; no formato antigo está ignorado (fora dele)
         _git(proj, "add", "CLAUDE.md", ".gitignore", "app.py", *([] if todo_antigo else ["to-dolist.md"]))
         _git(proj, "commit", "-q", "-m", "inicio")
@@ -67,21 +71,21 @@ def _suja_em_outra_branch(proj):
 # --- os passes e a ordem ---------------------------------------------------------------------------
 
 def test_sem_marca_e_to_dolist_antigo_sao_tres_passes_na_ordem(tmp_path):
-    proj = _projeto(tmp_path, marca=False, todo_antigo=True)
+    proj = _projeto(tmp_path, marca=False, todo_antigo=True, git=False)
     plano = _mod().montar(proj)
     assert [p.nome for p in plano.passes] == ["migração do CLAUDE.md", "to-dolist", "categorias 1-3"]
     assert plano.status() == "migração do CLAUDE.md ⬜ · to-dolist ⬜ · categorias ⬜"
 
 
 def test_com_marca_e_to_dolist_no_desenho_so_as_categorias(tmp_path):
-    proj = _projeto(tmp_path, marca=True, todo_antigo=False)
+    proj = _projeto(tmp_path, marca=True, todo_antigo=False, git=False)
     plano = _mod().montar(proj)
     assert [p.nome for p in plano.passes] == ["categorias 1-3"]
     assert plano.status() == "migração do CLAUDE.md ✓ · to-dolist ✓ · categorias ⬜"
 
 
 def test_com_marca_e_to_dolist_antigo_sao_dois_passes(tmp_path):
-    proj = _projeto(tmp_path, marca=True, todo_antigo=True)
+    proj = _projeto(tmp_path, marca=True, todo_antigo=True, git=False)
     plano = _mod().montar(proj)
     assert [p.nome for p in plano.passes] == ["to-dolist", "categorias 1-3"]
     assert plano.status() == "migração do CLAUDE.md ✓ · to-dolist ⬜ · categorias ⬜"
@@ -90,7 +94,7 @@ def test_com_marca_e_to_dolist_antigo_sao_dois_passes(tmp_path):
 
 
 def test_sem_claude_md_a_migracao_nao_se_aplica_e_o_relatorio_diz(tmp_path):
-    proj = _projeto(tmp_path)
+    proj = _projeto(tmp_path, git=False)
     (proj / "CLAUDE.md").unlink()
     plano = _mod().montar(proj)
     assert [p.nome for p in plano.passes] == ["categorias 1-3"]

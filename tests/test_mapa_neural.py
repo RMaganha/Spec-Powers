@@ -587,7 +587,7 @@ def test_camada_no_gitignore_fica_fora(mn, proj_pastas):
     (proj_pastas / "relatorios").mkdir()
     (proj_pastas / "relatorios" / "saida.html").write_text("<html></html>\n", encoding="utf-8")
     (proj_pastas / ".gitignore").write_text("relatorios/\n", encoding="utf-8")
-    subprocess.run(["git", "init", "-q"], cwd=proj_pastas, capture_output=True)
+    subprocess.run(["git", "init", "-q", "--template="], cwd=proj_pastas, capture_output=True)
     ids = [f["id"] for f in mn.extrair_arquitetura(proj_pastas)["filhos"]]
     assert "relatorios/" not in ids, "pasta no .gitignore não pode entrar no mapa"
     assert "apis/" in ids, "as demais camadas continuam"

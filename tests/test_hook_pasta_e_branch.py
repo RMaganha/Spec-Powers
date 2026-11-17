@@ -239,7 +239,7 @@ def test_processo_com_git_de_verdade(tmp_path):
         subprocess.run(["git", "-C", str(raiz), "-c", "user.name=t", "-c", "user.email=t@t", *args],
                        check=True, capture_output=True)
 
-    git("init", "-q", "-b", "main")
+    git("init", "-q", "--template=", "-b", "main")
     (raiz / "a.txt").write_text("1\n", encoding="utf-8")
     git("add", "a.txt")
     git("commit", "-q", "-m", "c1")

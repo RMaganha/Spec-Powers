@@ -167,13 +167,14 @@ def test_teste_so_do_que_mudou_e_suite_uma_vez_antes_do_merge():
 
     regra9 = next(l for l in ler("templates", "regras-do-kit", "2-regras-criticas.md").splitlines()
                   if l.startswith("9. "))
-    for frase in ("só o teste do que mudou", "uma vez, antes do merge", "nunca antes do meu OK"):
+    for frase in ("só o teste do que mudou", "testes_do_que_mudou.py", "a suíte inteira roda no CI",
+                  "projeto sem CI: uma vez, antes do merge", "nunca antes do meu OK"):
         assert frase in regra9, f"regra 9 sem '{frase}'"
     for arquivo in (("commands", "bug.md"), ("commands", "nova-feature.md"), ("commands", "plano-teste.md"),
                     ("docs", "superpowers", "PLANO-TESTE.md")):
         texto = ler(*arquivo)
-        assert "só o teste do que mudou" in texto, f"{'/'.join(arquivo)} sem 'só o teste do que mudou'"
-        assert "uma vez, antes do merge" in texto, f"{'/'.join(arquivo)} sem 'uma vez, antes do merge'"
+        for frase in ("só o teste do que mudou", "testes_do_que_mudou.py", "a suíte inteira roda no CI"):
+            assert frase in texto, f"{'/'.join(arquivo)} sem '{frase}'"
 
 
 def test_regras_branch_e_escopo_wiring():

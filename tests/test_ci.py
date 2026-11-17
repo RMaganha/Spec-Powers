@@ -21,6 +21,23 @@ RUN_OUTPUTS = ("report.xml", "coverage.xml", "htmlcov/", ".coverage")
 PYTEST_CONFIGS = ("pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini")
 
 
+ACTIONS = REPO / ".github" / "workflows" / "testes.yml"
+
+
+def test_github_actions_roda_a_suite_inteira_a_cada_push():
+    """Decisão de 2026-11-17: a suíte inteira roda no CI, não na máquina — e o kit publica no GitHub."""
+    yaml = pytest.importorskip("yaml")
+    assert ACTIONS.exists(), "falta .github/workflows/testes.yml"
+    doc = yaml.safe_load(ACTIONS.read_text(encoding="utf-8"))
+    gatilhos = doc.get("on") or doc.get(True)            # o YAML lê a chave `on` como True
+    assert "push" in gatilhos and "pull_request" in gatilhos
+    passos = [p for job in doc["jobs"].values() for p in job["steps"]]
+    checkout = next(p for p in passos if str(p.get("uses", "")).startswith("actions/checkout"))
+    assert checkout["with"]["fetch-depth"] == 0, "o teste das linhas do kit precisa da história inteira do git"
+    rodar = " ".join(p.get("run", "") for p in passos)
+    assert "python -m pytest -q" in rodar and "pip install" in rodar
+
+
 def _ci_doc():
     yaml = pytest.importorskip("yaml")
     assert CI.exists(), "falta .gitlab-ci.yml na raiz"
