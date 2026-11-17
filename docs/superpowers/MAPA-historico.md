@@ -4,6 +4,17 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-17 — saiu do MAPA (captura da 0.65.0, branch `docs/captura-suite-lenta`)
+
+Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da memória) mesclada na `main` em 2026-11-17** (`859115c`) e a captura (`db55972`). Diário: `memory/sessions/2026-11-16-sobras-do-sono-da-memoria.md`.
+
+<!-- histórico do próximo passo anterior (2) -->
+1. ⬜ **Owner: OK da captura desta sessão** — 3 memórias novas, 2 atualizadas, caso F-049, 2 linhas fora de escopo e o fecho do diário; grava e commita local depois do OK.
+2. ⬜ **Owner: registrar a tarefa agendada do guardião** — na sua janela do PowerShell, receita em `hooks/README.md` ("Fora do kit"); conferir com `Get-ScheduledTask "mss-spec guardiao da juncao"`.
+3. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — cada um na conversa daquele projeto; nasce o `docs/AMBIENTES.md` com os nomes que o projeto já tem; os valores só o owner preenche.
+4. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** — a tarde de 30/10 (token sem `MITI_DEV_AUTH`, push do n8n em produção) não tem diário.
+5. ⬜ **No Whats: testar o `/mss-spec:bug`** — conversa nova, descrever um erro sem digitar o comando; o `kit_primeiro.py` deve negar o superpowers e apontar a porta.
+
 ## 2026-11-16 — saiu do MAPA (abertura da `feature/sobras-sono-da-memoria`, 0.64.0)
 
 <!-- histórico do estado anterior (0.62.0) -->

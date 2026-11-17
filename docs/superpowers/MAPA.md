@@ -1,15 +1,18 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `fix/suite-so-o-que-mudou` — **0.65.0 (suíte lenta)**, CI do GitHub verde (24 s); falta o merge. Na máquina só o teste do que mudou (`templates/testes_do_que_mudou.py`); a suíte inteira no GitHub Actions; molde `templates/pytest/`; 108 testes de frase cortados. Diário: `memory/sessions/2026-11-17-suite-lenta.md`.
+Branch `docs/captura-suite-lenta` — captura da 0.65.0 (corte de teste de frase em `docs/decisoes.md`, F-071 a F-073, 5 anotações) e o item dos hooks no `to-dolist.md`; falta merge e push. **0.65.0 na `main`, publicada, CI verde** (`a5549da`). Diário: `memory/sessions/2026-11-17-suite-lenta.md`.
 
-<!-- histórico do estado anterior (0.64.0) -->
-Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da memória) mesclada na `main` em 2026-11-17** (`859115c`) e a captura (`db55972`). Diário: `memory/sessions/2026-11-16-sobras-do-sono-da-memoria.md`.
+<!-- histórico do estado anterior (0.65.0 na branch) -->
+Branch `fix/suite-so-o-que-mudou` — **0.65.0 (suíte lenta)**: na máquina só o teste do que mudou; suíte inteira no GitHub Actions; molde `templates/pytest/`; 108 testes de frase cortados.
 ## Próximo passo
-00. ⬜ **Merge da `fix/suite-so-o-que-mudou` na `main` e push do owner (0.65.0)**; depois, **molde de CI para os projetos grandes** e a **reescrita dos testes dos hooks**, um hook por conversa (os dois no `to-dolist.md`).
-0. ⬜ **Owner: push da `main` (0.64.0)** e decidir o conflito `UserPromptSubmit` exit 0 × exit 2 (Tailwind × Mantine: ✅ decidido em 2026-11-16).
+00. ⬜ **Merge da `docs/captura-suite-lenta` na `main` e push do owner.**
+01. ⬜ **Parte 3 — suíte do kit em camadas** (conversa nova) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
+02. ⬜ **Molde de CI padrão para os projetos grandes** (conversa nova) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
+03. ⬜ **Custo dos hooks num projeto grande** (conversa nova, o owner indica o projeto) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
+0. ⬜ **Decidir o conflito `UserPromptSubmit` exit 0 × exit 2** (a 0.64.0 já foi publicada).
 0a. ⬜ **Decidir como a regra 3 nova chega ao `.claude/rules/frontend.md` dos projetos** — o `upgrade` não sobrescreve o que existe; item no `to-dolist.md`.
-1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1651).
+1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564; a suíte mudou na 0.65.0).
 1a. ⬜ **Provar a 0.60.0 no real** — a negação aparecendo numa captura de verdade (anotação ou diário com comando com reticências) e o aviso do `verificar` no Whats, na conversa dele.
 1b. ⬜ **Provar a 0.59.0 no real** — falta o clique de aprovação ao trocar de branch numa branch que a conversa não abriu (a regra chegando numa conversa aberta com `Já decidido`: ✅ 2026-11-12).
 1c. ✅ **`mss-spec:pesquisador` aparece na lista de ajudantes** de uma conversa nova (visto em 2026-11-16, na abertura da parte 2 do sono).
@@ -32,13 +35,6 @@ Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da m
 4. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — nasce o `docs/AMBIENTES.md` em cada um; os valores só o owner preenche.
 5. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** e testar o `/mss-spec:bug` numa conversa nova (prova do `kit_primeiro.py`).
 
-<!-- histórico do próximo passo anterior (2) -->
-1. ⬜ **Owner: OK da captura desta sessão** — 3 memórias novas, 2 atualizadas, caso F-049, 2 linhas fora de escopo e o fecho do diário; grava e commita local depois do OK.
-2. ⬜ **Owner: registrar a tarefa agendada do guardião** — na sua janela do PowerShell, receita em `hooks/README.md` ("Fora do kit"); conferir com `Get-ScheduledTask "mss-spec guardiao da juncao"`.
-3. ⬜ **`/mss-spec:upgrade` no Whats, no Transportes e no Energy** — cada um na conversa daquele projeto; nasce o `docs/AMBIENTES.md` com os nomes que o projeto já tem; os valores só o owner preenche.
-4. ⬜ **No Whats: `/mss-spec:memory capturar` na conversa "Validar mensagens WhatsApp em produção"** — a tarde de 30/10 (token sem `MITI_DEV_AUTH`, push do n8n em produção) não tem diário.
-5. ⬜ **No Whats: testar o `/mss-spec:bug`** — conversa nova, descrever um erro sem digitar o comando; o `kit_primeiro.py` deve negar o superpowers e apontar a porta.
-
 ## Conexões
 <!-- FORMATO FIXO (o /mss-spec:mapa-neural parseia estas linhas pro grafo inter-projeto), uma por conexão:
        - → <outro-projeto>: o que ESTE envia/consome (<ponto: endpoint / fila / tabela compartilhada>)
@@ -49,4 +45,4 @@ Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da m
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-17 (0.64.0 mesclada na main; falta o push do owner) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-17 (0.65.0 publicada; captura na branch docs/captura-suite-lenta) · regenerável com /mss-spec:mapa -->
