@@ -34,7 +34,8 @@ assistente executa com disciplina. Mudança pequena (corrigir um bug, um ajuste)
 comando — é só pedir.
 
 ## Passo 4 — Confie, mas verifique
-Antes de dar algo por pronto, a suíte de testes roda e tem que estar **100% verde**. Quando está, o
+Durante o trabalho roda só o teste do que mudou; a suíte inteira roda uma vez, antes do merge, e tem
+que estar **100% verde**. Quando está, o
 `/mss-spec:plano-teste` grava esse retrato como **baseline** — a rede que avisa se algo quebrar depois.
 "Passou tudo" deixa de ser fé e vira evidência.
 

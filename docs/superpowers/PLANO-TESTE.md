@@ -1,6 +1,6 @@
 # Plano de teste base — kit mss-spec
 
-**Comando:** `python -m pytest tests/ -q`
+**Comando:** `python -m pytest tests/ -q` — a suíte inteira roda **uma vez, antes do merge**. Durante o trabalho, só o teste do que mudou: `python -m pytest tests/test_<x>.py -q` (`--lf` reroda só o que falhou). Uma rodada de pytest por vez.
 
 **O que o baseline cobre** (1 linha por teste):
 

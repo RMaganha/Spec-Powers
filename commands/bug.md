@@ -79,8 +79,9 @@ que você mesmo citou, foi o retrabalho do nova-feature no Whats (26/10).
 Depois:
 - branch `fix/<nome>` a partir da principal atualizada (regras de git do projeto valem: se o git é
   do owner, entregue os comandos em passo a passo);
-- **teste que reproduz o bug** primeiro (vermelho pelo motivo certo) → correção → verde → suíte
-  inteira do `docs/superpowers/PLANO-TESTE.md`, com a saída colada;
+- **teste que reproduz o bug** primeiro (vermelho pelo motivo certo) → correção → verde, rodando
+  só o teste do que mudou (nunca a suíte inteira a cada ajuste) → suíte inteira do
+  `docs/superpowers/PLANO-TESTE.md` **uma vez, antes do merge**, com a saída colada;
 - a correção mudou um comportamento descrito numa spec? Atualize o "Estado atual" dela (regra 6).
 
 **6. Virou feature?** Se a correção pede comportamento novo (tabela nova, regra de negócio nova, tela
