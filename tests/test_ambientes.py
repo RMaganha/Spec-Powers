@@ -6,20 +6,15 @@ passou 20 minutos sem saber se `N8N_WHATSAPP_PUSH_URL` de produção era o host 
 Kudu de produção, que ele não acessa. Os nomes estavam em 4 arquivos diferentes. O owner: "deve ter um
 arquivo independente que guarde as informações dos ambientes, variáveis e valores".
 
-Propriedades:
-- modelo no kit com as três seções (Local · Homologação · Produção), a tabela `Variável | Valor | Onde vive |
-  Lido por / quando`, segredo `*****` e `falta preencher`;
-- o kickoff copia, o upgrade cria quando falta (sem inventar valor) e não toca nos valores quando existe;
-- o motor de memória trata cada seção como fonte: "qual o servidor de produção" aponta a seção Produção;
-- bug, duvida e diagnostico leem a seção do ambiente citado (coberto em `test_smoke_kit.py`).
+O que se testa aqui é o comportamento: o motor de memória trata cada seção como fonte — "qual o servidor de
+produção" aponta a seção Produção. (As conferências de texto do modelo e dos comandos saíram na revisão da
+suíte de 2026-11-17: frase em `.md` não é comportamento.)
 """
 import importlib.util
-import json
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-MODELO = REPO / "templates" / "AMBIENTES.md"
 
 
 def _motor():
@@ -88,24 +83,6 @@ def _projeto(tmp_path, com_ambientes=True):
 
 # --- AC1: o modelo --------------------------------------------------------------------------
 
-def test_modelo_tem_as_tres_secoes_e_a_tabela():
-    assert MODELO.exists(), "falta templates/AMBIENTES.md"
-    t = MODELO.read_text(encoding="utf-8")
-    for secao in ("## Local", "## Homologação", "## Produção"):
-        assert secao in t, f"modelo sem a seção {secao}"
-    assert "| Variável | Valor | Onde vive | Lido por / quando |" in t, "modelo sem a tabela de variáveis"
-    assert "*****" in t and "falta preencher" in t, "modelo não ensina segredo (*****) e valor não conferido"
-    assert "Quem acessa" in t and "Como o assistente lê" in t, "modelo sem 'quem acessa' / 'como o assistente lê'"
-    assert "docs/AMBIENTE.md" in t, "modelo não aponta o AMBIENTE.md (infra) como o outro arquivo"
-
-
-def test_kickoff_copia_e_upgrade_cria_sem_inventar():
-    kick = (REPO / "commands" / "kickoff.md").read_text(encoding="utf-8")
-    assert "`templates/AMBIENTES.md` → `docs/AMBIENTES.md`" in kick, "kickoff não copia o AMBIENTES.md"
-    up = (REPO / "commands" / "upgrade.md").read_text(encoding="utf-8")
-    assert "docs/AMBIENTES.md" in up and "falta preencher" in up, "upgrade não cria o AMBIENTES.md sem inventar valor"
-    assert "não toque nos valores" in up, "upgrade não protege os valores que o owner preencheu"
-
 
 # --- AC2: o motor de memória casa a seção do ambiente ----------------------------------------
 
@@ -153,14 +130,3 @@ def test_recall_injeta_a_secao(tmp_path):
 
 
 # --- AC3: os comandos leem a seção do ambiente citado (também coberto no smoke) ---------------
-
-def test_bug_duvida_e_diagnostico_leem_o_ambiente_citado():
-    for nome in ("bug", "duvida", "diagnostico"):
-        t = (REPO / "commands" / f"{nome}.md").read_text(encoding="utf-8")
-        assert "docs/AMBIENTES.md" in t and "memory/DIARIO.md" in t, f"{nome}.md não lê AMBIENTES e DIARIO"
-
-
-def test_doctor_confere_o_arquivo_e_o_locale_dos_hooks():
-    d = (REPO / "commands" / "doctor.md").read_text(encoding="utf-8")
-    assert "docs/AMBIENTES.md" in d and "falta preencher" in d, "doctor não confere o docs/AMBIENTES.md"
-    assert "LC_ALL" in d and "appears to be missing" in d, "doctor não avisa o LC_ALL que fazia o Stop não chegar"

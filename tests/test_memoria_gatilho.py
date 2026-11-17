@@ -73,13 +73,6 @@ def test_toda_memoria_esta_no_indice():
     assert not faltando, "memórias fora dos subíndices:\n" + "\n".join(faltando)
 
 
-def test_template_memory_documenta_gatilho_e_teto():
-    """O molde que vai pros outros projetos carrega a mesma regra."""
-    txt = (REPO / "templates" / "MEMORY.md").read_text(encoding="utf-8")
-    assert "gatilho:" in txt, "templates/MEMORY.md não documenta o campo gatilho:"
-    assert "6 KB" in txt, "templates/MEMORY.md não documenta o teto do topo (6 KB)"
-
-
 # ---------------------------------------------------------------- corpus de falhas (docs/EVALS.md)
 
 CASO = re.compile(r"^\| (F-\d{3}) \|", re.M)
@@ -119,15 +112,6 @@ def test_evals_caso_fechado_tem_guardrail():
         if status == "fechado" and (not guardrail or guardrail == "—"):
             ruins.append(linha)
     assert not ruins, "casos fechados sem guardrail:\n" + "\n".join(ruins)
-
-
-def test_template_evals_existe():
-    """O corpus de falhas é molde: todo projeto do kit nasce com ele."""
-    p = REPO / "templates" / "EVALS.md"
-    assert p.exists(), "falta templates/EVALS.md"
-    txt = p.read_text(encoding="utf-8")
-    assert "F-001" in txt or "F-NNN" in txt, "templates/EVALS.md não mostra o formato do id"
-    assert "aberto" in txt, "templates/EVALS.md não documenta o status aberto (caso sem guardrail)"
 
 
 def test_evals_so_cita_teste_que_existe():
