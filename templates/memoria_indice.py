@@ -592,7 +592,8 @@ def _nomes_de_arquivo(raiz: Path) -> set:
 
 
 def _ignorado_pelo_git(proj: Path, caminho: str) -> bool:
-    """O `.gitignore` da raiz do projeto ignora `caminho` (padrões simples: `/docs/x.html`, `docs/*.html`, `x.md`)."""
+    """O `.gitignore` da raiz do projeto ignora `caminho` (padrões simples: `/docs/x.html`, `docs/*.html`, `x.md`).
+    Nome solto (`mapa-neural.html`) vale quando algum padrão ignora um arquivo com esse nome."""
     from fnmatch import fnmatch
     try:
         linhas = (Path(proj) / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
@@ -605,6 +606,8 @@ def _ignorado_pelo_git(proj: Path, caminho: str) -> bool:
             continue
         p = p.rstrip("/")
         if fnmatch(caminho, p.lstrip("/")) or ("/" not in p.lstrip("/") and fnmatch(nome, p)):
+            return True
+        if "/" not in caminho and fnmatch(nome, p.rsplit("/", 1)[-1]):
             return True
     return False
 
@@ -640,7 +643,7 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
             # arquivo gerado que o `.gitignore` deixa fora do git (`docs/anatomia.html`) não existe num clone
             return ((proj / c).exists() or (KIT / c).exists() or nome in nomes["moldes"]
                     or _ignorado_pelo_git(proj, c))
-        return nome in nomes["todos"]
+        return nome in nomes["todos"] or _ignorado_pelo_git(proj, c)
 
     out = []
     for pasta in pastas:

@@ -353,8 +353,8 @@ def test_citacao_fora_do_repositorio_nao_e_conferida(tmp_path):
     (tmp_path / "memory").mkdir()
     (tmp_path / ".gitignore").write_text("# gerado\n/docs/relatorio-gerado-fora-do-git.html\n", encoding="utf-8")
     (tmp_path / "memory" / "nota.md").write_text(
-        "Veja `~/.claude/arquivo-da-casa-que-nao-existe.json`, `docs/relatorio-gerado-fora-do-git.html` e "
-        "`docs/arquivo-que-sumiu-de-verdade.md`.\n",
+        "Veja `~/.claude/arquivo-da-casa-que-nao-existe.json`, `docs/relatorio-gerado-fora-do-git.html`, o nome "
+        "solto `relatorio-gerado-fora-do-git.html` e `docs/arquivo-que-sumiu-de-verdade.md`.\n",
         encoding="utf-8")
     mortas = [c for _, c in _indice().citacoes_mortas(tmp_path, pastas=("memory",))]
     assert mortas == ["docs/arquivo-que-sumiu-de-verdade.md"]
