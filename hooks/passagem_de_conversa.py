@@ -390,14 +390,23 @@ def _arquivo_das_passagens(raiz, ambiente):
     return os.path.join(_pasta_temp(ambiente), f"mss_passagens_{_chave(raiz)}.json")
 
 
-def _passagens(raiz, ambiente):
-    """Os textos prontos guardados deste projeto que ainda valem, do mais antigo ao mais novo."""
+def _ler_passagens(raiz, ambiente):
+    """Disco: os textos prontos guardados deste projeto, como estão no arquivo (None se não há arquivo legível)."""
     try:
         with open(_arquivo_das_passagens(raiz, ambiente), encoding="utf-8") as f:
-            guardadas = json.load(f).get("passagens")
+            return json.load(f).get("passagens")
     except Exception:                                # noqa: BLE001
-        return []
-    limite = time.time() - PASSAGEM_DIAS * 86400
+        return None
+
+
+def _gravar_passagens(raiz, ambiente, passagens):
+    with open(_arquivo_das_passagens(raiz, ambiente), "w", encoding="utf-8") as f:
+        json.dump({"passagens": passagens}, f, ensure_ascii=False)
+
+
+def _validas(guardadas, agora):
+    """Dos textos prontos guardados, os que ainda valem, do mais antigo ao mais novo."""
+    limite = agora - PASSAGEM_DIAS * 86400
     return [p for p in guardadas if isinstance(p, dict) and _texto(p.get("assunto"))
             and isinstance(p.get("itens"), list) and p["itens"]
             and isinstance(p.get("quando"), (int, float)) and p["quando"] >= limite] \
@@ -417,26 +426,24 @@ def _texto_entregue(texto):
     return None
 
 
-def _guardar_se_entregou(texto, evento, ambiente, sessao):
-    """Guarda o texto pronto que esta resposta entregou. Nunca muda a decisão do `Stop`; defeito → calado."""
+def _guardar_se_entregou(texto, sessao, passagens, agora):
+    """A lista nova de textos prontos, se esta resposta entregou um no molde; senão None. Sem disco: `passagens` é a
+    função que devolve os guardados. Nunca muda a decisão do `Stop`; defeito → None."""
     try:
-        raiz = _raiz(evento, ambiente)
         corpo = _texto_entregue(texto)
-        if raiz is None or corpo is None or RE_PRIVADO.search(corpo):
-            return
+        if corpo is None or RE_PRIVADO.search(corpo):
+            return None
         primeira = next((l.strip() for l in corpo.split("\n") if l.strip()), "")
         assunto = RE_COMANDO_NA_FRENTE.sub("", primeira).strip()[:TETO_ITEM]
         itens = decididos(corpo, teto=None)
         if not assunto or not itens or RE_TITULO_DECIDIDO.match(assunto) or RE_VAGA.search(assunto) \
                 or not _radicais(assunto):
-            return
-        outras = [p for p in _passagens(raiz, ambiente) if _radicais(p["assunto"]) != _radicais(assunto)]
-        outras.append({"assunto": assunto, "itens": itens, "quando": time.time(), "conversa": sessao})
-        with open(_arquivo_das_passagens(raiz, ambiente), "w", encoding="utf-8") as f:
-            json.dump({"passagens": outras[-PASSAGENS_MAX:]}, f, ensure_ascii=False)
-        _anotar("guardou", f"decididos={len(itens)}", evento)
+            return None
+        outras = [p for p in _validas(passagens(), agora) if _radicais(p["assunto"]) != _radicais(assunto)]
+        outras.append({"assunto": assunto, "itens": itens, "quando": agora, "conversa": sessao})
+        return outras[-PASSAGENS_MAX:]
     except Exception:                                # noqa: BLE001
-        pass
+        return None
 
 
 def _specs_com_decisoes(raiz):
@@ -501,13 +508,11 @@ def escolher(frase, candidatos):
     return (topo[0], []) if len(topo) == 1 else (None, topo[:EMPATADOS_MAX])
 
 
-def _achar(frase, evento, ambiente, sessao):
-    """O contexto a entregar no 1º pedido da conversa, ou None. Só informa: nada daqui entra na devolução."""
-    raiz = _raiz(evento, ambiente)
-    if raiz is None:
-        return None
+def _achar(frase, raiz, ambiente, sessao, passagens, ler_specs, anotacoes, agora):
+    """O contexto a entregar no 1º pedido da conversa, ou None. Só informa: nada daqui entra na devolução. Sem disco:
+    `passagens` e `ler_specs` são as funções que devolvem o que está guardado; o que registrar vai em `anotacoes`."""
     candidatos = []
-    for p in _passagens(raiz, ambiente):
+    for p in _validas(passagens(), agora):
         if p.get("conversa") == sessao:
             continue
         quando = time.strftime("%d/%m/%Y %H:%M", time.localtime(p["quando"]))
@@ -516,10 +521,10 @@ def _achar(frase, evento, ambiente, sessao):
                            "itens": [str(i) for i in p["itens"][:MAX_ITENS]],
                            "fonte": f"texto pronto entregue por outra conversa em {quando}",
                            "onde": _arquivo_das_passagens(raiz, ambiente)})
-    specs = _specs_com_decisoes(raiz)
+    specs = ler_specs()
     vencedor, empatados = escolher(frase, candidatos + specs)
     if empatados:
-        _anotar("achou", f"empate={len(empatados)}", evento)
+        anotacoes.append(("achou", f"empate={len(empatados)}"))
         return ACHADO_EMPATE.format(lista="\n".join(f"- {c['assunto'][:120]} — {c['fonte']}" for c in empatados))
     if vencedor is None:
         return None
@@ -536,7 +541,7 @@ def _achar(frase, evento, ambiente, sessao):
         da_spec, _ = escolher(frase, specs)
         if da_spec is not None:
             resto += ACHADO_TAMBEM.format(fonte=da_spec["fonte"])
-    _anotar("achou", f"fonte={vencedor['origem']} decididos={len(linhas)}", evento)
+    anotacoes.append(("achou", f"fonte={vencedor['origem']} decididos={len(linhas)}"))
     return ACHADO.format(assunto=vencedor["assunto"][:160], fonte=vencedor["fonte"], lista="\n".join(linhas),
                          resto=resto)
 
@@ -556,47 +561,61 @@ def _ultima_resposta(evento):
         return None
 
 
-def avaliar(evento, ambiente=None):
-    """("contexto", regra) no envio do pedido · ("devolve", motivo) no fim da resposta · (None, None)."""
+def decidir(evento, ambiente, estado, passagens, ler_specs, agora):
+    """A REGRA, sem disco: entra o evento e o que está guardado, sai a decisão e o que guardar.
+
+    `estado`: o que esta conversa guardou (`{}` se nada) · `passagens`: função que devolve os textos prontos
+    guardados deste projeto, como estão no disco · `ler_specs`: função que devolve as specs com decisões ·
+    `agora`: segundos, como `time.time()`. As duas funções só são chamadas quando a regra precisa delas.
+    Devolve `(tipo, texto, mudancas)`: tipo `"contexto"` no envio do pedido, `"devolve"` no fim da resposta, ou None;
+    `mudancas` tem `"anotacoes"` (`[(decisao, detalhe)]` pro registro) e, só quando há o que gravar, `"estado"` (o
+    novo desta conversa) e `"passagens"` (a lista nova do projeto). Defeito → (None, None) com o que já mudou.
+    """
+    mudancas = {"anotacoes": []}
+    anotacoes = mudancas["anotacoes"]
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict):
-            return None, None
+            return None, None, mudancas
         sessao = _texto(evento.get("session_id"))
+        estado = dict(estado) if sessao is not None and isinstance(estado, dict) else {}
         nome = evento.get("hook_event_name")
         if nome == "UserPromptSubmit":
             pedido = evento.get("prompt")
             itens = decididos(pedido)
-            estado = _ler_estado(sessao, ambiente) if sessao is not None else {}
             if not itens:
                 # sem lista colada: no 1º pedido da conversa, o kit procura sozinho o que já foi decidido
                 if sessao is None or estado.get("procurou"):
-                    return None, None
-                _gravar_estado(sessao, ambiente, {**estado, "procurou": True})
-                achado = _achar(_pedido(pedido), evento, ambiente, sessao)
-                return ("contexto", achado) if achado else (None, None)
+                    return None, None, mudancas
+                mudancas["estado"] = {**estado, "procurou": True}
+                raiz = _raiz(evento, ambiente)
+                achado = None if raiz is None else _achar(_pedido(pedido), raiz, ambiente, sessao, passagens,
+                                                          ler_specs, anotacoes, agora)
+                return ("contexto", achado, mudancas) if achado else (None, None, mudancas)
             if sessao is not None:
-                _gravar_estado(sessao, ambiente,
-                               {"decididos": itens, "feitas": estado.get("feitas") or [], "procurou": True})
+                mudancas["estado"] = {"decididos": itens, "feitas": estado.get("feitas") or [], "procurou": True}
             titulo = RE_TITULO_DECIDIDO.search(_pedido(pedido)).group(0).strip(" \t>*#_-:")[:80]
-            _anotar("entregou", f"decididos={len(itens)}", evento)
-            return "contexto", REGRA.format(n=len(itens), titulo=titulo)
+            anotacoes.append(("entregou", f"decididos={len(itens)}"))
+            return "contexto", REGRA.format(n=len(itens), titulo=titulo), mudancas
         if nome != "Stop":
-            return None, None
+            return None, None, mudancas
         texto = _ultima_resposta(evento)
         if not _texto(texto):
-            return None, None
-        _guardar_se_entregou(texto, evento, ambiente, sessao)     # antes do `stop_hook_active`: a refeita é a que vale
+            return None, None, mudancas
+        if _raiz(evento, ambiente) is not None:       # antes do `stop_hook_active`: a refeita é a que vale
+            novas = _guardar_se_entregou(texto, sessao, passagens, agora)
+            if novas is not None:
+                mudancas["passagens"] = novas
+                anotacoes.append(("guardou", f"decididos={len(novas[-1]['itens'])}"))
         if evento.get("stop_hook_active"):
-            return None, None
+            return None, None, mudancas
         motivos, detalhes = [], []
-        estado = _ler_estado(sessao, ambiente) if sessao is not None else {}
         do_recebe, marcas = _quem_recebe(texto, estado)
         if do_recebe:
             motivos += do_recebe
             detalhes.append("recebe=" + ",".join(marcas))
             estado["feitas"] = sorted(set(estado.get("feitas") or []) | set(marcas))
-            _gravar_estado(sessao, ambiente, estado)
+            if sessao is not None:
+                mudancas["estado"] = estado
         entrega = _quem_entrega(texto)
         if entrega:
             motivos.append(entrega)
@@ -606,11 +625,51 @@ def avaliar(evento, ambiente=None):
             motivos.append(recusa)
             detalhes.append("recusa")
         if not motivos:
+            return None, None, mudancas
+        anotacoes.append(("devolveu", " ".join(detalhes)[:200]))
+        return "devolve", "\n\n".join(motivos), mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, None, mudancas
+
+
+def avaliar(evento, ambiente=None):
+    """A casca: lê o que está guardado, chama `decidir` e grava o que ela devolveu.
+    ("contexto", regra) no envio do pedido · ("devolve", motivo) no fim da resposta · (None, None)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict) \
+                or evento.get("hook_event_name") not in ("UserPromptSubmit", "Stop"):
             return None, None
-        _anotar("devolveu", " ".join(detalhes)[:200], evento)
-        return "devolve", "\n\n".join(motivos)
+        sessao = _texto(evento.get("session_id"))
+        raiz = _raiz(evento, ambiente)
+        estado = _ler_estado(sessao, ambiente) if sessao is not None else {}
+        tipo, texto, mudancas = decidir(evento, ambiente, estado,
+                                        lambda: _ler_passagens(raiz, ambiente),
+                                        lambda: _specs_com_decisoes(raiz), time.time())
+        if "estado" in mudancas:
+            _gravar_estado(sessao, ambiente, mudancas["estado"])
+        guardou = True
+        if "passagens" in mudancas:
+            try:
+                _gravar_passagens(raiz, ambiente, mudancas["passagens"])
+            except Exception:                        # noqa: BLE001
+                guardou = False
+        for decisao, detalhe in mudancas["anotacoes"]:
+            if decisao != "guardou" or guardou:
+                _anotar(decisao, detalhe, evento)
+        return tipo, texto
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None, None
+
+
+def saida(tipo, texto):
+    """O que o processo imprime, ou None (calado). `json.dumps` sem `ensure_ascii=False`: ASCII puro, a página de
+    código do console não importa."""
+    if tipo == "contexto":
+        return json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": texto}})
+    if tipo == "devolve":
+        return json.dumps({"decision": "block", "reason": texto})
+    return None
 
 
 def main():
@@ -619,12 +678,9 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    tipo, texto = avaliar(evento)
-    # `json.dumps` sem `ensure_ascii=False`: ASCII puro, a página de código do console não importa.
-    if tipo == "contexto":
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": texto}}))
-    elif tipo == "devolve":
-        print(json.dumps({"decision": "block", "reason": texto}))
+    impresso = saida(*avaliar(evento))
+    if impresso is not None:
+        print(impresso)
     sys.exit(0)
 
 
