@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.64.0 — 2026-11-16 (sobras do sono da memória: entrada dos hooks em UTF-8, front conforme o projeto, fecho do sono sem a suíte quando a rodada não muda código)
+- **o que motivou:** a conversa d23210d6 (2026-11-13 a 2026-11-16) — o `passagem_de_conversa.py` devolveu "falta `Já decidido`" num bloco que tinha o título; o sono marcou CONFLITO entre "front-end sempre Tailwind" e o `templates/FRONTEND.md`; a 1ª rodada da parte 2 rodou 1:50:48 de suíte sem mudar código. Decisões do owner em 2026-11-16.
+- fix(**`hooks/_entrada.py`**, novo): `ler_evento()` lê os bytes do stdin e decodifica em UTF-8; os 18 hooks passam a usá-lo. Lido como texto, o Python filho no Windows (sem `PYTHONIOENCODING`) entregava cp1252 e nenhum gatilho com acento casava. Entrada que não é UTF-8 → o hook sai calado (falha aberta). A saída não muda.
+- feat(**regra 3**, `templates/regras-do-kit/2-regras-criticas.md`): "Front-end: Tailwind + `@tailwindcss/typography` ou Mantine, conforme o projeto (níveis em `docs/FRONTEND.md`), nunca os dois no mesmo app; JS/CSS em arquivos próprios". O nível é **por projeto** (não por tela) em `templates/FRONTEND.md`, `.claude/rules/frontend.md`, `templates/rules/frontend.md`, `commands/nova-feature.md` e `commands/compliance.md`; a linha **UI:** do `templates/CLAUDE.md` declara o nível. `linhas-do-kit.txt` regenerado: o texto antigo continua reconhecido pelo upgrade.
+- docs(**`commands/memory.md`**): fecho do sono — diff só em `memory/**` e `docs/decisoes.md` → `verificar` e `citacoes` limpos, sem a suíte; qualquer outro arquivo → a suíte inteira.
+- memória: `feedback_frontend_tailwind_arquivos_separados` sai de conflito (confirmada, `substituiu: "sempre Tailwind"`); `project_front_moderno_mantine` ganha `substituiu:` (por tela → por projeto); 1 linha em `docs/decisoes.md`.
+- test: `tests/test_hook_entrada_utf8.py` (23 — o hook por subprocess com bytes UTF-8 crus e o ambiente sem `PYTHONIOENCODING`/`PYTHONUTF8`; nenhum dos 18 lê `sys.stdin` em texto) e `tests/test_sono_da_memoria.py` (+1).
+
 ## 0.63.0 — 2026-11-16 (sono da memória, parte 2: ler as conversas gravadas e corrigir, rebaixar ou recuperar memória)
 - **o que motivou:** o acervo nunca tinha sido conferido contra as conversas, e o Claude Code apaga conversa antiga. Decisões do owner na spec `docs/specs/sono-da-memoria.md` (16 a 24).
 - feat(**`templates/conversa_texto.py`**): modo `lote [--desde AAAA-MM-DD] --saida <pasta>` — grava em texto todas as conversas do projeto mudadas depois do dia (sem data: todas), menos a em curso e as de ajudante; lista período, falas e letras de cada uma.

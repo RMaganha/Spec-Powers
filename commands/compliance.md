@@ -20,6 +20,6 @@ Checks:
 5. **.gitignore protege segredo + âncoras** — `.env` ignorado (e `!.env.example`), e ancorado na raiz: `/logs/` (log dev). Sem a barra inicial a âncora pega pasta/arquivo errado — âncora faltando → ✗. (O `to-dolist.md` vai pro git desde a 0.47.0 — não precisa estar ignorado.)
 6. **docs/decisoes.md** — existe (log de decisões transversais). Ausente → ✗.
 7. **memory/ versionada** — `memory/MEMORY.md` presente **dentro do repo** (índice de aprendizados). Regra dura da casa: memória mora no repo, **nunca** só em `~/.claude/projects/<proj>/memory/`. Sem `memory/` no repo → ✗ (rode `/mss-spec:memory` pra resgatar).
-8. **Front (só se tem UI web)** — segue o design system MSIG: Tailwind + `@tailwindcss/typography`, JS/CSS em pastas próprias (`static/js`, `static/css`), **nada inline** num HTML só (exceto doc standalone). Sem UI → pule.
+8. **Front (só se tem UI web)** — segue o design system MSIG no nível da linha **UI:** do `CLAUDE.md` (Nível 1: Tailwind + `@tailwindcss/typography`; Nível 2: Mantine; nunca os dois no mesmo app), JS/CSS em pastas próprias (`static/js`, `static/css`), **nada inline** num HTML só (exceto doc standalone). Sem UI → pule.
 
 Saída: uma linha por check aplicável com **✓** ou **✗** (com o porquê no ✗) e um **veredito** final de uma linha (ex.: "aderente" / "2 desvios: falta docs/decisoes.md · memory/ fora do repo"). Num ✗, aponte a **convenção violada** e o caminho pra corrigir (qual template/comando) — **sem** corrigir.

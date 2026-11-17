@@ -19,8 +19,12 @@ e linha em `docs/decisoes.md` ("recuperada no sono"). A evidência entra antes n
 rodada guarda `conversas lidas até: <véspera>`; o `sono` mostra a data e o comando da próxima rodada, e o `montar` a
 usa como último sono.
 
-Fora de escopo: completar os 4 comandos cortados (esperam o owner), os 2 conflitos (Tailwind × Mantine;
-`UserPromptSubmit` exit 0 × exit 2), regenerar as frases dos subíndices e medir o uso das notas (itens 4.1 e 4.3 de
+**Fecho (0.64.0).** Nas duas partes, `memoria_indice.py verificar` e `citacoes` limpos. Se o diff da rodada só toca
+`memory/**` e `docs/decisoes.md`, o fecho é só isso, sem a suíte; se toca qualquer outro arquivo, a suíte roda
+inteira (`commands/memory.md`, "Uso interno: sono", passo 8).
+
+Fora de escopo: completar os 4 comandos cortados (esperam o owner), o conflito `UserPromptSubmit` exit 0 × exit 2
+(o Tailwind × Mantine o owner decidiu em 2026-11-16: `docs/decisoes.md`), regenerar as frases dos subíndices e medir o uso das notas (itens 4.1 e 4.3 de
 `docs/analise/2026-11-13-sono-da-memoria.md`); saída de ferramenta das conversas; registrar no `docs/EVALS.md` as
 reincidências que a rodada viu.
 
@@ -193,6 +197,11 @@ reincidências que a rodada viu.
   sozinho (25 de 25) — teste instável, não ligado a esta entrega.
 
 ## Histórico
+- 2026-11-16 — sobras da parte 2 (0.64.0): o fecho só roda a suíte quando a rodada muda arquivo fora de `memory/**` e
+  `docs/decisoes.md`; o conflito Tailwind × Mantine decidido pelo owner (nível por projeto, nunca os dois no mesmo
+  app — regra 3, `templates/FRONTEND.md`, as duas notas de front com `substituiu:`); os 18 hooks leem a entrada em
+  UTF-8 por `hooks/_entrada.py` (motivo: a suíte levou 1:50:48 na 1ª rodada sem a rodada mudar código; lido como
+  cp1252, o `passagem_de_conversa.py` devolvia "falta `Já decidido`" num bloco que tinha o título).
 - 2026-11-16 — parte 2 entregue (0.63.0) e 1ª rodada no kit (motivo: o acervo nunca tinha sido conferido contra as
   conversas; os "enfraquece" dos ajudantes eram, na maioria, reincidência — separados na instrução das levas seguintes).
 - 2026-11-16 — parte 2 aberta (conversas): desenho aprovado pelo owner com 2 ajustes — só rebaixa com fala que mostra

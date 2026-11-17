@@ -8,9 +8,9 @@ Padrão visual e estrutural para UIs de aplicação. Objetivo: minimalista, prof
 entre os sistemas MSIG. **Regra-mãe:** componentizado, com HTML/CSS/JS em arquivos e pastas separadas —
 nunca tudo embolado num arquivo (ver Regra crítica de front-end no `CLAUDE.md`).
 
-## Dois níveis de front (escolha por tela, não por projeto)
+## Dois níveis de front (escolha por projeto)
 
-O mesmo projeto pode ter os dois — a decisão é **por tela**, pela densidade de interação:
+A escolha é **por projeto** e fica declarada na linha **UI:** do `CLAUDE.md`: começa no Nível 1, sobe pro Nível 2 quando uma tela pede; **nunca os dois no mesmo app** (decisão do owner, 2026-11-16):
 
 | | **Nível 1 — Jinja + Tailwind** | **Nível 2 — React + TS + Mantine** |
 |---|---|---|
@@ -19,7 +19,7 @@ O mesmo projeto pode ter os dois — a decisão é **por tela**, pela densidade 
 | Interatividade extra | HTMX/Alpine (sem build pesado) | Componentes Mantine prontos |
 | Custo | Baixo (1 runtime) | Build JS (Vite/Node) — atrito no proxy/Docker (ver §Nível 2) |
 
-**Regra de decisão:** comece no Nível 1. Suba pro Nível 2 **só** quando a tela pedir componentes que doeria construir à mão (DataTable, DatePicker, Select com busca, forms complexos). Não misture Tailwind e Mantine **no mesmo app/tela** — a Mantine já traz tema, espaçamento, dark mode e responsivo; onde ela entra, o Tailwind sai.
+**Regra de decisão:** comece no Nível 1. Suba o projeto pro Nível 2 **só** quando uma tela pedir componentes que doeria construir à mão (DataTable, DatePicker, Select com busca, forms complexos). Não misture Tailwind e Mantine **no mesmo app** — a Mantine já traz tema, espaçamento, dark mode e responsivo; onde ela entra, o Tailwind sai.
 
 ---
 

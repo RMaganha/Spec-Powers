@@ -4,6 +4,11 @@
 
 # Histórico do mapa de contexto — mss-spec
 
+## 2026-11-16 — saiu do MAPA (abertura da `feature/sobras-sono-da-memoria`, 0.64.0)
+
+<!-- histórico do estado anterior (0.62.0) -->
+Branch `docs/mapa-sono-mesclado` (MAPA) — **0.62.0 (sono da memória, parte 1: acervo) mesclada na `main` e publicada pelo owner em 2026-11-16** (`a98c410`); suíte 1617 verdes. 78 anotações conferidas (75 confirmadas, 1 não confirmada, 2 em conflito pro owner), citações mortas 40 → 0. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-13-sono-da-memoria-acervo.md`.
+
 ## 2026-11-16 — saiu do MAPA (abertura da `feature/sono-da-memoria-conversas`, 0.63.0)
 
 **Onde estávamos:** Branch `docs/captura-conversa-nova-acha-sozinha` (captura e MAPA) — **0.61.0 (a conversa nova acha sozinha o que o owner já decidiu) mesclada na `main` e publicada pelo owner em 2026-11-12** (`7e641b9`); suíte 1594 verdes. Nenhuma tarefa em andamento no INDEX. **Falta provar no real: uma conversa nova aberta só com uma frase.** Spec: `docs/specs/conversa-nova-nao-se-perde.md`. Diário: `memory/sessions/2026-11-12-conversa-nova-acha-sozinha.md`.

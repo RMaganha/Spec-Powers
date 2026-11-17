@@ -180,7 +180,8 @@ def decidir(evento, ambiente=None, git_common_dir=None):
 
 def main():
     try:
-        evento = json.load(sys.stdin)
+        from _entrada import ler_evento          # UTF-8, seja qual for a página de código do console
+        evento = ler_evento()
         motivo = decidir(evento if isinstance(evento, dict) else {})
     except Exception:
         sys.exit(0)                                   # bug/entrada inválida NUNCA trava

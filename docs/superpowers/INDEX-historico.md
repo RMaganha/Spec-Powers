@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-17 — fechadas
+
+- [sono-da-memoria](../specs/sono-da-memoria.md) — sobras da parte 2 (0.64.0): hooks leem a entrada em UTF-8, front conforme o projeto, fecho do sono sem a suíte quando a rodada não muda código — fechada
+
 ## 2026-11-16 — fechadas
 
 - [sono da memória — parte 2 (conversas)](../specs/sono-da-memoria.md) — ler as conversas gravadas e corrigir, rebaixar ou recuperar memória no formato da parte 1; 1ª rodada nas 67 conversas (0.63.0, 2026-11-16) — fechada

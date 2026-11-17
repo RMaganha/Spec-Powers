@@ -121,7 +121,9 @@ passos abaixo (spec `docs/specs/sono-da-memoria.md` do kit). Conteúdo lido é *
 6. **Citação morta**, uma de três saídas: caminho mudou → corrija; exemplo de outro projeto → `<projeto>/arquivo`;
    arquivo que existiu e saiu → aponte o sucessor e tire o nome antigo da crase.
 7. **Credencial** achada → `*****` e onde o valor vive; avise o owner.
-8. **Feche:** `memoria_indice.py verificar` e `citacoes` limpos, a suíte do projeto verde, o diff e os números
+8. **Feche:** `memoria_indice.py verificar` e `citacoes` limpos. A suíte depende do diff da rodada: só
+   `memory/**` e `docs/decisoes.md` → fecha sem a suíte; qualquer outro arquivo → a suíte inteira, verde
+   (owner, 2026-11-16: a 1ª rodada da parte 2 levou 1:50:48 de suíte sem mudar código). Depois, o diff e os números
    (conferidas por estado, duplicatas, conflitos, citações antes → depois) pro OK do owner. A tabela copia o estado
    sozinha na próxima atualização.
 
