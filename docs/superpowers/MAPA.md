@@ -1,11 +1,12 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da memória) mesclada na `main` em 2026-11-17** (`859115c`) e a captura (`db55972`); **falta o push do owner**; suíte 1651 verdes. Entrada dos 18 hooks em UTF-8 por `hooks/_entrada.py`; regra 3 de front conforme o projeto (nunca Tailwind e Mantine no mesmo app); fecho do sono sem a suíte quando a rodada só toca `memory/**` e `docs/decisoes.md`. Spec: `docs/specs/sono-da-memoria.md`. Diário: `memory/sessions/2026-11-16-sobras-do-sono-da-memoria.md`.
+Branch `fix/suite-so-o-que-mudou` — **0.65.0 (suíte lenta)**, CI do GitHub verde (24 s); falta o merge. Na máquina só o teste do que mudou (`templates/testes_do_que_mudou.py`); a suíte inteira no GitHub Actions; molde `templates/pytest/`; 108 testes de frase cortados. Diário: `memory/sessions/2026-11-17-suite-lenta.md`.
 
-<!-- histórico do estado anterior (0.63.0) -->
-Branch `docs/mapa-sono-parte-2-mesclado` (MAPA) — **0.63.0 (sono da memória, parte 2: conversas) mesclada na `main` em 2026-11-16** (`229726b`), publicada pelo owner; 1ª rodada nas 67 conversas (números na spec, "Conferido no real — parte 2"). Diário: `memory/sessions/2026-11-16-sono-da-memoria-conversas.md`.
+<!-- histórico do estado anterior (0.64.0) -->
+Branch `docs/mapa-sobras-sono-mesclado` (MAPA) — **0.64.0 (sobras do sono da memória) mesclada na `main` em 2026-11-17** (`859115c`) e a captura (`db55972`). Diário: `memory/sessions/2026-11-16-sobras-do-sono-da-memoria.md`.
 ## Próximo passo
+00. ⬜ **Merge da `fix/suite-so-o-que-mudou` na `main` e push do owner (0.65.0)**; depois, **molde de CI para os projetos grandes** e a **reescrita dos testes dos hooks**, um hook por conversa (os dois no `to-dolist.md`).
 0. ⬜ **Owner: push da `main` (0.64.0)** e decidir o conflito `UserPromptSubmit` exit 0 × exit 2 (Tailwind × Mantine: ✅ decidido em 2026-11-16).
 0a. ⬜ **Decidir como a regra 3 nova chega ao `.claude/rules/frontend.md` dos projetos** — o `upgrade` não sobrescreve o que existe; item no `to-dolist.md`.
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564, a suíte tem 1651).
