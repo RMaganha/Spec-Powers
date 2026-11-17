@@ -24,4 +24,12 @@ jobs:
           git config --global user.name "ci"
           git config --global user.email "ci@example.invalid"
       - name: Suíte inteira
-        run: python -m pytest -q
+        shell: bash
+        # O log do Actions só abre logado; a anotação, a API pública mostra. A lista do que falhou vai numa anotação
+        # só (uma linha por teste), e o código de saída continua sendo o do pytest.
+        run: |
+          python -m pytest -q -rfE 2>&1 | tee saida.txt
+          codigo=${PIPESTATUS[0]}
+          falhas=$(grep -E '^(FAILED|ERROR) ' saida.txt | head -200 | sed ':a;N;$!ba;s/\n/%0A/g')
+          if [ -n "$falhas" ]; then echo "::error title=testes que falharam::$falhas"; fi
+          exit $codigo

@@ -36,6 +36,8 @@ def test_github_actions_roda_a_suite_inteira_a_cada_push():
     assert checkout["with"]["fetch-depth"] == 0, "o teste das linhas do kit precisa da história inteira do git"
     rodar = " ".join(p.get("run", "") for p in passos)
     assert "python -m pytest -q" in rodar and "pip install" in rodar
+    # o log do Actions só abre logado; a anotação a API pública mostra — a lista do que falhou vai numa anotação
+    assert "::error" in rodar and "PIPESTATUS" in rodar, "falhas do CI não saem como anotação legível sem login"
 
 
 def _ci_doc():
