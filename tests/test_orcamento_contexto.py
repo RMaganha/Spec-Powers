@@ -26,6 +26,7 @@ TETO_BLOCO = 9000           # caracteres — cada bloco do kit (o hook limita a 
 TETO_LINHA = 600            # bytes — linha gigante é procedimento disfarçado de regra
 TETO_MAPA = 6000            # bytes — mapa é 1 tela, não arquivo morto
 TETO_INDEX = 7000           # bytes — índice de tarefas ABERTAS
+TETO_MEMORY_TOPO = 6000     # bytes — o TOPO do índice de memória; lido por test_hook_orcamento_partida.py
 
 
 def _b(p: Path) -> int:
