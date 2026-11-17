@@ -40,6 +40,13 @@ para separar a suíte (a regra "só o teste do que mudou" já resolve); rodar a 
 - Rejeitado: login no navegador embutido para ler o log do CI (o painel não ficou logado); o CI publica a lista das
   falhas numa anotação, que a API pública mostra.
 
+- Revisão arquivo por arquivo (56 arquivos, cerca de 900 pastas por rodada) aprovada pelo owner: grupo 1 (travas)
+  e grupo 2 (ferramentas) a reescrever; grupo 3 cortado — 108 testes de frase em `.md`. Ficaram os que pegam quebra
+  real e os 15 que guardam caso do `docs/EVALS.md` (rejeitado: cortá-los, deixaria os casos sem guarda). Merge
+  `a5549da` na `main`, CI da `main` verde.
+- Escopo seguinte, definido pelo owner, cada um em conversa nova com o texto pronto: Parte 3 (suíte em camadas),
+  molde de CI padrão para os projetos grandes, custo dos hooks num projeto grande (ele tem como testar).
+
 ## Próximo
 Merge na `main` com a aprovação do owner; push é do owner. Reescrever os ~50 arquivos de teste antigos (a regra
 testada em memória, sem pasta; disco só no teste da leitura) — até lá eles não rodam na máquina, só no CI. Em cada
