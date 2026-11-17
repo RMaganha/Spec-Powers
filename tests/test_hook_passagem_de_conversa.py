@@ -16,7 +16,7 @@ Propriedades (spec `docs/specs/conversa-nova-nao-se-perde.md`, critérios 1 a 5)
 - contrato do `Stop`: JSON `{"decision": "block"}` e saída 0; `stop_hook_active` → deixa sair; falha ABERTA;
   escape só do owner: `MSS_PASSAGEM_OFF=1`.
 
-Camadas (2026-11-17): a REGRA (`decidir`) é testada em memória — o que o hook guardaria no disco (o estado de cada
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o que o hook guardaria no disco (o estado de cada
 conversa, os textos prontos do projeto, as specs) fica num objeto do teste e entra como dado. O disco de verdade
 fica num teste só (a casca `avaliar` lê e grava), numa pasta montada uma vez; o processo python, num teste só.
 """
@@ -102,7 +102,7 @@ class Guardado:
 
     def avaliar(self, evento, ambiente=None):
         sessao = evento.get("session_id") if isinstance(evento, dict) else None
-        tipo, texto, mudancas = self.mod.decidir(evento, ambiente or {}, self.estados.get(sessao, {}),
+        tipo, texto, mudancas = self.mod.regra(evento, ambiente or {}, self.estados.get(sessao, {}),
                                                  lambda: self.passagens, lambda: list(self.specs), AGORA)
         if "estado" in mudancas:
             self.estados[sessao] = mudancas["estado"]

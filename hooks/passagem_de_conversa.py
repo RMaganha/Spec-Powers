@@ -561,7 +561,7 @@ def _ultima_resposta(evento):
         return None
 
 
-def decidir(evento, ambiente, estado, passagens, ler_specs, agora):
+def regra(evento, ambiente, estado, passagens, ler_specs, agora):
     """A REGRA, sem disco: entra o evento e o que está guardado, sai a decisão e o que guardar.
 
     `estado`: o que esta conversa guardou (`{}` se nada) · `passagens`: função que devolve os textos prontos
@@ -633,7 +633,7 @@ def decidir(evento, ambiente, estado, passagens, ler_specs, agora):
 
 
 def avaliar(evento, ambiente=None):
-    """A casca: lê o que está guardado, chama `decidir` e grava o que ela devolveu.
+    """A casca: lê o que está guardado, chama `regra` e grava o que ela devolveu.
     ("contexto", regra) no envio do pedido · ("devolve", motivo) no fim da resposta · (None, None)."""
     try:
         ambiente = os.environ if ambiente is None else ambiente
@@ -643,7 +643,7 @@ def avaliar(evento, ambiente=None):
         sessao = _texto(evento.get("session_id"))
         raiz = _raiz(evento, ambiente)
         estado = _ler_estado(sessao, ambiente) if sessao is not None else {}
-        tipo, texto, mudancas = decidir(evento, ambiente, estado,
+        tipo, texto, mudancas = regra(evento, ambiente, estado,
                                         lambda: _ler_passagens(raiz, ambiente),
                                         lambda: _specs_com_decisoes(raiz), time.time())
         if "estado" in mudancas:
