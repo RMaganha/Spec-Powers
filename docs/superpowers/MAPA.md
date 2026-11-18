@@ -1,12 +1,13 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `feature/molde-de-ci` — **molde de CI padrão para os projetos que usam o kit** (GitHub e Azure DevOps); desenho aguardando o OK do owner.
+Branch `feature/molde-de-ci` — **0.66.0, molde de CI feito** (`templates/ci/`: GitHub e Azure DevOps; lista do que falhou e teste `externo` no `conftest.py` do molde). Teste do que mudou verde; falta o push do owner, o CI do kit e o merge. Spec: `docs/specs/molde-de-ci.md`.
 
 <!-- histórico do estado anterior -->
-**Parte 3 (suíte do kit em camadas) na `main`, publicada, CI verde** (`c29cb51`, run `44369927902`). Diário: `memory/sessions/2026-11-17-suite-em-camadas.md`.
+**Parte 3 (suíte do kit em camadas) na `main`, publicada, CI verde** (`c29cb51`, run `44369927902`). A `main` local está 2 commits à frente da `origin/main` (`8d28b7b`, o MAPA).
 ## Próximo passo
-01. 🔄 **Molde de CI padrão para os projetos grandes** — em andamento na `feature/molde-de-ci`
+00. ⬜ **Push da `main` (2 commits do MAPA) e da `feature/molde-de-ci`, CI verde e merge `--no-ff`** — o push é do owner.
+01. ⬜ **Provar o molde de CI num projeto de verdade** — `/mss-spec:upgrade` num projeto do Azure DevOps (o owner liga o pipeline no portal) e marcar `externo` o que a 1ª rodada mostrar.
 02. ⬜ **Custo dos hooks num projeto grande** (conversa nova, o owner indica o projeto) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 0. ⬜ **Decidir o conflito `UserPromptSubmit` exit 0 × exit 2** (a 0.64.0 já foi publicada).
 0a. ⬜ **Decidir como a regra 3 nova chega ao `.claude/rules/frontend.md` dos projetos** — o `upgrade` não sobrescreve o que existe; item no `to-dolist.md`.
@@ -43,4 +44,4 @@ Branch `feature/molde-de-ci` — **molde de CI padrão para os projetos que usam
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-18 (branch feature/molde-de-ci aberta; desenho aguardando OK) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-18 (0.66.0 molde de CI feito na feature/molde-de-ci; falta push, CI e merge) · regenerável com /mss-spec:mapa -->

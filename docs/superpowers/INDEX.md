@@ -6,7 +6,6 @@
 # Índice de tarefas — mss-spec
 
 ## Em andamento
-- [molde de CI](../specs/molde-de-ci.md) — a suíte inteira de cada projeto roda no CI a cada push, com um molde pro GitHub e outro pro Azure DevOps, levado pelo kickoff e pelo upgrade — aberta
 
 ## A fazer (ordem)
 6. inventário do banco vivo — `/mss-spec:analise` inventaria o SQL Server sozinho (spec `docs/specs/inventario-banco.md`) — pausada: implementado na 0.28.0; falta dogfood no projeto C# real

@@ -1,7 +1,7 @@
 # Molde de CI — a suíte inteira do projeto roda no CI a cada push
 
 ## Estado atual
-**Em construção na `feature/molde-de-ci` (desenho aprovado pelo owner em 2026-11-18).**
+**Entregue na 0.66.0 (`feature/molde-de-ci`); ainda não rodou num projeto de verdade.**
 
 Um molde por plataforma, com o mesmo funcionamento: `templates/ci/github-testes.yml` → `.github/workflows/testes.yml`
 (GitHub Actions) e `templates/ci/azure-pipelines-testes.yml` → `azure-pipelines-testes.yml` (Azure DevOps). Os dois
@@ -15,7 +15,9 @@ A lista do que falhou e o tratamento do teste `externo` moram no `templates/pyte
 projeto): no CI (`GITHUB_ACTIONS` ou `TF_BUILD`), o teste marcado `@pytest.mark.externo` (precisa de banco ou serviço
 que o CI não alcança) é pulado, e no fim sai **uma** linha de erro com os testes que falharam — anotação `::error` no
 GitHub, `##vso[task.logissue type=error]` no Azure — mais um aviso com quantos `externo` foram pulados. O código de
-saída é o do pytest. Na máquina, o `externo` roda normalmente (quando o `testes_do_que_mudou.py` o escolhe).
+saída é o do pytest, exceto "nenhum teste coletado" (5), que no CI vira 0 — projeto recém-constituído ainda não tem
+teste. Na máquina nada muda: o `externo` roda normalmente (quando o `testes_do_que_mudou.py` o escolhe). O CI do kit
+(`.github/workflows/testes.yml`) usa a mesma lista, do `conftest.py` da raiz.
 
 A plataforma vem da linha `**Versionamento:**` do `CLAUDE.md`; se ela não disser, dos endereços dos remotos git
 (`github.com` → GitHub; `dev.azure.com`/`visualstudio.com` → Azure; todos os remotos, não só `origin`); sem decisão ou
@@ -45,3 +47,5 @@ privado, projeto C#/.NET, regra de branch do Azure pra pull request (opcional, p
   `externo` pulado no CI, owner lê a rodada no Azure, sem passo de autenticação pra pacote privado). Implementação: a
   lista de falhas e o pulo do `externo` foram pro `conftest.py` do molde, em vez de bash no YAML — Python testável em
   memória, e o YAML fica igual nas duas plataformas.
+- 2026-11-18 — entregue na 0.66.0; acrescentado "nenhum teste coletado não é falha no CI" (motivo: o kickoff leva o
+  molde a projeto que ainda não tem teste, e o CI nasceria vermelho).
