@@ -146,20 +146,19 @@ def mesmo_repo(alvo, ancora, git_common_dir):
     return bool(comum_alvo) and comum_alvo == comum_ancora
 
 
-def decidir(evento, ambiente=None, git_common_dir=None):
-    """None = libera; string = motivo do bloqueio (mostrado ao assistente)."""
-    ambiente = os.environ if ambiente is None else ambiente
-    git_common_dir = _git_common_dir if git_common_dir is None else git_common_dir
-
+def regra(evento, ambiente, git_common_dir):
+    """A REGRA, sem disco: `git_common_dir(pasta)` responde o .git comum de uma pasta (o git, ou o de teste).
+    Devolve `(motivo, anotacoes)`: None = libera; string = motivo do bloqueio (mostrado ao assistente)."""
+    anotacoes = []
     if _texto(ambiente.get(ENV_DESLIGA)):
-        return None
+        return None, anotacoes
     if evento.get("tool_name") not in TOOLS_DE_ESCRITA:
-        return None
+        return None, anotacoes
 
     bruto = caminho_alvo(evento)
     ancora_bruta = ancora_de(evento, ambiente)
     if not bruto or not ancora_bruta:
-        return None                                   # indeterminado → libera
+        return None, anotacoes                        # indeterminado → libera
 
     ancora = normalizar(ancora_bruta)
     # Os tools de escrita exigem caminho absoluto; se vier relativo, resolve como o tool
@@ -168,14 +167,35 @@ def decidir(evento, ambiente=None, git_common_dir=None):
     alvo = normalizar(bruto if os.path.isabs(bruto) else os.path.join(base_relativa, bruto))
 
     if dentro(alvo, ancora):
-        return None
+        return None, anotacoes
     if any(dentro(alvo, base) for base in bases_liberadas(ambiente)):
-        return None
+        return None, anotacoes
     if mesmo_repo(alvo, ancora, git_common_dir):
-        return None
+        return None, anotacoes
 
-    _anotar("negou", evento.get("tool_name"), evento)     # o caminho não vai pro registro
-    return MOTIVO.format(ancora=ancora_bruta, alvo=bruto, env=ENV_DESLIGA)
+    anotacoes.append(("negou", evento.get("tool_name")))   # o caminho não vai pro registro
+    return MOTIVO.format(ancora=ancora_bruta, alvo=bruto, env=ENV_DESLIGA), anotacoes
+
+
+def decidir(evento, ambiente=None, git_common_dir=None):
+    """A casca: a regra com o git de verdade, e o registro gravado. None = libera; string = motivo do bloqueio."""
+    ambiente = os.environ if ambiente is None else ambiente
+    motivo, anotacoes = regra(evento, ambiente, _git_common_dir if git_common_dir is None else git_common_dir)
+    for decisao, detalhe in anotacoes:
+        _anotar(decisao, detalhe, evento)
+    return motivo
+
+
+def saida(motivo):
+    """(stdout, stderr, código de saída): deny pelos dois protocolos — JSON no stdout e exit 2 com o motivo no
+    stderr; libera calado com 0. A mensagem é pt-BR (o `main` força UTF-8 nas duas saídas)."""
+    if motivo is None:
+        return None, None, 0
+    return json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": motivo,
+    }}, ensure_ascii=False), motivo, 2
 
 
 def main():
@@ -185,23 +205,19 @@ def main():
         motivo = decidir(evento if isinstance(evento, dict) else {})
     except Exception:
         sys.exit(0)                                   # bug/entrada inválida NUNCA trava
-    if motivo is None:
+    impresso, erro, codigo = saida(motivo)
+    if impresso is None:
         sys.exit(0)                                   # libera, calado
     # A mensagem é em pt-BR e vai pro contexto do assistente: força UTF-8 nas duas saídas
     # (no Windows o default é cp1252 e o acento sairia ilegível/quebrado).
-    for saida in (sys.stdout, sys.stderr):
+    for fluxo in (sys.stdout, sys.stderr):
         try:
-            saida.reconfigure(encoding="utf-8")
+            fluxo.reconfigure(encoding="utf-8")
         except (AttributeError, OSError):
             pass
-    # Deny pelos dois protocolos: JSON no stdout e exit 2 com o motivo no stderr.
-    json.dump({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": motivo,
-    }}, sys.stdout, ensure_ascii=False)
-    print(motivo, file=sys.stderr)
-    sys.exit(2)
+    sys.stdout.write(impresso)
+    print(erro, file=sys.stderr)
+    sys.exit(codigo)
 
 
 if __name__ == "__main__":
