@@ -1,0 +1,46 @@
+# CI do kit mss-spec — molde `templates/ci/azure-pipelines-testes.yml`, levado pelo /mss-spec:kickoff e pelo /mss-spec:upgrade.
+# Não edite aqui: o upgrade substitui este arquivo enquanto a 1ª linha for a de cima.
+#
+# A suíte inteira roda aqui, a cada push em qualquer branch; na máquina roda só o teste do que mudou (regra 9 do kit).
+# Só testa: não publica nada nem usa conexão com o Azure — os pipelines de publicação do projeto são outros arquivos.
+# A lista do que falhou sai numa linha de erro "testes que falharam" no resumo da rodada (escrita pelo conftest.py da
+# raiz) e o resultado completo na aba Tests. Teste marcado @pytest.mark.externo (precisa de banco ou serviço que o CI
+# não alcança) é pulado, com um aviso.
+#
+# Ligar (passo do owner, uma vez): Pipelines → New pipeline → Azure Repos Git → o repositório →
+# Existing Azure Pipelines YAML file → /azure-pipelines-testes.yml → Save and run.
+
+trigger:
+  branches:
+    include:
+    - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- bash: |
+    v=$(head -n1 .python-version 2>/dev/null | tr -d '[:space:]')
+    echo "##vso[task.setvariable variable=versaoPython]${v:-3.12}"
+  displayName: 'Versão do Python'
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(versaoPython)'
+- bash: |
+    set -e
+    python -m pip install --upgrade pip
+    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+    if [ ! -f requirements.txt ] && [ -f pyproject.toml ]; then pip install .; fi
+    pip install pytest
+  displayName: 'Dependências'
+- bash: python -m pytest -q -rfE --junitxml=resultado-testes.xml
+  displayName: 'Suíte inteira'
+  timeoutInMinutes: 30
+- task: PublishTestResults@2
+  displayName: 'Resultado na aba Tests'
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFormat: JUnit
+    testResultsFiles: resultado-testes.xml
+    testRunTitle: testes

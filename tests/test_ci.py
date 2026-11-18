@@ -36,9 +36,10 @@ def test_github_actions_roda_a_suite_inteira_a_cada_push():
     assert checkout["with"]["fetch-depth"] == 0, "o teste das linhas do kit precisa da história inteira do git"
     rodar = " ".join(p.get("run", "") for p in passos)
     assert "python -m pytest -q" in rodar and "pip install" in rodar
-    # o log do Actions só abre logado; a anotação a API pública mostra — a lista do que falhou vai numa anotação
-    assert "::error" in rodar and "PIPESTATUS" in rodar, "falhas do CI não saem como anotação legível sem login"
-    assert "set +e" in rodar, "o bash do Actions (-e -o pipefail) mata o passo antes de a lista sair"
+    # o log do Actions só abre logado; a anotação a API pública mostra — quem escreve a lista é o conftest.py da raiz
+    # (cópia do molde, `tests/test_pytest_mss.py::test_kit_usa_o_proprio_molde`); um 2º `::error` no YAML a duplicaria
+    assert "::error" not in rodar
+    assert "linha_de_falhas" in (REPO / "conftest.py").read_text(encoding="utf-8")
 
 
 def _ci_doc():
@@ -109,3 +110,79 @@ def test_ci_sem_host_inventado_placeholder():
     assert "não ativado" in texto.lower() or "placeholder" in texto.lower(), (
         ".gitlab-ci.yml deve marcar que está preparado, NÃO ativado (passo do owner), como o item 9"
     )
+
+
+# --- Molde de CI dos projetos (spec docs/specs/molde-de-ci.md) ---
+
+MOLDE_GITHUB = REPO / "templates" / "ci" / "github-testes.yml"
+MOLDE_AZURE = REPO / "templates" / "ci" / "azure-pipelines-testes.yml"
+MARCA_CI = "# CI do kit mss-spec"
+
+
+def _molde(caminho):
+    yaml = pytest.importorskip("yaml")
+    texto = caminho.read_text(encoding="utf-8")
+    assert texto.startswith(MARCA_CI), f"{caminho.name}: a 1ª linha é a marca que o upgrade usa pra substituir"
+    return texto, yaml.safe_load(texto)
+
+
+def _passos_github(doc):
+    return [p for job in doc["jobs"].values() for p in job["steps"]]
+
+
+def _passos_azure(doc):
+    return doc["steps"] if "steps" in doc else [p for job in doc["jobs"] for p in job["steps"]]
+
+
+def _script(passo):
+    return passo.get("run") or passo.get("bash") or ""
+
+
+def _dependencias(passos):
+    return next(_script(p) for p in passos if "requirements.txt" in _script(p))
+
+
+def test_molde_github_roda_a_suite_a_cada_push():
+    texto, doc = _molde(MOLDE_GITHUB)
+    gatilhos = doc.get("on") or doc.get(True)
+    assert "push" in gatilhos and "pull_request" in gatilhos
+    passos = _passos_github(doc)
+    setup = next(p for p in passos if str(p.get("uses", "")).startswith("actions/setup-python"))
+    assert "steps.versao.outputs.python" in str(setup["with"]["python-version"])
+    assert any("python -m pytest" in _script(p) for p in passos)
+    assert "runs-on: ubuntu-latest" in texto
+
+
+def test_molde_azure_roda_a_suite_em_toda_branch_sem_publicar_nada():
+    texto, doc = _molde(MOLDE_AZURE)
+    assert doc["trigger"]["branches"]["include"] == ["*"], "trigger explícito: a organização pode desligar o implícito"
+    assert doc["pool"]["vmImage"] == "ubuntu-latest"
+    assert "AzureCLI" not in texto and "azureSubscription" not in texto, "o pipeline de testes não publica nada"
+    passos = _passos_azure(doc)
+    usar = next(p for p in passos if p.get("task") == "UsePythonVersion@0")
+    assert usar["inputs"]["versionSpec"] == "$(versaoPython)"
+    pytest_ = next(_script(p) for p in passos if "python -m pytest" in _script(p))
+    assert "--junitxml=resultado-testes.xml" in pytest_
+    publicar = next(p for p in passos if p.get("task") == "PublishTestResults@2")
+    assert publicar["condition"] == "succeededOrFailed()", "o JUnit tem de sair também quando a suíte falha"
+    assert publicar["inputs"]["testResultsFormat"] == "JUnit"
+    assert publicar["inputs"]["testResultsFiles"] == "resultado-testes.xml"
+
+
+def test_moldes_instalam_as_dependencias_do_mesmo_jeito():
+    _, github = _molde(MOLDE_GITHUB)
+    _, azure = _molde(MOLDE_AZURE)
+    dep = _dependencias(_passos_github(github))
+    assert dep == _dependencias(_passos_azure(azure)), "os dois moldes instalam as dependências com o mesmo script"
+    for trecho in ("requirements.txt", "requirements-dev.txt", "pyproject.toml", "pip install pytest"):
+        assert trecho in dep
+    for doc, passos in ((github, _passos_github(github)), (azure, _passos_azure(azure))):
+        versao = " ".join(_script(p) for p in passos)
+        assert ".python-version" in versao and "3.12" in versao
+
+
+def test_kickoff_e_upgrade_levam_os_moldes_de_ci():
+    for comando in ("kickoff.md", "upgrade.md"):
+        texto = (REPO / "commands" / comando).read_text(encoding="utf-8")
+        for molde in ("templates/ci/github-testes.yml", "templates/ci/azure-pipelines-testes.yml"):
+            assert molde in texto, f"{comando} não leva {molde}"
