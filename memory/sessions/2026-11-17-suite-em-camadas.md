@@ -1,4 +1,4 @@
-# 2026-11-17 — suíte em camadas: a regra do hook testada em memória, sem pasta (em andamento)
+# 2026-11-17 — suíte em camadas: a regra do hook testada em memória, sem pasta (34 de 34; rodada única verde)
 
 ## Conversamos
 O owner abriu `/mss-spec:tarefa` com o texto pronto da conversa anterior (`2026-11-17-suite-lenta.md`): reescrever
@@ -12,6 +12,8 @@ dado sem mudar o comportamento; na máquina só `templates/testes_do_que_mudou.p
 - No `confere_citacoes` a regra recebe o disco como objeto (`DiscoReal`, 6 métodos); em teste, um dicionário de
   arquivos com o pedaço do kit que os textos citam. O kit de verdade fica só no teste de disco.
 - Uma rodada levou 13h03 de relógio: a máquina suspendeu no meio (a data virou). Rodada longa vai em segundo plano.
+- No `rodizio_partida` o dry-run do `enxugar` trocou a pasta temporária por um `Rascunho` em memória: grava só
+  nele e lê do disco de baixo o que não gravou (OK do owner, 2026-11-18).
 
 ## Rejeitado
 - Ler o kit de verdade nos testes em memória do `confere_citacoes` (seria disco fora do teste de disco).
@@ -50,10 +52,18 @@ dado sem mudar o comportamento; na máquina só `templates/testes_do_que_mudou.p
   `test_camada_no_gitignore_fica_fora` do F-005 virou o teste de disco do `mapa_neural`, com git de verdade).
 - Rejeitado pelo owner: pasta montada uma vez com o script intocado nos extratores (a opção leve).
 
+- 2026-11-18 (4ª conversa): os 5 últimos, um commit cada, sem rodada: `sono_da_memoria` (`49a9826`, disco por
+  objeto no `memoria_indice.py`), `memoria_indice` (`1e33e9d`), `rodizio_partida` (`dcf7579`), `bpmn` (`cda2c9c`,
+  24 processos viraram 1), `memoria_gatilho_de_acao` (`030fb61`). A conta "faltam 6" estava errada: a 3ª
+  conversa reescreveu 11, não 10.
+- Rodada única (`python templates/testes_do_que_mudou.py --rodar`): `5 failed, 1479 passed in 654.80s`.
+  Conserto em `23a96e1`; as 5 de novo: `14 passed`. 4 eram o ajudante com `evento=None` significando "use o
+  padrão", que engolia o caso `None` da entrada malformada — agora a sentinela `PADRAO = object()`
+  (`memory/project_ajudante_de_teste_sentinela_em_vez_de_none.md`); 1 era o teste do F-047, que perdeu o "ou o
+  título" ao sair do `test_hook_memoria_da_proposta.py` (`ef7bd15`) — caso F-074 no `docs/EVALS.md`.
+- O item do `testes_do_que_mudou.py` (não escolhe teste que carrega módulo por nome entre aspas nem teste que
+  varre `memory/` com glob) foi para o `to-dolist.md` como `#fora-de-escopo` (`f29a4ea`).
+
 ## Próximo
-Faltam 6: `sono_da_memoria` (importa `_grava, _projeto, _sql` do `test_memoria_tabela`, que não existem mais — e
-testa sobretudo o `memoria_indice`: abrir o disco dele aqui), `memoria_indice`, `rodizio_partida`, `bpmn` (enxugar),
-`memoria_gatilho_de_acao`; depois a rodada única (`python templates/testes_do_que_mudou.py --rodar`, em segundo
-plano) e o conserto num commit separado. O texto pronto está no fim desta conversa.
-Aberto, sem resposta do owner: vira item do `to-dolist.md` que o `testes_do_que_mudou.py` não escolhe teste que
-carrega o hook pelo nome sem `.py` (ex.: `test_hook_memoria_da_proposta.py`) nem teste que depende de `memory/`?
+O owner envia a branch (`git push -u origin refactor/suite-em-camadas`) → a suíte inteira roda no CI → merge
+`--no-ff` na `main`, com a aprovação dele.
