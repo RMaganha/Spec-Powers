@@ -2,6 +2,14 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.66.0 — 2026-11-18 (molde de CI: a suíte inteira de cada projeto roda no CI, no GitHub ou no Azure DevOps)
+- **o que motivou:** a regra 9 manda a suíte inteira pro CI, mas só o kit tinha CI. O owner quer um molde pronto e padrão pros projetos grandes (ATM Transporte, Atendimento WhatsApp, mss-utils…); este fica no GitHub, a maioria no Azure DevOps. Decisões do owner em `docs/specs/molde-de-ci.md`.
+- feat(**`templates/ci/`**, novo): `github-testes.yml` → `.github/workflows/testes.yml` (push e pull request) e `azure-pipelines-testes.yml` → `azure-pipelines-testes.yml` (`trigger` explícito em todas as branches, sem conexão com o Azure, JUnit na aba Tests mesmo quando falha). Os dois: `ubuntu-latest`, Python do `.python-version` (3.12 sem ele), dependências do requirements.txt + requirements-dev.txt (senão pyproject.toml) e `pytest`, com o mesmo script.
+- feat(**`templates/pytest/conftest.py`**): no CI (`GITHUB_ACTIONS` ou `TF_BUILD`), a lista do que falhou sai numa linha de erro só, no formato da plataforma (`::error` / `##vso[task.logissue]`, escapada); teste `@pytest.mark.externo` (banco ou serviço que o CI não alcança) é pulado, com aviso de quantos; "nenhum teste coletado" não deixa o CI vermelho. Na máquina nada muda.
+- feat(**`commands/kickoff.md`**, **`commands/upgrade.md`**): plataforma pela linha `**Versionamento:**` do `CLAUDE.md` ou pelos endereços de todos os remotos git (pergunta quando não decide); copia o molde da plataforma; arquivo de CI sem a 1ª linha `# CI do kit mss-spec` → diff e pergunta. `templates/CLAUDE.md`: a linha `Versionamento` diz onde fica hospedado; `linhas-do-kit.txt` regenerado.
+- ci(**`.github/workflows/testes.yml`**): o bash da lista sai; quem escreve a anotação é o `conftest.py` da raiz (o mesmo molde).
+- test: `tests/test_pytest_mss.py` (+9) e `tests/test_ci.py` (+4).
+
 ## 0.65.0 — 2026-11-17 (suíte lenta: só o teste do que mudou, pasta temporária por projeto, uma rodada por vez, suíte do kit em camadas)
 - **o que motivou:** o pytest deixava a máquina lenta em todo projeto que usa o kit. A mesma suíte do kit levou de 517.74s a 2379.61s; a rodada interrompida deixava lixo travado por 3 dias na pasta temporária do pytest, que era uma só para todos os projetos (6 pastas travadas, ~3 mil pastas, 991s só para apagar); e a regra 9, somada ao TDD, rodava a suíte inteira a cada ajuste.
 - fix(**regra 9**, `templates/regras-do-kit/2-regras-criticas.md`): na máquina roda só o teste do que mudou, escolhido pelo script; a suíte inteira roda no CI (projeto sem CI: uma vez, antes do merge); nunca antes do OK do owner; uma rodada de pytest por vez.

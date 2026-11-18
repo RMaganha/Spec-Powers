@@ -3,6 +3,10 @@
 
 # Índice de tarefas — histórico (fechadas)
 
+## 2026-11-18 — fechadas
+
+- [molde de CI](../specs/molde-de-ci.md) — a suíte inteira de cada projeto roda no CI a cada push, com um molde pro GitHub e outro pro Azure DevOps, levado pelo kickoff e pelo upgrade — fechada
+
 ## 2026-11-17 — fechadas
 
 - [sono-da-memoria](../specs/sono-da-memoria.md) — sobras da parte 2 (0.64.0): hooks leem a entrada em UTF-8, front conforme o projeto, fecho do sono sem a suíte quando a rodada não muda código — fechada

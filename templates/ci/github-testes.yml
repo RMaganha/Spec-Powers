@@ -1,0 +1,36 @@
+# CI do kit mss-spec — molde `templates/ci/github-testes.yml`, levado pelo /mss-spec:kickoff e pelo /mss-spec:upgrade.
+# Não edite aqui: o upgrade substitui este arquivo enquanto a 1ª linha for a de cima.
+#
+# A suíte inteira roda aqui, a cada push e pull request; na máquina roda só o teste do que mudou (regra 9 do kit).
+# A lista do que falhou sai numa anotação "testes que falharam" (uma linha por teste), escrita pelo conftest.py da raiz;
+# teste marcado @pytest.mark.externo (precisa de banco ou serviço que o CI não alcança) é pulado, com um aviso.
+name: testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versão do Python
+        id: versao
+        run: |
+          v=$(head -n1 .python-version 2>/dev/null | tr -d '[:space:]')
+          echo "python=${v:-3.12}" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.versao.outputs.python }}
+      - name: Dependências
+        run: |
+          set -e
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          if [ ! -f requirements.txt ] && [ -f pyproject.toml ]; then pip install .; fi
+          pip install pytest
+      - name: Suíte inteira
+        run: python -m pytest -q -rfE

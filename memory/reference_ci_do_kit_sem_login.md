@@ -23,5 +23,10 @@ título "testes que falharam":
 curl -s "https://api.github.com/repos/RMaganha/Spec-Powers/check-runs/<job>/annotations" | python -c "import json,sys; [print(a.get('title'), a.get('message','')) for a in json.load(sys.stdin) if a.get('annotation_level')=='failure']"
 ```
 
-O passo da suíte roda com `set +e`: o bash do Actions usa `-e -o pipefail` e, sem ele, o passo morria antes de montar
-a anotação. Relacionado: [[feedback_suite_inteira_so_no_ci]].
+Quem escreve a anotação é o `conftest.py` da raiz (cópia do molde `templates/pytest/conftest.py`, função
+`linha_de_falhas`), no fim da rodada, quando `GITHUB_ACTIONS=true`; o passo do YAML é só `python -m pytest -q -rfE`.
+Nos projetos no Azure DevOps a mesma lista sai como `##vso[task.logissue type=error]`, mas a rodada só abre logado:
+quem lê é o owner, que cola a linha na conversa (decisão de 2026-11-18, `docs/specs/molde-de-ci.md`).
+
+substituiu: "o passo da suíte roda com `set +e` e monta a anotação em bash" (0.66.0, 2026-11-18).
+Relacionado: [[feedback_suite_inteira_so_no_ci]].
