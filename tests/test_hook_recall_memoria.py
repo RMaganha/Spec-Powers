@@ -4,7 +4,15 @@ Por que existe: o owner de um projeto grande voltava às conversas antigas pra r
 um assunto foi tratado. O índice estava lá; ninguém abria. Agora o Python casa e injeta ≤ 600 bytes.
 
 Propriedades: não bloqueia nunca · silêncio quando nada casa · ignora `/comando` e prompt curto · projeto
-sem memory/ → silêncio · falha ABERTA (bug → exit 0, stdout vazio) · escape `MSS_RECALL_OFF=1`.
+sem memory/ → silêncio · diário de sessão fica de fora (F-030) · falha ABERTA (bug → exit 0, stdout vazio) ·
+escape `MSS_RECALL_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — se o projeto tem `memory/` entra como função e o
+motor (`templates/memoria_indice.py`) entra falso, um objeto do teste que guarda com o que `casar` foi chamado e
+devolve a injeção combinada; os caminhos não existem. O que o motor casa (gatilho, PROCEDIMENTO com a instrução
+de seguir, diário só quando pedido, fora de escopo e decisão obsoleta fora, 600 bytes) é provado em
+`tests/test_memoria_indice.py`. O disco de verdade, com o motor de verdade, fica num teste só, numa pasta montada
+uma vez; o processo python, num teste só.
 """
 import importlib.util
 import json
@@ -13,20 +21,137 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "recall_memoria.py"
+RAIZ = REPO.parent / "projeto-que-nao-existe-recall"          # absoluto em qualquer sistema; nunca criado
+PROMPT = "o docker -v pelo git bash montou pasta vazia e o teste deu No such file"
+INJECAO = ("[mss-spec recall] casou com o seu prompt — abra antes de agir:\n"
+           "- memory/mount-de-codigo-no-docker-pelo-git-bash.md — montar a fonte com -v no Git Bash cai em silêncio\n"
+           "- docs/decisoes.md:12 — 2026-09-30 — usar a fila X em vez de Y")
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("recall_memoria", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = m
+    spec.loader.exec_module(m)
+    return m
 
 
-def _projeto(tmp_path):
-    raiz = tmp_path / "proj"
+class Motor:
+    """O motor falso: as palavras do prompt são os tokens; `casar` guarda com o que foi chamado e a injeção é a que o
+    teste combinou ("" = nada casou)."""
+
+    def __init__(self, injecao=INJECAO, erro=None):
+        self.injecao, self.erro, self.casou, self.carregado = injecao, erro, [], 0
+
+    def tokens(self, prompt):
+        return [p for p in prompt.split() if len(p) > 3], set()
+
+    def casar(self, proj, prompt, limite, diario):
+        if self.erro:
+            raise self.erro
+        self.casou.append({"proj": proj, "prompt": prompt, "limite": limite, "diario": diario})
+        return ["achado"] if self.injecao else []
+
+    def formatar_injecao(self, achados):
+        return self.injecao if achados else ""
+
+
+class Janela:
+    """O papel da casca, em memória: quais projetos têm `memory/`, o motor falso e as anotações do registro."""
+
+    def __init__(self, mod, motor, com_memoria=(RAIZ,)):
+        self.mod, self.motor, self.com_memoria, self.anotacoes = mod, motor, set(com_memoria), []
+
+    def _carregar(self):
+        self.motor.carregado += 1
+        return self.motor
+
+    def responder(self, evento, ambiente=None):
+        resposta, mudancas = self.mod.regra(evento, ambiente or {}, lambda proj: proj in self.com_memoria,
+                                            self._carregar)
+        self.anotacoes += mudancas["anotacoes"]
+        return resposta
+
+
+def _evento(prompt=PROMPT, raiz=RAIZ):
+    return {"hook_event_name": "UserPromptSubmit", "cwd": str(raiz), "prompt": prompt}
+
+
+def test_injeta_ponteiro_quando_casa(mod):
+    jan = Janela(mod, Motor())
+    saida = jan.responder(_evento())
+    assert saida == {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": INJECAO}}
+    assert jan.motor.casou == [{"proj": RAIZ, "prompt": PROMPT, "limite": 3, "diario": False}]
+
+
+def test_hook_nao_pede_diario_de_sessao(mod):
+    """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o
+    assistente tratou o passado como estado atual. O `CLAUDE.md` já diz: diário é sob demanda."""
+    jan = Janela(mod, Motor())
+    jan.responder(_evento("preciso publicar no azure de produção o webhook do whatsapp, deploy da main"))
+    assert jan.motor.casou[0]["diario"] is False, "o hook pediu o diário de sessão ao motor"
+
+
+def test_registro_guarda_so_o_ponteiro(mod):
+    jan = Janela(mod, Motor())
+    jan.responder(_evento())
+    assert jan.anotacoes == [("injetou", "memory/mount-de-codigo-no-docker-pelo-git-bash.md, docs/decisoes.md:12")]
+    assert "docker -v" not in jan.anotacoes[0][1] and "silêncio" not in jan.anotacoes[0][1], \
+        "o registro levou o prompt ou o resumo da memória"
+
+
+def test_silencio_quando_nada_casa(mod):
+    jan = Janela(mod, Motor(injecao=""))
+    assert jan.responder(_evento("ajusta o rodapé da página de login por favor")) is None
+    assert jan.anotacoes == []
+
+
+def test_ignora_comando_e_prompt_curto(mod):
+    jan = Janela(mod, Motor())
+    assert jan.responder(_evento("/mss-spec:doctor docker git bash mount teste")) is None
+    assert jan.responder(_evento("   /mss-spec:tarefa ajustar docker bash mount")) is None
+    assert jan.responder(_evento("docker bash")) is None
+    assert jan.motor.casou == []
+
+
+def test_projeto_sem_memoria_nem_carrega_o_motor(mod):
+    jan = Janela(mod, Motor(), com_memoria=())
+    assert jan.responder(_evento()) is None and jan.motor.carregado == 0
+
+
+def test_escape_e_falha_aberta(mod):
+    jan = Janela(mod, Motor())
+    assert jan.responder(_evento(), {"MSS_RECALL_OFF": "1"}) is None
+    for ruim in ("isto não é um dict", None, {"prompt": 42, "cwd": str(RAIZ)}, {"prompt": PROMPT},
+                 {"prompt": PROMPT, "cwd": 7}):
+        assert jan.responder(ruim) is None, ruim
+    assert jan.motor.carregado == 0
+    quebrado = Janela(mod, Motor(erro=RuntimeError("índice ilegível")))
+    assert quebrado.responder(_evento()) is None and quebrado.anotacoes == []
+
+
+def test_claude_project_dir_vence_o_cwd(mod):
+    jan = Janela(mod, Motor())
+    assert jan.responder(_evento(raiz=RAIZ.parent / "outro"), {"CLAUDE_PROJECT_DIR": str(RAIZ)}) is not None
+    assert jan.motor.casou[0]["proj"] == RAIZ
+
+
+def test_saida_e_o_json_da_resposta(mod):
+    resposta = {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": INJECAO}}
+    assert json.loads(mod.saida(resposta)) == resposta
+    assert mod.saida(None) is None
+
+
+# --- o disco de verdade e o processo (pasta montada uma vez) ------------------------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    raiz = tmp_path_factory.mktemp("recall_memoria") / "proj"
     mem = raiz / "memory"
     mem.mkdir(parents=True)
     (mem / "MEMORY.md").write_text("# topo\n", encoding="utf-8")
@@ -35,117 +160,25 @@ def _projeto(tmp_path):
         "description: montar a fonte com -v no Git Bash do Windows cai em silêncio\n"
         "gatilho: quando montar código com `docker -v` no Git Bash e o teste novo der No such file\n---\n",
         encoding="utf-8")
+    (raiz.parent / "sem-memoria").mkdir()
     return raiz
 
 
-def _evento(prompt, raiz):
-    return {"hook_event_name": "UserPromptSubmit", "cwd": str(raiz), "prompt": prompt}
-
-
-def _rodar(evento, raw=None, env_extra=None):
-    amb = {k: v for k, v in os.environ.items() if k not in ("MSS_RECALL_OFF", "CLAUDE_PROJECT_DIR")}
-    amb.update(env_extra or {})
-    return subprocess.run([sys.executable, str(HOOK)], input=raw if raw is not None else json.dumps(evento),
-                          capture_output=True, text=True, env=amb, timeout=30)
-
-
-PROMPT = "o docker -v pelo git bash montou pasta vazia e o teste deu No such file"
-
-
-def test_injeta_ponteiro_quando_casa(tmp_path):
-    mod = _mod()
-    saida = mod.responder(_evento(PROMPT, _projeto(tmp_path)), {})
-    assert saida is not None
-    assert saida["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
+def test_casca_casa_com_o_motor_de_verdade(mod, pasta):
+    saida = mod.responder(_evento(raiz=pasta), {})
     ctx = saida["hookSpecificOutput"]["additionalContext"]
     assert ctx.startswith("[mss-spec recall]") and "memory/mount-de-codigo-no-docker-pelo-git-bash.md" in ctx
     assert len(ctx.encode("utf-8")) <= 600
+    assert mod.responder(_evento(raiz=pasta.parent / "sem-memoria"), {}) is None
 
 
-DIARIO_WHATS = ("# Diário\n"
-                "- [evolution-go-em-homologacao] evolution go em homologação na azure, deploy do webhook do whatsapp"
-                " → sessions/2026-08-04-evolution-go-em-homologacao.md\n")
-PROMPT_DEPLOY = "preciso publicar no azure de produção o webhook do whatsapp, deploy da main"
-
-
-def test_procedimento_casado_vem_com_a_instrucao_de_seguir(tmp_path):
-    """Benchmark MSIG_Agentes (2026-11-06), item 1: lá um hook casa o pedido com o Gatilho do procedimento e
-    injeta o aviso ANTES de o agente começar — regra só em texto já tinha falhado. Aqui o recall faz o mesmo:
-    ponteiro com prefixo PROCEDIMENTO + instrução de ler inteiro e seguir 'passo k/N'."""
-    mod = _mod()
-    raiz = _projeto(tmp_path)
-    (raiz / "memory" / "cancelar-apolices-da-planilha.md").write_text(
-        "---\nname: cancelar-apolices-da-planilha\ndescription: cancelamento em lote a partir de planilha\n"
-        "gatilho: quando pedirem para cancelar apólices de uma planilha\nmetadata:\n  type: procedimento\n---\n"
-        "**Passos:**\n1. a — quem: assistente — como: x\n2. b — quem: owner — como: y\n**Ferramentas:** nenhuma\n**Saída:** z\n",
-        encoding="utf-8")
-    saida = mod.responder(_evento("cancelar as apólices da planilha que chegou hoje", raiz), {})
-    ctx = saida["hookSpecificOutput"]["additionalContext"]
-    assert "PROCEDIMENTO memory/cancelar-apolices-da-planilha.md" in ctx and "passo k/N" in ctx
-    assert len(ctx.encode("utf-8")) <= 600
-
-
-def test_hook_nao_injeta_diario_de_sessao(tmp_path):
-    """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o
-    assistente tratou o passado como estado atual. O `CLAUDE.md` já diz: diário é sob demanda."""
-    raiz = _projeto(tmp_path)
-    (raiz / "memory" / "DIARIO.md").write_text(DIARIO_WHATS, encoding="utf-8")
-    saida = _mod().responder(_evento(PROMPT_DEPLOY, raiz), {})
-    ctx = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
-    assert "memory/sessions/" not in ctx, "o hook injetou diário de sessão"
-
-
-def test_buscar_manual_ainda_acha_o_diario(tmp_path):
-    """O `/mss-spec:memory buscar` é pedido do owner: lá o diário continua valendo."""
-    raiz = _projeto(tmp_path)
-    (raiz / "memory" / "DIARIO.md").write_text(DIARIO_WHATS, encoding="utf-8")
-    motor = _mod()._motor()
-    r = motor.casar(raiz, PROMPT_DEPLOY, limite=10)
-    assert any(x.ponteiro.startswith("memory/sessions/2026-08-04") for x in r)
-
-
-def test_silencio_quando_nada_casa(tmp_path):
-    mod = _mod()
-    assert mod.responder(_evento("ajusta o rodapé da página de login por favor", _projeto(tmp_path)), {}) is None
-
-
-def test_ignora_comando_prompt_curto_e_projeto_sem_memoria(tmp_path):
-    mod = _mod()
-    raiz = _projeto(tmp_path)
-    assert mod.responder(_evento("/mss-spec:doctor docker git bash mount teste", raiz), {}) is None
-    assert mod.responder(_evento("docker bash", raiz), {}) is None
-    vazio = tmp_path / "vazio"
-    vazio.mkdir()
-    assert mod.responder(_evento(PROMPT, vazio), {}) is None
-
-
-def test_escape_e_falha_aberta(tmp_path):
-    mod = _mod()
-    raiz = _projeto(tmp_path)
-    assert mod.responder(_evento(PROMPT, raiz), {"MSS_RECALL_OFF": "1"}) is None
-    assert mod.responder("isto não é um dict", {}) is None
-    assert mod.responder({"prompt": 42, "cwd": str(raiz)}, {}) is None
-
-
-def test_claude_project_dir_vence_o_cwd(tmp_path):
-    mod = _mod()
-    raiz = _projeto(tmp_path)
-    outro = tmp_path / "outro"
-    outro.mkdir()
-    assert mod.responder(_evento(PROMPT, outro), {"CLAUDE_PROJECT_DIR": str(raiz)}) is not None
-
-
-def test_processo_injeta_json_e_sai_zero(tmp_path):
-    raiz = _projeto(tmp_path)
-    proc = _rodar(_evento(PROMPT, raiz))
+def test_processo_injeta_json_e_sai_zero(pasta):
+    amb = {k: v for k, v in os.environ.items() if k not in ("MSS_RECALL_OFF", "CLAUDE_PROJECT_DIR")}
+    proc = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(_evento(raiz=pasta)), capture_output=True,
+                          text=True, encoding="utf-8", env=amb, timeout=30)
     assert proc.returncode == 0, proc.stderr
     saida = json.loads(proc.stdout)
     assert "mount-de-codigo-no-docker-pelo-git-bash.md" in saida["hookSpecificOutput"]["additionalContext"]
-
-
-def test_processo_json_malformado_sai_zero_e_calado(tmp_path):
-    proc = _rodar(None, raw="{isto não é json")
-    assert proc.returncode == 0 and proc.stdout.strip() == ""
 
 
 def test_hook_registrado_em_user_prompt_submit():
@@ -153,32 +186,3 @@ def test_hook_registrado_em_user_prompt_submit():
     comandos = [h["command"] for g in grupos for h in g["hooks"]]
     assert any("recall_memoria.py" in c and "CLAUDE_PLUGIN_ROOT" in c for c in comandos), comandos
     assert any("um_item_por_janela.py" in c for c in comandos), "não pode derrubar a cerca que já existia"
-
-
-def test_recall_nao_cita_fora_de_escopo_sozinho(tmp_path):
-    """0.47.0: fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist. A busca
-    rodava a cada mensagem e repetia o item como se fosse proibição — não lê o to-dolist nem o
-    `FORA-DE-ESCOPO.md` antigo (de projeto ainda não convertido pelo upgrade)."""
-    raiz = _projeto(tmp_path)
-    sp = raiz / "docs" / "superpowers"
-    sp.mkdir(parents=True)
-    (sp / "FORA-DE-ESCOPO.md").write_text(
-        "# Fora de escopo\n\n- **Redis para o handoff no WhatsApp** — descartado em 2026-07-30: a memória de "
-        "sessão do servidor já resolve o handoff\n", encoding="utf-8")
-    (raiz / "to-dolist.md").write_text(
-        "- Redis para o handoff no WhatsApp #fora-de-escopo (decidido: 2026-07-30, a memória de sessão do "
-        "servidor já resolve o handoff)\n", encoding="utf-8")
-    saida = _mod().responder(_evento("vamos colocar redis pra guardar o handoff do whatsapp", raiz), {})
-    texto = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
-    assert "FORA-DE-ESCOPO.md" not in texto and "to-dolist.md" not in texto, texto
-
-
-def test_recall_pula_linha_pausada_ou_obsoleta(tmp_path):
-    raiz = _projeto(tmp_path)
-    (raiz / "docs").mkdir()
-    (raiz / "docs" / "decisoes.md").write_text(
-        "# Decisões\n- 2026-07-01 — cotação via n8n com callback no whatsapp — obsoleta: n8n saiu da produção\n",
-        encoding="utf-8")
-    saida = _mod().responder(_evento("a cotação via n8n com callback no whatsapp funciona?", raiz), {})
-    ctx = saida["hookSpecificOutput"]["additionalContext"] if saida else ""
-    assert "decisoes.md" not in ctx, "o recall injetou uma decisão marcada obsoleta"

@@ -462,3 +462,50 @@ def test_buscar_cli_lista_ponteiros(tmp_path, capsys):
     assert mod.main(["buscar", "validar_corretor corretor", "--proj", str(raiz)]) == 0
     out = capsys.readouterr().out
     assert "memory/resolvedor-de-token-prefere-processo-ao-header.md" in out
+
+
+# --- o que o recall (`hooks/recall_memoria.py`) pede ao motor: casar(…, limite=3, diario=False) --------------
+# Vieram de `tests/test_hook_recall_memoria.py` (2026-11-18): lá o motor entra falso; o que ele casa é provado aqui.
+
+def _recall(mod, raiz, prompt):
+    return mod.formatar_injecao(mod.casar(raiz, prompt, limite=3, diario=False))
+
+
+def test_recall_sem_diario_nao_casa_diario_de_sessao(tmp_path):
+    """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o assistente
+    tratou o passado como estado atual. Com `diario=False` o diário fica de fora; o buscar do owner ainda acha."""
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    (raiz / "memory" / "DIARIO.md").write_text(
+        "# Diário\n- [evolution-go-em-homologacao] evolution go em homologação na azure, deploy do webhook do whatsapp"
+        " → sessions/2026-08-04-evolution-go-em-homologacao.md\n", encoding="utf-8")
+    prompt = "preciso publicar no azure de produção o webhook do whatsapp, deploy da main"
+    assert "memory/sessions/" not in _recall(mod, raiz, prompt), "o recall injetou diário de sessão"
+    assert any(x.ponteiro.startswith("memory/sessions/2026-08-04") for x in mod.casar(raiz, prompt, limite=10))
+
+
+def test_recall_nao_cita_fora_de_escopo_sozinho(tmp_path):
+    """0.47.0: fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist. A busca rodava a cada
+    mensagem e repetia o item como se fosse proibição — não lê o to-dolist nem o `FORA-DE-ESCOPO.md` antigo."""
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    sp = raiz / "docs" / "superpowers"
+    sp.mkdir(parents=True, exist_ok=True)
+    (sp / "FORA-DE-ESCOPO.md").write_text(
+        "# Fora de escopo\n\n- **Redis para o handoff no WhatsApp** — descartado em 2026-07-30: a memória de "
+        "sessão do servidor já resolve o handoff\n", encoding="utf-8")
+    (raiz / "to-dolist.md").write_text(
+        "- Redis para o handoff no WhatsApp #fora-de-escopo (decidido: 2026-07-30, a memória de sessão do "
+        "servidor já resolve o handoff)\n", encoding="utf-8")
+    texto = _recall(mod, raiz, "vamos colocar redis pra guardar o handoff do whatsapp")
+    assert "FORA-DE-ESCOPO.md" not in texto and "to-dolist.md" not in texto, texto
+
+
+def test_recall_pula_decisao_obsoleta(tmp_path):
+    mod = _mod()
+    raiz = _projeto_recall(tmp_path)
+    (raiz / "docs" / "decisoes.md").write_text(
+        "# Decisões\n- 2026-07-01 — cotação via n8n com callback no whatsapp — obsoleta: n8n saiu da produção\n",
+        encoding="utf-8")
+    texto = _recall(mod, raiz, "a cotação via n8n com callback no whatsapp funciona?")
+    assert "decisoes.md" not in texto, "o recall injetou uma decisão marcada obsoleta"
