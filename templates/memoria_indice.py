@@ -970,12 +970,12 @@ def main(argv=None) -> int:
     if a.modo == "verificar":
         probs = verificar(memdir, aplicar=a.aplicar)
         novas = _sem_commit(memdir)
-        antigas = [n for n in sem_gatilho_de_acao(memdir) if n not in novas] if memdir.is_dir() else []
+        antigas = [n for n in sem_gatilho_de_acao(memdir) if n not in novas] if DiscoReal.eh_pasta(memdir) else []
         if antigas:
             print(f"aviso: {len(antigas)} anotação(ões) antiga(s) de regra sem gatilho de ação — NÃO corrija por "
                   f"conta própria: `memoria_indice.py fila` lista, e o owner aprova de uma vez quais ganham "
                   f"`gatilho_comando:`/`gatilho_resposta:` e quais ficam com `{CAMPO_SEM_ACAO}: <motivo>`")
-        cortadas = com_comando_cortado(memdir) if memdir.is_dir() else []
+        cortadas = com_comando_cortado(memdir) if DiscoReal.eh_pasta(memdir) else []
         if cortadas:
             print(f"aviso: {len(cortadas)} anotação(ões) ou diário(s) com comando ou SQL com reticências "
                   f"({', '.join(cortadas[:10])}{' …' if len(cortadas) > 10 else ''}) — NÃO complete por conta "
