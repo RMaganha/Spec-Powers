@@ -1,12 +1,11 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-Branch `refactor/suite-em-camadas` — **Parte 3 (suíte do kit em camadas) feita**: 34 de 34 arquivos de teste reescritos, um commit cada; rodada única `1479 passed` e as 5 falhas consertadas em `23a96e1`; captura em `96d5458`. Falta o push do owner, o CI e o merge. Diário: `memory/sessions/2026-11-17-suite-em-camadas.md`.
+**Parte 3 (suíte do kit em camadas) na `main`, publicada, CI verde** (`c29cb51`, run `44369927902`): 34 de 34 arquivos de teste reescritos — a regra em memória, sem pasta. Diário: `memory/sessions/2026-11-17-suite-em-camadas.md`.
 
-<!-- histórico do estado anterior (captura da 0.65.0, já na main) -->
-Branch `docs/captura-suite-lenta` — captura da 0.65.0; merge na `main` em `b94ccef`, publicada.
+<!-- histórico do estado anterior (Parte 3 na branch) -->
+Branch `refactor/suite-em-camadas` — 34 de 34 arquivos; rodada única `1479 passed` e as 5 falhas consertadas em `23a96e1`.
 ## Próximo passo
-00. ⬜ **Push da `refactor/suite-em-camadas`, CI verde e merge `--no-ff` na `main`** — o push é do owner: `git push -u origin refactor/suite-em-camadas`.
 01. ⬜ **Molde de CI padrão para os projetos grandes** (conversa nova) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 02. ⬜ **Custo dos hooks num projeto grande** (conversa nova, o owner indica o projeto) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
 0. ⬜ **Decidir o conflito `UserPromptSubmit` exit 0 × exit 2** (a 0.64.0 já foi publicada).
@@ -44,4 +43,4 @@ Branch `docs/captura-suite-lenta` — captura da 0.65.0; merge na `main` em `b94
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-18 (Parte 3 feita na branch refactor/suite-em-camadas; falta push, CI e merge) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-18 (Parte 3 na main, publicada, CI verde) · regenerável com /mss-spec:mapa -->
