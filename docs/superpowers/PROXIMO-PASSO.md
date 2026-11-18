@@ -4,7 +4,7 @@
 
 Escopo do owner, nesta ordem; as três são independentes (a 3ª pode correr junto, no projeto grande que ele indicar).
 
-**1. Parte 3 — suíte do kit em camadas (pasta do kit)**
+**1. Parte 3 — suíte do kit em camadas (pasta do kit)** — ✅ feita em 2026-11-18 (branch `refactor/suite-em-camadas`; diário `memory/sessions/2026-11-17-suite-em-camadas.md`)
 
 ```
 /mss-spec:tarefa Reescrever a suíte do kit em camadas: a regra testada em memória, sem pasta.
