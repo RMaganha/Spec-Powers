@@ -101,6 +101,11 @@ def frontmatter(p: Path) -> dict:
         texto, _ = _ler(p)
     except (OSError, UnicodeDecodeError):
         return {}
+    return frontmatter_do_texto(texto)
+
+
+def frontmatter_do_texto(texto: str) -> dict:
+    """Os campos do frontmatter de um texto já lido (com `\\n`); {} sem frontmatter."""
     m = RE_FRONT.match(texto)
     if not m:
         return {}
@@ -122,6 +127,11 @@ def corpo(p: Path) -> str:
         texto, _ = _ler(p)
     except (OSError, UnicodeDecodeError):
         return ""
+    return corpo_do_texto(texto)
+
+
+def corpo_do_texto(texto: str) -> str:
+    """O markdown depois do frontmatter, de um texto já lido (com `\\n`)."""
     m = RE_FRONT.match(texto)
     return texto[m.end():] if m else texto
 
