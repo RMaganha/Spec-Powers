@@ -5,7 +5,7 @@
 
 ## 2026-11-17
 
-- [suite-em-camadas] (em andamento) cada hook vira `regra` sem disco + casca (decisão em `docs/decisoes.md`); 18 de 34 arquivos reescritos, um commit cada; rodada única de teste no fim (owner, 2026-11-18) → `memory/sessions/2026-11-17-suite-em-camadas.md`
+- [suite-em-camadas] (em andamento) cada hook vira `regra` sem disco + casca, e cada script do kit lê por objeto de disco (decisões em `docs/decisoes.md`, 2026-11-17 e 2026-11-18); 28 de 34 arquivos reescritos, um commit cada; rodada única de teste no fim (owner, 2026-11-18) → `memory/sessions/2026-11-17-suite-em-camadas.md`
 - [suite-lenta] 0.65.0: regra 9 roda só o teste do que mudou e a suíte inteira uma vez, antes do merge; molde `templates/pytest/` com pasta temporária por projeto e uma rodada de pytest por vez; suíte do kit em camadas (~422s → 13.74s no arquivo mais pesado) → sessions/2026-11-17-suite-lenta.md
 
 ## 2026-11-16
