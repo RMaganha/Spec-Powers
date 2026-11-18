@@ -89,7 +89,7 @@ def test_injeta_ponteiro_quando_casa(mod):
     assert jan.motor.casou == [{"proj": RAIZ, "prompt": PROMPT, "limite": 3, "diario": False}]
 
 
-def test_hook_nao_pede_diario_de_sessao(mod):
+def test_hook_nao_injeta_diario_de_sessao(mod):
     """F-030: no pedido de deploy de produção o hook injetou diários antigos (Blip, Evolution Go) e o
     assistente tratou o passado como estado atual. O `CLAUDE.md` já diz: diário é sob demanda."""
     jan = Janela(mod, Motor())
