@@ -26,7 +26,8 @@ def _mod():
 
 
 def _config(raiz, basetemp=None):
-    return SimpleNamespace(rootpath=Path(raiz), option=SimpleNamespace(basetemp=basetemp))
+    return SimpleNamespace(rootpath=Path(raiz), option=SimpleNamespace(basetemp=basetemp),
+                           addinivalue_line=lambda nome, valor: None)
 
 
 def test_pasta_temporaria_e_do_projeto(monkeypatch, tmp_path):
@@ -143,3 +144,103 @@ def test_segunda_rodada_espera_a_primeira_terminar(tmp_path):
             segura.close()
         assert filho.wait(timeout=120) == 0, erro.read_text(encoding="utf-8", errors="replace")
     assert (temp / "pytest-proj").is_dir(), "a rodada não usou a pasta temporária do projeto"
+
+
+# --- CI: lista do que falhou numa linha só e teste `externo` pulado (spec docs/specs/molde-de-ci.md) ---
+
+
+class _Item:
+    def __init__(self, externo):
+        self.externo, self.marcas = externo, []
+
+    def get_closest_marker(self, nome):
+        return object() if nome == "externo" and self.externo else None
+
+    def add_marker(self, marca):
+        self.marcas.append(marca)
+
+
+class _Reporter:
+    def __init__(self, stats):
+        self.stats, self.linhas = stats, []
+
+    def write_line(self, linha):
+        self.linhas.append(linha)
+
+
+def test_plataforma_do_ci_pela_variavel_que_cada_uma_poe():
+    m = _mod()
+    assert m.plataforma_do_ci({"GITHUB_ACTIONS": "true"}) == "github"
+    assert m.plataforma_do_ci({"TF_BUILD": "True"}) == "azure"
+    assert m.plataforma_do_ci({}) is None
+
+
+def test_linha_de_falhas_no_github_e_uma_anotacao_so():
+    m = _mod()
+    assert m.linha_de_falhas("github", ["t.py::a", "t.py::b"]) == "::error title=testes que falharam::t.py::a%0At.py::b"
+
+
+def test_linha_de_falhas_no_azure_escapa_o_que_quebra_o_comando():
+    m = _mod()
+    linha = m.linha_de_falhas("azure", ["t.py::a[x;y]", "t.py::b[50%]"])
+    assert linha.startswith("##vso[task.logissue type=error]testes que falharam:%0A")
+    corpo = linha.split("]", 1)[1]
+    assert "t.py::a[x%3By%5D" in corpo and "%AZP25" in corpo
+    assert "\n" not in linha and ";" not in corpo and "]" not in corpo
+
+
+def test_linha_de_falhas_sem_falha_ou_fora_do_ci_nao_sai_e_corta_em_200():
+    m = _mod()
+    assert m.linha_de_falhas("github", []) is None
+    assert m.linha_de_falhas(None, ["t.py::a"]) is None
+    assert m.linha_de_falhas("github", [f"t.py::{i}" for i in range(250)]).count("%0A") == 199
+
+
+def test_linha_de_externos_diz_quantos_pulou():
+    m = _mod()
+    assert m.linha_de_externos("github", 3).startswith("::warning title=testes externo pulados::3 ")
+    assert m.linha_de_externos("azure", 1).startswith("##vso[task.logissue type=warning]")
+    assert m.linha_de_externos("github", 0) is None
+    assert m.linha_de_externos(None, 2) is None
+
+
+def test_externo_e_pulado_no_ci_e_roda_na_maquina(monkeypatch):
+    m = _mod()
+    itens = [_Item(True), _Item(False)]
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    m.pytest_collection_modifyitems(None, itens)
+    assert len(itens[0].marcas) == 1 and itens[1].marcas == []
+    assert itens[0].marcas[0].kwargs["reason"] == m.MOTIVO_EXTERNO
+    monkeypatch.delenv("GITHUB_ACTIONS")
+    monkeypatch.delenv("TF_BUILD", raising=False)
+    maquina = [_Item(True)]
+    m.pytest_collection_modifyitems(None, maquina)
+    assert maquina[0].marcas == []
+
+
+def test_marca_externo_registrada_ate_na_rodada_de_dentro(monkeypatch, tmp_path):
+    m = _mod()
+    monkeypatch.setenv(m.ENV_TRAVA, str(tmp_path / "trava"))
+    monkeypatch.setenv(m.ENV_DONO, "123")
+    registradas = []
+    cfg = _config(tmp_path / "kit")
+    cfg.addinivalue_line = lambda nome, valor: registradas.append((nome, valor))
+    m.pytest_configure(cfg)
+    assert any(nome == "markers" and valor.startswith("externo:") for nome, valor in registradas)
+
+
+def test_resumo_no_ci_escreve_falhas_e_pulados_e_fora_dele_nada(monkeypatch):
+    m = _mod()
+    stats = {"failed": [SimpleNamespace(nodeid="t.py::a")], "error": [SimpleNamespace(nodeid="t.py::b")],
+             "skipped": [SimpleNamespace(longrepr=("t.py", 1, "Skipped: " + m.MOTIVO_EXTERNO)),
+                         SimpleNamespace(longrepr=("t.py", 2, "Skipped: outro motivo"))]}
+    monkeypatch.setenv("TF_BUILD", "True")
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    reporter = _Reporter(stats)
+    m.pytest_terminal_summary(reporter, 1, None)
+    assert reporter.linhas[0] == "##vso[task.logissue type=error]testes que falharam:%0At.py::a%0At.py::b"
+    assert reporter.linhas[1].startswith("##vso[task.logissue type=warning]1 ")
+    monkeypatch.delenv("TF_BUILD")
+    fora = _Reporter(stats)
+    m.pytest_terminal_summary(fora, 1, None)
+    assert fora.linhas == []

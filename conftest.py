@@ -7,6 +7,9 @@ Não edite aqui: o upgrade substitui este arquivo. Fixtures do projeto ficam em 
    travado por 3 dias que a próxima rodada, de qualquer projeto, percorre de novo.
 2. Uma rodada de pytest por vez na máquina: quem chega espera a outra terminar. A trava é do sistema
    operacional e morre junto com o processo — pytest interrompido não deixa trava para trás.
+3. No CI (GitHub Actions ou Azure Pipelines), a lista do que falhou sai numa linha de erro só, no formato da
+   plataforma, e o teste marcado `@pytest.mark.externo` (precisa de banco ou serviço que o CI não alcança) é
+   pulado, com um aviso de quantos. Na máquina, o `externo` roda normalmente.
 """
 import os
 import sys
@@ -19,6 +22,45 @@ import pytest
 ENV_DONO = "MSS_PYTEST_TRAVA_DONO"   # setada pela rodada que tem a trava; um pytest aberto por um teste herda
 ENV_TRAVA = "MSS_PYTEST_TRAVA"       # caminho do arquivo da trava (padrão: na pasta temporária do sistema)
 _trava = None
+
+TITULO_FALHAS = "testes que falharam"
+MOTIVO_EXTERNO = "externo: precisa de banco ou serviço que o CI não alcança"
+LIMITE_FALHAS = 200
+
+
+def plataforma_do_ci(ambiente):
+    """'github', 'azure' ou None (máquina), pela variável que cada plataforma põe em toda rodada."""
+    if ambiente.get("GITHUB_ACTIONS") == "true":
+        return "github"
+    if str(ambiente.get("TF_BUILD", "")).lower() == "true":
+        return "azure"
+    return None
+
+
+def _escapar(plataforma, texto):
+    if plataforma == "github":
+        return texto.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return (texto.replace("%", "%AZP25").replace(";", "%3B").replace("]", "%5D")
+            .replace("\r", "%0D").replace("\n", "%0A"))
+
+
+def linha_de_falhas(plataforma, falhas):
+    """A linha de erro com um teste por linha (`%0A`), ou None sem falha ou fora do CI."""
+    if not plataforma or not falhas:
+        return None
+    corpo = "%0A".join(_escapar(plataforma, f) for f in falhas[:LIMITE_FALHAS])
+    if plataforma == "github":
+        return f"::error title={TITULO_FALHAS}::{corpo}"
+    return f"##vso[task.logissue type=error]{TITULO_FALHAS}:%0A{corpo}"
+
+
+def linha_de_externos(plataforma, quantos):
+    if not plataforma or not quantos:
+        return None
+    texto = f"{quantos} teste(s) marcado(s) externo não rodaram no CI"
+    if plataforma == "github":
+        return f"::warning title=testes externo pulados::{texto}"
+    return f"##vso[task.logissue type=warning]{texto}"
 
 
 def pasta_temporaria(raiz):
@@ -51,6 +93,7 @@ def tentar_travar(caminho):
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
     global _trava
+    config.addinivalue_line("markers", MOTIVO_EXTERNO)
     if os.environ.get(ENV_DONO) or os.environ.get("PYTEST_XDIST_WORKER"):
         return
     caminho = _caminho_da_trava()
@@ -75,6 +118,27 @@ def pytest_configure(config):
         pass
     if config.option.basetemp is None:
         config.option.basetemp = str(pasta_temporaria(raiz))
+
+
+def pytest_collection_modifyitems(config, items):
+    if not plataforma_do_ci(os.environ):
+        return
+    for item in items:
+        if item.get_closest_marker("externo"):
+            item.add_marker(pytest.mark.skip(reason=MOTIVO_EXTERNO))
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    plataforma = plataforma_do_ci(os.environ)
+    if not plataforma:
+        return
+    stats = terminalreporter.stats
+    falhas = list(dict.fromkeys(r.nodeid for chave in ("failed", "error") for r in stats.get(chave, [])))
+    pulados = sum(1 for r in stats.get("skipped", [])
+                  if isinstance(r.longrepr, tuple) and MOTIVO_EXTERNO in str(r.longrepr[-1]))
+    for linha in (linha_de_falhas(plataforma, falhas), linha_de_externos(plataforma, pulados)):
+        if linha:
+            terminalreporter.write_line(linha)
 
 
 def pytest_unconfigure(config):
