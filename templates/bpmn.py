@@ -147,17 +147,37 @@ def achatar(nos: list) -> list:
 
 # ------------------------------------------------------------------------------------ arquivos .py
 
-def _arquivos_py(proj: Path, ignorar=()) -> list[Path]:
+class DiscoReal:
+    """O que o extrator lê do projeto — a única parte dele que toca o disco (camadas, `docs/decisoes.md`
+    2026-11-18). Em teste, entra no lugar um objeto com os mesmos métodos, sobre um dicionário {caminho: texto}.
+    A gravação das saídas (`gerar`) e as bibliotecas do kit em `templates/vendor/` ficam fora: não são o projeto."""
+
+    @staticmethod
+    def listar(d: Path) -> list:
+        """Os itens de uma pasta (levanta OSError se não dá pra listar)."""
+        return list(Path(d).iterdir())
+
+    @staticmethod
+    def eh_pasta(p: Path) -> bool:
+        return Path(p).is_dir()
+
+    @staticmethod
+    def ler(p: Path) -> str:
+        """O texto em UTF-8 estrito (levanta UnicodeDecodeError/OSError)."""
+        return Path(p).read_text(encoding="utf-8")
+
+
+def _arquivos_py(proj: Path, ignorar=(), disco=DiscoReal) -> list[Path]:
     fora = set(_FORA) | {x.strip().strip("/") for x in ignorar if x and x.strip()}
     achados = []
 
     def desce(d: Path):
         try:
-            itens = sorted(d.iterdir(), key=lambda x: (x.is_dir(), x.name.lower()))
+            itens = sorted(disco.listar(d), key=lambda x: (disco.eh_pasta(x), x.name.lower()))
         except OSError:
             return
         for item in itens:
-            if item.is_dir():
+            if disco.eh_pasta(item):
                 if item.name in fora or item.name.startswith("."):
                     continue
                 desce(item)
@@ -215,7 +235,7 @@ def _modulo_para_arquivo(modulo: str, nivel: int, arquivo_caller: str, conhecido
     return ""
 
 
-def indexar(proj: Path, ignorar=()) -> dict:
+def indexar(proj: Path, ignorar=(), disco=DiscoReal) -> dict:
     """Varre o projeto e indexa as funções. Devolve o índice usado pela montagem do fluxo.
 
     Chaves: `por_nome` (fallback heurístico), `por_arquivo` (o par que resolve homônimo),
@@ -230,13 +250,13 @@ def indexar(proj: Path, ignorar=()) -> dict:
     sdk: dict[str, dict] = {}               # arquivo -> {nome local do import: piscina}
     conhecidos: set[str] = set()
 
-    arquivos = _arquivos_py(proj, ignorar)
+    arquivos = _arquivos_py(proj, ignorar, disco)
     conhecidos = {_rel(a, proj) for a in arquivos}
 
     for arq in arquivos:
         rel = _rel(arq, proj)
         try:
-            arvore = ast.parse(arq.read_text(encoding="utf-8"), filename=str(arq))
+            arvore = ast.parse(disco.ler(arq), filename=str(arq))
         except (SyntaxError, ValueError, UnicodeDecodeError, OSError) as e:
             nao_lidos.append({"arquivo": rel, "erro": f"{type(e).__name__}: {e}"})
             continue
@@ -682,11 +702,11 @@ def _entradas(indice: dict, entradas_extra=()) -> list[dict]:
 
 
 def extrair(proj, profundidade: int = _PROFUNDIDADE, limite: int = _LIMITE_NOS,
-            ignorar=(), entradas_extra=()) -> dict:
+            ignorar=(), entradas_extra=(), disco=DiscoReal) -> dict:
     """Lê o projeto e devolve o modelo dos processos. Não escreve nada."""
     proj = Path(proj).resolve()      # `--proj .` é como o comando roda: sem resolver, o nome do
                                      # projeto sai vazio (Path(".").name == "")
-    indice = indexar(proj, ignorar)
+    indice = indexar(proj, ignorar, disco)
     nao_lidos = indice["nao_lidos"]
     processos = []
 

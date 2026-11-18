@@ -155,7 +155,7 @@ reincidências que a rodada viu.
 - **Correção posterior (revisão do owner, decisão 14):** a passada marcou 9 conflitos; 7 eram correção posterior
   clara e ficaram confirmadas com `substituiu:` — `feedback_feature_a_partir_da_master` (fica `--no-ff`,
   `CLAUDE.md:21`); `feedback_publicacao_e_ato_do_owner` e `project_memoria_local_ao_repo` (fica nunca worktree,
-  `docs/decisoes.md:50`); `feedback_testar_js_gerado_node_check` (fica `tests/test_bpmn.py:564`);
+  `docs/decisoes.md:50`); `feedback_testar_js_gerado_node_check` (fica `tests/test_bpmn.py:562`);
   `project_mss_spec_instalado_por_junction` (fica `docs/AMBIENTES.md:20`); `project_pendencia_intermitencia_pos_update`
   (fica F-050); `feedback_medir_a_partida_inteira_nao_o_arquivo_acusado` (dois números de momentos diferentes, os
   dois com data).
