@@ -4,6 +4,11 @@ Regra dura: SOMENTE-LEITURA e SÓ CATÁLOGO — nenhuma query escreve e nenhuma 
 credencial reaproveitada por leitura ESTÁTICA (o get_connection.py de outro projeto nunca é
 importado); segredo nunca sai; "sem citação" nunca vira "pode apagar"; só mexe em arquivo que tem a
 marca do inventário. Testável sem banco: o cursor é falso. Spec: docs/specs/inventario-banco.md
+
+Camadas (2026-11-18, `docs/decisoes.md`): a regra é testada em memória — o texto da fonte entra pelo `ler` do
+`resolver_conn`, o código do projeto como pares (caminho, texto) no `indexar_textos`, e a pasta dos .sql como
+{nome: é do inventário?} no `plano_dos_corpos`. O disco de verdade (varredura, BOM, renomear só a caixa, não
+sobrescrever, o teto que não grava nada, `--proj .`) fica num teste só, numa pasta montada uma vez.
 """
 import datetime as dt
 import importlib.util
@@ -15,6 +20,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "templates" / "inventario_banco.py"
+FALSA = REPO.parent / "pasta-que-nao-existe-inventario"          # absoluta, nunca criada
 
 
 def _carregar():
@@ -75,14 +81,14 @@ def test_opcionais_sao_queries_conhecidas(inv):
     assert set(inv.OPCIONAIS) == set(inv.DESCRICAO_OPCIONAL)
 
 
-def test_mask_password(inv):
-    assert inv.mask_password("Server=a;UID=u;PWD=s3nh4") == "Server=a;UID=u;PWD=***HIDDEN***"
-    assert "x9" not in inv.mask_password("Data Source=a;User ID=u;Password=x9;")
-
-
-def test_mask_password_respeita_chaves(inv):
-    assert (inv.mask_password("Server=a;UID=u;PWD={s3n;ha};Database=x")
-            == "Server=a;UID=u;PWD=***HIDDEN***;Database=x")
+@pytest.mark.parametrize("conn, mascarada", [
+    ("Server=a;UID=u;PWD=s3nh4", "Server=a;UID=u;PWD=***HIDDEN***"),
+    ("Data Source=a;User ID=u;Password=x9;", None),
+    ("Server=a;UID=u;PWD={s3n;ha};Database=x", "Server=a;UID=u;PWD=***HIDDEN***;Database=x"),
+])
+def test_mask_password(inv, conn, mascarada):
+    saida = inv.mask_password(conn)
+    assert saida == mascarada if mascarada else "x9" not in saida
 
 
 @pytest.mark.parametrize("antes, depois", [
@@ -112,6 +118,8 @@ def test_le_servidor_e_base(inv):
     assert inv.base_da_conn("Server=srv") is None
 
 
+# --------------------------------------------------------------- a credencial: o texto da fonte entra como dado
+
 FONTE = '''
 raise SystemExit("importou o get_connection.py do outro projeto!")
 DEV_SSC_KEY = b"chave-ssc-dev"
@@ -123,36 +131,35 @@ PROD_SSC_CIPHERTEXT: bytes = b"cifra-ssc-prd"
 DEV_SOZINHA_KEY = b"sem-par"
 OUTRA_COISA = 42
 '''
+CAMINHO_FONTE = FALSA / "get_connection.py"
 
 
-@pytest.fixture
-def fonte(tmp_path):
-    p = tmp_path / "get_connection.py"
-    p.write_text(FONTE, encoding="utf-8")
-    return p
+def _ler(texto):
+    """O `ler` do resolver_conn: a fonte em memória."""
+    return lambda caminho: texto
 
 
-def test_le_pares_por_ast_sem_importar(inv, fonte):
-    """O `raise` no topo prova: se o módulo fosse importado, o teste explodiria."""
-    pares = inv.ler_pares_fernet(fonte)
+def test_le_pares_por_ast_sem_importar(inv):
+    """O `raise` no topo prova: se o texto fosse executado, o teste explodiria."""
+    pares = inv.pares_fernet_do_texto(FONTE)
     assert pares[("DEV", "SSC")] == {"KEY": b"chave-ssc-dev", "CIPHERTEXT": b"cifra-ssc-dev"}
     assert set(pares) == {("DEV", "SSC"), ("DEV", "MS10"), ("PROD", "SSC")}  # SOZINHA sem par sai
 
 
-def test_escolhe_sozinho_quando_so_ha_um(inv, fonte):
-    assert inv.escolher_par(inv.ler_pares_fernet(fonte), "PRD") == (b"chave-ssc-prd", b"cifra-ssc-prd")
+def test_escolhe_sozinho_quando_so_ha_um(inv):
+    assert inv.escolher_par(inv.pares_fernet_do_texto(FONTE), "PRD") == (b"chave-ssc-prd", b"cifra-ssc-prd")
 
 
-def test_mais_de_um_par_para_e_lista_nomes_sem_valores(inv, fonte):
+def test_mais_de_um_par_para_e_lista_nomes_sem_valores(inv):
     with pytest.raises(inv.ErroCredencial) as e:
-        inv.escolher_par(inv.ler_pares_fernet(fonte), "D0")
+        inv.escolher_par(inv.pares_fernet_do_texto(FONTE), "D0")
     msg = str(e.value)
     assert "MS10" in msg and "SSC" in msg and "--par" in msg
     assert "chave-" not in msg and "cifra-" not in msg
 
 
-def test_par_ignora_caixa_e_recusa_inexistente(inv, fonte):
-    pares = inv.ler_pares_fernet(fonte)
+def test_par_ignora_caixa_e_recusa_inexistente(inv):
+    pares = inv.pares_fernet_do_texto(FONTE)
     assert inv.escolher_par(pares, "d0", par="ms10") == (b"chave-ms10-dev", b"cifra-ms10-dev")
     with pytest.raises(inv.ErroCredencial, match="TRP"):
         inv.escolher_par(pares, "D0", par="TRP")
@@ -167,17 +174,18 @@ def _decriptar_falso(chave, cifra):
     return {b"chave-ssc-dev": CONN_SSC}[chave]
 
 
-def test_fonte_com_base_nova(inv, fonte):
-    c = inv.resolver_conn({}, fonte, "D0", "SSC", "LegadoCS", None, decriptar=_decriptar_falso)
+def test_fonte_com_base_nova(inv):
+    c = inv.resolver_conn({}, CAMINHO_FONTE, "D0", "SSC", "LegadoCS", None, decriptar=_decriptar_falso,
+                          ler=_ler(FONTE))
     assert "Database=LegadoCS" in c.conn_str and "Server=srv-ssc,1435" in c.conn_str
     assert "Encrypt=yes" in c.conn_str and "timeout=30" in c.conn_str
     assert "srv-ssc,1435" in c.origem and "LegadoCS" in c.origem
     assert "s3nh4" not in c.origem
 
 
-def test_fonte_ganha_da_variavel_e_avisa(inv, fonte):
+def test_fonte_ganha_da_variavel_e_avisa(inv):
     env = {"MSS_INVENTARIO_CONN": "Server=outro;PWD=x"}
-    c = inv.resolver_conn(env, fonte, "D0", "SSC", None, None, decriptar=_decriptar_falso)
+    c = inv.resolver_conn(env, CAMINHO_FONTE, "D0", "SSC", None, None, decriptar=_decriptar_falso, ler=_ler(FONTE))
     assert "srv-ssc" in c.conn_str
     assert any("MSS_INVENTARIO_CONN ignorada" in a for a in c.avisos)
 
@@ -196,56 +204,59 @@ def test_sem_nada_para_sem_inventar(inv):
     assert "MSSQLD0" not in msg and "1433" not in msg
 
 
-def test_porta(inv, fonte):
-    c = inv.resolver_conn({}, fonte, "D0", "SSC", None, "1500", decriptar=_decriptar_falso)
+def test_porta(inv):
+    c = inv.resolver_conn({}, CAMINHO_FONTE, "D0", "SSC", None, "1500", decriptar=_decriptar_falso, ler=_ler(FONTE))
     assert "Server=srv-ssc,1500" in c.conn_str
 
 
-def test_fonte_placeholder(inv, tmp_path):
-    p = tmp_path / "get_connection.py"
-    p.write_text('DEV_X_KEY = b"<par gerado/copiado>"\nDEV_X_CIPHERTEXT = b"<par gerado/copiado>"\n',
-                 encoding="utf-8")
+def test_fonte_placeholder(inv):
+    texto = 'DEV_X_KEY = b"<par gerado/copiado>"\nDEV_X_CIPHERTEXT = b"<par gerado/copiado>"\n'
     with pytest.raises(inv.ErroCredencial, match="placeholder"):
-        inv.resolver_conn({}, p)
+        inv.resolver_conn({}, CAMINHO_FONTE, ler=_ler(texto))
 
 
 def test_molde_do_kit_nao_e_python_e_erro_e_claro(inv):
-    """O próprio templates/get_connection.py tem `DEV_<BASE>_KEY` — não parseia."""
+    """O próprio templates/get_connection.py tem `DEV_<BASE>_KEY` — não parseia (lido do kit, só leitura)."""
     with pytest.raises(inv.ErroCredencial, match="não consegui ler"):
         inv.resolver_conn({}, REPO / "templates" / "get_connection.py")
 
 
-def test_fonte_inexistente(inv, tmp_path):
+def test_fonte_inexistente(inv):
     with pytest.raises(inv.ErroCredencial, match="não encontrado"):
-        inv.resolver_conn({}, tmp_path / "nao_existe.py")
+        inv.resolver_conn({}, CAMINHO_FONTE, ler=_ler(None))
 
 
-def test_fernet_de_verdade(inv, tmp_path):
+def test_fernet_de_verdade(inv):
     fernet = pytest.importorskip("cryptography.fernet")
     chave = fernet.Fernet.generate_key()
     cifra = fernet.Fernet(chave).encrypt(CONN_SSC.encode())
-    p = tmp_path / "get_connection.py"
-    p.write_text(f"DEV_SSC_KEY = {chave!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n", encoding="utf-8")
-    c = inv.resolver_conn({}, p, "D0", None, "LegadoCS")
+    texto = f"DEV_SSC_KEY = {chave!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n"
+    c = inv.resolver_conn({}, CAMINHO_FONTE, "D0", None, "LegadoCS", ler=_ler(texto))
     assert "Database=LegadoCS" in c.conn_str and "PWD=s3nh4" in c.conn_str
 
 
-def test_par_fernet_errado_da_erro_claro(inv, tmp_path):
+def test_par_fernet_errado_da_erro_claro(inv):
     fernet = pytest.importorskip("cryptography.fernet")
     chave_certa = fernet.Fernet.generate_key()
-    chave_errada = fernet.Fernet.generate_key()
-    cifra = fernet.Fernet(chave_errada).encrypt(CONN_SSC.encode())
-    p = tmp_path / "get_connection.py"
-    p.write_text(f"DEV_SSC_KEY = {chave_certa!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n", encoding="utf-8")
+    cifra = fernet.Fernet(fernet.Fernet.generate_key()).encrypt(CONN_SSC.encode())
+    texto = f"DEV_SSC_KEY = {chave_certa!r}\nDEV_SSC_CIPHERTEXT = {cifra!r}\n"
     with pytest.raises(inv.ErroCredencial, match="não consegui decriptar"):
-        inv.resolver_conn({}, p)
+        inv.resolver_conn({}, CAMINHO_FONTE, ler=_ler(texto))
 
 
-def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
-    p = tmp_path / "get_connection.py"
-    p.write_bytes(b"DEV_X_KEY = b'a'\n\xff\xfe")
+def test_fonte_nao_utf8_da_erro_claro(inv):
+    def ilegivel(_caminho):
+        return b"DEV_X_KEY = b'a'\n\xff\xfe".decode("utf-8-sig")
     with pytest.raises(inv.ErroCredencial, match="não consegui ler"):
-        inv.resolver_conn({}, p)
+        inv.resolver_conn({}, CAMINHO_FONTE, ler=ilegivel)
+
+
+def test_sem_cryptography_nao_culpa_o_par(inv):
+    """Revisão final M4: ImportError virava 'chave e cifra não conferem'."""
+    def sem_lib(chave, cifra):
+        raise ImportError("No module named 'cryptography'")
+    with pytest.raises(inv.ErroCredencial, match="cryptography"):
+        inv.resolver_conn({}, CAMINHO_FONTE, "D0", "SSC", decriptar=sem_lib, ler=_ler(FONTE))
 
 
 @pytest.mark.parametrize("mensagem, esperado", [
@@ -260,10 +271,18 @@ def test_fonte_nao_utf8_da_erro_claro(inv, tmp_path):
     ("[08001] [Microsoft][ODBC Driver 18 for SQL Server]SSL Provider: [error:0A000086:SSL routines::certificate "
      "verify failed]", "TLS"),
     ("algo que ninguém previu", "não classificada"),
+    ("[42000] The SELECT permission was denied on the object 'sysjobs'", "PERMISSÃO"),
 ])
 def test_explicar_erro(inv, mensagem, esperado):
     assert esperado in inv.explicar_erro(RuntimeError(mensagem))
 
+
+def test_permissao_negada_no_catalogo_e_permissao(inv):
+    msg = inv.explicar_erro(RuntimeError("[42000] The SELECT permission was denied on the object 'sysjobs'"))
+    assert msg.startswith("PERMISSÃO")
+
+
+# --------------------------------------------------------------- a coleta, com o cursor falso
 
 D1, D2 = dt.datetime(2014, 3, 1), dt.datetime(2019, 11, 20)
 
@@ -296,7 +315,7 @@ COLS_MODULOS = ["esquema", "nome", "tipo", "criado", "modificado", "criptografad
 
 
 def respostas_base():
-    """2 tabelas + 4 módulos: um citado no código (quando o teste cria o .cs), um chamado só por outra
+    """2 tabelas + 4 módulos: um citado no código (quando o teste traz o .cs), um chamado só por outra
     procedure, um chamado só por job, um criptografado."""
     return {
         "contagem": (["total"], [(6,)]),
@@ -333,8 +352,12 @@ def respostas_base():
     }
 
 
+def _catalogo(inv, respostas=None, falhas=()):
+    return inv.coletar(CursorFalso(inv, respostas or respostas_base(), falhas))
+
+
 def test_coleta_base(inv):
-    cat = inv.coletar(CursorFalso(inv, respostas_base()))
+    cat = _catalogo(inv)
     assert [t["nome"] for t in cat.dados["tabelas"]] == ["Apolice", "Log"]
     assert any("`dbo.Cifrada` — corpo criptografado" in l for l in cat.lacunas)
 
@@ -347,7 +370,7 @@ def test_teto_para_antes_de_ler_qualquer_coisa(inv):
 
 
 def test_opcional_sem_permissao_vira_lacuna(inv):
-    cat = inv.coletar(CursorFalso(inv, respostas_base(), falhas=("jobs", "linhas")))
+    cat = _catalogo(inv, falhas=("jobs", "linhas"))
     assert cat.dados["jobs"] == [] and cat.dados["linhas"] == []
     texto = " ".join(cat.lacunas)
     assert "jobs do SQL Agent" in texto and "VIEW DATABASE STATE" in texto
@@ -355,15 +378,16 @@ def test_opcional_sem_permissao_vira_lacuna(inv):
 
 def test_obrigatoria_sem_permissao_derruba(inv):
     with pytest.raises(RuntimeError):
-        inv.coletar(CursorFalso(inv, respostas_base(), falhas=("modulos",)))
+        _catalogo(inv, falhas=("modulos",))
 
 
 def test_corpo_nulo_sem_criptografia_e_falta_de_view_definition(inv):
     r = respostas_base()
     r["modulos"] = (COLS_MODULOS, [("dbo", "Escondida", "SQL_STORED_PROCEDURE", D1, D1, 0, None)])
-    cat = inv.coletar(CursorFalso(inv, r))
-    assert any("`dbo.Escondida`" in l and "VIEW DEFINITION" in l for l in cat.lacunas)
+    assert any("`dbo.Escondida`" in l and "VIEW DEFINITION" in l for l in _catalogo(inv, r).lacunas)
 
+
+# --------------------------------------------------------------- segredo no corpo
 
 @pytest.mark.parametrize("linha, tipo", [
     ("SELECT a FROM OPENROWSET('SQLNCLI', 'Server=x;UID=u;PWD=Abc123;', 'SELECT 1')", "senha em conn string"),
@@ -411,8 +435,14 @@ def test_sp_password_mascara_as_duas_senhas(inv):
     assert "Old999" not in corpo and "Abc123" not in corpo and "'user'" in corpo
 
 
-def test_variavel_recebendo_variavel_nao_e_segredo(inv):
-    assert inv.mascarar_segredos("SET @pwd = @parametro") == ("SET @pwd = @parametro", [])
+@pytest.mark.parametrize("corpo", [
+    "SET @pwd = @parametro",                                                     # variável recebendo variável
+    "EXEC sp_addlinkedsrvlogin 'SRV', 'false', NULL\nINSERT INTO t VALUES ('a','b','c','d')",   # não invade a seguinte
+    "SELECT 'Relatorio -Produto Especial' AS titulo",                            # -P fora de linha de comando
+    "PRINT 'Consulta -Padrao nao encontrada'",
+])
+def test_o_que_nao_e_segredo_fica_intacto(inv, corpo):
+    assert inv.mascarar_segredos(corpo) == (corpo, [])
 
 
 def test_linha_reportada_quando_o_segredo_quebra_linha(inv):
@@ -420,38 +450,20 @@ def test_linha_reportada_quando_o_segredo_quebra_linha(inv):
     assert achados == [(3, "senha de linked server (sp_addlinkedsrvlogin)")]
 
 
-def test_linked_server_posicional_nao_invade_a_instrucao_seguinte(inv):
-    corpo = "EXEC sp_addlinkedsrvlogin 'SRV', 'false', NULL\nINSERT INTO t VALUES ('a','b','c','d')"
-    assert inv.mascarar_segredos(corpo) == (corpo, [])
-
-
-@pytest.mark.parametrize("corpo", ["SELECT 'Relatorio -Produto Especial' AS titulo",
-                                   "PRINT 'Consulta -Padrao nao encontrada'"])
-def test_menos_p_fora_de_linha_de_comando_nao_e_segredo(inv, corpo):
-    assert inv.mascarar_segredos(corpo) == (corpo, [])
-
-
 def test_menos_p_com_bcp_montado_em_duas_linhas(inv):
     corpo, achados = inv.mascarar_segredos("SET @cmd = 'bcp db..t out x.txt -S srv -U u ' +\n'-P Abc123'")
     assert "Abc123" not in corpo and achados == [(2, "senha em linha de comando (-P)")]
 
 
-def _projeto(raiz, arquivos):
-    for rel, texto in arquivos.items():
-        p = raiz / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(texto, encoding="utf-8")
-    return raiz
+# --------------------------------------------------------------- cruzamento: o código do projeto entra como dado
+
+def _cruzar(inv, arquivos, respostas=None):
+    """`arquivos` = {caminho relativo: texto} — o projeto, em memória."""
+    return inv.cruzar(_catalogo(inv, respostas), inv.indexar_textos(arquivos.items(), excluir="docs/banco"))
 
 
-def _cruzar(inv, proj, respostas=None):
-    cat = inv.coletar(CursorFalso(inv, respostas or respostas_base()))
-    return inv.cruzar(cat, inv.indexar_codigo(proj, excluir=proj / "docs" / "banco"))
-
-
-def test_tres_classes(inv, tmp_path):
-    proj = _projeto(tmp_path, {"src/ApoliceRepo.cs": 'var cmd = new SqlCommand("[dbo].[ConsultaApolice]", conn);'})
-    c = _cruzar(inv, proj)
+def test_tres_classes(inv):
+    c = _cruzar(inv, {"src/ApoliceRepo.cs": 'var cmd = new SqlCommand("[dbo].[ConsultaApolice]", conn);'})
     assert c["dbo.ConsultaApolice"].classe == inv.CITADO_CODIGO
     assert c["dbo.ConsultaApolice"].ocorrencias == ["src/ApoliceRepo.cs:1"]
     assert c["dbo.RecalculaPremio"].classe == inv.CITADO_BANCO   # só FechamentoMensal chama
@@ -462,137 +474,164 @@ def test_tres_classes(inv, tmp_path):
 
 @pytest.mark.parametrize("forma", ["ConsultaApolice", "dbo.ConsultaApolice", "[dbo].[ConsultaApolice]",
                                    "exec DBO.CONSULTAAPOLICE"])
-def test_formas_do_nome(inv, tmp_path, forma):
-    proj = _projeto(tmp_path, {"Dados.vb": f'cmd.CommandText = "{forma}"'})
-    assert _cruzar(inv, proj)["dbo.ConsultaApolice"].classe == inv.CITADO_CODIGO
+def test_formas_do_nome(inv, forma):
+    assert _cruzar(inv, {"Dados.vb": f'cmd.CommandText = "{forma}"'})["dbo.ConsultaApolice"].classe == inv.CITADO_CODIGO
 
 
-def test_saida_do_inventario_nao_autoconfirma(inv, tmp_path):
-    """Os .sql gerados e o banco.md contêm todos os nomes — sem exclusão, tudo pareceria usado."""
-    proj = _projeto(tmp_path, {"docs/banco/dbo.Cifrada.sql": "CREATE PROCEDURE dbo.Cifrada AS SELECT 1",
-                               "docs/banco.md": "`dbo.Cifrada`", "README.md": "dbo.Cifrada"})
-    assert _cruzar(inv, proj)["dbo.Cifrada"].classe == inv.SEM_CITACAO
+@pytest.mark.parametrize("arquivos", [
+    # a saída do próprio inventário não autoconfirma: os .sql e o banco.md contêm todos os nomes
+    {"docs/banco/dbo.Cifrada.sql": "CREATE PROCEDURE dbo.Cifrada AS SELECT 1", "docs/banco.md": "`dbo.Cifrada`",
+     "README.md": "dbo.Cifrada"},
+    {"bin/Debug/App.exe.config": "Cifrada", "obj/x.cs": "Cifrada"},
+    {"Bin/Debug/x.config": "Cifrada"}, {"OBJ/x.config": "Cifrada"}, {"venv/lib/x.config": "Cifrada"},
+    {"TestResults/x.config": "Cifrada"},
+    # saídas de outros geradores do kit
+    {"docs/bpmn.html": "Cifrada", "docs/mapa-neural.html": "Cifrada", "docs/anatomia.html": "Cifrada",
+     "docs/bpmn/p.bpmn": "Cifrada"},
+])
+def test_o_que_nao_e_codigo_do_projeto_nao_cita(inv, arquivos):
+    assert _cruzar(inv, arquivos)["dbo.Cifrada"].classe == inv.SEM_CITACAO
 
 
-def test_bin_obj_ignorados(inv, tmp_path):
-    proj = _projeto(tmp_path, {"bin/Debug/App.exe.config": "Cifrada", "obj/x.cs": "Cifrada"})
-    assert _cruzar(inv, proj)["dbo.Cifrada"].classe == inv.SEM_CITACAO
-
-
-def test_nome_generico_e_casamento_fraco(inv, tmp_path):
-    proj = _projeto(tmp_path, {"Util.cs": "Log.Write(x);"})
-    c = _cruzar(inv, proj)["dbo.Log"]
+def test_nome_generico_e_casamento_fraco(inv):
+    c = _cruzar(inv, {"Util.cs": "Log.Write(x);"})["dbo.Log"]
     assert c.classe == inv.CITADO_CODIGO and c.fraco
 
 
-def test_nome_fora_do_padrao_nao_e_cruzado(inv, tmp_path):
+def test_nome_fora_do_padrao_nao_e_cruzado(inv):
     r = respostas_base()
     r["modulos"] = (COLS_MODULOS, [("dbo", "Minha Proc", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
-    assert _cruzar(inv, tmp_path, r)["dbo.Minha Proc"].classe == inv.NAO_CRUZADO
+    assert _cruzar(inv, {}, r)["dbo.Minha Proc"].classe == inv.NAO_CRUZADO
 
 
-def _gravar(inv, pasta, respostas=None):
-    return inv.gravar_corpos(inv.coletar(CursorFalso(inv, respostas or respostas_base())), pasta)
+def test_trigger_dispara_com_a_tabela_nao_vira_sem_citacao(inv):
+    """Revisão final I3: ninguém 'chama' trigger — ela dispara com a tabela. Sem isso, toda trigger caía
+    em 'sem citação', justo onde legado esconde regra de negócio."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "TR_Apolice_Audit", "SQL_TRIGGER", D1, D1, 0,
+                                    "CREATE TRIGGER dbo.TR_Apolice_Audit ON dbo.Apolice ...", "Apolice")])
+    c = _cruzar(inv, {}, r)["dbo.TR_Apolice_Audit"]
+    assert c.classe == inv.DISPARA_COM_TABELA and c.ocorrencias == ["dbo.Apolice"]
 
 
-def test_corpos_utf8_bom_com_marca(inv, tmp_path):
-    g = _gravar(inv, tmp_path / "banco")
-    arq = tmp_path / "banco" / "dbo.ConsultaApolice.sql"
-    assert "dbo.ConsultaApolice.sql" in g.gravados and "dbo.Cifrada.sql" not in g.gravados
-    assert arq.read_bytes().startswith(b"\xef\xbb\xbf")
-    texto = arq.read_text(encoding="utf-8-sig")
-    assert texto.startswith(inv.MARCA_SQL)
-    assert "WHERE Numero = @Numero" in texto
-    assert b"AS\r\nSELECT" in arq.read_bytes()  # CRLF do SQL Server preservado
+def test_arquivo_utf16_do_ssms_e_lido(inv):
+    """Revisão final I4: 'Generate Scripts' do SSMS salva em UTF-16; lido como UTF-8 vira ruído e o objeto
+    sai 'sem citação' — a direção perigosa."""
+    texto = inv.texto_de_bytes("EXEC dbo.Cifrada\r\n".encode("utf-16"))
+    assert _cruzar(inv, {"scripts/rotina.sql": texto})["dbo.Cifrada"].classe == inv.CITADO_CODIGO
+    assert inv.texto_de_bytes("ação".encode("cp1252")).startswith("a"), "cp1252 cai no replace, sem estourar"
 
 
-def test_segredo_mascarado_no_arquivo(inv, tmp_path):
+def test_indice_guarda_so_os_nomes_pedidos_e_no_maximo_tres(inv):
+    """Revisão final I5: o índice guardava todo token do repo (~1,2 GB num monólito de 2M linhas)."""
+    indice = inv.indexar_textos(((f"src/A{i}.cs", "Cifrada(); outraCoisa();") for i in range(5)), nomes={"cifrada"})
+    assert set(indice) == {"cifrada"} and len(indice["cifrada"]) == 3
+
+
+# --------------------------------------------------------------- os .sql: a pasta entra como {nome: é nosso?}
+
+def _plano(inv, respostas=None, existentes=None):
+    return inv.plano_dos_corpos(_catalogo(inv, respostas), existentes or {})
+
+
+def test_corpos_com_marca_e_crlf_preservado(inv):
+    plano = _plano(inv)
+    escritos = dict(plano.escrever)
+    assert plano.gravacao.gravados == list(escritos) and "dbo.Cifrada.sql" not in escritos
+    texto = escritos["dbo.ConsultaApolice.sql"]
+    assert texto.startswith(inv.MARCA_SQL) and "WHERE Numero = @Numero" in texto
+    assert "AS\r\nSELECT" in texto  # CRLF do SQL Server preservado
+    assert plano.renomear == [] and plano.remover == []
+
+
+def test_segredo_mascarado_no_arquivo(inv):
     r = respostas_base()
     r["modulos"] = (COLS_MODULOS, [("dbo", "Importa", "SQL_STORED_PROCEDURE", D1, D1, 0,
                                     "CREATE PROCEDURE dbo.Importa AS\nSELECT * FROM OPENROWSET('SQLNCLI','Server=x;PWD=Abc123;','SELECT 1')")])
-    g = _gravar(inv, tmp_path / "banco", r)
-    texto = (tmp_path / "banco" / "dbo.Importa.sql").read_text(encoding="utf-8-sig")
+    plano = _plano(inv, r)
+    texto = dict(plano.escrever)["dbo.Importa.sql"]
     assert "Abc123" not in texto and inv.MASCARA in texto and "Segredo removido" in texto
-    assert g.segredos == [("dbo.Importa", 2, "senha em conn string")]
+    assert plano.gravacao.segredos == [("dbo.Importa", 2, "senha em conn string")]
 
 
-def test_remove_so_o_que_e_do_inventario(inv, tmp_path):
-    pasta = tmp_path / "banco"
-    pasta.mkdir()
-    (pasta / "dbo.Sumiu.sql").write_text(inv.MARCA_SQL + "\nSELECT 1", encoding="utf-8-sig")
-    (pasta / "script_do_time.sql").write_text("-- script nosso\nSELECT 1", encoding="utf-8")
-    g = _gravar(inv, pasta)
-    assert g.removidos == ["dbo.Sumiu.sql"] and not (pasta / "dbo.Sumiu.sql").exists()
-    assert g.preservados == ["script_do_time.sql"] and (pasta / "script_do_time.sql").exists()
+def test_remove_so_o_que_e_do_inventario(inv):
+    plano = _plano(inv, existentes={"dbo.Sumiu.sql": True, "script_do_time.sql": False})
+    assert plano.remover == ["dbo.Sumiu.sql"] and plano.gravacao.removidos == ["dbo.Sumiu.sql"]
+    assert plano.gravacao.preservados == ["script_do_time.sql"]
 
 
-def test_nao_escreve_por_cima_de_sql_do_time_com_o_mesmo_nome(inv, tmp_path):
+def test_nao_escreve_por_cima_de_sql_do_time_com_o_mesmo_nome(inv):
     """Revisão final C1: a marca guardava só a remoção; a escrita passava por cima."""
-    pasta = tmp_path / "banco"
-    pasta.mkdir()
-    (pasta / "dbo.ConsultaApolice.sql").write_text("-- script do time\nSELECT 1", encoding="utf-8")
-    g = _gravar(inv, pasta)
-    assert (pasta / "dbo.ConsultaApolice.sql").read_text(encoding="utf-8") == "-- script do time\nSELECT 1"
+    plano = _plano(inv, existentes={"dbo.ConsultaApolice.sql": False})
+    g = plano.gravacao
+    assert "dbo.ConsultaApolice.sql" not in dict(plano.escrever)
     assert g.conflitos == ["dbo.ConsultaApolice.sql"] and "dbo.ConsultaApolice.sql" not in g.gravados
     assert "dbo.ConsultaApolice.sql" not in g.preservados  # listado uma vez só, como conflito
 
 
-def test_rodada_sem_view_definition_nao_apaga_os_corpos_versionados(inv, tmp_path):
+def test_rodada_sem_view_definition_nao_apaga_os_corpos_versionados(inv):
     """Revisão final I1: objeto que existe mas veio sem corpo nesta rodada mantém o .sql anterior."""
-    pasta = tmp_path / "banco"
-    _gravar(inv, pasta)
     r = respostas_base()
     colunas, linhas = r["modulos"]
     r["modulos"] = (colunas, [l[:6] + (None,) + l[7:] for l in linhas])  # login mais fraco: todo corpo NULL
-    g = _gravar(inv, pasta, r)
-    assert g.removidos == []
-    assert (pasta / "dbo.ConsultaApolice.sql").exists()
-    assert "dbo.ConsultaApolice.sql" in g.mantidos
+    plano = _plano(inv, r, existentes={"dbo.ConsultaApolice.sql": True})
+    assert plano.remover == [] and plano.gravacao.mantidos == ["dbo.ConsultaApolice.sql"]
 
 
-def test_renomear_so_na_caixa_nao_perde_o_corpo(inv, tmp_path):
+def test_renomear_so_na_caixa_nao_perde_o_corpo(inv):
     """Revisão final I2: no NTFS `dbo.X.sql` e `dbo.x.sql` são o mesmo arquivo."""
-    pasta = tmp_path / "banco"
-    _gravar(inv, pasta)
     r = respostas_base()
     colunas, linhas = r["modulos"]
-    r["modulos"] = (colunas, [(l[0], "CONSULTAAPOLICE") + l[2:] if l[1] == "ConsultaApolice" else l
-                              for l in linhas])
-    g = _gravar(inv, pasta, r)
-    nomes = [p.name for p in pasta.iterdir()]
-    assert [n for n in nomes if n.casefold() == "dbo.consultaapolice.sql"] == ["dbo.CONSULTAAPOLICE.sql"]
-    assert g.removidos == []
+    r["modulos"] = (colunas, [(l[0], "CONSULTAAPOLICE") + l[2:] if l[1] == "ConsultaApolice" else l for l in linhas])
+    plano = _plano(inv, r, existentes={"dbo.ConsultaApolice.sql": True})
+    assert plano.renomear == [("dbo.ConsultaApolice.sql", "dbo.CONSULTAAPOLICE.sql")]
+    assert "dbo.CONSULTAAPOLICE.sql" in dict(plano.escrever) and plano.remover == []
+
+
+def test_colisao_de_caixa_marca_so_o_objeto_nao_gravado(inv):
+    """Re-revisão N2: com dbo.X e dbo.x no catálogo, as duas linhas diziam 'não gravado'."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "ConsultaApolice", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1", None),
+                                   ("dbo", "CONSULTAAPOLICE", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 2", None)])
+    cat = _catalogo(inv, r)
+    g = inv.plano_dos_corpos(cat, {}).gravacao
+    assert g.conflitos == ["dbo.CONSULTAAPOLICE.sql"]
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), g.segredos, g.objetos_em_conflito)
+    assert "`banco/dbo.ConsultaApolice.sql`" in md
+    linha_2 = next(l for l in md.splitlines() if l.startswith("| `dbo.CONSULTAAPOLICE` | sql_stored_procedure"))
+    assert "não gravado" in linha_2 and "time" not in linha_2
 
 
 def test_nome_de_arquivo_seguro(inv):
     assert inv.nome_arquivo("dbo", "a/b c") == "dbo.a_b_c.sql"
 
 
-def _md(inv, tmp_path, respostas=None, segredos=()):
-    cat = inv.coletar(CursorFalso(inv, respostas or respostas_base()))
-    proj = _projeto(tmp_path, {"src/Repo.cs": 'Exec("dbo.ConsultaApolice");'})
-    cit = inv.cruzar(cat, inv.indexar_codigo(proj))
+# --------------------------------------------------------------- o banco.md
+
+def _md(inv, respostas=None, segredos=()):
+    cat = _catalogo(inv, respostas)
+    cit = inv.cruzar(cat, inv.indexar_textos([("src/Repo.cs", 'Exec("dbo.ConsultaApolice");')]))
     return inv.renderizar_md("LegadoCS", "variável MSS_INVENTARIO_CONN → servidor srv, base Legado",
                              "2026-09-22", cat, cit, list(segredos))
 
 
-def test_md_marca_e_frase_de_guarda_no_topo_do_cruzamento(inv, tmp_path):
-    md = _md(inv, tmp_path)
+def test_md_marca_e_frase_de_guarda_no_topo_do_cruzamento(inv):
+    md = _md(inv)
     assert md.startswith(inv.MARCA_MD)
     secao = md.split("## Cruzamento com o código", 1)[1]
     assert secao.lstrip().startswith(f"> {inv.FRASE_GUARDA}")
     assert '"pode apagar"' in md
 
 
-def test_md_nunca_traz_corpo_nem_segredo(inv, tmp_path):
-    md = _md(inv, tmp_path, segredos=[("dbo.Importa", 2, "senha em conn string")])
+def test_md_nunca_traz_corpo_nem_segredo(inv):
+    md = _md(inv, segredos=[("dbo.Importa", 2, "senha em conn string")])
     assert "WHERE Numero = @Numero" not in md          # corpo fica só no .sql
     assert "zzz-linked" not in md and "zzz-job" not in md  # origem do linked server e texto do job
     assert "`dbo.Importa` | 2 | senha em conn string" in md
 
 
-def test_md_conteudo(inv, tmp_path):
-    md = _md(inv, tmp_path)
+def test_md_conteudo(inv):
+    md = _md(inv)
     assert "# Banco do projeto LegadoCS" in md
     assert "18.234" in md or "18234" in md
     assert "`dbo.ConsultaApolice` | citado no código | `src/Repo.cs:1`" in md
@@ -602,11 +641,55 @@ def test_md_conteudo(inv, tmp_path):
     assert "`banco/dbo.ConsultaApolice.sql`" in md
 
 
-def test_md_sem_linhas_quando_opcional_falhou(inv, tmp_path):
-    cat = inv.coletar(CursorFalso(inv, respostas_base(), falhas=("linhas",)))
+def test_md_sem_linhas_quando_opcional_falhou(inv):
+    cat = _catalogo(inv, falhas=("linhas",))
     md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
     assert "`dbo.Apolice` — — linhas" in md
 
+
+def test_nome_com_barra_vertical_nao_quebra_a_tabela(inv):
+    """Revisão final M1: nome entre colchetes pode ter `|` (justo o caso 'não cruzado') e quebrava a tabela."""
+    r = respostas_base()
+    r["modulos"] = (COLS_MODULOS, [("dbo", "Proc|Velha", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
+    cat = _catalogo(inv, r)
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
+    linhas = [l for l in md.splitlines() if "Proc" in l and l.startswith("|")]
+    assert linhas and all(r"Proc\|Velha" in l for l in linhas)
+
+
+def test_tipo_da_coluna_traz_o_tamanho(inv):
+    """Revisão final M6: varchar(20) aparecia como varchar; nvarchar guarda bytes (divide por 2)."""
+    r = respostas_base()
+    r["colunas"] = (r["colunas"][0], [("dbo", "Apolice", "Numero", "varchar", 20, False, False, None),
+                                      ("dbo", "Apolice", "Nome", "nvarchar", 200, True, False, None),
+                                      ("dbo", "Apolice", "Obs", "varchar", -1, True, False, None)])
+    cat = _catalogo(inv, r)
+    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
+    assert "varchar(20)" in md and "nvarchar(100)" in md and "varchar(max)" in md
+
+
+@pytest.mark.parametrize("gitignore, falta", [
+    (None, "/docs/banco.md"), ("node_modules/\n", "/docs/banco.md"),
+    ("/docs/banco.md\n", ""), ("docs/banco.md\n", ""),              # com ou sem a barra inicial
+])
+def test_linha_do_gitignore(inv, gitignore, falta):
+    assert inv.linha_gitignore(gitignore) == falta
+
+
+def test_banco_md_do_projeto_e_alheio(inv):
+    assert inv.md_alheio("# Anotações do time\n")
+    assert not inv.md_alheio(inv.MARCA_MD + "\n# Banco do projeto X\n") and not inv.md_alheio(None)
+
+
+def test_relatorio_sugere_o_gitignore_sem_editar(inv):
+    rel = inv.Relatorio(FALSA / "docs" / "banco.md", FALSA / "docs" / "banco", 6, ["a.sql"], [], [], [], [],
+                        [("dbo.Importa", 2, "senha em conn string")], [], "/docs/banco.md")
+    texto = inv.relatorio_texto(rel)
+    assert "/docs/banco.md" in texto and "pergunte ao owner" in texto
+    assert "dbo.Importa linha 2 (senha em conn string)" in texto
+
+
+# --------------------------------------------------------------- o main, sem chegar a gravar
 
 class ConexaoFalsa:
     def __init__(self, cursor):
@@ -621,194 +704,116 @@ class ConexaoFalsa:
 
 
 ENV_OK = {"MSS_INVENTARIO_CONN": "Server=srv;Database=x;UID=u;PWD=segredo123"}
+EXISTENTE = str(REPO)          # pasta que existe; nenhum destes testes chega a gravar nela
 
 
-def test_main_ponta_a_ponta(inv, tmp_path, capsys):
-    proj = _projeto(tmp_path / "LegadoCS", {"src/Repo.cs": 'cmd.CommandText = "dbo.ConsultaApolice";'})
-    conn = ConexaoFalsa(CursorFalso(inv, respostas_base()))
-    vistas = []
-    rc = inv.main(["--proj", str(proj), "--base", "Legado"], env=ENV_OK,
-                  conectar_fn=lambda s: vistas.append(s) or conn)
-    assert rc == 0 and conn.fechada
-    assert "Database=Legado" in vistas[0]
-    saida = capsys.readouterr()
-    assert "segredo123" not in saida.out + saida.err
-    assert (proj / "docs" / "banco.md").read_text(encoding="utf-8").startswith(inv.MARCA_MD)
-    assert (proj / "docs" / "banco" / "dbo.ConsultaApolice.sql").exists()
-    assert "/docs/banco.md" in saida.out  # sugere a linha do .gitignore (não edita)
-    assert not (proj / ".gitignore").exists()
-
-
-def test_proj_ponto_da_nome_ao_titulo(inv, tmp_path, monkeypatch):
-    """Caso F-016: Path('.').name é vazio."""
-    proj = tmp_path / "LegadoCS"
-    proj.mkdir()
-    monkeypatch.chdir(proj)
-    assert inv.main(["--proj", "."], env=ENV_OK,
-                    conectar_fn=lambda s: ConexaoFalsa(CursorFalso(inv, respostas_base()))) == 0
-    assert "# Banco do projeto LegadoCS" in (proj / "docs" / "banco.md").read_text(encoding="utf-8")
-
-
-def test_nao_sobrescreve_banco_md_do_projeto(inv, tmp_path):
-    (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "banco.md").write_text("# Anotações do time\n", encoding="utf-8")
-    with pytest.raises(inv.ErroSaida, match="não sobrescrevo"):
-        inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
-    assert (tmp_path / "docs" / "banco.md").read_text(encoding="utf-8") == "# Anotações do time\n"
-    assert not (tmp_path / "docs" / "banco").exists()
-
-
-def test_teto_nao_grava_nada(inv, tmp_path):
-    with pytest.raises(inv.ErroTeto):
-        inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o", max_objetos=1)
-    assert not (tmp_path / "docs").exists()
-
-
-def test_regeneracao_e_gitignore_ja_ancorado(inv, tmp_path):
-    (tmp_path / ".gitignore").write_text("/docs/banco.md\n", encoding="utf-8")
-    inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
-    rel = inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")  # 2ª rodada sobrescreve o nosso
-    assert rel.linha_gitignore == ""
-    assert rel.total_objetos == 6 and len(rel.gravados) == 3
-
-
-def test_main_sem_credencial(inv, tmp_path, capsys):
-    assert inv.main(["--proj", str(tmp_path)], env={}, conectar_fn=lambda s: pytest.fail("conectou")) == 2
+def test_main_sem_credencial(inv, capsys):
+    assert inv.main(["--proj", EXISTENTE], env={}, conectar_fn=lambda s: pytest.fail("conectou")) == 2
     assert "--fonte" in capsys.readouterr().err
 
 
-def test_main_conexao_recusada(inv, tmp_path, capsys):
+def test_main_conexao_recusada(inv, capsys):
     def recusa(_):
         raise RuntimeError("[28000] Login failed for user 'u'. (18456)")
-    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=recusa) == 3
+    assert inv.main(["--proj", EXISTENTE], env=ENV_OK, conectar_fn=recusa) == 3
     err = capsys.readouterr().err
     assert "CREDENCIAL" in err and "segredo123" not in err
 
 
-def test_gitignore_em_cp1252_nao_derruba_depois_de_gravar(inv, tmp_path):
-    """Revisão final I7: o .gitignore era lido sem errors= e estourava com tudo já no disco."""
-    (tmp_path / ".gitignore").write_bytes("# configuração\n/docs/banco.md\n".encode("cp1252"))
-    rel = inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o")
-    assert rel.linha_gitignore == ""
-
-
-def test_gitignore_sem_barra_inicial_tambem_ancora(inv, tmp_path):
-    (tmp_path / ".gitignore").write_text("docs/banco.md\n", encoding="utf-8")
-    assert inv.gerar(tmp_path, CursorFalso(inv, respostas_base()), "o").linha_gitignore == ""
-
-
-def test_trigger_dispara_com_a_tabela_nao_vira_sem_citacao(inv, tmp_path):
-    """Revisão final I3: ninguém 'chama' trigger — ela dispara com a tabela. Sem isso, toda trigger caía
-    em 'sem citação', justo onde legado esconde regra de negócio."""
-    r = respostas_base()
-    r["modulos"] = (COLS_MODULOS, [("dbo", "TR_Apolice_Audit", "SQL_TRIGGER", D1, D1, 0,
-                                             "CREATE TRIGGER dbo.TR_Apolice_Audit ON dbo.Apolice ...", "Apolice")])
-    c = _cruzar(inv, tmp_path, r)["dbo.TR_Apolice_Audit"]
-    assert c.classe == inv.DISPARA_COM_TABELA and c.ocorrencias == ["dbo.Apolice"]
-
-
-def test_arquivo_utf16_do_ssms_e_lido(inv, tmp_path):
-    """Revisão final I4: 'Generate Scripts' do SSMS salva em UTF-16; lido como UTF-8 vira ruído e o objeto
-    sai 'sem citação' — a direção perigosa."""
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "rotina.sql").write_text("EXEC dbo.Cifrada\r\n", encoding="utf-16")
-    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.CITADO_CODIGO
-
-
-def test_indice_guarda_so_os_nomes_pedidos_e_no_maximo_tres(inv, tmp_path):
-    """Revisão final I5: o índice guardava todo token do repo (~1,2 GB num monólito de 2M linhas)."""
-    _projeto(tmp_path, {f"src/A{i}.cs": "Cifrada(); outraCoisa();" for i in range(5)})
-    indice = inv.indexar_codigo(tmp_path, nomes={"cifrada"})
-    assert set(indice) == {"cifrada"} and len(indice["cifrada"]) == 3
-
-
-@pytest.mark.parametrize("pasta", ["Bin/Debug", "OBJ", "venv/lib", "TestResults"])
-def test_pastas_geradas_ignoradas_sem_diferenciar_caixa(inv, tmp_path, pasta):
-    _projeto(tmp_path, {f"{pasta}/x.config": "Cifrada"})
-    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.SEM_CITACAO
-
-
-def test_saidas_de_outros_geradores_do_kit_nao_contam(inv, tmp_path):
-    _projeto(tmp_path, {"docs/bpmn.html": "Cifrada", "docs/mapa-neural.html": "Cifrada",
-                        "docs/anatomia.html": "Cifrada", "docs/bpmn/p.bpmn": "Cifrada"})
-    assert _cruzar(inv, tmp_path)["dbo.Cifrada"].classe == inv.SEM_CITACAO
-
-
-def test_main_query_obrigatoria_negada_sai_limpo(inv, tmp_path, capsys):
-    """Revisão final I6: falha fora de ErroTeto/ErroSaida escapava como traceback."""
+def test_main_query_obrigatoria_negada_sai_limpo(inv, capsys):
+    """Revisão final I6: falha fora de ErroTeto/ErroSaida escapava como traceback. A query cai antes de gravar."""
     conn = ConexaoFalsa(CursorFalso(inv, respostas_base(), falhas=("modulos",)))
-    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=lambda s: conn) == 5
+    assert inv.main(["--proj", EXISTENTE, "--out", str(FALSA)], env=ENV_OK, conectar_fn=lambda s: conn) == 5
     err = capsys.readouterr().err
     assert "PERMISSÃO" in err and "Traceback" not in err and conn.fechada
+    assert not FALSA.exists()
 
 
-def test_main_proj_inexistente_nao_cria_pasta(inv, tmp_path, capsys):
+def test_main_proj_inexistente_nao_cria_pasta(inv, capsys):
     """Revisão final I8: --proj digitado errado criava a árvore e saía 0."""
-    alvo = tmp_path / "typo" / "proj"
+    alvo = FALSA / "typo" / "proj"
     assert inv.main(["--proj", str(alvo)], env=ENV_OK, conectar_fn=lambda s: pytest.fail("conectou")) == 2
     assert not alvo.exists() and "--proj" in capsys.readouterr().err
 
 
-def test_porta_nao_numerica_e_recusada(inv, tmp_path):
+def test_porta_nao_numerica_e_recusada(inv):
     with pytest.raises(SystemExit):
-        inv.main(["--proj", str(tmp_path), "--porta", "abc"], env=ENV_OK,
-                 conectar_fn=lambda s: pytest.fail("conectou"))
+        inv.main(["--proj", EXISTENTE, "--porta", "abc"], env=ENV_OK, conectar_fn=lambda s: pytest.fail("conectou"))
 
 
-def test_sem_cryptography_nao_culpa_o_par(inv, fonte):
-    """Revisão final M4: ImportError virava 'chave e cifra não conferem'."""
-    def sem_lib(chave, cifra):
-        raise ImportError("No module named 'cryptography'")
-    with pytest.raises(inv.ErroCredencial, match="cryptography"):
-        inv.resolver_conn({}, fonte, "D0", "SSC", decriptar=sem_lib)
-
-
-def test_permissao_negada_no_catalogo_e_permissao(inv):
-    msg = inv.explicar_erro(RuntimeError("[42000] The SELECT permission was denied on the object 'sysjobs'"))
-    assert msg.startswith("PERMISSÃO")
-
-
-def test_nome_com_barra_vertical_nao_quebra_a_tabela(inv, tmp_path):
-    """Revisão final M1: nome entre colchetes pode ter `|` (justo o caso 'não cruzado') e quebrava a tabela."""
-    r = respostas_base()
-    r["modulos"] = (COLS_MODULOS, [("dbo", "Proc|Velha", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1")])
-    cat = inv.coletar(CursorFalso(inv, r))
-    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
-    linhas = [l for l in md.splitlines() if "Proc" in l and l.startswith("|")]
-    assert linhas and all(r"Proc\|Velha" in l for l in linhas)
-
-
-def test_tipo_da_coluna_traz_o_tamanho(inv, tmp_path):
-    """Revisão final M6: varchar(20) aparecia como varchar; nvarchar guarda bytes (divide por 2)."""
-    r = respostas_base()
-    r["colunas"] = (r["colunas"][0], [("dbo", "Apolice", "Numero", "varchar", 20, False, False, None),
-                                      ("dbo", "Apolice", "Nome", "nvarchar", 200, True, False, None),
-                                      ("dbo", "Apolice", "Obs", "varchar", -1, True, False, None)])
-    cat = inv.coletar(CursorFalso(inv, r))
-    md = inv.renderizar_md("P", "o", "2026-09-22", cat, inv.cruzar(cat, {}), [])
-    assert "varchar(20)" in md and "nvarchar(100)" in md and "varchar(max)" in md
-
-
-def test_erro_de_disco_nao_vira_permissao_do_banco(inv, tmp_path, monkeypatch, capsys):
+def test_erro_de_disco_nao_vira_permissao_do_banco(inv, monkeypatch, capsys):
     """Re-revisão N1: PermissionError do disco ('Permission denied') caía no ramo de permissão do banco e
     mandava o owner pedir VIEW DEFINITION — ação errada."""
     def disco_bloqueado(*a, **k):
-        raise PermissionError(13, "Permission denied", str(tmp_path / "docs" / "banco.md"))
+        raise PermissionError(13, "Permission denied", str(FALSA / "docs" / "banco.md"))
     monkeypatch.setattr(inv, "gerar", disco_bloqueado)
     conn = ConexaoFalsa(CursorFalso(inv, respostas_base()))
-    assert inv.main(["--proj", str(tmp_path)], env=ENV_OK, conectar_fn=lambda s: conn) == 5
+    assert inv.main(["--proj", EXISTENTE], env=ENV_OK, conectar_fn=lambda s: conn) == 5
     err = capsys.readouterr().err
     assert "DISCO" in err and "VIEW DEFINITION" not in err and conn.fechada
 
 
-def test_colisao_de_caixa_marca_so_o_objeto_nao_gravado(inv, tmp_path):
-    """Re-revisão N2: com dbo.X e dbo.x no catálogo, as duas linhas diziam 'não gravado'."""
+# --------------------------------------------------------------- o disco de verdade (pasta montada uma vez)
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    base = tmp_path_factory.mktemp("inventario_banco")
+    legado = base / "LegadoCS"
+    (legado / "src").mkdir(parents=True)
+    (legado / "src" / "Repo.cs").write_text('cmd.CommandText = "dbo.ConsultaApolice";', encoding="utf-8")
+    (legado / "scripts").mkdir()
+    (legado / "scripts" / "rotina.sql").write_text("EXEC dbo.RecalculaPremio\r\n", encoding="utf-16")
+    (legado / "bin").mkdir()
+    (legado / "bin" / "App.config").write_text("dbo.Cifrada", encoding="utf-8")
+    (legado / ".gitignore").write_bytes("# configuração\n/docs/banco.md\n".encode("cp1252"))
+    alheio = base / "alheio"
+    (alheio / "docs").mkdir(parents=True)
+    (alheio / "docs" / "banco.md").write_text("# Anotações do time\n", encoding="utf-8")
+    (base / "get_connection.py").write_text(FONTE, encoding="utf-8")
+    return base
+
+
+def test_disco_de_ponta_a_ponta(inv, pasta, monkeypatch, capsys):
+    legado, alheio = pasta / "LegadoCS", pasta / "alheio"
+    # a fonte lida do disco, e a que não existe
+    c = inv.resolver_conn({}, pasta / "get_connection.py", "D0", "SSC", decriptar=_decriptar_falso)
+    assert "srv-ssc" in c.conn_str
+    with pytest.raises(inv.ErroCredencial, match="não encontrado"):
+        inv.resolver_conn({}, pasta / "nao_existe.py")
+    # 1ª rodada pelo main, com `--proj .` (caso F-016: Path('.').name é vazio)
+    monkeypatch.chdir(legado)
+    conn = ConexaoFalsa(CursorFalso(inv, respostas_base()))
+    vistas = []
+    assert inv.main(["--proj", ".", "--base", "Legado"], env=ENV_OK,
+                    conectar_fn=lambda s: vistas.append(s) or conn) == 0
+    assert conn.fechada and "Database=Legado" in vistas[0]
+    saida = capsys.readouterr()
+    assert "segredo123" not in saida.out + saida.err
+    assert "falta no .gitignore" not in saida.out, "o .gitignore em cp1252 já ancora a saída"
+    md = (legado / "docs" / "banco.md").read_text(encoding="utf-8")
+    assert md.startswith(inv.MARCA_MD) and "# Banco do projeto LegadoCS" in md
+    assert "`dbo.ConsultaApolice` | citado no código | `src/Repo.cs:1`" in md
+    assert "`dbo.RecalculaPremio` | citado no código | `scripts/rotina.sql:1`" in md, "UTF-16 do SSMS não foi lido"
+    assert "`dbo.Cifrada` | sem citação" in md, "a pasta bin/ entrou na varredura"
+    sql = legado / "docs" / "banco" / "dbo.ConsultaApolice.sql"
+    assert sql.read_bytes().startswith(b"\xef\xbb\xbf") and b"AS\r\nSELECT" in sql.read_bytes()
+    # 2ª rodada: renomeado só na caixa, um .sql nosso que sumiu e um do time
+    banco = legado / "docs" / "banco"
+    (banco / "dbo.Sumiu.sql").write_text(inv.MARCA_SQL + "\nSELECT 1", encoding="utf-8-sig")
+    (banco / "script_do_time.sql").write_text("-- script nosso\nSELECT 1", encoding="utf-8")
     r = respostas_base()
-    r["modulos"] = (COLS_MODULOS, [("dbo", "ConsultaApolice", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 1", None),
-                                   ("dbo", "CONSULTAAPOLICE", "SQL_STORED_PROCEDURE", D1, D1, 0, "SELECT 2", None)])
-    rel = inv.gerar(tmp_path, CursorFalso(inv, r), "o")
-    md = rel.md.read_text(encoding="utf-8")
-    assert "`banco/dbo.ConsultaApolice.sql`" in md
-    linha_2 = next(l for l in md.splitlines() if l.startswith("| `dbo.CONSULTAAPOLICE` | sql_stored_procedure"))
-    assert "não gravado" in linha_2 and "time" not in linha_2
-    assert rel.conflitos == ["dbo.CONSULTAAPOLICE.sql"]
+    colunas, linhas = r["modulos"]
+    r["modulos"] = (colunas, [(l[0], "CONSULTAAPOLICE") + l[2:] if l[1] == "ConsultaApolice" else l for l in linhas])
+    rel = inv.gerar(legado, CursorFalso(inv, r), "o")
+    nomes = sorted(p.name for p in banco.iterdir())
+    assert [n for n in nomes if n.casefold() == "dbo.consultaapolice.sql"] == ["dbo.CONSULTAAPOLICE.sql"]
+    assert "dbo.Sumiu.sql" not in nomes and "script_do_time.sql" in nomes
+    assert rel.linha_gitignore == "" and rel.total_objetos == 6 and len(rel.gravados) == 3
+    # o banco.md do projeto não é sobrescrito; o teto não grava nada
+    with pytest.raises(inv.ErroSaida, match="não sobrescrevo"):
+        inv.gerar(alheio, CursorFalso(inv, respostas_base()), "o")
+    assert (alheio / "docs" / "banco.md").read_text(encoding="utf-8") == "# Anotações do time\n"
+    assert not (alheio / "docs" / "banco").exists()
+    with pytest.raises(inv.ErroTeto):
+        inv.gerar(alheio, CursorFalso(inv, respostas_base()), "o", out=pasta / "teto", max_objetos=1)
+    assert not (pasta / "teto").exists()
