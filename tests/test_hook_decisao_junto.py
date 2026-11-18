@@ -13,13 +13,17 @@ Propriedades:
 - cobra uma vez por arquivo; arquivo novo depois da cobrança cobra de novo; decisão gravada → passa;
 - teste, README e módulo `_x.py` não contam; `stop_hook_active` → passa; subagente não conta; falha ABERTA;
   escape `MSS_DECISAO_JUNTO_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o texto do transcript entra como dado (lido pela
+`_transcricao.gravacoes_do_texto`) e os arquivos já cobrados de cada conversa ficam num dicionário. O disco de
+verdade (ler o transcript, gravar e ler os cobrados) fica num teste só, numa pasta montada uma vez; o processo
+python, num teste só.
 """
 import importlib.util
 import json
 import os
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 
 import pytest
@@ -30,19 +34,16 @@ PROJ = "C:\\Ronaldo\\_Mitsui\\Python\\IA Bot Agent\\IA Bot Agent - Whats"
 KIT = "C:\\Ronaldo\\_Mitsui\\Python\\Spec-Powers"
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("decisao_junto", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
 
 
-@pytest.fixture()
-def amb(tmp_path):
-    return {"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path)}
-
-
-def _transcript(tmp_path, caminhos, sidechain=()):
+def _transcript(caminhos, sidechain=()):
+    """O texto de um transcript com um Edit por caminho (e os de `sidechain` marcados como subagente)."""
     linhas = [json.dumps({"type": "user", "message": {"content": "oi"}})]
     for c in caminhos:
         linhas.append(json.dumps({"type": "assistant", "timestamp": "2026-11-06T18:00:00.000Z", "message": {
@@ -50,21 +51,37 @@ def _transcript(tmp_path, caminhos, sidechain=()):
     for c in sidechain:
         linhas.append(json.dumps({"type": "assistant", "isSidechain": True, "message": {
             "content": [{"type": "tool_use", "name": "Write", "input": {"file_path": c}}]}}))
-    t = tmp_path / f"t-{uuid.uuid4().hex[:6]}.jsonl"
-    t.write_text("\n".join(linhas) + "\n", encoding="utf-8")
-    return str(t)
+    return "\n".join(linhas) + "\n"
 
 
-def _ev(transcript, sessao=None, ativo=False):
-    return {"hook_event_name": "Stop", "cwd": KIT, "session_id": sessao or "s-" + uuid.uuid4().hex[:8],
-            "stop_hook_active": ativo, "transcript_path": transcript}
+class Conversas:
+    """Os arquivos já cobrados de cada conversa, em memória. `decidir` chama a regra com o texto do transcript como
+    dado e guarda o que ela manda marcar — o papel da casca."""
+
+    def __init__(self, mod):
+        self.mod, self.cobradas, self.anotacoes = mod, {}, []
+        self.tr = sys.modules["_transcricao"]
+
+    def decidir(self, transcript, sessao="s1", ativo=False, ambiente=None, evento=None):
+        ev = evento if evento is not None else {"hook_event_name": "Stop", "cwd": KIT, "session_id": sessao,
+                                                "stop_hook_active": ativo, "transcript_path": "t.jsonl"}
+        motivo, mudancas = self.mod.regra(ev, ambiente or {}, lambda: self.tr.gravacoes_do_texto(transcript),
+                                          lambda s: set(self.cobradas.get(s, set())))
+        if "marcar" in mudancas:
+            self.cobradas.setdefault(sessao, set()).update(mudancas["marcar"])
+        self.anotacoes += mudancas["anotacoes"]
+        return motivo
+
+
+@pytest.fixture()
+def conv(mod):
+    return Conversas(mod)
 
 
 # --- AC1: comportamento sem decisão devolve; o que conta e o que não conta ------------------------
 
-def test_hook_do_kit_sem_decisao_devolve(amb, tmp_path):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py", KIT + "\\commands\\bug.md"])
-    motivo = _mod().decidir(_ev(t), amb)
+def test_hook_do_kit_sem_decisao_devolve(conv):
+    motivo = conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py", KIT + "\\commands\\bug.md"]))
     assert motivo and "docs/decisoes.md" in motivo and "hooks/git_publicacao.py" in motivo and "commands/bug.md" in motivo
     assert "decidimos <X> em vez de <Y>" in motivo and "MSS_DECISAO_JUNTO_OFF" in motivo
 
@@ -79,8 +96,8 @@ def test_hook_do_kit_sem_decisao_devolve(amb, tmp_path):
     "hooks/regras_do_kit.py",
     "commands/tarefa.md",
 ])
-def test_arquivos_de_comportamento_contam(amb, tmp_path, caminho):
-    assert _mod().decidir(_ev(_transcript(tmp_path, [caminho])), amb)
+def test_arquivos_de_comportamento_contam(conv, caminho):
+    assert conv.decidir(_transcript([caminho]))
 
 
 @pytest.mark.parametrize("caminho", [
@@ -93,8 +110,8 @@ def test_arquivos_de_comportamento_contam(amb, tmp_path, caminho):
     KIT + "\\templates\\CLAUDE.md",
     PROJ + "\\.claude\\settings.local.json",
 ])
-def test_codigo_memoria_teste_readme_e_molde_nao_contam(amb, tmp_path, caminho):
-    assert _mod().decidir(_ev(_transcript(tmp_path, [caminho])), amb) is None
+def test_codigo_memoria_teste_readme_e_molde_nao_contam(conv, caminho):
+    assert conv.decidir(_transcript([caminho])) is None
 
 
 # --- AC2: com a decisão, passa (decisoes.md ou Histórico da spec); cobra uma vez --------------------
@@ -105,78 +122,90 @@ def test_codigo_memoria_teste_readme_e_molde_nao_contam(amb, tmp_path, caminho):
     KIT + "\\docs\\superpowers\\specs\\2026-11-06-x-design.md",
     "docs/decisoes.md",
 ])
-def test_com_decisao_passa(amb, tmp_path, decisao):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py", decisao])
-    assert _mod().decidir(_ev(t), amb) is None
+def test_com_decisao_passa(conv, decisao):
+    assert conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py", decisao])) is None
 
 
-def test_cobra_uma_vez_e_de_novo_so_com_arquivo_novo(amb, tmp_path):
-    mod, s = _mod(), "s-" + uuid.uuid4().hex[:8]
-    t1 = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py"])
-    assert mod.decidir(_ev(t1, s), amb)
-    assert mod.decidir(_ev(t1, s), amb) is None, "cobrou duas vezes o mesmo arquivo"
-    t2 = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py", KIT + "\\commands\\bug.md"])
-    motivo = mod.decidir(_ev(t2, s), amb)
+def test_cobra_uma_vez_e_de_novo_so_com_arquivo_novo(conv):
+    t1 = _transcript([KIT + "\\hooks\\git_publicacao.py"])
+    assert conv.decidir(t1)
+    assert conv.decidir(t1) is None, "cobrou duas vezes o mesmo arquivo"
+    motivo = conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py", KIT + "\\commands\\bug.md"]))
     assert motivo and "commands/bug.md" in motivo and "git_publicacao" not in motivo.split("—")[1]
 
 
-def test_sessoes_sao_independentes(amb, tmp_path):
-    mod = _mod()
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py"])
-    assert mod.decidir(_ev(t, "s-a"), amb)
-    assert mod.decidir(_ev(t, "s-b"), amb), "a cobrança de s-a valeu pra s-b"
+def test_sessoes_sao_independentes(conv):
+    t = _transcript([KIT + "\\hooks\\git_publicacao.py"])
+    assert conv.decidir(t, "s-a")
+    assert conv.decidir(t, "s-b"), "a cobrança de s-a valeu pra s-b"
 
 
 # --- AC3: nunca laço, subagente, escape, falha aberta ----------------------------------------------
 
-def test_stop_hook_active_passa(amb, tmp_path):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py"])
-    assert _mod().decidir(_ev(t, ativo=True), amb) is None
+def test_stop_hook_active_passa(conv):
+    assert conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py"]), ativo=True) is None
 
 
-def test_gravacao_de_subagente_nao_conta(amb, tmp_path):
-    t = _transcript(tmp_path, [], sidechain=[KIT + "\\hooks\\git_publicacao.py"])
-    assert _mod().decidir(_ev(t), amb) is None
+def test_gravacao_de_subagente_nao_conta(conv):
+    assert conv.decidir(_transcript([], sidechain=[KIT + "\\hooks\\git_publicacao.py"])) is None
 
 
-def test_escape_do_owner(amb, tmp_path):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py"])
-    assert _mod().decidir(_ev(t), {**amb, "MSS_DECISAO_JUNTO_OFF": "1"}) is None
+def test_escape_do_owner(conv):
+    t = _transcript([KIT + "\\hooks\\git_publicacao.py"])
+    assert conv.decidir(t, ambiente={"MSS_DECISAO_JUNTO_OFF": "1"}) is None
 
 
-@pytest.mark.parametrize("ruim", [None, "x", {}, {"hook_event_name": "PreToolUse"},
-                                  {"hook_event_name": "Stop", "transcript_path": "C:/nao/existe.jsonl"},
-                                  {"hook_event_name": "Stop", "transcript_path": 7}])
-def test_entrada_malformada_libera(amb, ruim):
-    assert _mod().decidir(ruim, amb) is None
+@pytest.mark.parametrize("ruim", [None, "x", {}, {"hook_event_name": "PreToolUse"}])
+def test_entrada_malformada_libera(conv, ruim):
+    assert conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py"]), evento=ruim) is None
 
 
-# --- AC4: processo, registro e fiação -------------------------------------------------------------
+def test_transcript_vazio_ou_ilegivel_libera(conv):
+    assert conv.decidir("") is None
+    assert conv.decidir('{"type": "assistant", "message": {"content": [{"type": "tool_use"\nnão é json\n') is None
 
-def _rodar(ev, tmp_path, extra=None):
+
+def test_registro_guarda_a_devolucao_sem_o_texto(conv):
+    conv.decidir(_transcript([KIT + "\\hooks\\git_publicacao.py"]))
+    assert conv.anotacoes == [("devolveu", "comportamento_sem_decisao=1")]
+
+
+def test_saida_pelo_contrato_do_stop(mod):
+    assert json.loads(mod.saida("registre a decisão")) == {"decision": "block", "reason": "registre a decisão"}
+    assert mod.saida(None) is None
+
+
+# --- o disco de verdade e o processo (pasta montada uma vez) ----------------------------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    base = tmp_path_factory.mktemp("decisao_junto")
+    transcript = base / "t.jsonl"
+    transcript.write_text(_transcript([KIT + "\\hooks\\git_publicacao.py"]), encoding="utf-8")
+    return base, transcript
+
+
+def test_casca_le_o_transcript_e_grava_os_cobrados(mod, pasta):
+    base, transcript = pasta
+    amb = {"TEMP": str(base), "TMP": str(base), "TMPDIR": str(base)}
+    ev = {"hook_event_name": "Stop", "cwd": KIT, "session_id": "disco", "stop_hook_active": False,
+          "transcript_path": str(transcript)}
+    assert mod.decidir(ev, amb), "o transcript do disco não foi lido"
+    assert mod.decidir(ev, amb) is None, "a cobrança gravada no disco não foi lida"
+    assert mod.decidir(dict(ev, session_id="outra", transcript_path=str(base / "nao-existe.jsonl")), amb) is None
+
+
+def test_processo_devolve_por_json_com_exit_0(pasta):
+    base, transcript = pasta
     amb = {k: v for k, v in os.environ.items() if not k.startswith("MSS_") and k != "CLAUDE_PROJECT_DIR"}
-    amb.update({"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path), **(extra or {})})
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", env=amb, timeout=30)
-
-
-def test_processo_devolve_por_json_com_exit_0(tmp_path):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py"])
-    r = _rodar(_ev(t), tmp_path)
+    amb.update({"TEMP": str(base), "TMP": str(base), "TMPDIR": str(base)})
+    ev = {"hook_event_name": "Stop", "cwd": KIT, "session_id": "proc", "stop_hook_active": False,
+          "transcript_path": str(transcript)}
+    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", env=amb, timeout=30)
     assert r.returncode == 0, r.stderr
     saida = json.loads(r.stdout.strip().splitlines()[-1])
     assert saida["decision"] == "block" and "docs/decisoes.md" in saida["reason"]
-
-
-def test_processo_libera_calado_com_decisao(tmp_path):
-    t = _transcript(tmp_path, [KIT + "\\hooks\\git_publicacao.py", KIT + "\\docs\\decisoes.md"])
-    r = _rodar(_ev(t), tmp_path)
-    assert r.returncode == 0 and r.stdout.strip() == ""
-
-
-def test_processo_entrada_vazia_libera(tmp_path):
-    r = subprocess.run([sys.executable, str(HOOK)], input="", capture_output=True, text=True, timeout=30)
-    assert r.returncode == 0 and r.stdout.strip() == ""
 
 
 def test_fiacao_no_hooks_json_e_no_readme():
