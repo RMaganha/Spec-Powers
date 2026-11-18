@@ -446,20 +446,29 @@ def _guardar_se_entregou(texto, sessao, passagens, agora):
         return None
 
 
-def _specs_com_decisoes(raiz):
-    """As specs do projeto que têm a seção do que o owner decidiu, com os itens dela."""
+def _ler_specs(raiz):
+    """Disco: {nome: texto (até SPEC_TETO)} das SPECS_MAX primeiras specs do projeto, em ordem de nome. Spec
+    ilegível fica de fora."""
     pasta = os.path.join(raiz, "docs", "specs")
     try:
         nomes = sorted(n for n in os.listdir(pasta) if n.endswith(".md"))[:SPECS_MAX]
     except OSError:
-        return []
-    achadas = []
+        return {}
+    conteudos = {}
     for nome in nomes:
         try:
             with open(os.path.join(pasta, nome), encoding="utf-8") as f:
-                linhas = f.read(SPEC_TETO).split("\n")
+                conteudos[nome] = f.read(SPEC_TETO)
         except Exception:                            # noqa: BLE001
             continue
+    return conteudos
+
+
+def specs_de(conteudos):
+    """De {nome: texto}, as specs que têm a seção do que o owner decidiu, com os itens dela."""
+    achadas = []
+    for nome in sorted(conteudos)[:SPECS_MAX]:
+        linhas = conteudos[nome][:SPEC_TETO].split("\n")
         titulo = next((l.lstrip("# ").strip() for l in linhas if l.startswith("# ")), "")
         for n, linha in enumerate(linhas):
             if not RE_SECAO_DECIDIDO.match(linha):
@@ -645,7 +654,7 @@ def avaliar(evento, ambiente=None):
         estado = _ler_estado(sessao, ambiente) if sessao is not None else {}
         tipo, texto, mudancas = regra(evento, ambiente, estado,
                                         lambda: _ler_passagens(raiz, ambiente),
-                                        lambda: _specs_com_decisoes(raiz), time.time())
+                                        lambda: specs_de(_ler_specs(raiz)), time.time())
         if "estado" in mudancas:
             _gravar_estado(sessao, ambiente, mudancas["estado"])
         guardou = True

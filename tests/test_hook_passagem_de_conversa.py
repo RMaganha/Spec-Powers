@@ -402,6 +402,11 @@ def test_casca_le_e_grava_o_estado_os_textos_prontos_e_a_spec(mod, pasta):
     assert mod.avaliar(_pedido(PEDIDO_REAL, "disco-c"), amb)[0] == "contexto"
     assert mod.avaliar(_fim(RESPOSTA_F058, "disco-c"), amb)[0] == "devolve"
     assert mod.avaliar(_fim(RESPOSTA_F058, "disco-c"), amb) == (None, None), "o que já devolveu não foi gravado"
+    # defeito no disco: spec ilegível e texto guardado quebrado não seguram o pedido; a spec boa ainda é achada
+    (proj / "docs" / "specs" / "ilegivel.md").write_bytes(b"\xff\xfe\x00## O que o owner decidiu\n1. x\n")
+    next(temp.glob("mss_passagens_*.json")).write_text("{quebrado", encoding="utf-8")
+    tipo, achado = mod.avaliar(_pedido("vamos continuar a memória em tabela", "disco-d"), amb)
+    assert tipo == "contexto" and "Gravar é no arquivo." in achado
 
 
 def test_processo_devolve_pelo_contrato_do_stop(pasta):
