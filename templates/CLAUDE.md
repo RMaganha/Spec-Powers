@@ -16,7 +16,7 @@
 - **Ambientes:** <homologação/produção: onde roda e o nome de cada um, ou "só local">
 - **Banco:** <não | qual — ex.: PostgreSQL + pgvector>
 - **Integrações externas:** <sites / APIs / filas, ou "nenhuma">
-- **Versionamento:** <ex.: branch por tarefa a partir da `main`; quem faz push/deploy>
+- **Versionamento:** <hospedado no **GitHub** | **Azure DevOps** (decide o molde de CI); ex.: branch por tarefa a partir da `main`; quem faz push/deploy>
 
 ## Mapa de arquivos (só o que não se infere lendo o repo)
 - `projeto.md` — base/contexto fundamental (lido primeiro; pode não existir)

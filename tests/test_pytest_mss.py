@@ -244,3 +244,20 @@ def test_resumo_no_ci_escreve_falhas_e_pulados_e_fora_dele_nada(monkeypatch):
     fora = _Reporter(stats)
     m.pytest_terminal_summary(fora, 1, None)
     assert fora.linhas == []
+
+
+def test_no_ci_projeto_sem_teste_ainda_nao_fica_vermelho(monkeypatch):
+    """Projeto recém-constituído pelo kickoff ainda não tem teste: o pytest sai com 5 e o CI ficaria vermelho."""
+    m = _mod()
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    sessao = SimpleNamespace(exitstatus=5)
+    m.pytest_sessionfinish(sessao, 5)
+    assert sessao.exitstatus == 0
+    falhou = SimpleNamespace(exitstatus=1)
+    m.pytest_sessionfinish(falhou, 1)
+    assert falhou.exitstatus == 1
+    monkeypatch.delenv("GITHUB_ACTIONS")
+    monkeypatch.delenv("TF_BUILD", raising=False)
+    maquina = SimpleNamespace(exitstatus=5)
+    m.pytest_sessionfinish(maquina, 5)
+    assert maquina.exitstatus == 5

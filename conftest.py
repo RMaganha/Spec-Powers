@@ -141,6 +141,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             terminalreporter.write_line(linha)
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """No CI, "nenhum teste coletado" (5) não é falha: projeto recém-constituído ainda não tem teste."""
+    if exitstatus == pytest.ExitCode.NO_TESTS_COLLECTED and plataforma_do_ci(os.environ):
+        session.exitstatus = pytest.ExitCode.OK
+
+
 def pytest_unconfigure(config):
     global _trava
     if _trava is not None:
