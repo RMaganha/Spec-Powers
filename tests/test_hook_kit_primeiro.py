@@ -16,13 +16,16 @@ Propriedades:
   `disable-model-invocation`, como o `nova-feature`);
 - estado por sessão (duas conversas não se misturam); falha ABERTA; escape só do owner:
   `MSS_KIT_PRIMEIRO_OFF=1`; registra `negou` no registro local.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — quais conversas já entraram pelo kit fica num objeto
+do teste e entra como dado. O disco de verdade (gravar e ler a entrada de cada conversa) fica num teste só, numa
+pasta montada uma vez; o processo python, num teste só.
 """
 import importlib.util
 import json
 import os
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 
 import pytest
@@ -31,17 +34,32 @@ REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "kit_primeiro.py"
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("kit_primeiro", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+class Conversas:
+    """Quais conversas já entraram pelo kit, em memória — o que o hook guarda no temp do SO. `decidir` chama a regra
+    com isso como dado e guarda a entrada que ela devolve — o papel da casca."""
+
+    def __init__(self, mod):
+        self.mod, self.entraram, self.anotacoes = mod, {}, []
+
+    def decidir(self, evento, ambiente=None):
+        motivo, mudancas = self.mod.regra(evento, ambiente or {}, lambda sessao: sessao in self.entraram)
+        if "marcar" in mudancas:
+            self.entraram[evento.get("session_id")] = mudancas["marcar"]
+        self.anotacoes += mudancas["anotacoes"]
+        return motivo
 
 
 @pytest.fixture()
-def amb(tmp_path):
-    """Estado por sessão vai pro TEMP do teste — nada vaza entre testes nem pra máquina."""
-    return {"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path)}
+def kit(mod):
+    return Conversas(mod)
 
 
 def _skill(nome, sessao, cwd=None):
@@ -58,120 +76,131 @@ def _prompt(texto, sessao):
     return {"hook_event_name": "UserPromptSubmit", "session_id": sessao, "cwd": str(REPO), "prompt": texto}
 
 
-def _nova():
-    return "s-" + uuid.uuid4().hex[:8]
-
-
 # --- AC1: a sequência real de 2026-10-30 ------------------------------------------------------
 
-def test_sequencia_real_do_whats(amb):
+def test_sequencia_real_do_whats(kit):
     """15:14 — "vamos tratar aqui mesmo o bug" → systematic-debugging direto: NEGADO, com a porta certa.
     Depois o assistente invoca o `mss-spec:bug` (que, no passo 2, chama o superpowers): liberado."""
-    mod, s = _mod(), _nova()
-    motivo = mod.decidir(_skill("superpowers:systematic-debugging", s), amb)
+    motivo = kit.decidir(_skill("superpowers:systematic-debugging", "s"))
     assert motivo, "systematic-debugging sem o kit passou"
     assert "/mss-spec:bug" in motivo and "superpowers:systematic-debugging" in motivo
-    assert mod.decidir(_skill("mss-spec:bug", s), amb) is None, "o comando do kit foi barrado"
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s), amb) is None, \
+    assert kit.decidir(_skill("mss-spec:bug", "s")) is None, "o comando do kit foi barrado"
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s")) is None, \
         "depois do bug, o superpowers continuou negado"
 
 
-def test_motivo_aponta_as_cinco_portas(amb):
-    motivo = _mod().decidir(_skill("superpowers:brainstorming", _nova()), amb)
+def test_motivo_aponta_as_cinco_portas(kit):
+    motivo = kit.decidir(_skill("superpowers:brainstorming", "s"))
     for porta in ("/mss-spec:bug", "/mss-spec:nova-feature", "/mss-spec:duvida", "/mss-spec:tarefa",
                   "/mss-spec:analise"):
         assert porta in motivo, f"a negativa não aponta {porta}"
     assert "MSS_KIT_PRIMEIRO_OFF" in motivo, "a negativa não diz o escape do owner"
 
 
-def test_tarefa_do_dia_a_dia_e_entrada_pelo_kit(amb):
+def test_tarefa_do_dia_a_dia_e_entrada_pelo_kit(kit):
     """A porta mais usada: `mss-spec:tarefa` conta como entrada e libera o superpowers que ela usar depois."""
-    mod, s = _mod(), _nova()
-    assert mod.decidir(_skill("mss-spec:tarefa", s), amb) is None
-    assert mod.decidir(_skill("superpowers:test-driven-development", s), amb) is None
+    assert kit.decidir(_skill("mss-spec:tarefa", "s")) is None
+    assert kit.decidir(_skill("superpowers:test-driven-development", "s")) is None
     assert (REPO / "commands" / "tarefa.md").exists(), "a porta /mss-spec:tarefa que a negativa aponta não existe"
 
 
 # --- AC2: as três formas de entrar pelo kit ---------------------------------------------------
 
-def test_owner_que_digita_o_comando_conta_como_entrada(amb):
-    mod, s = _mod(), _nova()
-    assert mod.decidir(_prompt("/mss-spec:duvida como o token é gerado?", s), amb) is None, "o prompt não é calado"
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s), amb) is None
+def test_owner_que_digita_o_comando_conta_como_entrada(kit):
+    assert kit.decidir(_prompt("/mss-spec:duvida como o token é gerado?", "s")) is None, "o prompt não é calado"
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s")) is None
 
 
-def test_prompt_comum_nao_conta_como_entrada(amb):
-    mod, s = _mod(), _nova()
-    mod.decidir(_prompt("vamos tratar aqui mesmo o bug, segue o print", s), amb)
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s), amb)
+def test_prompt_comum_nao_conta_como_entrada(kit):
+    kit.decidir(_prompt("vamos tratar aqui mesmo o bug, segue o print", "s"))
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s"))
 
 
-def test_ler_o_comando_do_kit_conta_como_entrada(amb):
+def test_ler_o_comando_do_kit_conta_como_entrada(kit):
     """`nova-feature` é `disable-model-invocation`: roda por leitura do `commands/nova-feature.md`."""
-    mod, s = _mod(), _nova()
-    assert mod.decidir(_read(REPO / "commands" / "nova-feature.md", s), amb) is None
-    assert mod.decidir(_skill("superpowers:brainstorming", s), amb) is None
+    assert kit.decidir(_read(REPO / "commands" / "nova-feature.md", "s")) is None
+    assert kit.decidir(_skill("superpowers:brainstorming", "s")) is None
 
 
-def test_ler_outro_arquivo_nao_conta(amb):
-    mod, s = _mod(), _nova()
-    mod.decidir(_read(REPO / "hooks" / "README.md", s), amb)
+def test_ler_outro_arquivo_nao_conta(kit):
+    kit.decidir(_read(REPO / "hooks" / "README.md", "s"))
     # commands/ de outro lugar — absoluto em qualquer sistema (`C:/...` no Linux vira pasta dentro do kit)
-    mod.decidir(_read(Path(REPO.anchor) / "qualquer" / "projeto" / "commands" / "bug.md", s), amb)
-    assert mod.decidir(_skill("superpowers:brainstorming", s), amb)
+    kit.decidir(_read(Path(REPO.anchor) / "qualquer" / "projeto" / "commands" / "bug.md", "s"))
+    assert kit.decidir(_skill("superpowers:brainstorming", "s"))
 
 
-def test_comando_instalado_fora_do_repo_conta(amb):
+def test_comando_instalado_fora_do_repo_conta(kit):
     """Instalado em `~/.claude/skills/mss-spec/` ou no cache do marketplace, o caminho muda; `mss-spec` no caminho basta."""
-    mod, s = _mod(), _nova()
-    mod.decidir(_read(Path.home() / ".claude" / "skills" / "mss-spec" / "commands" / "analise.md", s), amb)
-    assert mod.decidir(_skill("superpowers:brainstorming", s), amb) is None
+    kit.decidir(_read(Path.home() / ".claude" / "skills" / "mss-spec" / "commands" / "analise.md", "s"))
+    assert kit.decidir(_skill("superpowers:brainstorming", "s")) is None
 
 
 # --- AC3: sessões não se misturam; o resto passa; escape; falha aberta ------------------------
 
-def test_sessoes_sao_independentes(amb):
-    mod, s1, s2 = _mod(), _nova(), _nova()
-    mod.decidir(_skill("mss-spec:bug", s1), amb)
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s1), amb) is None
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s2), amb), "a entrada de s1 valeu pra s2"
+def test_sessoes_sao_independentes(kit):
+    kit.decidir(_skill("mss-spec:bug", "s1"))
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s1")) is None
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s2")), "a entrada de s1 valeu pra s2"
 
 
 @pytest.mark.parametrize("skill", ["mss-spec:mapa", "anthropic-skills:docs", "dataviz", "code-review"])
-def test_skill_que_nao_e_do_superpowers_passa(amb, skill):
-    assert _mod().decidir(_skill(skill, _nova()), amb) is None
+def test_skill_que_nao_e_do_superpowers_passa(kit, skill):
+    assert kit.decidir(_skill(skill, "s")) is None
 
 
-def test_outra_ferramenta_passa(amb):
-    ev = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "session_id": _nova(), "cwd": str(REPO),
+def test_outra_ferramenta_passa(kit):
+    ev = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "session_id": "s", "cwd": str(REPO),
           "tool_input": {"command": "git status"}}
-    assert _mod().decidir(ev, amb) is None
+    assert kit.decidir(ev) is None
 
 
-def test_escape_do_owner(amb):
-    assert _mod().decidir(_skill("superpowers:systematic-debugging", _nova()), {**amb, "MSS_KIT_PRIMEIRO_OFF": "1"}) is None
+def test_escape_do_owner(kit):
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s"), {"MSS_KIT_PRIMEIRO_OFF": "1"}) is None
 
 
 @pytest.mark.parametrize("ruim", [None, "texto", {}, {"hook_event_name": "PreToolUse"},
                                   {"hook_event_name": "PreToolUse", "tool_name": "Skill", "tool_input": None},
                                   {"hook_event_name": "PreToolUse", "tool_name": "Skill", "tool_input": {"skill": 7}}])
-def test_entrada_malformada_libera(amb, ruim):
-    assert _mod().decidir(ruim, amb) is None
+def test_entrada_malformada_libera(kit, ruim):
+    assert kit.decidir(ruim) is None
 
 
-# --- AC4: o processo, o registro e a fiação --------------------------------------------------
-
-def _rodar(ev, tmp_path, extra=None):
-    amb = {k: v for k, v in os.environ.items() if not k.startswith("MSS_") and k != "CLAUDE_PROJECT_DIR"}
-    amb.update({"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path), **(extra or {})})
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", env=amb, timeout=30)
+def test_negativa_fica_no_registro_sem_o_texto_do_prompt(kit):
+    kit.decidir(_prompt("vamos tratar aqui mesmo o bug, segue o print", "s"))
+    kit.decidir(_skill("superpowers:systematic-debugging", "s"))
+    assert kit.anotacoes == [("negou", "superpowers:systematic-debugging")]
 
 
-def test_processo_nega_como_a_cerca_de_publicacao(tmp_path):
+def test_saida_como_a_cerca_de_publicacao(mod):
     """Mesmo contrato do `git_publicacao.py`, o que já funciona ao vivo nesta máquina: JSON `deny` no
-    stdout + motivo no stderr + exit 2."""
-    r = _rodar(_skill("superpowers:systematic-debugging", _nova()), tmp_path)
+    stdout + motivo no stderr + exit 2; liberar é calado."""
+    impresso, erro, codigo = mod.saida("entre por /mss-spec:bug")
+    assert codigo == 2 and erro == "entre por /mss-spec:bug"
+    assert json.loads(impresso)["hookSpecificOutput"] == {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                          "permissionDecisionReason": "entre por /mss-spec:bug"}
+    assert mod.saida(None) == (None, None, 0)
+
+
+# --- o disco de verdade e o processo (pasta montada uma vez) ----------------------------------------
+
+@pytest.fixture(scope="module")
+def temp(tmp_path_factory):
+    pasta = tmp_path_factory.mktemp("kit_primeiro")
+    return {"TEMP": str(pasta), "TMP": str(pasta), "TMPDIR": str(pasta)}
+
+
+def test_casca_grava_e_le_a_entrada_de_cada_conversa(mod, temp):
+    assert mod.decidir(_skill("superpowers:brainstorming", "d1"), temp), "sem entrada gravada, devia negar"
+    assert mod.decidir(_skill("mss-spec:bug", "d1"), temp) is None
+    assert mod.decidir(_skill("superpowers:brainstorming", "d1"), temp) is None, "a entrada gravada não foi lida"
+    assert mod.decidir(_skill("superpowers:brainstorming", "d2"), temp), "a entrada de d1 valeu pra d2"
+
+
+def test_processo_nega_como_a_cerca_de_publicacao(temp):
+    amb = {k: v for k, v in os.environ.items() if not k.startswith("MSS_") and k != "CLAUDE_PROJECT_DIR"}
+    amb.update(temp)
+    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(_skill("superpowers:systematic-debugging", "proc")),
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", env=amb, timeout=30)
     assert r.returncode == 2
     saida = json.loads(r.stdout.strip().splitlines()[-1])
     assert saida["hookSpecificOutput"]["permissionDecision"] == "deny"
@@ -179,24 +208,7 @@ def test_processo_nega_como_a_cerca_de_publicacao(tmp_path):
     assert "/mss-spec:bug" in r.stderr
 
 
-def test_processo_calado_quando_libera(tmp_path):
-    s = _nova()
-    assert _rodar(_skill("mss-spec:bug", s), tmp_path).returncode == 0
-    r = _rodar(_skill("superpowers:systematic-debugging", s), tmp_path)
-    assert r.returncode == 0 and not r.stdout.strip()
-
-
-def test_negativa_fica_no_registro_sem_o_texto_do_prompt(tmp_path):
-    reg = tmp_path / "registro-hooks.jsonl"
-    r = _rodar(_skill("superpowers:systematic-debugging", "abcdef123456"), tmp_path,
-               {"MSS_REGISTRO_ARQUIVO": str(reg)})
-    assert r.returncode == 2
-    linhas = [json.loads(l) for l in reg.read_text(encoding="utf-8").splitlines() if l.strip()]
-    assert len(linhas) == 1
-    assert linhas[0]["hook"] == "kit_primeiro" and linhas[0]["decisao"] == "negou"
-    assert "superpowers:systematic-debugging" in linhas[0]["detalhe"]
-    assert linhas[0]["sessao"] == "abcdef12"
-
+# --- fiação -----------------------------------------------------------------------------------
 
 def test_hook_registrado_nos_tres_eventos():
     cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
@@ -221,16 +233,14 @@ def test_documentado_no_readme_e_na_regra_11():
 COLADO = '<pasted_content id="6303">\n/mss-spec:nova-feature upgrade em uma rodada só\n\nHoje o upgrade roda em 3 passes.\n</pasted_content>'
 
 
-def test_comando_colado_conta_como_entrada(amb):
+def test_comando_colado_conta_como_entrada(kit):
     """A forma real da conversa do F-053: o pedido chega dentro de `<pasted_content id="…">`."""
-    mod, s = _mod(), _nova()
-    assert mod.decidir(_prompt(COLADO, s), amb) is None
-    assert mod.decidir(_skill("superpowers:brainstorming", s), amb) is None, \
+    assert kit.decidir(_prompt(COLADO, "s")) is None
+    assert kit.decidir(_skill("superpowers:brainstorming", "s")) is None, \
         "o comando colado não contou como entrada pelo kit (F-053)"
 
 
-def test_comando_citado_no_meio_do_colado_nao_conta(amb):
-    mod, s = _mod(), _nova()
-    mod.decidir(_prompt('<pasted_content id="1">\nolhe o log; depois rodo /mss-spec:bug\n</pasted_content>', s), amb)
-    assert mod.decidir(_skill("superpowers:systematic-debugging", s), amb), \
+def test_comando_citado_no_meio_do_colado_nao_conta(kit):
+    kit.decidir(_prompt('<pasted_content id="1">\nolhe o log; depois rodo /mss-spec:bug\n</pasted_content>', "s"))
+    assert kit.decidir(_skill("superpowers:systematic-debugging", "s")), \
         "comando citado no meio do texto colado contou como entrada"
