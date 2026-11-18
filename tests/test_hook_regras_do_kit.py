@@ -11,136 +11,121 @@ Propriedades:
 - é o hook em que silêncio custa caro: depois de confirmada a marca, defeito (bloco ilegível ou
   acima de 9.000 caracteres) → `systemMessage` de 1 linha, nunca bloco truncado;
 - nunca bloqueia (exit 0); escape `MSS_REGRAS_KIT_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o `CLAUDE.md` de cada projeto e os blocos (os do kit,
+ou blocos de teste) ficam num objeto do teste e entram como dado; os caminhos dos projetos não existem. O disco de
+verdade (CLAUDE.md em cp1252 e os blocos do kit) fica num teste só, numa pasta montada uma vez; o processo python,
+num teste só.
 """
 import importlib.util
 import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "regras_do_kit.py"
 BLOCOS_DIR = REPO / "templates" / "regras-do-kit"
 MARCA = "<!-- mss-spec:regras-do-kit -->"
+PROJ = Path(tempfile.gettempdir()) / "mss-cenario-sem-disco" / "proj"
+COM_MARCA = "# Projeto\n\n" + MARCA + "\n\nresto\n"
 
 
-def _mod(caminho=HOOK, nome="regras_do_kit"):
-    spec = importlib.util.spec_from_file_location(nome, caminho)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
-    return mod
+@pytest.fixture(scope="module")
+def mod():
+    spec = importlib.util.spec_from_file_location("regras_do_kit", HOOK)
+    m = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = m
+    spec.loader.exec_module(m)
+    return m
 
 
-def _projeto(tmp_path, claude="# Projeto\n\n" + MARCA + "\n\nresto\n"):
-    """Projeto com `CLAUDE.md` (None = sem arquivo)."""
-    if claude is not None:
-        (tmp_path / "CLAUDE.md").write_bytes(claude.encode("utf-8"))
-    return tmp_path
+class Disco:
+    """O que a regra lê, em memória: o `CLAUDE.md` de cada projeto e os blocos (os do kit, por padrão)."""
+
+    def __init__(self, claude=COM_MARCA, blocos=None):
+        self.claudes = {str(PROJ): claude} if claude is not None else {}
+        self.pastas = {str(PROJ)}
+        self.blocos = blocos
+
+    def eh_pasta(self, caminho):
+        return caminho in self.pastas
+
+    def ler_claude(self, raiz):
+        return self.claudes.get(raiz)
+
+    def ler_bloco(self, nome):
+        if self.blocos is None:
+            return (BLOCOS_DIR / nome).read_text(encoding="utf-8")
+        return self.blocos[nome]
 
 
-def _proj(tmp_path, nome="proj"):
-    """Projeto com marca numa subpasta (libera o resto do `tmp_path` pra outros arquivos)."""
-    pasta = tmp_path / nome
-    pasta.mkdir()
-    return _projeto(pasta)
-
-
-def _evento(raiz, **extra):
-    return {"hook_event_name": "SessionStart", "source": "startup", "cwd": str(raiz),
-            "session_id": "s1", **extra}
+def _evento(raiz=PROJ, **extra):
+    return {"hook_event_name": "SessionStart", "source": "startup", "cwd": str(raiz), "session_id": "s1", **extra}
 
 
 def _contexto(saida):
     return saida["hookSpecificOutput"]["additionalContext"]
 
 
+def _responder(mod, disco, bloco=1, ambiente=None, evento=None):
+    return mod.regra(_evento() if evento is None else evento, ambiente or {}, bloco, disco)[0]
+
+
 # --- entrega ----------------------------------------------------------------------------------
 
-def test_projeto_com_marca_recebe_bloco_1(tmp_path):
-    saida = _mod().responder(_evento(_projeto(tmp_path)), {}, 1)
-    esperado = (BLOCOS_DIR / "1-modo-de-trabalho.md").read_text(encoding="utf-8")
-    assert _contexto(saida) == esperado
-    assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-
-
-def test_projeto_com_marca_recebe_bloco_2(tmp_path):
-    saida = _mod().responder(_evento(_projeto(tmp_path)), {}, bloco=2)
-    esperado = (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
-    assert _contexto(saida) == esperado
-    assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-
-
-def test_bloco_padrao_e_o_1(tmp_path):
-    saida = _mod().responder(_evento(_projeto(tmp_path)), {})
+def test_projeto_com_marca_recebe_bloco_1(mod):
+    saida = _responder(mod, Disco(), 1)
     assert _contexto(saida) == (BLOCOS_DIR / "1-modo-de-trabalho.md").read_text(encoding="utf-8")
+    assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
 
-def test_projeto_sem_marca_fica_calado(tmp_path):
-    raiz = _projeto(tmp_path, "# Projeto\n\nsem marca nenhuma\n")
-    assert _mod().responder(_evento(raiz), {}, 1) is None
-    assert _mod().responder(_evento(raiz), {}, 2) is None
+def test_projeto_com_marca_recebe_bloco_2(mod):
+    saida = _responder(mod, Disco(), 2)
+    assert _contexto(saida) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
 
 
-def test_projeto_sem_claude_md_fica_calado(tmp_path):
-    assert _mod().responder(_evento(_projeto(tmp_path, None)), {}, 1) is None
+def test_projeto_sem_marca_fica_calado(mod):
+    disco = Disco("# Projeto\n\nsem marca nenhuma\n")
+    assert _responder(mod, disco, 1) is None and _responder(mod, disco, 2) is None
 
 
-def test_marca_so_vale_na_linha_exata(tmp_path):
+def test_projeto_sem_claude_md_fica_calado(mod):
+    assert _responder(mod, Disco(None), 1) is None
+
+
+def test_marca_so_vale_na_linha_exata(mod):
     """Marca citada no meio de uma frase (ex.: explicação) não ativa o hook."""
-    raiz = _projeto(tmp_path, f"# Projeto\n\nA linha `{MARCA}` liga o hook.\n")
-    assert _mod().responder(_evento(raiz), {}, 1) is None
+    assert _responder(mod, Disco(f"# Projeto\n\nA linha `{MARCA}` liga o hook.\n"), 1) is None
 
 
-def test_marca_com_crlf_e_bom_vale(tmp_path):
-    raiz = _projeto(tmp_path, "﻿# Projeto\r\n\r\n" + MARCA + "\r\n\r\nresto\r\n")
-    saida = _mod().responder(_evento(raiz), {}, 1)
-    assert saida is not None and _contexto(saida)
+def test_marca_com_crlf_e_bom_vale(mod):
+    assert _responder(mod, Disco("﻿# Projeto\r\n\r\n" + MARCA + "\r\n\r\nresto\r\n"), 1) is not None
+    assert _responder(mod, Disco("﻿" + MARCA + "\r\n# Projeto\r\n"), 2) is not None
 
 
-def test_marca_na_1a_linha_com_bom_vale(tmp_path):
-    raiz = _projeto(tmp_path, "﻿" + MARCA + "\r\n# Projeto\r\n")
-    assert _mod().responder(_evento(raiz), {}, 2) is not None
-
-
-def test_claude_md_em_cp1252_com_marca_ainda_injeta(tmp_path):
-    """CLAUDE.md salvo em cp1252 (acento fora de UTF-8) não desliga as regras: a marca é ASCII."""
-    raiz = _proj(tmp_path)
-    (raiz / "CLAUDE.md").write_bytes(("# São Paulo\n\n" + MARCA + "\n").encode("cp1252"))
-    assert _mod().tem_marca(str(raiz)) is True
-    assert "additionalContext" in _mod().responder(_evento(raiz), {})["hookSpecificOutput"]
-
-
-def test_tem_marca_direto(tmp_path):
-    mod = _mod()
-    assert mod.tem_marca(str(_projeto(tmp_path))) is True
-    assert mod.tem_marca(str(tmp_path / "nao-existe")) is False
-
-
-def test_prefere_claude_project_dir_ao_cwd(tmp_path):
-    proj = _proj(tmp_path)
-    outro = tmp_path / "outro"
-    outro.mkdir()
-    saida = _mod().responder(_evento(outro), {"CLAUDE_PROJECT_DIR": str(proj)}, 1)
+def test_prefere_claude_project_dir_ao_cwd(mod):
+    saida = _responder(mod, Disco(), 1, {"CLAUDE_PROJECT_DIR": str(PROJ)}, _evento(PROJ.parent / "outro"))
     assert saida is not None and _contexto(saida)
 
 
 # --- escape e falha aberta (antes da marca) ---------------------------------------------------
 
-def test_escape_MSS_REGRAS_KIT_OFF(tmp_path):
-    raiz = _projeto(tmp_path)
-    assert _mod().responder(_evento(raiz), {"MSS_REGRAS_KIT_OFF": "1"}, 1) is None
+def test_escape_MSS_REGRAS_KIT_OFF(mod):
+    assert _responder(mod, Disco(), 1, {"MSS_REGRAS_KIT_OFF": "1"}) is None
 
 
-def test_entrada_malformada_fica_calada():
-    mod = _mod()
+def test_entrada_malformada_fica_calada(mod):
     for ruim in (None, [], "texto", {}, {"cwd": 42}, {"cwd": ""}):
-        assert mod.responder(ruim, {}, 1) is None
+        assert _responder(mod, Disco(), 1, evento=ruim) is None
 
 
-def test_bloco_inexistente_sem_marca_fica_calado(tmp_path):
-    assert _mod().responder(_evento(_projeto(tmp_path, "# sem marca\n")), {}, 9) is None
+def test_bloco_inexistente_sem_marca_fica_calado(mod):
+    assert _responder(mod, Disco("# sem marca\n"), 9) is None
 
 
 # --- falha VISÍVEL (depois da marca) ----------------------------------------------------------
@@ -153,111 +138,93 @@ def _avisou(saida):
     assert "\n" not in msg, "o aviso tem que ser de 1 linha"
 
 
-def test_bloco_ilegivel_avisa_visivel(tmp_path):
-    mod = _mod()
-    mod.BLOCOS = {1: "nao-existe.md", 2: "nao-existe-tambem.md"}
-    _avisou(mod.responder(_evento(_projeto(tmp_path)), {}, 1))
+def test_bloco_ilegivel_avisa_visivel(mod):
+    _avisou(_responder(mod, Disco(blocos={}), 1))
 
 
-def test_bloco_inexistente_com_marca_avisa_visivel(tmp_path):
+def test_bloco_inexistente_com_marca_avisa_visivel(mod):
     """`--bloco 9` (ou malformado) é defeito do hooks.json: com a marca confirmada, avisa."""
-    _avisou(_mod().responder(_evento(_proj(tmp_path)), {}, 9))
+    _avisou(_responder(mod, Disco(), 9))
+    _avisou(_responder(mod, Disco(), 0))
 
 
-def test_bloco_acima_do_limite_avisa_visivel(tmp_path):
-    pasta = tmp_path / "blocos"
-    pasta.mkdir()
-    (pasta / "grande.md").write_text("x" * 9001, encoding="utf-8")
-    mod = _mod()
-    mod.PASTA_BLOCOS = pasta
-    mod.BLOCOS = {1: "grande.md"}
-    _avisou(mod.responder(_evento(_proj(tmp_path)), {}, 1))
+def test_bloco_vazio_avisa_visivel(mod):
+    _avisou(_responder(mod, Disco(blocos={"1-modo-de-trabalho.md": "﻿  \n"}), 1))
 
 
-def test_bloco_no_limite_exato_entrega(tmp_path):
-    pasta = tmp_path / "blocos"
-    pasta.mkdir()
-    (pasta / "justo.md").write_text("x" * 9000, encoding="utf-8")
-    mod = _mod()
-    mod.PASTA_BLOCOS = pasta
-    mod.BLOCOS = {1: "justo.md"}
-    saida = mod.responder(_evento(_proj(tmp_path)), {}, 1)
-    assert len(_contexto(saida)) == 9000
+def test_bloco_acima_do_limite_avisa_visivel(mod):
+    _avisou(_responder(mod, Disco(blocos={"1-modo-de-trabalho.md": "x" * 9001}), 1))
 
 
-def test_limite_conta_caracteres_nao_bytes(tmp_path):
+def test_bloco_no_limite_exato_entrega(mod):
+    assert len(_contexto(_responder(mod, Disco(blocos={"1-modo-de-trabalho.md": "x" * 9000}), 1))) == 9000
+
+
+def test_limite_conta_caracteres_nao_bytes(mod):
     """O teto do Claude Code é em caracteres: 9.000 'ç' (18 KB em bytes) ainda cabe."""
-    pasta = tmp_path / "blocos"
-    pasta.mkdir()
-    (pasta / "acentos.md").write_text("ç" * 9000, encoding="utf-8")
-    mod = _mod()
-    mod.PASTA_BLOCOS = pasta
-    mod.BLOCOS = {1: "acentos.md"}
-    assert mod.responder(_evento(_proj(tmp_path)), {}, 1) is not None
+    assert _responder(mod, Disco(blocos={"1-modo-de-trabalho.md": "ç" * 9000}), 1) is not None
 
 
-def test_blocos_reais_cabem_no_limite():
-    mod = _mod()
+def test_blocos_reais_cabem_no_limite(mod):
     assert mod.LIMITE == 9000
     for n, nome in mod.BLOCOS.items():
         texto = (BLOCOS_DIR / nome).read_text(encoding="utf-8")
         assert 0 < len(texto) <= mod.LIMITE, f"bloco {n} ({nome}) com {len(texto)} caracteres"
 
 
-def test_constantes_do_contrato():
-    mod = _mod()
+def test_constantes_do_contrato(mod):
     assert mod.MARCA == MARCA
     assert mod.BLOCOS == {1: "1-modo-de-trabalho.md", 2: "2-regras-criticas.md"}
 
 
+@pytest.mark.parametrize("argv,bloco", [([], 1), (["--bloco", "2"], 2), (["--bloco", "abc"], 0),
+                                        (["--bloco"], 0), (["--bloco", ""], 0), (["--bloco", "9"], 9)])
+def test_bloco_do_argv(mod, argv, bloco):
+    """Bloco ausente vale 1; malformado vale 0 — bloco inexistente, que avisa depois da marca."""
+    assert mod._bloco_do_argv(argv) == bloco
+
+
 # --- registro ---------------------------------------------------------------------------------
 
-def test_registra_entregou_e_falhou(tmp_path, monkeypatch):
-    arquivo = tmp_path / "reg" / "registro-hooks.jsonl"
-    monkeypatch.setenv("MSS_REGISTRO_ARQUIVO", str(arquivo))
-    monkeypatch.delenv("MSS_REGISTRO_OFF", raising=False)
-    raiz = _proj(tmp_path)
-    mod = _mod()
-    mod.responder(_evento(raiz), {}, 1)
-    mod.BLOCOS = {1: "nao-existe.md"}
-    mod.responder(_evento(raiz), {}, 1)
-    linhas = [json.loads(x) for x in arquivo.read_text(encoding="utf-8").splitlines()]
-    assert [(x["hook"], x["decisao"]) for x in linhas] == [("regras_do_kit", "entregou"),
-                                                           ("regras_do_kit", "falhou")]
+def test_registra_entregou_e_falhou(mod):
+    _, entregou = mod.regra(_evento(), {}, 1, Disco())
+    _, falhou = mod.regra(_evento(), {}, 1, Disco(blocos={}))
+    assert [d for d, _ in entregou] == ["entregou"] and [d for d, _ in falhou] == ["falhou"]
 
 
-# --- processo e registro no plugin ------------------------------------------------------------
+# --- o disco de verdade e o processo (pasta montada uma vez) ----------------------------------------
 
-def _rodar(evento, bloco="1", env=None, entrada=None):
-    amb = {**os.environ, **(env or {})}
+@pytest.fixture(scope="module")
+def projetos(tmp_path_factory):
+    base = tmp_path_factory.mktemp("regras_do_kit")
+    com, sem = base / "com-marca", base / "sem-claude"
+    com.mkdir()
+    sem.mkdir()
+    (com / "CLAUDE.md").write_bytes(("# São Paulo\n\n" + MARCA + "\n").encode("cp1252"))   # fora de UTF-8
+    return com, sem
+
+
+def test_casca_le_o_claude_md_e_o_bloco_do_kit(mod, projetos):
+    com, sem = projetos
+    assert mod.tem_marca(str(com)) is True, "o CLAUDE.md em cp1252 perdeu a marca"
+    assert mod.tem_marca(str(sem)) is False
+    saida = mod.responder(_evento(com), {}, 2)
+    assert _contexto(saida) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
+    assert mod.responder(_evento(sem), {}, 1) is None
+
+
+def test_processo_entrega_json_e_sai_zero(projetos):
+    com, _ = projetos
+    amb = {**os.environ}
     amb.pop("MSS_REGRAS_KIT_OFF", None)
     amb.pop("CLAUDE_PROJECT_DIR", None)
-    return subprocess.run([sys.executable, str(HOOK), "--bloco", bloco],
-                          input=json.dumps(evento) if entrada is None else entrada, text=True,
-                          capture_output=True, env=amb, encoding="utf-8", timeout=30)
-
-
-def test_processo_entrega_json_e_sai_zero(tmp_path):
-    r = _rodar(_evento(_projeto(tmp_path)), "2")
+    r = subprocess.run([sys.executable, str(HOOK), "--bloco", "2"], input=json.dumps(_evento(com)), text=True,
+                       capture_output=True, env=amb, encoding="utf-8", timeout=30)
     assert r.returncode == 0
     assert _contexto(json.loads(r.stdout)) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
 
 
-def test_processo_sem_marca_nao_imprime(tmp_path):
-    r = _rodar(_evento(_projeto(tmp_path, "# sem marca\n")))
-    assert r.returncode == 0 and r.stdout.strip() == ""
-
-
-def test_processo_sai_zero_com_entrada_malformada():
-    r = _rodar({}, entrada="{nao é json")
-    assert r.returncode == 0 and r.stdout.strip() == ""
-
-
-def test_processo_sai_zero_com_bloco_malformado(tmp_path):
-    for ruim in ("abc", "", "9"):
-        r = _rodar(_evento(_projeto(tmp_path)), ruim)
-        assert r.returncode == 0, r.stderr
-
+# --- fiação -----------------------------------------------------------------------------------
 
 def test_hooks_json_tem_duas_entradas_no_session_start():
     cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))

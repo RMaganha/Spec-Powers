@@ -50,19 +50,41 @@ LIMITE = 9000                                        # caracteres; o teto do Cla
 AVISO = "[mss-spec] regras do kit não carregaram — rode /mss-spec:doctor"
 
 
+def marca_no(texto):
+    """True se o texto do `CLAUDE.md` tem a linha-marca (depois de tirar BOM e `\\r`)."""
+    return any(linha.strip() == MARCA for linha in (texto or "").lstrip("﻿").replace("\r", "").split("\n"))
+
+
+class DiscoReal:
+    """O disco que a regra consulta. Em teste, a regra recebe no lugar um objeto com os mesmos 3 métodos."""
+
+    @staticmethod
+    def eh_pasta(caminho):
+        return os.path.isdir(caminho)
+
+    @staticmethod
+    def ler_claude(raiz):
+        """O `CLAUDE.md` da raiz, ou None. `errors="replace"`: a marca é ASCII, então um CLAUDE.md fora de UTF-8
+        ainda a mostra."""
+        try:
+            with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except (OSError, UnicodeError):
+            return None
+
+    @staticmethod
+    def ler_bloco(nome):
+        """O texto de um bloco de `PASTA_BLOCOS` (levanta se não abre)."""
+        return (PASTA_BLOCOS / nome).read_text(encoding="utf-8")
+
+
 def tem_marca(raiz):
-    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar BOM e `\\r`)."""
-    try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
-            texto = f.read().lstrip("﻿")
-    except (OSError, UnicodeError):
-        return False
-    return any(linha.strip() == MARCA for linha in texto.replace("\r", "").split("\n"))
+    return marca_no(DiscoReal.ler_claude(raiz))
 
 
-def _ler_bloco(bloco):
-    """Texto do bloco; levanta se o bloco não existe, não abre, está vazio ou passa do limite."""
-    texto = (PASTA_BLOCOS / BLOCOS[bloco]).read_text(encoding="utf-8").lstrip("﻿")
+def _bloco_valido(texto):
+    """O texto do bloco sem BOM; levanta se está vazio ou passa do limite."""
+    texto = texto.lstrip("﻿")
     if not texto.strip():
         raise ValueError("bloco vazio")
     if len(texto) > LIMITE:
@@ -70,29 +92,40 @@ def _ler_bloco(bloco):
     return texto
 
 
-def responder(evento, ambiente=None, bloco=1):
-    """dict pra imprimir, ou None = silêncio. Antes da marca, defeito → None; depois, aviso visível."""
+def regra(evento, ambiente, bloco, disco):
+    """A REGRA, sem disco: `disco` responde se a raiz é pasta, o texto do CLAUDE.md e o texto de um bloco
+    (`DiscoReal`, ou o de teste). Devolve `(saida, anotacoes)`: saida = dict pra imprimir, ou None = silêncio.
+    Antes da marca, defeito → None; depois, aviso visível."""
+    anotacoes = []
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip():
-            return None
+            return None, anotacoes
         if not isinstance(evento, dict):
-            return None
+            return None, anotacoes
         raiz = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
-        if not isinstance(raiz, str) or not raiz.strip() or not os.path.isdir(raiz):
-            return None
-        if not tem_marca(raiz):
-            return None
+        if not isinstance(raiz, str) or not raiz.strip() or not disco.eh_pasta(raiz):
+            return None, anotacoes
+        if not marca_no(disco.ler_claude(raiz)):
+            return None, anotacoes
     except Exception:                                # noqa: BLE001 — antes da marca: calado
-        return None
+        return None, anotacoes
     # Marca confirmada: daqui em diante, silêncio seria o defeito.
     try:
-        texto = _ler_bloco(bloco)
-        _anotar("entregou", f"bloco={bloco} caracteres={len(texto)}", evento)
-        return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": texto}}
+        texto = _bloco_valido(disco.ler_bloco(BLOCOS[bloco]))
+        anotacoes.append(("entregou", f"bloco={bloco} caracteres={len(texto)}"))
+        return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": texto}}, anotacoes
     except Exception as erro:                        # noqa: BLE001 — falha VISÍVEL
-        _anotar("falhou", f"bloco={bloco} {type(erro).__name__}", evento)
-        return {"systemMessage": AVISO}
+        anotacoes.append(("falhou", f"bloco={bloco} {type(erro).__name__}"))
+        return {"systemMessage": AVISO}, anotacoes
+
+
+def responder(evento, ambiente=None, bloco=1):
+    """A casca: a regra com o disco de verdade, e o registro gravado. dict pra imprimir, ou None = silêncio."""
+    ambiente = os.environ if ambiente is None else ambiente
+    saida, anotacoes = regra(evento, ambiente, bloco, DiscoReal)
+    for decisao, detalhe in anotacoes:
+        _anotar(decisao, detalhe, evento)
+    return saida
 
 
 def _bloco_do_argv(argv):
