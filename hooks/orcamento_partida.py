@@ -85,14 +85,39 @@ def _medida(n, teto):
     return f"{_kb(n)} (teto {_kb(teto)})"
 
 
-def tem_marca(raiz):
-    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
-    try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
-            texto = f.read().lstrip("\ufeff")
-    except (OSError, UnicodeError):
-        return False
-    return any(linha.strip() == MARCA for linha in texto.splitlines())
+def marca_no(texto):
+    """True se o texto do `CLAUDE.md` tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
+    return any(linha.strip() == MARCA for linha in (texto or "").lstrip("﻿").splitlines())
+
+
+class DiscoReal:
+    """O disco que a regra consulta. Em teste, a regra recebe no lugar um objeto com os mesmos 4 métodos."""
+
+    @staticmethod
+    def eh_pasta(caminho):
+        return os.path.isdir(caminho)
+
+    @staticmethod
+    def eh_arquivo(caminho):
+        return os.path.isfile(caminho)
+
+    @staticmethod
+    def texto(caminho):
+        """O texto do arquivo, ou None. `errors="replace"`: a marca é ASCII, então um arquivo fora de UTF-8 ainda a
+        mostra."""
+        try:
+            with open(caminho, encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except (OSError, UnicodeError):
+            return None
+
+    @staticmethod
+    def tamanho(caminho):
+        return os.path.getsize(caminho)
+
+
+def tem_marca(raiz, disco=DiscoReal):
+    return marca_no(disco.texto(os.path.join(raiz, "CLAUDE.md")))
 
 
 def _bytes_de_conteudo(texto):
@@ -101,19 +126,21 @@ def _bytes_de_conteudo(texto):
     return len(re.sub(r"<!--.*?-->", "", texto, flags=re.S).encode("utf-8"))
 
 
-def estouros(raiz):
+def estouros(raiz, disco=DiscoReal):
     """[(caminho relativo, bytes, teto)] dos arquivos acima do teto, na ordem de ARQUIVOS. MAPA e INDEX contam só
     o conteúdo (sem `<!-- -->`); CLAUDE.md e MEMORY.md, o arquivo inteiro."""
     saida = []
     for rel, teto in ARQUIVOS:
         p = os.path.join(raiz, *rel.split("/"))
-        if not os.path.isfile(p):
+        if not disco.eh_arquivo(p):
             continue
         if rel in SEM_COMENTARIO:
-            with open(p, encoding="utf-8", errors="replace") as f:
-                n = _bytes_de_conteudo(f.read().lstrip("﻿"))
+            texto = disco.texto(p)
+            if texto is None:
+                raise OSError(f"{rel} ilegível")
+            n = _bytes_de_conteudo(texto.lstrip("﻿"))
         else:
-            n = os.path.getsize(p)
+            n = disco.tamanho(p)
         if n > teto:
             saida.append((rel, n, teto))
     return saida
@@ -163,32 +190,43 @@ def texto_do_aviso(lista, com_marca=False):
     return texto
 
 
-def responder(evento, ambiente=None):
-    """dict pra imprimir, ou None = silêncio. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, disco):
+    """A REGRA, sem disco: `disco` responde se a raiz é pasta, se um arquivo existe, o texto e o tamanho dele
+    (`DiscoReal`, ou o de teste). Devolve `(saida, anotacoes)`: saida = dict pra imprimir, ou None = silêncio.
+    Qualquer defeito → None (falha aberta)."""
+    anotacoes = []
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip():
-            return None
+            return None, anotacoes
         if not isinstance(evento, dict):
-            return None
+            return None, anotacoes
         raiz = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
-        if not isinstance(raiz, str) or not raiz.strip() or not os.path.isdir(raiz):
-            return None
-        lista = estouros(raiz)
+        if not isinstance(raiz, str) or not raiz.strip() or not disco.eh_pasta(raiz):
+            return None, anotacoes
+        lista = estouros(raiz, disco)
         if not lista:
-            return None
-        com_marca = tem_marca(raiz)
+            return None, anotacoes
+        com_marca = tem_marca(raiz, disco)
         texto = texto_do_aviso(lista, com_marca)
         if len(texto.encode("utf-8")) > TETO_TEXTO:
-            return None                              # nunca injetar mais do que prometemos
-        _anotar("avisou", " ".join(f"{rel.rsplit('/', 1)[-1]}={n}" for rel, n, _ in lista), evento)
+            return None, anotacoes                   # nunca injetar mais do que prometemos
+        anotacoes.append(("avisou", " ".join(f"{rel.rsplit('/', 1)[-1]}={n}" for rel, n, _ in lista)))
         saida = {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": texto}}
         nomes = ", ".join(rel.rsplit("/", 1)[-1] for rel, _, _ in lista if rel in DO_OWNER)
         if nomes:                                    # linha de sistema só quando o ato é do owner (0.52.0)
             saida["systemMessage"] = f"[mss-spec] partida acima do orçamento: {nomes} — {_comando(lista, com_marca)}"
-        return saida
+        return saida, anotacoes
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None
+        return None, anotacoes
+
+
+def responder(evento, ambiente=None):
+    """A casca: a regra com o disco de verdade, e o registro gravado. dict pra imprimir, ou None = silêncio."""
+    ambiente = os.environ if ambiente is None else ambiente
+    saida, anotacoes = regra(evento, ambiente, DiscoReal)
+    for decisao, detalhe in anotacoes:
+        _anotar(decisao, detalhe, evento)
+    return saida
 
 
 def main():
