@@ -546,8 +546,9 @@ def test_busca_da_proposta_acha_pelo_termo_curto_do_tema_no_formato_do_whats(mod
         minimo = len(mod.tokens(termo)[0])
         return " ".join(p.ponteiro for p in mod.casar(RAIZ, termo, limite=9, minimo=minimo, diario=False, disco=d))
     build, novos = achados("build"), achados("arquivos novos")
-    assert "subida-nao-pode-depender-de-build" in build
-    assert "contar-arquivos-novos-antes-de-propor" in novos
+    # o ponteiro é o da anotação ou o da linha do subíndice que aponta pra ela (o título): os dois levam à memória
+    assert "subida-nao-pode-depender-de-build" in build or "Subida não pode depender de build" in build, build
+    assert "contar-arquivos-novos-antes-de-propor" in novos or "Contar arquivos novos antes de propor" in novos, novos
     assert "fluxo-do-turno" not in build + novos
 
 

@@ -28,6 +28,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
+PADRAO = object()          # evento omitido = o evento padrão do teste; None é o caso da entrada malformada
 HOOK = REPO / "hooks" / "regras_do_kit.py"
 BLOCOS_DIR = REPO / "templates" / "regras-do-kit"
 MARCA = "<!-- mss-spec:regras-do-kit -->"
@@ -72,8 +73,8 @@ def _contexto(saida):
     return saida["hookSpecificOutput"]["additionalContext"]
 
 
-def _responder(mod, disco, bloco=1, ambiente=None, evento=None):
-    return mod.regra(_evento() if evento is None else evento, ambiente or {}, bloco, disco)[0]
+def _responder(mod, disco, bloco=1, ambiente=None, evento=PADRAO):
+    return mod.regra(_evento() if evento is PADRAO else evento, ambiente or {}, bloco, disco)[0]
 
 
 # --- entrega ----------------------------------------------------------------------------------

@@ -25,6 +25,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
+PADRAO = object()          # evento omitido = o evento padrão do teste; None é o caso da entrada malformada
 HOOK = REPO / "hooks" / "diario_junto.py"
 PROJ = "C:\\Ronaldo\\_Mitsui\\Python\\IA Bot Agent\\IA Bot Agent - Whats"
 
@@ -57,8 +58,8 @@ class Conversas:
         self.mod, self.cobradas, self.anotacoes = mod, {}, []
         self.tr = sys.modules["_transcricao"]
 
-    def decidir(self, transcript, sessao="s1", ativo=False, ambiente=None, evento=None):
-        ev = evento if evento is not None else {"hook_event_name": "Stop", "cwd": PROJ, "session_id": sessao,
+    def decidir(self, transcript, sessao="s1", ativo=False, ambiente=None, evento=PADRAO):
+        ev = evento if evento is not PADRAO else {"hook_event_name": "Stop", "cwd": PROJ, "session_id": sessao,
                                                 "stop_hook_active": ativo, "transcript_path": "t.jsonl"}
         motivo, mudancas = self.mod.regra(ev, ambiente or {}, lambda: self.tr.gravacoes_do_texto(transcript),
                                           lambda s: set(self.cobradas.get(s, set())))

@@ -25,6 +25,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
+PADRAO = object()          # evento omitido = o evento padrão do teste; None é o caso da entrada malformada
 HOOK = REPO / "hooks" / "capturar_nudge.py"
 T0 = 1_800_000_000.0   # um instante qualquer
 
@@ -56,8 +57,8 @@ class Conversas:
         self.mod, self.marcas, self.anotacoes = mod, {}, []
         self.tr = sys.modules["_transcricao"]
 
-    def decidir(self, agora, sessao="s1", transcript="", ambiente=None, evento=None):
-        ev = evento if evento is not None else {"hook_event_name": "Stop", "cwd": "C:\\proj", "session_id": sessao,
+    def decidir(self, agora, sessao="s1", transcript="", ambiente=None, evento=PADRAO):
+        ev = evento if evento is not PADRAO else {"hook_event_name": "Stop", "cwd": "C:\\proj", "session_id": sessao,
                                                 "stop_hook_active": False, "transcript_path": "t.jsonl"}
         aviso, mudancas = self.mod.regra(ev, ambiente or {}, lambda: self.tr.gravacoes_do_texto(transcript),
                                          lambda s: self.marcas.get(s), agora)
