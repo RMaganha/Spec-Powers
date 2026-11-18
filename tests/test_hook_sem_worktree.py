@@ -11,6 +11,11 @@ Contrato (`hooks/sem_worktree.py` + 5ª cerca do `hooks/git_publicacao.py`):
 - `SessionStart` dentro de um worktree avisa; fora, calado;
 - no shell: `git worktree add` e gravar dentro de um worktree são negados; `git worktree list` passa;
 - escape só do owner: `MSS_WORKTREE_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o `.git` de cada pasta vem de um dicionário (o hook
+só lê o arquivo `.git`, nunca roda o git); os caminhos não existem. Na 5ª cerca do `git_publicacao.py`, a leitura do
+`.git` (`sem_worktree._marca_no_disco`) é trocada por `monkeypatch`. O disco de verdade fica num teste só, numa pasta
+montada uma vez; o processo python, num teste só.
 """
 import importlib.util
 import json
@@ -27,6 +32,17 @@ GIT_PUBLICACAO = REPO / "hooks" / "git_publicacao.py"
 ABRIR_CONVERSA = "mcp__ccd_session__start_session"
 PASSAR_CONVERSA = "mcp__ccd_session__hand_off_to_session"
 
+# o disco de mentira: a pasta principal, um worktree criado como a conversa da 0.44.0 criou e um submódulo
+PRINCIPAL = os.path.abspath(str(REPO.parent / "kit-que-nao-existe"))
+WT = os.path.join(PRINCIPAL, ".claude", "worktrees", "partida-em-dois-niveis")
+SUB = os.path.join(PRINCIPAL, "vendor", "lib")
+SOLTA = os.path.abspath(str(REPO.parent / "pasta-solta-que-nao-existe"))
+DISCO = {
+    PRINCIPAL: ("pasta", None),
+    WT: ("arquivo", f"gitdir: {PRINCIPAL}/.git/worktrees/partida-em-dois-niveis\n"),
+    SUB: ("arquivo", "gitdir: ../../.git/modules/vendor/lib\n"),
+}
+
 
 def _carregar(caminho, nome):
     spec = importlib.util.spec_from_file_location(nome, caminho)
@@ -36,105 +52,95 @@ def _carregar(caminho, nome):
     return mod
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     return _carregar(HOOK, "sem_worktree")
 
 
-def _git(*args, cwd):
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+def _avaliar(mod, evento, ambiente=None):
+    """O papel da casca, em memória: a regra com o disco de mentira."""
+    tipo, texto, _ = mod.regra(evento, ambiente or {}, DISCO.get, SOLTA)
+    return tipo, texto
 
 
-@pytest.fixture(scope="module")
-def repo_com_worktree(tmp_path_factory):
-    """Repo principal + um worktree de verdade, criado como a conversa da 0.44.0 criou. Montado uma vez por
-    arquivo: os testes só leem (o hook lê o arquivo `.git` do worktree, sem rodar o git)."""
-    principal = tmp_path_factory.mktemp("sem_worktree") / "kit"
-    principal.mkdir()
-    _git("init", "-q", "--template=", "-b", "main", cwd=principal)
-    _git("-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q", "--allow-empty", "-m", "i", cwd=principal)
-    wt = principal / ".claude" / "worktrees" / "partida-em-dois-niveis"
-    _git("worktree", "add", "-q", str(wt), "-b", "worktree-partida", cwd=principal)
-    return principal, wt
-
-
-def _escrita(alvo, cwd, tool="Write"):
+def _escrita(alvo, cwd=PRINCIPAL, tool="Write"):
     return {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": str(cwd),
             "tool_input": {"file_path": str(alvo), "content": "x"}}
 
 
 # --- "dentro de um worktree": lido do arquivo .git, sem rodar o git ---------------------------------------
 
-def test_detecta_worktree_e_nao_confunde_com_a_pasta_principal(repo_com_worktree, tmp_path):
-    principal, wt = repo_com_worktree
-    mod = _mod()
-    assert mod.dentro_de_worktree(str(wt / "memory" / "nova.md")), "arquivo novo dentro do worktree passou"
-    assert mod.dentro_de_worktree(str(wt)), "a raiz do worktree passou"
-    assert not mod.dentro_de_worktree(str(principal / "memory" / "nova.md")), "pasta principal virou worktree"
-    assert not mod.dentro_de_worktree(str(tmp_path / "solta" / "a.txt")), "pasta fora de repo virou worktree"
+def test_detecta_worktree_e_nao_confunde_com_a_pasta_principal(mod):
+    assert mod.dentro_de_worktree(os.path.join(WT, "memory", "nova.md"), DISCO.get) == WT, \
+        "arquivo novo dentro do worktree passou"
+    assert mod.dentro_de_worktree(WT, DISCO.get) == WT, "a raiz do worktree passou"
+    assert not mod.dentro_de_worktree(os.path.join(PRINCIPAL, "memory", "nova.md"), DISCO.get), \
+        "pasta principal virou worktree"
+    assert not mod.dentro_de_worktree(os.path.join(SOLTA, "a.txt"), DISCO.get), "pasta fora de repo virou worktree"
 
 
-def test_submodulo_nao_e_worktree(tmp_path):
-    sub = tmp_path / "kit" / "vendor" / "lib"
-    sub.mkdir(parents=True)
-    (sub / ".git").write_text("gitdir: ../../.git/modules/vendor/lib\n", encoding="utf-8")
-    assert not _mod().dentro_de_worktree(str(sub / "a.py"))
+def test_submodulo_nao_e_worktree(mod):
+    assert not mod.dentro_de_worktree(os.path.join(SUB, "a.py"), DISCO.get)
 
 
 # --- criar ou entrar em worktree: negado sempre ----------------------------------------------------------
 
-def test_worktree_create_falha_sempre_ate_com_o_escape(tmp_path):
-    ev = {"hook_event_name": "WorktreeCreate", "name": "bold-oak-a3f2", "cwd": str(tmp_path)}
-    for amb in ({}, {"MSS_WORKTREE_OFF": "1"}):
-        proc = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True,
-                              text=True, encoding="utf-8", env={**os.environ, **amb})
-        assert proc.returncode != 0, f"worktree criado (escape={amb})"
-        assert proc.stdout.strip() == "", "saiu caminho no stdout — o Claude Code criaria o worktree"
-        assert "worktree" in proc.stderr.lower()
-
-
 @pytest.mark.parametrize("entrada", [{"name": "partida"}, {"path": ".claude/worktrees/partida"}, {}])
-def test_enter_worktree_e_negado(tmp_path, entrada):
-    ev = {"hook_event_name": "PreToolUse", "tool_name": "EnterWorktree", "cwd": str(tmp_path),
-          "tool_input": entrada}
-    tipo, motivo = _mod().avaliar(ev, ambiente={})
+def test_enter_worktree_e_negado(mod, entrada):
+    ev = {"hook_event_name": "PreToolUse", "tool_name": "EnterWorktree", "cwd": PRINCIPAL, "tool_input": entrada}
+    tipo, motivo = _avaliar(mod, ev)
     assert tipo == "deny"
     assert "pasta principal" in motivo and "main" in motivo, "a negação não diz onde trabalhar"
 
 
-def test_subagente_isolado_e_negado_e_o_comum_passa(tmp_path):
-    base = {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": str(tmp_path)}
-    isolado = {**base, "tool_input": {"prompt": "x", "isolation": "worktree"}}
-    comum = {**base, "tool_input": {"prompt": "x"}}
-    assert _mod().avaliar(isolado, ambiente={})[0] == "deny"
-    assert _mod().avaliar(comum, ambiente={}) == (None, None)
+def test_subagente_isolado_e_negado_e_o_comum_passa(mod):
+    base = {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": PRINCIPAL}
+    assert _avaliar(mod, {**base, "tool_input": {"prompt": "x", "isolation": "worktree"}})[0] == "deny"
+    assert _avaliar(mod, {**base, "tool_input": {"prompt": "x"}}) == (None, None)
+
+
+def test_worktree_create_sai_sem_caminho_ate_com_o_escape(mod):
+    ev = {"hook_event_name": "WorktreeCreate", "name": "bold-oak-a3f2", "cwd": PRINCIPAL}
+    assert _avaliar(mod, ev, {"MSS_WORKTREE_OFF": "1"}) == (None, None)
+    impresso, erro, codigo = mod.saida(ev, None, None)
+    assert impresso is None, "saiu caminho no stdout — o Claude Code criaria o worktree"
+    assert codigo == 2 and "worktree" in erro.lower()
 
 
 # --- gravar dentro de um worktree: negado --------------------------------------------------------------
 
 @pytest.mark.parametrize("tool", ["Write", "Edit", "MultiEdit"])
-def test_gravar_no_worktree_e_negado(repo_com_worktree, tool):
-    principal, wt = repo_com_worktree
-    tipo, motivo = _mod().avaliar(_escrita(wt / "memory" / "MEMORY.md", principal, tool), ambiente={})
+def test_gravar_no_worktree_e_negado(mod, tool):
+    tipo, motivo = _avaliar(mod, _escrita(os.path.join(WT, "memory", "MEMORY.md"), tool=tool))
     assert tipo == "deny", f"{tool} gravou dentro do worktree"
-    assert str(wt) in motivo or wt.name in motivo, "a negação não diz qual worktree"
+    assert WT in motivo, "a negação não diz qual worktree"
 
 
-def test_notebook_no_worktree_e_negado(repo_com_worktree):
-    principal, wt = repo_com_worktree
-    ev = {"hook_event_name": "PreToolUse", "tool_name": "NotebookEdit", "cwd": str(principal),
-          "tool_input": {"notebook_path": str(wt / "a.ipynb")}}
-    assert _mod().avaliar(ev, ambiente={})[0] == "deny"
+def test_caminho_relativo_e_resolvido_pela_pasta_do_evento(mod):
+    assert _avaliar(mod, _escrita("memory/MEMORY.md", cwd=WT))[0] == "deny"
+    ev = _escrita("memory/MEMORY.md") | {"cwd": None}
+    assert _avaliar(mod, ev) == (None, None), "sem cwd no evento, vale a pasta do processo"
 
 
-def test_gravar_na_pasta_principal_passa(repo_com_worktree):
-    principal, _ = repo_com_worktree
-    assert _mod().avaliar(_escrita(principal / "memory" / "MEMORY.md", principal), ambiente={}) == (None, None)
+def test_notebook_no_worktree_e_negado(mod):
+    ev = {"hook_event_name": "PreToolUse", "tool_name": "NotebookEdit", "cwd": PRINCIPAL,
+          "tool_input": {"notebook_path": os.path.join(WT, "a.ipynb")}}
+    assert _avaliar(mod, ev)[0] == "deny"
 
 
-def test_escape_do_owner_libera_a_gravacao(repo_com_worktree):
-    principal, wt = repo_com_worktree
-    ev = _escrita(wt / "a.md", principal)
-    assert _mod().avaliar(ev, ambiente={"MSS_WORKTREE_OFF": "1"}) == (None, None)
+def test_gravar_na_pasta_principal_passa(mod):
+    assert _avaliar(mod, _escrita(os.path.join(PRINCIPAL, "memory", "MEMORY.md"))) == (None, None)
+
+
+def test_escape_do_owner_libera_a_gravacao(mod):
+    assert _avaliar(mod, _escrita(os.path.join(WT, "a.md")), {"MSS_WORKTREE_OFF": "1"}) == (None, None)
+
+
+def test_disco_ilegivel_libera_a_gravacao(mod):
+    def quebrado(_pasta):
+        raise OSError("sem permissão")
+    tipo, _, _ = mod.regra(_escrita(os.path.join(WT, "a.md")), {}, quebrado, SOLTA)
+    assert tipo is None, "cerca com defeito não pode parar a gravação legítima"
 
 
 # --- abrir ou passar conversa a partir desta: negado, com o texto pronto ------------------------------
@@ -145,75 +151,103 @@ def test_escape_do_owner_libera_a_gravacao(repo_com_worktree):
     (ABRIR_CONVERSA, {"initiation": "offer", "title": "x"}),
     (PASSAR_CONVERSA, {"title": "x", "remaining_plan": "y"}),
 ])
-def test_abrir_conversa_a_partir_desta_e_negado(tmp_path, tool, entrada):
-    ev = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": str(tmp_path), "tool_input": entrada}
-    tipo, motivo = _mod().avaliar(ev, ambiente={})
+def test_abrir_conversa_a_partir_desta_e_negado(mod, tool, entrada):
+    ev = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": PRINCIPAL, "tool_input": entrada}
+    tipo, motivo = _avaliar(mod, ev)
     assert tipo == "deny", f"abriu conversa por {tool} {entrada}"
-    low = motivo.lower()
-    assert "texto pronto" in low and "+" in motivo, "a negação não manda entregar o texto pronto pro +"
+    assert "texto pronto" in motivo.lower() and "+" in motivo, "a negação não manda entregar o texto pronto pro +"
 
 
-def test_escape_do_owner_libera_a_conversa(tmp_path):
-    ev = {"hook_event_name": "PreToolUse", "tool_name": ABRIR_CONVERSA, "cwd": str(tmp_path),
+def test_escape_do_owner_libera_a_conversa(mod):
+    ev = {"hook_event_name": "PreToolUse", "tool_name": ABRIR_CONVERSA, "cwd": PRINCIPAL,
           "tool_input": {"initiation": "offer", "title": "x"}}
-    assert _mod().avaliar(ev, ambiente={"MSS_WORKTREE_OFF": "1"}) == (None, None)
+    assert _avaliar(mod, ev, {"MSS_WORKTREE_OFF": "1"}) == (None, None)
 
 
-def test_outras_ferramentas_passam_caladas(tmp_path):
+def test_outras_ferramentas_passam_caladas(mod):
     for tool in ("Read", "Bash", "mcp__ccd_session__dismiss_task"):
-        ev = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": str(tmp_path), "tool_input": {}}
-        assert _mod().avaliar(ev, ambiente={}) == (None, None), tool
+        ev = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": PRINCIPAL, "tool_input": {}}
+        assert _avaliar(mod, ev) == (None, None), tool
+
+
+def test_registro_guarda_o_que_negou_e_o_que_avisou(mod):
+    _, _, negou = mod.regra(_escrita(os.path.join(WT, "a.md")), {}, DISCO.get, SOLTA)
+    _, _, avisou = mod.regra({"hook_event_name": "SessionStart", "cwd": WT}, {}, DISCO.get, SOLTA)
+    assert negou["anotacoes"] == [("negou", "Write em worktree")]
+    assert avisou["anotacoes"] == [("avisou", "abertura em worktree")]
 
 
 # --- conversa que já começa dentro de um worktree: aviso na abertura ------------------------------------
 
-def test_abertura_dentro_de_worktree_avisa(repo_com_worktree):
-    _, wt = repo_com_worktree
-    tipo, texto = _mod().avaliar({"hook_event_name": "SessionStart", "cwd": str(wt)}, ambiente={})
+def test_abertura_dentro_de_worktree_avisa(mod):
+    tipo, texto = _avaliar(mod, {"hook_event_name": "SessionStart", "cwd": WT})
     assert tipo == "avisa"
     assert "worktree" in texto.lower() and "pasta principal" in texto
 
 
-def test_abertura_na_pasta_principal_e_calada(repo_com_worktree):
-    principal, _ = repo_com_worktree
-    assert _mod().avaliar({"hook_event_name": "SessionStart", "cwd": str(principal)}, ambiente={}) == (None, None)
+def test_abertura_na_pasta_principal_e_calada(mod):
+    assert _avaliar(mod, {"hook_event_name": "SessionStart", "cwd": PRINCIPAL}) == (None, None)
 
 
-# --- processo: os dois protocolos do deny, e entrada ruim não trava -------------------------------------
+# --- a saída: os dois protocolos do deny, o aviso e o silêncio ------------------------------------------
 
-def _rodar(evento, **amb):
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(evento), capture_output=True,
-                          text=True, encoding="utf-8", env={**os.environ, **amb})
-
-
-def test_processo_nega_pelos_dois_protocolos(tmp_path):
-    proc = _rodar({"hook_event_name": "PreToolUse", "tool_name": "EnterWorktree", "cwd": str(tmp_path),
-                   "tool_input": {"name": "x"}})
-    assert proc.returncode == 2
-    saida = json.loads(proc.stdout)["hookSpecificOutput"]
-    assert saida["hookEventName"] == "PreToolUse" and saida["permissionDecision"] == "deny"
-    assert proc.stderr.strip()
+def test_saida_nega_pelos_dois_protocolos(mod):
+    impresso, erro, codigo = mod.saida({"hook_event_name": "PreToolUse"}, "deny", "BLOQUEADO — worktree")
+    saida = json.loads(impresso)["hookSpecificOutput"]
+    assert saida == {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                     "permissionDecisionReason": "BLOQUEADO — worktree"}
+    assert erro == "BLOQUEADO — worktree" and codigo == 2
 
 
-def test_processo_avisa_na_abertura(repo_com_worktree):
-    _, wt = repo_com_worktree
-    proc = _rodar({"hook_event_name": "SessionStart", "cwd": str(wt)})
-    assert proc.returncode == 0, proc.stderr
-    saida = json.loads(proc.stdout)
-    assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-    assert "worktree" in saida["hookSpecificOutput"]["additionalContext"].lower()
-    assert "worktree" in saida["systemMessage"].lower()
+def test_saida_avisa_na_abertura_e_cala_quando_libera(mod):
+    impresso, erro, codigo = mod.saida({"hook_event_name": "SessionStart"}, "avisa", "começou num worktree")
+    saida = json.loads(impresso)
+    assert saida["hookSpecificOutput"] == {"hookEventName": "SessionStart", "additionalContext": "começou num worktree"}
+    assert saida["systemMessage"] == "começou num worktree" and erro is None and codigo == 0
+    assert mod.saida({"hook_event_name": "PreToolUse"}, None, None) == (None, None, 0)
+    assert mod.saida(None, None, None) == (None, None, 0)
 
 
-def test_processo_com_entrada_ruim_libera(tmp_path):
-    proc = subprocess.run([sys.executable, str(HOOK)], input="isto não é json", capture_output=True, text=True)
-    assert proc.returncode == 0 and proc.stdout.strip() == ""
+# --- o disco de verdade e o processo (pasta montada uma vez) ------------------------------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    """Um repositório de mentira no disco: `.git` pasta na principal, `.git` arquivo no worktree e no submódulo — o
+    hook só lê esses arquivos, nunca roda o git."""
+    principal = tmp_path_factory.mktemp("sem_worktree") / "kit"
+    (principal / ".git").mkdir(parents=True)
+    wt = principal / ".claude" / "worktrees" / "partida-em-dois-niveis"
+    wt.mkdir(parents=True)
+    (wt / ".git").write_text(f"gitdir: {principal.as_posix()}/.git/worktrees/partida-em-dois-niveis\n", encoding="utf-8")
+    sub = principal / "vendor" / "lib"
+    sub.mkdir(parents=True)
+    (sub / ".git").write_text("gitdir: ../../.git/modules/vendor/lib\n", encoding="utf-8")
+    return principal, wt, sub
+
+
+def test_casca_le_o_git_do_disco(mod, pasta):
+    principal, wt, sub = pasta
+    assert mod.avaliar(_escrita(wt / "memory" / "MEMORY.md", principal), ambiente={})[0] == "deny"
+    assert mod.avaliar({"hook_event_name": "SessionStart", "cwd": str(wt)}, ambiente={})[0] == "avisa"
+    assert mod.avaliar(_escrita(principal / "memory" / "MEMORY.md", principal), ambiente={}) == (None, None)
+    assert mod.avaliar(_escrita(sub / "a.py", principal), ambiente={}) == (None, None)
+    assert mod.dentro_de_worktree(str(wt / "a.md")) == str(wt), "o padrão de dentro_de_worktree não é o disco"
+
+
+def test_processo_worktree_create_falha_ate_com_o_escape(pasta):
+    principal, _, _ = pasta
+    ev = {"hook_event_name": "WorktreeCreate", "name": "bold-oak-a3f2", "cwd": str(principal)}
+    proc = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True,
+                          text=True, encoding="utf-8", env={**os.environ, "MSS_WORKTREE_OFF": "1"}, timeout=30)
+    assert proc.returncode == 2, "worktree criado com o escape"
+    assert proc.stdout.strip() == "", "saiu caminho no stdout — o Claude Code criaria o worktree"
+    assert "worktree" in proc.stderr.lower()
 
 
 def test_registrado_no_hooks_json():
     cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
 
-    def comandos(evento, nome=None):
+    def comandos(evento):
         return [(g.get("matcher", ""), h["command"]) for g in cfg.get(evento, []) for h in g["hooks"]
                 if "sem_worktree.py" in h["command"]]
     assert comandos("WorktreeCreate"), "WorktreeCreate não registrado"
@@ -224,12 +258,20 @@ def test_registrado_no_hooks_json():
         assert tool in matchers, f"PreToolUse do sem_worktree.py não cobre {tool}"
 
 
-# --- shell (5ª cerca do git_publicacao.py) ----------------------------------------------------------------
+# --- shell (5ª cerca do git_publicacao.py), com o .git lido do disco de mentira ----------------------------
 
-def _shell(comando, cwd, **amb):
-    mod = _carregar(GIT_PUBLICACAO, "git_publicacao")
-    ev = {"tool_name": "Bash", "tool_input": {"command": comando}, "cwd": str(cwd)}
-    return mod.avaliar(ev, {"CLAUDE_PROJECT_DIR": str(cwd), **amb}, git_destino=lambda p: ("feature/x", None))
+@pytest.fixture()
+def cerca(mod, monkeypatch):
+    """A 5ª cerca do `git_publicacao.py` em memória: ela importa `dentro_de_worktree` deste hook, e a leitura do
+    `.git` (`_marca_no_disco`) vira o disco de mentira."""
+    monkeypatch.setitem(sys.modules, "sem_worktree", mod)
+    monkeypatch.setattr(mod, "_marca_no_disco", DISCO.get)
+    gp = _carregar(GIT_PUBLICACAO, "git_publicacao")
+
+    def decidir(comando, **amb):
+        motivo, _ = gp._decidir_worktree(comando, amb, PRINCIPAL)
+        return motivo
+    return decidir
 
 
 @pytest.mark.parametrize("comando", [
@@ -237,32 +279,25 @@ def _shell(comando, cwd, **amb):
     "cd /tmp && git worktree add ../x",
     "git -C . worktree add -q ../x main",
 ])
-def test_shell_criar_worktree_e_negado(repo_com_worktree, comando):
-    principal, _ = repo_com_worktree
-    tipo, motivo = _shell(comando, principal)
-    assert tipo == "deny", f"passou: {comando}"
-    assert "worktree" in motivo.lower()
+def test_shell_criar_worktree_e_negado(cerca, comando):
+    motivo = cerca(comando)
+    assert motivo and "worktree" in motivo.lower(), f"passou: {comando}"
 
 
-def test_shell_gravar_dentro_de_worktree_e_negado(repo_com_worktree):
-    principal, wt = repo_com_worktree
-    for comando in (f'git -C "{wt}" commit -m x', f'cd "{wt}" && git add a.txt',
-                    f'echo x > "{wt / "memory" / "a.md"}"'):
-        tipo, _ = _shell(comando, principal)
-        assert tipo == "deny", f"passou: {comando}"
+def test_shell_gravar_dentro_de_worktree_e_negado(cerca):
+    for comando in (f'git -C "{WT}" commit -m x', f'cd "{WT}" && git add a.txt',
+                    f'echo x > "{os.path.join(WT, "memory", "a.md")}"'):
+        assert cerca(comando), f"passou: {comando}"
 
 
-def test_shell_leitura_e_pasta_principal_passam(repo_com_worktree):
-    principal, wt = repo_com_worktree
-    for comando in ("git worktree list", f'git -C "{wt}" status', "git commit -m x",
+def test_shell_leitura_e_pasta_principal_passam(cerca):
+    for comando in ("git worktree list", f'git -C "{WT}" status', "git commit -m x",
                     "grep 'git worktree add' docs/x.md"):
-        tipo, _ = _shell(comando, principal)
-        assert tipo != "deny", f"negou: {comando}"
+        assert cerca(comando) is None, f"negou: {comando}"
 
 
-def test_shell_escape_do_owner(repo_com_worktree):
-    principal, _ = repo_com_worktree
-    assert _shell("git worktree add ../x", principal, MSS_WORKTREE_OFF="1")[0] != "deny"
+def test_shell_escape_do_owner(cerca):
+    assert cerca("git worktree add ../x", MSS_WORKTREE_OFF="1") is None
 
 
 # --- o texto do kit parou de mandar abrir worktree ------------------------------------------------------
