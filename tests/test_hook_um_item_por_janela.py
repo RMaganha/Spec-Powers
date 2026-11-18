@@ -77,7 +77,7 @@ class Maquina:
     chats. `avaliar` chama a regra com isso como dado e guarda o estado que ela devolve — o papel da casca."""
 
     def __init__(self, mod):
-        self.mod, self.arquivos, self.estado, self.gravou = mod, {}, {}, False
+        self.mod, self.arquivos, self.estado, self.gravou, self.anotacoes = mod, {}, {}, False, []
 
     def projeto(self, nome, index=None, historico=None):
         raiz = BASE / nome
@@ -100,6 +100,7 @@ class Maquina:
                                                   lambda: self.estado, AGORA)
         if "estado" in mudancas:
             self.estado, self.gravou = mudancas["estado"], True
+        self.anotacoes += mudancas["anotacoes"]
         return decisao, texto
 
     def decidir(self, evento, ambiente=None):
@@ -433,6 +434,14 @@ def test_estado_descarta_chat_com_mais_de_30_dias(maq):
     maq.estado = {"velho": {"projeto": "x", "feature": "y", "quando": "2020-01-01T00:00:00"}}
     assert maq.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c2")) is None
     assert "velho" not in maq.estado and any(k.startswith("c2|") for k in maq.estado)
+
+
+def test_registro_diz_o_que_fez_sem_o_texto(maq):
+    """O registro local (`hooks/_registro.py`) recebe só rótulos: nunca o nome da feature que o owner digitou."""
+    raiz = maq.projeto("proj", INDEX_COM_ABERTA)
+    maq.decidir(_evento("/mss-spec:nova-feature login por SSO", raiz, sessao="c1"))       # avisa
+    maq.decidir(_evento("/mss-spec:nova-feature exportar CSV", raiz, sessao="c1"))        # bloqueia
+    assert maq.anotacoes == [("avisou", "abertas=1"), ("bloqueou", "abertas=1")]
 
 
 def test_saida_pelos_protocolos(mod):
