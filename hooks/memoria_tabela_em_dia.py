@@ -110,54 +110,75 @@ def _para_o_assistente(nome, texto):
     return {"hookSpecificOutput": {"hookEventName": nome, "additionalContext": texto}}
 
 
-def responder(evento, ambiente=None):
-    """dict pra imprimir, ou None = silêncio. Qualquer defeito → silêncio ou o recado de reserva (falha aberta)."""
+def regra(evento, ambiente, tem_memoria, motor):
+    """A REGRA, sem disco: `tem_memoria(raiz)` diz se o projeto tem a pasta `memory/` e `motor()` devolve o
+    `templates/memoria_tabela.py` (ou o de teste) — chamado só quando a gravação interessa; quem grava a tabela é o
+    motor. Devolve `(resposta, mudancas)`: o dict pra imprimir ou None (silêncio); mudancas tem `"anotacoes"`.
+    Qualquer defeito → silêncio ou o recado de reserva (falha aberta)."""
+    mudancas = {"anotacoes": []}
     nome = None
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip() or not isinstance(evento, dict):
-            return None
+            return None, mudancas
         nome = evento.get("hook_event_name")
         if nome not in ("SessionStart", "PostToolUse"):
-            return None
+            return None, mudancas
         raiz_txt = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
         if not isinstance(raiz_txt, str) or not raiz_txt.strip():
-            return None
+            return None, mudancas
         raiz = Path(raiz_txt)
-        if not (raiz / "memory").is_dir():
-            return None
+        if not tem_memoria(raiz):
+            return None, mudancas
         if nome == "PostToolUse" and not no_alcance(evento, raiz):
-            return None
+            return None, mudancas
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None
+        return None, mudancas
     try:
-        motor = _motor()
+        m = motor()
         informada = str(ambiente.get("MSS_MEMORIA_TABELA", "")).strip()
-        tabela = Path(informada) if informada else motor.caminho_tabela()
-        feito = motor.atualizar(raiz, tabela)
+        tabela = Path(informada) if informada else m.caminho_tabela()
+        feito = m.atualizar(raiz, tabela)
         recados = []
         if feito is not None:
             linhas = sum(feito.por_tipo.values())
             do_zero = feito.novos > 0 and not (feito.refeitos or feito.removidos or feito.iguais)
-            _anotar("montou" if do_zero else "atualizou",
-                    f"{feito.novos} novo(s) · {feito.refeitos} refeito(s) · {feito.removidos} removido(s)", evento)
+            mudancas["anotacoes"].append((
+                "montou" if do_zero else "atualizou",
+                f"{feito.novos} novo(s) · {feito.refeitos} refeito(s) · {feito.removidos} removido(s)"))
             if nome == "SessionStart" and do_zero:
                 recados.append(f"[mss-spec] tabela de memória deste projeto montada agora ({linhas} linhas, em "
                                f"{tabela}). É cópia pra busca: o arquivo no git segue sendo o original. Recado só "
                                "pra você — o owner não precisa fazer nada.")
         if nome == "SessionStart":
-            sono = _aviso_de_sono(motor, raiz, tabela, evento)
+            sono = _aviso_de_sono(m, raiz, tabela, evento)
             if sono:
-                _anotar("sono_atrasado", sono[:80], evento)
+                mudancas["anotacoes"].append(("sono_atrasado", sono[:80]))
                 recados.append(sono)
-        return _para_o_assistente(nome, "\n\n".join(recados)) if recados else None
+        return (_para_o_assistente(nome, "\n\n".join(recados)) if recados else None), mudancas
     except Exception as erro:                        # noqa: BLE001 — falha ABERTA
-        _anotar("falhou", type(erro).__name__, evento)
+        mudancas["anotacoes"].append(("falhou", type(erro).__name__))
         if nome == "SessionStart":
             return _para_o_assistente(nome, "[mss-spec] a tabela de memória não pôde ser atualizada agora "
                                             f"({type(erro).__name__}). Não trava nada: se a busca não responder, vá nos "
-                                            f"arquivos — {RESERVA}. Recado só pra você.")
+                                            f"arquivos — {RESERVA}. Recado só pra você."), mudancas
+        return None, mudancas
+
+
+def responder(evento, ambiente=None):
+    """A casca: a regra com o disco e o motor de verdade; grava o registro. dict pra imprimir, ou None = silêncio."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        resposta, mudancas = regra(evento, ambiente, lambda raiz: (raiz / "memory").is_dir(), _motor)
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return resposta
+    except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(resposta):
+    """O que o processo imprime, ou None (calado)."""
+    return None if resposta is None else json.dumps(resposta, ensure_ascii=False)
 
 
 def main():
@@ -166,13 +187,13 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    saida = responder(evento)
-    if saida is not None:
+    impresso = saida(responder(evento))
+    if impresso is not None:
         try:
             sys.stdout.reconfigure(encoding="utf-8")
         except Exception:                            # noqa: BLE001
             pass
-        print(json.dumps(saida, ensure_ascii=False))
+        print(impresso)
     sys.exit(0)                                      # SEMPRE 0 — não bloqueia
 
 
