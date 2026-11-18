@@ -9,13 +9,17 @@ Propriedades:
   `memory/sessions/<x>.md` → devolve a resposta pelo contrato do Stop (JSON `block`, exit 0);
 - cobra uma vez por arquivo de memória; memória nova depois da cobrança cobra de novo; diário gravado → passa;
 - `stop_hook_active` → passa (nunca laço); subagente não conta; falha ABERTA; escape `MSS_DIARIO_JUNTO_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o texto do transcript entra como dado (lido pela
+`_transcricao.gravacoes_do_texto`) e as memórias já cobradas de cada conversa ficam num dicionário. O disco de
+verdade (ler o transcript, gravar e ler as cobradas) fica num teste só, numa pasta montada uma vez; o processo
+python, num teste só.
 """
 import importlib.util
 import json
 import os
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 
 import pytest
@@ -25,20 +29,16 @@ HOOK = REPO / "hooks" / "diario_junto.py"
 PROJ = "C:\\Ronaldo\\_Mitsui\\Python\\IA Bot Agent\\IA Bot Agent - Whats"
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("diario_junto", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
 
 
-@pytest.fixture()
-def amb(tmp_path):
-    return {"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path)}
-
-
-def _transcript(tmp_path, caminhos, sidechain=()):
-    """Um transcript com um Write por caminho (e os de `sidechain` marcados como subagente)."""
+def _transcript(caminhos, sidechain=()):
+    """O texto de um transcript com um Write por caminho (e os de `sidechain` marcados como subagente)."""
     linhas = [json.dumps({"type": "user", "message": {"content": "oi"}})]
     for c in caminhos:
         linhas.append(json.dumps({"type": "assistant", "timestamp": "2026-10-30T18:00:00.000Z", "message": {
@@ -46,21 +46,37 @@ def _transcript(tmp_path, caminhos, sidechain=()):
     for c in sidechain:
         linhas.append(json.dumps({"type": "assistant", "isSidechain": True, "message": {
             "content": [{"type": "tool_use", "name": "Write", "input": {"file_path": c}}]}}))
-    t = tmp_path / f"t-{uuid.uuid4().hex[:6]}.jsonl"
-    t.write_text("\n".join(linhas) + "\n", encoding="utf-8")
-    return str(t)
+    return "\n".join(linhas) + "\n"
 
 
-def _ev(transcript, sessao=None, ativo=False):
-    return {"hook_event_name": "Stop", "cwd": PROJ, "session_id": sessao or "s-" + uuid.uuid4().hex[:8],
-            "stop_hook_active": ativo, "transcript_path": transcript}
+class Conversas:
+    """As memórias já cobradas de cada conversa, em memória. `decidir` chama a regra com o texto do transcript como
+    dado e guarda o que ela manda marcar — o papel da casca."""
+
+    def __init__(self, mod):
+        self.mod, self.cobradas, self.anotacoes = mod, {}, []
+        self.tr = sys.modules["_transcricao"]
+
+    def decidir(self, transcript, sessao="s1", ativo=False, ambiente=None, evento=None):
+        ev = evento if evento is not None else {"hook_event_name": "Stop", "cwd": PROJ, "session_id": sessao,
+                                                "stop_hook_active": ativo, "transcript_path": "t.jsonl"}
+        motivo, mudancas = self.mod.regra(ev, ambiente or {}, lambda: self.tr.gravacoes_do_texto(transcript),
+                                          lambda s: set(self.cobradas.get(s, set())))
+        if "marcar" in mudancas:
+            self.cobradas.setdefault(sessao, set()).update(mudancas["marcar"])
+        self.anotacoes += mudancas["anotacoes"]
+        return motivo
+
+
+@pytest.fixture()
+def conv(mod):
+    return Conversas(mod)
 
 
 # --- AC1: a conversa real — EVALS e specs gravadas, diário nenhum ------------------------------
 
-def test_evals_sem_diario_devolve(amb, tmp_path):
-    t = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md", PROJ + "\\docs\\specs\\financeiro-no-whatsapp.md"])
-    motivo = _mod().decidir(_ev(t), amb)
+def test_evals_sem_diario_devolve(conv):
+    motivo = conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md", PROJ + "\\docs\\specs\\financeiro-no-whatsapp.md"]))
     assert motivo and "memory/sessions/" in motivo and "docs/EVALS.md" in motivo
     assert "/mss-spec:memory capturar" in motivo and "DIARIO.md" in motivo
 
@@ -71,8 +87,8 @@ def test_evals_sem_diario_devolve(amb, tmp_path):
     PROJ + "/docs/decisoes.md",
     "docs/EVALS.md",
 ])
-def test_memoria_decisao_e_evals_contam(amb, tmp_path, caminho):
-    assert _mod().decidir(_ev(_transcript(tmp_path, [caminho])), amb)
+def test_memoria_decisao_e_evals_contam(conv, caminho):
+    assert conv.decidir(_transcript([caminho]))
 
 
 @pytest.mark.parametrize("caminho", [
@@ -83,93 +99,99 @@ def test_memoria_decisao_e_evals_contam(amb, tmp_path, caminho):
     PROJ + "\\chat_server.py",
     PROJ + "\\memory\\rascunho.txt",
 ])
-def test_topo_indice_spec_e_codigo_nao_contam(amb, tmp_path, caminho):
-    assert _mod().decidir(_ev(_transcript(tmp_path, [caminho])), amb) is None
+def test_topo_indice_spec_e_codigo_nao_contam(conv, caminho):
+    assert conv.decidir(_transcript([caminho])) is None
 
 
 # --- AC2: com o diário, passa; cobra uma vez por memória ------------------------------------
 
-def test_com_diario_passa(amb, tmp_path):
-    t = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md", PROJ + "\\memory\\sessions\\2026-10-30-token-whatsapp.md"])
-    assert _mod().decidir(_ev(t), amb) is None
+def test_com_diario_passa(conv):
+    t = _transcript([PROJ + "\\docs\\EVALS.md", PROJ + "\\memory\\sessions\\2026-10-30-token-whatsapp.md"])
+    assert conv.decidir(t) is None
 
 
-def test_cobra_uma_vez_e_de_novo_so_com_memoria_nova(amb, tmp_path):
-    mod, s = _mod(), "s-" + uuid.uuid4().hex[:8]
-    t1 = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"])
-    assert mod.decidir(_ev(t1, s), amb)
-    assert mod.decidir(_ev(t1, s), amb) is None, "cobrou duas vezes a mesma memória"
-    t2 = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md", PROJ + "\\memory\\nova-memoria.md"])
-    motivo = mod.decidir(_ev(t2, s), amb)
+def test_cobra_uma_vez_e_de_novo_so_com_memoria_nova(conv):
+    t1 = _transcript([PROJ + "\\docs\\EVALS.md"])
+    assert conv.decidir(t1)
+    assert conv.decidir(t1) is None, "cobrou duas vezes a mesma memória"
+    motivo = conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md", PROJ + "\\memory\\nova-memoria.md"]))
     assert motivo and "nova-memoria.md" in motivo and "EVALS.md" not in motivo.split("—")[1]
 
 
-def test_sessoes_sao_independentes(amb, tmp_path):
-    mod = _mod()
-    t = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"])
-    assert mod.decidir(_ev(t, "s-a"), amb)
-    assert mod.decidir(_ev(t, "s-b"), amb), "a cobrança de s-a valeu pra s-b"
+def test_sessoes_sao_independentes(conv):
+    t = _transcript([PROJ + "\\docs\\EVALS.md"])
+    assert conv.decidir(t, "s-a")
+    assert conv.decidir(t, "s-b"), "a cobrança de s-a valeu pra s-b"
 
 
 # --- AC3: nunca laço, subagente, escape, falha aberta --------------------------------------
 
-def test_stop_hook_active_passa(amb, tmp_path):
-    t = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"])
-    assert _mod().decidir(_ev(t, ativo=True), amb) is None
+def test_stop_hook_active_passa(conv):
+    assert conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md"]), ativo=True) is None
 
 
-def test_gravacao_de_subagente_nao_conta(amb, tmp_path):
-    t = _transcript(tmp_path, [], sidechain=[PROJ + "\\docs\\EVALS.md"])
-    assert _mod().decidir(_ev(t), amb) is None
+def test_gravacao_de_subagente_nao_conta(conv):
+    assert conv.decidir(_transcript([], sidechain=[PROJ + "\\docs\\EVALS.md"])) is None
 
 
-def test_escape_do_owner(amb, tmp_path):
-    t = _transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"])
-    assert _mod().decidir(_ev(t), {**amb, "MSS_DIARIO_JUNTO_OFF": "1"}) is None
+def test_escape_do_owner(conv):
+    assert conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md"]), ambiente={"MSS_DIARIO_JUNTO_OFF": "1"}) is None
 
 
-@pytest.mark.parametrize("ruim", [None, "x", {}, {"hook_event_name": "PreToolUse"},
-                                  {"hook_event_name": "Stop", "transcript_path": "C:/nao/existe.jsonl"},
-                                  {"hook_event_name": "Stop", "transcript_path": 7}])
-def test_entrada_malformada_libera(amb, ruim):
-    assert _mod().decidir(ruim, amb) is None
+@pytest.mark.parametrize("ruim", [None, "x", {}, {"hook_event_name": "PreToolUse"}])
+def test_entrada_malformada_libera(conv, ruim):
+    assert conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md"]), evento=ruim) is None
 
 
-def test_transcript_ilegivel_libera(amb, tmp_path):
-    t = tmp_path / "ruim.jsonl"
-    t.write_text('{"type": "assistant", "message": {"content": [{"type": "tool_use"\nnão é json\n', encoding="utf-8")
-    assert _mod().decidir(_ev(str(t)), amb) is None
+def test_transcript_ilegivel_libera(conv):
+    assert conv.decidir('{"type": "assistant", "message": {"content": [{"type": "tool_use"\nnão é json\n') is None
+    assert conv.decidir("") is None
 
 
-# --- AC4: processo, registro e fiação ------------------------------------------------------
+def test_registro_guarda_a_devolucao_sem_o_texto(conv):
+    conv.decidir(_transcript([PROJ + "\\docs\\EVALS.md"]))
+    assert conv.anotacoes == [("devolveu", "memoria_sem_diario=1")]
 
-def _rodar(ev, tmp_path, extra=None):
+
+def test_saida_pelo_contrato_do_stop(mod):
+    assert json.loads(mod.saida("grave o diário")) == {"decision": "block", "reason": "grave o diário"}
+    assert mod.saida(None) is None
+
+
+# --- o disco de verdade e o processo (pasta montada uma vez) ----------------------------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    base = tmp_path_factory.mktemp("diario_junto")
+    transcript = base / "t.jsonl"
+    transcript.write_text(_transcript([PROJ + "\\docs\\EVALS.md"]), encoding="utf-8")
+    return base, transcript
+
+
+def test_casca_le_o_transcript_e_grava_as_cobradas(mod, pasta):
+    base, transcript = pasta
+    amb = {"TEMP": str(base), "TMP": str(base), "TMPDIR": str(base)}
+    ev = {"hook_event_name": "Stop", "cwd": PROJ, "session_id": "disco", "stop_hook_active": False,
+          "transcript_path": str(transcript)}
+    assert mod.decidir(ev, amb), "o transcript do disco não foi lido"
+    assert mod.decidir(ev, amb) is None, "a cobrança gravada no disco não foi lida"
+    assert mod.decidir(dict(ev, session_id="outra", transcript_path=str(base / "nao-existe.jsonl")), amb) is None
+
+
+def test_processo_devolve_pelo_contrato_do_stop(pasta):
+    base, transcript = pasta
     amb = {k: v for k, v in os.environ.items() if not k.startswith("MSS_") and k != "CLAUDE_PROJECT_DIR"}
-    amb.update({"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path), **(extra or {})})
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", env=amb, timeout=30)
-
-
-def test_processo_devolve_pelo_contrato_do_stop(tmp_path):
-    r = _rodar(_ev(_transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"])), tmp_path)
+    amb.update({"TEMP": str(base), "TMP": str(base), "TMPDIR": str(base)})
+    ev = {"hook_event_name": "Stop", "cwd": PROJ, "session_id": "proc", "stop_hook_active": False,
+          "transcript_path": str(transcript)}
+    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(ev), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", env=amb, timeout=30)
     assert r.returncode == 0, r.stderr
     saida = json.loads(r.stdout.strip().splitlines()[-1])
     assert saida["decision"] == "block" and "memory/sessions/" in saida["reason"]
 
 
-def test_processo_calado_quando_passa(tmp_path):
-    r = _rodar(_ev(_transcript(tmp_path, [PROJ + "\\chat_server.py"])), tmp_path)
-    assert r.returncode == 0 and not r.stdout.strip()
-
-
-def test_devolucao_fica_no_registro(tmp_path):
-    reg = tmp_path / "registro-hooks.jsonl"
-    _rodar(_ev(_transcript(tmp_path, [PROJ + "\\docs\\EVALS.md"]), "abcdef123456"), tmp_path,
-           {"MSS_REGISTRO_ARQUIVO": str(reg)})
-    linhas = [json.loads(l) for l in reg.read_text(encoding="utf-8").splitlines() if l.strip()]
-    assert len(linhas) == 1 and linhas[0]["hook"] == "diario_junto" and linhas[0]["decisao"] == "devolveu"
-    assert "memoria_sem_diario=1" in linhas[0]["detalhe"]
-
+# --- fiação -----------------------------------------------------------------------------------
 
 def test_hook_registrado_no_stop():
     cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))

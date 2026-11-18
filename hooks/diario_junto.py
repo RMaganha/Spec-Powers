@@ -109,19 +109,22 @@ def _curto(caminho):
     return p
 
 
-def decidir(evento, ambiente=None):
-    """Motivo da devolução (str) ou None = libera. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, ler_gravacoes, cobradas_na):
+    """A REGRA, sem disco: `ler_gravacoes()` devolve as gravações do assistente nesta conversa (ver
+    `_transcricao.gravacoes_do_texto`) e `cobradas_na(sessao)` as memórias já cobradas — o disco, ou o de teste; só
+    são chamadas quando a regra precisa. Devolve `(motivo, mudancas)`: motivo da devolução (str) ou None = libera;
+    mudancas tem `"anotacoes"` e, quando cobra, `"marcar"` (as memórias a marcar como cobradas)."""
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if _texto(ambiente.get(ENV_DESLIGA)):
-            return None
+            return None, mudancas
         if not isinstance(evento, dict) or evento.get("hook_event_name") != "Stop":
-            return None
+            return None, mudancas
         if evento.get("stop_hook_active"):
-            return None
-        gravs = gravacoes(evento.get("transcript_path"))
+            return None, mudancas
+        gravs = ler_gravacoes()
         if not gravs:
-            return None
+            return None, mudancas
         memorias, diario = set(), False
         for _, _, caminho in gravs:
             tipo = classificar(caminho)
@@ -130,19 +133,39 @@ def decidir(evento, ambiente=None):
             elif tipo == "memoria":
                 memorias.add(caminho.replace("\\", "/"))
         if diario or not memorias:
-            return None
-        sessao = evento.get("session_id")
-        novas = memorias - cobradas(sessao, ambiente)
+            return None, mudancas
+        novas = memorias - cobradas_na(evento.get("session_id"))
         if not novas:
-            return None
-        marcar(sessao, ambiente, memorias)
-        _anotar("devolveu", f"memoria_sem_diario={len(novas)}", evento)
+            return None, mudancas
+        mudancas["marcar"] = memorias
+        mudancas["anotacoes"].append(("devolveu", f"memoria_sem_diario={len(novas)}"))
         lista = ", ".join(f"`{_curto(c)}`" for c in sorted(novas)[:5])
         if len(novas) > 5:
             lista += f" (+{len(novas) - 5})"
-        return MOTIVO.format(n=len(novas), lista=lista)
+        return MOTIVO.format(n=len(novas), lista=lista), mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, mudancas
+
+
+def decidir(evento, ambiente=None):
+    """A casca: a regra com o transcript e o estado do disco; grava as cobradas e o registro. Motivo da devolução
+    (str) ou None = libera. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        motivo, mudancas = regra(evento, ambiente, lambda: gravacoes(evento.get("transcript_path")),
+                                 lambda sessao: cobradas(sessao, ambiente))
+        if "marcar" in mudancas:
+            marcar(evento.get("session_id"), ambiente, mudancas["marcar"])
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return motivo
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(motivo):
+    """O que o processo imprime, ou None (calado): contrato do Stop — JSON no stdout e exit 0."""
+    return None if motivo is None else json.dumps({"decision": "block", "reason": motivo})
 
 
 def main():
@@ -151,10 +174,9 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    motivo = decidir(evento)
-    if motivo is None:
-        sys.exit(0)
-    print(json.dumps({"decision": "block", "reason": motivo}))
+    impresso = saida(decidir(evento))
+    if impresso is not None:
+        print(impresso)
     sys.exit(0)
 
 
