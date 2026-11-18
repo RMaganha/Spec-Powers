@@ -82,8 +82,14 @@ def _linhas_da_cauda(caminho):
 
 
 def uso_atual(caminho):
-    """(tokens de contexto, modelo) da última resposta do assistente na janela principal, ou None."""
-    for linha in reversed(_linhas_da_cauda(caminho)):
+    """Disco: (tokens de contexto, modelo) da última resposta do assistente, lida da cauda do transcript, ou None."""
+    return uso_de_linhas(_linhas_da_cauda(caminho))
+
+
+def uso_de_linhas(linhas):
+    """(tokens de contexto, modelo) da última resposta do assistente na janela principal, ou None — a partir das
+    linhas do transcript, sem disco."""
+    for linha in reversed(linhas):
         linha = linha.strip()
         if not linha:
             continue
@@ -177,38 +183,37 @@ def mensagens(pct, tokens, janela, limiar):
     return pro_assistente, pro_owner
 
 
-def responder(evento, ambiente=None):
-    """dict pra imprimir, ou None = silêncio. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, ler_uso, faixa_anterior):
+    """A REGRA, sem disco: `ler_uso()` devolve (tokens, modelo) da última resposta do assistente, ou None; e
+    `faixa_anterior()` a faixa já avisada nesta sessão, ou None — o disco, ou o de teste; só são chamadas quando a
+    regra precisa. Devolve `(saida, mudancas)`: saida = dict pra imprimir, ou None = silêncio; mudancas tem
+    `"anotacoes"` e, quando muda, `"faixa"` (a faixa a gravar; None = apagar, rearma depois do /compact)."""
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip():
-            return None
+            return None, mudancas
         if not isinstance(evento, dict):
-            return None
+            return None, mudancas
         nome_evento = evento.get("hook_event_name")
         if nome_evento not in EVENTOS or evento.get("agent_id"):
-            return None
-        transcript = evento.get("transcript_path")
-        if not isinstance(transcript, str) or not os.path.isfile(transcript):
-            return None
-        uso = uso_atual(transcript)
+            return None, mudancas
+        uso = ler_uso()
         if uso is None:
-            return None
+            return None, mudancas
         tokens, modelo = uso
         janela = janela_de(tokens, modelo, ambiente)
         limiar = _inteiro(ambiente.get(ENV_PCT), PCT_PADRAO, 1, 99)
         pct = min(100.0, tokens * 100.0 / janela)
         faixa = faixa_de(pct, limiar)
-        estado = _estado(evento.get("session_id") or transcript)
-        anterior = _ler_faixa(estado)
+        anterior = faixa_anterior()
         if faixa is None:
             if anterior is not None:
-                _gravar_faixa(estado, None)          # caiu abaixo (compactou): rearma
-            return None
+                mudancas["faixa"] = None             # caiu abaixo (compactou): rearma
+            return None, mudancas
         if anterior is not None and faixa <= anterior:
-            return None                              # já avisou nesta faixa
-        _gravar_faixa(estado, faixa)
-        _anotar("avisou", f"faixa={faixa} pct={pct:.0f} janela={janela} modelo={modelo}", evento)
+            return None, mudancas                    # já avisou nesta faixa
+        mudancas["faixa"] = faixa
+        mudancas["anotacoes"].append(("avisou", f"faixa={faixa} pct={pct:.0f} janela={janela} modelo={modelo}"))
         pro_assistente, pro_owner = mensagens(pct, tokens, janela, limiar)
         return {
             "systemMessage": pro_owner,
@@ -216,7 +221,27 @@ def responder(evento, ambiente=None):
                 "hookEventName": nome_evento,
                 "additionalContext": pro_assistente,
             },
-        }
+        }, mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, mudancas
+
+
+def responder(evento, ambiente=None):
+    """A casca: a regra com o transcript e o estado do disco; grava a faixa e o registro. dict pra imprimir, ou
+    None = silêncio. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        transcript = evento.get("transcript_path") if isinstance(evento, dict) else None
+        if not isinstance(transcript, str) or not os.path.isfile(transcript):
+            transcript = None
+        estado = _estado((evento.get("session_id") if isinstance(evento, dict) else None) or transcript)
+        saida, mudancas = regra(evento, ambiente, lambda: uso_atual(transcript) if transcript else None,
+                                lambda: _ler_faixa(estado))
+        if "faixa" in mudancas:
+            _gravar_faixa(estado, mudancas["faixa"])
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return saida
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
 

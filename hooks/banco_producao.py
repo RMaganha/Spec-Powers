@@ -145,6 +145,7 @@ def marcadores(texto_ambientes):
 
 
 def _ler_ambientes(raiz):
+    """Disco: o `docs/AMBIENTES.md` do projeto, ou "" se não há."""
     try:
         with open(os.path.join(raiz, "docs", "AMBIENTES.md"), encoding="utf-8-sig", errors="replace") as f:
             return f.read()
@@ -173,17 +174,6 @@ def _cita(texto, marcador):
     return re.search(r"(?<![\w.-])" + re.escape(marcador) + r"(?![\w-])", texto, re.I) is not None
 
 
-def _scripts_citados(segmentos, raiz):
-    arquivos = []
-    for seg in segmentos:
-        for bruto in RE_SCRIPT_PY.findall(seg):
-            caminho = bruto.replace("\\", "/")
-            cand = caminho if os.path.isabs(caminho) else os.path.join(raiz, caminho)
-            if os.path.isfile(cand):
-                arquivos.append(cand)
-    return arquivos
-
-
 def _conteudo(caminho):
     try:
         if os.path.getsize(caminho) > TAMANHO_MAX_SCRIPT:
@@ -192,6 +182,22 @@ def _conteudo(caminho):
             return f.read()
     except OSError:
         return ""
+
+
+def _script_do_disco(caminho):
+    """Disco: o texto do script citado — None se não é arquivo; "" se grande demais ou ilegível."""
+    return _conteudo(caminho) if os.path.isfile(caminho) else None
+
+
+def _scripts_citados(segmentos, raiz, ler_script):
+    """O conteúdo de cada `.py` citado que existe, um de cada vez (lido só quando o anterior não citou produção)."""
+    for seg in segmentos:
+        for bruto in RE_SCRIPT_PY.findall(seg):
+            caminho = bruto.replace("\\", "/")
+            cand = caminho if os.path.isabs(caminho) else os.path.join(raiz, caminho)
+            corpo = ler_script(cand)
+            if corpo is not None:
+                yield corpo
 
 
 def _escreve(texto_sql):
@@ -203,8 +209,9 @@ def _escreve(texto_sql):
     return RE_ESCRITA_SQL.search(texto_sql) is not None
 
 
-def classificar(evento, hosts, rotinas, raiz):
-    """(acesso, marcador, texto) — acesso ∈ {None, 'rotina', 'leitura', 'escrita'}."""
+def classificar(evento, hosts, rotinas, raiz, ler_script=_script_do_disco):
+    """(acesso, marcador, texto) — acesso ∈ {None, 'rotina', 'leitura', 'escrita'}. `ler_script(caminho)`: o texto
+    de um script citado (None se não existe) — o disco, ou o de teste."""
     tool = evento.get("tool_name") or ""
     entrada = evento.get("tool_input") if isinstance(evento.get("tool_input"), dict) else {}
     if tool in TOOLS_DE_SHELL:
@@ -221,8 +228,7 @@ def classificar(evento, hosts, rotinas, raiz):
                 return "rotina", r, texto
         achado = next((h for h in hosts if _cita(texto, h)), None)
         if achado is None:
-            for arq in _scripts_citados(segmentos, raiz):
-                corpo = _conteudo(arq)
+            for corpo in _scripts_citados(segmentos, raiz, ler_script):
                 achado = next((h for h in hosts if _cita(corpo, h)), None)
                 if achado:
                     break
@@ -255,18 +261,26 @@ def _carimbo(raiz, ambiente):
     return os.path.join(pasta, f"mss_banco_prd_{chave}.json")
 
 
-def aprovacao_vigente(raiz, ambiente, agora=None):
+def _ler_carimbo(raiz, ambiente):
+    """Disco: quando a última leitura de produção deste projeto executou (segundos), ou None."""
+    try:
+        with open(_carimbo(raiz, ambiente), encoding="utf-8") as f:
+            return float(json.load(f).get("em", 0))
+    except Exception:                                # noqa: BLE001
+        return None
+
+
+def vigente(em, ambiente, agora):
+    """A aprovação carimbada em `em` ainda vale em `agora` (janela de `MSS_BANCO_PRD_MINUTOS`, padrão 120)."""
     try:
         minutos = int(ambiente.get(ENV_MINUTOS) or MINUTOS_PADRAO)
     except (TypeError, ValueError):
         minutos = MINUTOS_PADRAO
-    try:
-        with open(_carimbo(raiz, ambiente), encoding="utf-8") as f:
-            em = float(json.load(f).get("em", 0))
-    except Exception:                                # noqa: BLE001
-        return False
-    agora = time.time() if agora is None else agora
-    return 0 <= agora - em < minutos * 60
+    return em is not None and 0 <= agora - em < minutos * 60
+
+
+def aprovacao_vigente(raiz, ambiente, agora=None):
+    return vigente(_ler_carimbo(raiz, ambiente), ambiente, time.time() if agora is None else agora)
 
 
 def carimbar(raiz, ambiente, agora=None):
@@ -283,56 +297,91 @@ def _raiz(evento, ambiente):
     return _texto(ambiente.get("CLAUDE_PROJECT_DIR")) or _texto(evento.get("cwd")) or os.getcwd()
 
 
-def avaliar(evento, ambiente=None, agora=None):
-    """(tipo, motivo): (None, None) libera · ('deny', …) · ('ask', …)."""
-    ambiente = os.environ if ambiente is None else ambiente
+def regra(evento, ambiente, ler_ambientes, ler_script, carimbo_em, agora):
+    """A REGRA, sem disco: `ler_ambientes(raiz)` devolve o `docs/AMBIENTES.md`, `ler_script(caminho)` o texto de um
+    script citado (None se não existe) e `carimbo_em(raiz)` quando a última leitura de produção executou (None se
+    nunca) — o disco, ou o de teste; só são chamadas quando a regra precisa. `agora`: segundos.
+    Devolve `(tipo, motivo, anotacoes)`: (None, None) libera · ('deny', …) · ('ask', …); anotacoes =
+    `[(decisao, detalhe)]` pro registro."""
+    anotacoes = []
     if not isinstance(evento, dict):
-        return None, None
+        return None, None, anotacoes
     if _texto(ambiente.get(ENV_DESLIGA)):
-        return None, None
+        return None, None, anotacoes
     tool = evento.get("tool_name") or ""
     if tool not in TOOLS_DE_SHELL and not tool.startswith("mcp__"):
-        return None, None
+        return None, None, anotacoes
     try:
         raiz = _raiz(evento, ambiente)
-        hosts, rotinas = marcadores(_ler_ambientes(raiz))
+        hosts, rotinas = marcadores(ler_ambientes(raiz))
         if not hosts and not rotinas:
-            return None, None
-        acesso, marcador, _ = classificar(evento, hosts, rotinas, raiz)
+            return None, None, anotacoes
+        acesso, marcador, _ = classificar(evento, hosts, rotinas, raiz, ler_script)
         if acesso is None:
-            return None, None
+            return None, None, anotacoes
         if acesso == "rotina":
-            _anotar("liberou-rotina", marcador, evento)
-            return None, None
+            anotacoes.append(("liberou-rotina", marcador))
+            return None, None, anotacoes
         if acesso == "escrita":
-            _anotar("negou", f"escrita em {marcador}", evento)
-            return NEGA, MOTIVO_ESCRITA.format(marcador=marcador, env=ENV_DESLIGA)
-        if aprovacao_vigente(raiz, ambiente, agora):
-            return None, None
-        _anotar("perguntou", f"leitura em {marcador}", evento)
+            anotacoes.append(("negou", f"escrita em {marcador}"))
+            return NEGA, MOTIVO_ESCRITA.format(marcador=marcador, env=ENV_DESLIGA), anotacoes
+        if vigente(carimbo_em(raiz), ambiente, agora):
+            return None, None, anotacoes
+        anotacoes.append(("perguntou", f"leitura em {marcador}"))
         minutos = ambiente.get(ENV_MINUTOS) or MINUTOS_PADRAO
-        return PERGUNTA, MOTIVO_LEITURA.format(marcador=marcador, minutos=minutos, env=ENV_DESLIGA)
+        return PERGUNTA, MOTIVO_LEITURA.format(marcador=marcador, minutos=minutos, env=ENV_DESLIGA), anotacoes
     except Exception as erro:                        # noqa: BLE001 — cerca com defeito: pergunta, não decide
-        return PERGUNTA, MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA)
+        return PERGUNTA, MOTIVO_DEFEITO.format(erro=erro, env=ENV_DESLIGA), anotacoes
+
+
+def regra_pos(evento, ambiente, ler_ambientes, ler_script):
+    """A REGRA do PostToolUse, sem disco: a raiz do projeto a carimbar (um comando de leitura em produção EXECUTOU →
+    o owner aprovou), ou None."""
+    try:
+        if not isinstance(evento, dict) or _texto(ambiente.get(ENV_DESLIGA)):
+            return None
+        raiz = _raiz(evento, ambiente)
+        hosts, rotinas = marcadores(ler_ambientes(raiz))
+        if not hosts:
+            return None
+        acesso, _, _ = classificar(evento, hosts, rotinas, raiz, ler_script)
+        return raiz if acesso == "leitura" else None
+    except Exception:                                # noqa: BLE001
+        return None
+
+
+def avaliar(evento, ambiente=None, agora=None):
+    """A casca do PreToolUse: a regra com o disco de verdade, e o registro gravado.
+    (tipo, motivo): (None, None) libera · ('deny', …) · ('ask', …)."""
+    ambiente = os.environ if ambiente is None else ambiente
+    tipo, motivo, anotacoes = regra(evento, ambiente, _ler_ambientes, _script_do_disco,
+                                    lambda raiz: _ler_carimbo(raiz, ambiente), time.time() if agora is None else agora)
+    for decisao, detalhe in anotacoes:
+        _anotar(decisao, detalhe, evento)
+    return tipo, motivo
 
 
 def pos(evento, ambiente=None, agora=None):
-    """PostToolUse: um comando de leitura em produção EXECUTOU → o owner aprovou → carimba a tarefa."""
+    """A casca do PostToolUse: carimba a tarefa quando a regra manda. True se carimbou."""
     ambiente = os.environ if ambiente is None else ambiente
-    try:
-        if not isinstance(evento, dict) or _texto(ambiente.get(ENV_DESLIGA)):
-            return False
-        raiz = _raiz(evento, ambiente)
-        hosts, rotinas = marcadores(_ler_ambientes(raiz))
-        if not hosts:
-            return False
-        acesso, _, _ = classificar(evento, hosts, rotinas, raiz)
-        if acesso != "leitura":
-            return False
-        carimbar(raiz, ambiente, agora)
-        return True
-    except Exception:                                # noqa: BLE001
+    raiz = regra_pos(evento, ambiente, _ler_ambientes, _script_do_disco)
+    if raiz is None:
         return False
+    carimbar(raiz, ambiente, agora)
+    return True
+
+
+def saida(tipo, motivo):
+    """(stdout, stderr, código de saída) do PreToolUse; stdout None = calado. `ask` só vale com exit 0 (exit 2 =
+    bloqueio)."""
+    if tipo is None:
+        return None, None, 0
+    impresso = json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": tipo,
+        "permissionDecisionReason": motivo,
+    }})
+    return (impresso, None, 0) if tipo == PERGUNTA else (impresso, motivo, 2)
 
 
 def main():
@@ -344,23 +393,18 @@ def main():
     if "--post" in sys.argv[1:]:
         pos(evento)
         sys.exit(0)
-    tipo, motivo = avaliar(evento)
-    if tipo is None:
+    impresso, erro, codigo = saida(*avaliar(evento))
+    if impresso is None:
         sys.exit(0)
-    for saida in (sys.stdout, sys.stderr):
+    for fluxo in (sys.stdout, sys.stderr):
         try:
-            saida.reconfigure(encoding="utf-8")
+            fluxo.reconfigure(encoding="utf-8")
         except (AttributeError, OSError):
             pass
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": tipo,
-        "permissionDecisionReason": motivo,
-    }}))
-    if tipo == PERGUNTA:
-        sys.exit(0)                                  # `ask` só vale com exit 0 (exit 2 = bloqueio)
-    print(motivo, file=sys.stderr)
-    sys.exit(2)
+    print(impresso)
+    if erro is not None:
+        print(erro, file=sys.stderr)
+    sys.exit(codigo)
 
 
 if __name__ == "__main__":

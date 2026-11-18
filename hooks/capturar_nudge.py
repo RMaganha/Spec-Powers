@@ -95,10 +95,10 @@ def _epoch(ts_iso):
         return None
 
 
-def ultima_captura(transcript_path):
-    """Epoch do último Write/Edit em `memory/sessions/` no transcript, ou None."""
+def captura_mais_recente(gravs):
+    """Epoch do último Write/Edit em `memory/sessions/` nas gravações `(ts, ferramenta, caminho)`, ou None."""
     ultimo = None
-    for ts, _, caminho in _gravacoes(transcript_path):
+    for ts, _, caminho in gravs:
         p = str(caminho).replace("\\", "/").lower()
         if "/memory/sessions/" in ("/" + p.lstrip("/")) and p.endswith(".md"):
             e = _epoch(ts) if ts else None
@@ -107,38 +107,67 @@ def ultima_captura(transcript_path):
     return ultimo
 
 
-def decidir(evento, ambiente=None, agora=None):
-    """Texto do aviso (str) ou None = calado. Qualquer defeito → None (falha aberta)."""
+def ultima_captura(transcript_path):
+    """Epoch do último Write/Edit em `memory/sessions/` no transcript, ou None."""
+    return captura_mais_recente(_gravacoes(transcript_path))
+
+
+def regra(evento, ambiente, ler_gravacoes, ler_marca, agora):
+    """A REGRA, sem disco: `ler_gravacoes()` devolve as gravações do assistente nesta conversa e `ler_marca(sessao)`
+    a marca guardada (epoch ou None) — o disco, ou o de teste; só são chamadas quando a regra precisa. Devolve
+    `(aviso, mudancas)`: o texto do aviso ou None = calado; mudancas tem `"anotacoes"` e, quando a marca muda,
+    `"marca"` (o epoch a gravar). Qualquer defeito → None (falha aberta)."""
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if _texto(ambiente.get(ENV_DESLIGA)):
-            return None
+            return None, mudancas
         if not isinstance(evento, dict) or evento.get("hook_event_name") != "Stop":
-            return None
-        agora = time.time() if agora is None else float(agora)
+            return None, mudancas
+        agora = float(agora)
         try:
             intervalo = int(ambiente.get(ENV_INTERVALO, INTERVALO_PADRAO_S))
         except (TypeError, ValueError):
             intervalo = INTERVALO_PADRAO_S
-        sessao = evento.get("session_id")
         if intervalo <= 0:
-            _anotar("lembrou", "intervalo=0", evento)
-            return NUDGE.format(min=0)
-        captura = ultima_captura(evento.get("transcript_path"))
+            mudancas["anotacoes"].append(("lembrou", "intervalo=0"))
+            return NUDGE.format(min=0), mudancas
+        captura = captura_mais_recente(ler_gravacoes())
         if captura is not None and agora - captura < intervalo:
-            _gravar_marca(sessao, ambiente, captura)       # capturou há pouco: rearma e cala
-            return None
-        marca = _ler_marca(sessao, ambiente)
+            mudancas["marca"] = captura                     # capturou há pouco: rearma e cala
+            return None, mudancas
+        marca = ler_marca(evento.get("session_id"))
         if marca is None:
-            _gravar_marca(sessao, ambiente, agora)          # 1º Stop da conversa: só marca o começo
-            return None
+            mudancas["marca"] = agora                       # 1º Stop da conversa: só marca o começo
+            return None, mudancas
         if not deve_cutucar(marca, agora, intervalo):
-            return None
-        _gravar_marca(sessao, ambiente, agora)
-        _anotar("lembrou", f"sem_captura_ha={int((agora - marca) // 60)}min", evento)
-        return NUDGE.format(min=int((agora - marca) // 60))
+            return None, mudancas
+        mudancas["marca"] = agora
+        mudancas["anotacoes"].append(("lembrou", f"sem_captura_ha={int((agora - marca) // 60)}min"))
+        return NUDGE.format(min=int((agora - marca) // 60)), mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, {"anotacoes": []}
+
+
+def decidir(evento, ambiente=None, agora=None):
+    """A casca: a regra com o transcript e a marca do disco; grava a marca e o registro. Texto do aviso (str) ou
+    None = calado. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        agora = time.time() if agora is None else float(agora)
+        aviso, mudancas = regra(evento, ambiente, lambda: _gravacoes(evento.get("transcript_path")),
+                                lambda sessao: _ler_marca(sessao, ambiente), agora)
+        if "marca" in mudancas:
+            _gravar_marca(evento.get("session_id"), ambiente, mudancas["marca"])
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return aviso
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(aviso):
+    """O que o processo imprime, ou None (calado): aviso ao owner — stdout comum do Stop não chega a ninguém."""
+    return None if aviso is None else json.dumps({"systemMessage": aviso})
 
 
 def main():
@@ -147,10 +176,9 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    aviso = decidir(evento)
-    if aviso is None:
-        sys.exit(0)
-    print(json.dumps({"systemMessage": aviso}))      # aviso ao owner; stdout comum do Stop não chega a ninguém
+    impresso = saida(decidir(evento))
+    if impresso is not None:
+        print(impresso)
     sys.exit(0)                                       # SEMPRE 0 — não-bloqueante
 
 

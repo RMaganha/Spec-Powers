@@ -12,49 +12,92 @@ Propriedades:
 - texto ≤ 1.000 bytes mesmo com os quatro estourados;
 - tetos = os do `tests/test_orcamento_contexto.py` e do `templates/rodizio_partida.py`;
 - nunca bloqueia; falha ABERTA; escape `MSS_ORCAMENTO_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — os arquivos da partida de cada projeto ficam num
+dicionário (caminho → bytes) e entram como dado; os caminhos não existem. O disco de verdade (CLAUDE.md em cp1252,
+MAPA com comentário) fica num teste só, numa pasta montada uma vez; o processo python, num teste só.
 """
 import importlib.util
 import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "orcamento_partida.py"
-
-
-def _mod(caminho=HOOK, nome="orcamento_partida"):
-    spec = importlib.util.spec_from_file_location(nome, caminho)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
+BASE = Path(tempfile.gettempdir()) / "mss-cenario-sem-disco"
 MARCA = "<!-- mss-spec:regras-do-kit -->"
 
 
-def _projeto(tmp_path, claude=0, mapa=0, index=0, memory=0, marca=False):
-    """Projeto com os arquivos da partida no tamanho pedido (0 = arquivo ausente).
+def _carregar(caminho=HOOK, nome="orcamento_partida"):
+    spec = importlib.util.spec_from_file_location(nome, caminho)
+    m = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = m
+    spec.loader.exec_module(m)
+    return m
 
-    `marca=True`: o CLAUDE.md leva a linha-marca (projeto já migrado) e ainda tem `claude` bytes."""
-    for rel, n in (("CLAUDE.md", claude), ("docs/superpowers/MAPA.md", mapa),
-                   ("docs/superpowers/INDEX.md", index), ("memory/MEMORY.md", memory)):
-        if n:
-            p = tmp_path / rel
-            p.parent.mkdir(parents=True, exist_ok=True)
-            corpo = b"x" * n
-            if rel == "CLAUDE.md" and marca:
-                cab = (MARCA + "\n").encode()
-                corpo = cab + b"x" * (n - len(cab))
-            p.write_bytes(corpo)
-    return tmp_path
+
+@pytest.fixture(scope="module")
+def mod():
+    return _carregar()
+
+
+class Disco:
+    """Os arquivos da partida, em memória: caminho → bytes. Os 4 métodos do `DiscoReal`."""
+
+    def __init__(self):
+        self.arquivos, self.pastas = {}, set()
+
+    def projeto(self, nome="proj", claude=0, mapa=0, index=0, memory=0, marca=False):
+        """Projeto com os arquivos da partida no tamanho pedido (0 = arquivo ausente).
+        `marca=True`: o CLAUDE.md leva a linha-marca (projeto já migrado) e ainda tem `claude` bytes."""
+        raiz = BASE / nome
+        self.pastas.add(os.path.normcase(str(raiz)))
+        for rel, n in (("CLAUDE.md", claude), ("docs/superpowers/MAPA.md", mapa),
+                       ("docs/superpowers/INDEX.md", index), ("memory/MEMORY.md", memory)):
+            if n:
+                corpo = b"x" * n
+                if rel == "CLAUDE.md" and marca:
+                    cab = (MARCA + "\n").encode()
+                    corpo = cab + b"x" * (n - len(cab))
+                self.gravar(raiz / rel, corpo)
+        return raiz
+
+    def gravar(self, caminho, dados):
+        self.arquivos[os.path.normcase(os.path.normpath(str(caminho)))] = dados
+
+    def _de(self, caminho):
+        return self.arquivos.get(os.path.normcase(os.path.normpath(str(caminho))))
+
+    def eh_pasta(self, caminho):
+        return os.path.normcase(str(caminho)) in self.pastas
+
+    def eh_arquivo(self, caminho):
+        return self._de(caminho) is not None
+
+    def texto(self, caminho):
+        dados = self._de(caminho)
+        return None if dados is None else dados.decode("utf-8", errors="replace")
+
+    def tamanho(self, caminho):
+        return len(self._de(caminho))
+
+
+@pytest.fixture()
+def disco():
+    return Disco()
 
 
 def _evento(raiz, **extra):
-    return {"hook_event_name": "SessionStart", "source": "startup", "cwd": str(raiz),
-            "session_id": "s1", **extra}
+    return {"hook_event_name": "SessionStart", "source": "startup", "cwd": str(raiz), "session_id": "s1", **extra}
+
+
+def _responder(mod, disco, raiz, ambiente=None):
+    return mod.regra(_evento(raiz), ambiente or {}, disco)[0]
 
 
 def _contexto(saida):
@@ -63,51 +106,46 @@ def _contexto(saida):
 
 # --- AC1: silêncio dentro do orçamento --------------------------------------------------------
 
-def test_dentro_do_teto_fica_calado(tmp_path):
-    raiz = _projeto(tmp_path, claude=8000, mapa=3000, index=5000, memory=3000)
-    assert _mod().responder(_evento(raiz), {}) is None
+def test_dentro_do_teto_fica_calado(mod, disco):
+    raiz = disco.projeto(claude=8000, mapa=3000, index=5000, memory=3000)
+    assert _responder(mod, disco, raiz) is None
 
 
-def test_projeto_sem_os_arquivos_fica_calado(tmp_path):
-    assert _mod().responder(_evento(tmp_path), {}) is None
+def test_projeto_sem_os_arquivos_fica_calado(mod, disco):
+    assert _responder(mod, disco, disco.projeto()) is None
 
 
 # --- AC2: acima do teto avisa, só do que estourou ---------------------------------------------
 
-def test_numeros_do_whats_avisam_mapa_index_e_claude(tmp_path):
+def test_numeros_do_whats_avisam_mapa_index_e_claude(mod, disco):
     """Os tamanhos reais da janela do F-030."""
-    raiz = _projeto(tmp_path, claude=27933, mapa=60098, index=70720, memory=1661)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
+    raiz = disco.projeto(claude=27933, mapa=60098, index=70720, memory=1661)
+    txt = _contexto(_responder(mod, disco, raiz))
     for nome in ("CLAUDE.md", "MAPA.md", "INDEX.md"):
         assert nome in txt, f"não citou {nome} estourado"
     assert "MEMORY.md" not in txt, "citou o índice de memória, que está dentro do teto"
     assert "60,1 KB" in txt and "teto 6,0 KB" in txt, "não deu bytes e teto do MAPA"
 
 
-def test_mapa_estourado_manda_ler_so_onde_estamos(tmp_path):
-    raiz = _projeto(tmp_path, mapa=20000)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
+def test_mapa_estourado_manda_ler_so_onde_estamos(mod, disco):
+    txt = _contexto(_responder(mod, disco, disco.projeto(mapa=20000)))
     assert "Onde estamos" in txt
     assert "INDEX.md" not in txt, "citou o INDEX, que nem existe"
 
 
-def test_index_estourado_manda_ler_so_em_andamento(tmp_path):
-    raiz = _projeto(tmp_path, index=20000)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
-    assert "Em andamento" in txt
+def test_index_estourado_manda_ler_so_em_andamento(mod, disco):
+    assert "Em andamento" in _contexto(_responder(mod, disco, disco.projeto(index=20000)))
 
 
-def test_aviso_diz_que_backlog_nao_e_estado_atual(tmp_path):
+def test_aviso_diz_que_backlog_nao_e_estado_atual(mod, disco):
     """O n8n e a cotação do F-030 vieram do backlog lido como fato."""
-    raiz = _projeto(tmp_path, index=20000)
-    txt = _contexto(_mod().responder(_evento(raiz), {})).lower()
+    txt = _contexto(_responder(mod, disco, disco.projeto(index=20000))).lower()
     assert "backlog" in txt and "não" in txt and "fato" in txt
 
 
-def test_aviso_manda_nao_ler_inteiro_e_nao_avisa_o_owner(tmp_path):
+def test_aviso_manda_nao_ler_inteiro_e_nao_avisa_o_owner(mod, disco):
     """0.52.0: MAPA/INDEX acima é tarefa do assistente (resumir o bloco vivo pra spec), não assunto pro owner."""
-    raiz = _projeto(tmp_path, mapa=20000)
-    saida = _mod().responder(_evento(raiz), {})
+    saida = _responder(mod, disco, disco.projeto(mapa=20000))
     txt = _contexto(saida)
     assert "inteiro" in txt, "não disse pra não ler o arquivo inteiro"
     assert "avise o owner" not in txt.lower() and "/mss-spec:doctor" not in txt, "MAPA acima não é assunto pro owner"
@@ -115,156 +153,141 @@ def test_aviso_manda_nao_ler_inteiro_e_nao_avisa_o_owner(tmp_path):
     assert "systemMessage" not in saida, "linha de sistema só quando o ato é do owner"
 
 
-def test_comentario_nao_conta_no_mapa_e_no_index(tmp_path):
+def test_comentario_nao_conta_no_mapa_e_no_index(mod, disco):
     """0.52.0: o molde traz 1.805 B de comentário no MAPA (30% do teto) — comentário não é conteúdo da partida."""
-    sp = tmp_path / "docs" / "superpowers"
-    sp.mkdir(parents=True)
+    raiz = disco.projeto()
     coment = "<!-- " + "guia " * 360 + "-->\n"              # ~1.800 B, como o molde
-    (sp / "MAPA.md").write_text(coment + "x" * 5000, encoding="utf-8")
-    (sp / "INDEX.md").write_text(coment + "y" * 6000, encoding="utf-8")
-    assert _mod().responder(_evento(tmp_path), {}) is None, "6,8 KB no disco mas 5,0 KB de conteúdo: dentro do teto"
-    (sp / "MAPA.md").write_text("x" * 6100, encoding="utf-8")
-    assert "MAPA.md" in _contexto(_mod().responder(_evento(tmp_path), {})), "6,1 KB de conteúdo: avisa"
+    disco.gravar(raiz / "docs/superpowers/MAPA.md", (coment + "x" * 5000).encode())
+    disco.gravar(raiz / "docs/superpowers/INDEX.md", ("﻿" + coment + "y" * 6000).encode())
+    assert _responder(mod, disco, raiz) is None, "6,8 KB no disco mas 5,0 KB de conteúdo: dentro do teto"
+    disco.gravar(raiz / "docs/superpowers/MAPA.md", b"x" * 6100)
+    assert "MAPA.md" in _contexto(_responder(mod, disco, raiz)), "6,1 KB de conteúdo: avisa"
 
 
-def test_medida_igual_no_hook_e_no_rodizio():
+def test_medida_igual_no_hook_e_no_rodizio(mod):
     """Hooks não importam do rodízio: a medida 'só conteúdo' é copiada, e este teste trava a cópia."""
-    rod = _mod(REPO / "templates" / "rodizio_partida.py", "rodizio_partida_ref")
-    hook = _mod()
+    rod = _carregar(REPO / "templates" / "rodizio_partida.py", "rodizio_partida_ref")
     for t in ("abc", "a<!-- x -->b", "<!-- a\nb -->c<!-- d -->", "sem fim <!-- aberto", "ação ✓ — ≤"):
-        assert hook._bytes_de_conteudo(t) == rod.bytes_de_conteudo(t), t
+        assert mod._bytes_de_conteudo(t) == rod.bytes_de_conteudo(t), t
 
 
-def test_texto_cabe_em_mil_bytes_com_tudo_estourado(tmp_path):
+def test_texto_cabe_em_mil_bytes_com_tudo_estourado(mod, disco):
     for marca in (False, True):
-        raiz = _projeto(tmp_path / str(marca), claude=99999, mapa=99999, index=99999, memory=99999, marca=marca)
-        txt = _contexto(_mod().responder(_evento(raiz), {}))
+        raiz = disco.projeto(str(marca), claude=99999, mapa=99999, index=99999, memory=99999, marca=marca)
+        txt = _contexto(_responder(mod, disco, raiz))
         assert len(txt.encode("utf-8")) <= 1000, f"aviso com {len(txt.encode('utf-8'))} bytes (marca={marca})"
 
 
-def test_kb_com_uma_casa_decimal(tmp_path):
+def test_kb_com_uma_casa_decimal(mod, disco):
     """10.096 B não pode sair 'CLAUDE.md 10 KB (teto 10 KB)' — contradiz a si mesmo."""
-    raiz = _projeto(tmp_path, claude=10096)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
-    assert "10,1 KB (teto 10,0 KB)" in txt
+    assert "10,1 KB (teto 10,0 KB)" in _contexto(_responder(mod, disco, disco.projeto(claude=10096)))
 
 
-def test_kb_perto_do_teto_mostra_bytes(tmp_path):
+def test_kb_perto_do_teto_mostra_bytes(mod, disco):
     """10.020 B não pode sair '10,0 KB (teto 10,0 KB)': quando o arredondado empata, mostra bytes."""
-    raiz = _projeto(tmp_path, claude=10020)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
+    txt = _contexto(_responder(mod, disco, disco.projeto(claude=10020)))
     assert "10.020 B (teto 10.000 B)" in txt and "10,0 KB" not in txt
 
 
-def test_claude_md_em_cp1252_com_marca_conta_como_migrado(tmp_path):
-    (tmp_path / "CLAUDE.md").write_bytes((MARCA + "\nSão Paulo\n" + "x" * 10500).encode("cp1252"))
-    txt = _contexto(_mod().responder(_evento(tmp_path), {}))
-    assert "mover bloco" in txt and "/mss-spec:upgrade" not in txt
-
-
-def test_claude_sem_marca_acima_do_teto_manda_upgrade(tmp_path):
-    raiz = _projeto(tmp_path, claude=10500)
-    saida = _mod().responder(_evento(raiz), {})
+def test_claude_sem_marca_acima_do_teto_manda_upgrade(mod, disco):
+    saida = _responder(mod, disco, disco.projeto(claude=10500))
     txt = _contexto(saida)
     assert "/mss-spec:upgrade" in txt
     assert "/mss-spec:doctor" not in txt
     assert "/mss-spec:doctor" not in saida["systemMessage"]
 
 
-def test_claude_com_marca_acima_do_teto_manda_mover_bloco(tmp_path):
-    raiz = _projeto(tmp_path, claude=10500, marca=True)
-    txt = _contexto(_mod().responder(_evento(raiz), {}))
+def test_claude_com_marca_acima_do_teto_manda_mover_bloco(mod, disco):
+    txt = _contexto(_responder(mod, disco, disco.projeto(claude=10500, marca=True)))
     assert "mover bloco" in txt and "/mss-spec:upgrade" not in txt
     assert "/mss-spec:doctor" not in txt
 
 
-def test_owner_e_doctor_so_quando_estoura_memory(tmp_path):
+def test_owner_e_doctor_so_quando_estoura_memory(mod, disco):
     """0.52.0: do trio MAPA/INDEX/MEMORY só o MEMORY pede ato do owner (OK pro `memoria_indice.py dividir`)."""
-    saida = _mod().responder(_evento(_projeto(tmp_path / "m", memory=20000)), {})
+    saida = _responder(mod, disco, disco.projeto("m", memory=20000))
     txt = _contexto(saida)
     assert "avise o owner" in txt.lower() and "/mss-spec:doctor" in txt and "dividir" in txt
     assert "MEMORY.md" in saida["systemMessage"]
     for kw in ({"mapa": 20000}, {"index": 20000}):
-        saida = _mod().responder(_evento(_projeto(tmp_path / next(iter(kw)), **kw)), {})
+        saida = _responder(mod, disco, disco.projeto(next(iter(kw)), **kw))
         assert "/mss-spec:doctor" not in _contexto(saida) and "systemMessage" not in saida, kw
 
 
-def test_marca_igual_nos_hooks():
+def test_marca_igual_nos_hooks(mod):
     """Hooks não importam um do outro: a constante é copiada, e este teste trava as cópias."""
-    ref = _mod(REPO / "hooks" / "regras_do_kit.py", "regras_do_kit_ref").MARCA
-    assert _mod().MARCA == ref
-    assert _mod(REPO / "hooks" / "teto_ao_gravar.py", "teto_ao_gravar_ref").MARCA == ref
-    assert _mod(REPO / "hooks" / "regra_antes_de_gravar.py", "regra_antes_de_gravar_ref").MARCA == ref
+    ref = _carregar(REPO / "hooks" / "regras_do_kit.py", "regras_do_kit_ref").MARCA
+    assert mod.MARCA == ref
+    assert _carregar(REPO / "hooks" / "teto_ao_gravar.py", "teto_ao_gravar_ref").MARCA == ref
+    assert _carregar(REPO / "hooks" / "regra_antes_de_gravar.py", "regra_antes_de_gravar_ref").MARCA == ref
 
 
-def test_saida_e_do_evento_session_start_com_system_message(tmp_path):
+def test_saida_e_do_evento_session_start_com_system_message(mod, disco):
     """A linha de sistema existe só quando o ato é do owner (0.52.0): aqui, o MEMORY.md; MAPA junto não entra nela."""
-    raiz = _projeto(tmp_path, mapa=20000, memory=20000)
-    saida = _mod().responder(_evento(raiz), {})
+    saida = _responder(mod, disco, disco.projeto(mapa=20000, memory=20000))
     assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
     assert "MEMORY.md" in saida["systemMessage"] and "MAPA.md" not in saida["systemMessage"]
 
 
-def test_prefere_claude_project_dir_ao_cwd(tmp_path):
-    proj = _projeto(tmp_path / "proj", mapa=20000)
-    outro = tmp_path / "outro"
-    outro.mkdir()
-    saida = _mod().responder(_evento(outro), {"CLAUDE_PROJECT_DIR": str(proj)})
+def test_prefere_claude_project_dir_ao_cwd(mod, disco):
+    proj = disco.projeto("proj", mapa=20000)
+    saida = mod.regra(_evento(BASE / "outro"), {"CLAUDE_PROJECT_DIR": str(proj)}, disco)[0]
     assert saida is not None and "MAPA.md" in _contexto(saida)
+
+
+def test_registro_diz_os_tamanhos_sem_o_texto(mod, disco):
+    _, anotacoes = mod.regra(_evento(disco.projeto(mapa=20000)), {}, disco)
+    assert anotacoes == [("avisou", "MAPA.md=20000")]
 
 
 # --- AC3: escape e falha aberta ---------------------------------------------------------------
 
-def test_escape_do_owner(tmp_path):
-    raiz = _projeto(tmp_path, mapa=20000)
-    assert _mod().responder(_evento(raiz), {"MSS_ORCAMENTO_OFF": "1"}) is None
+def test_escape_do_owner(mod, disco):
+    assert _responder(mod, disco, disco.projeto(mapa=20000), {"MSS_ORCAMENTO_OFF": "1"}) is None
 
 
-def test_entrada_malformada_libera():
-    mod = _mod()
+def test_entrada_malformada_libera(mod, disco):
     for ruim in (None, [], "texto", {}, {"cwd": 42}, {"cwd": ""}):
-        assert mod.responder(ruim, {}) is None
+        assert mod.regra(ruim, {}, disco)[0] is None
 
 
 # --- AC4: tetos numa fonte só -----------------------------------------------------------------
 
-def test_tetos_batem_com_o_teste_de_orcamento_e_o_rodizio():
-    hook = _mod()
-    orc = _mod(REPO / "tests" / "test_orcamento_contexto.py", "test_orcamento_contexto_ref")
-    rod = _mod(REPO / "templates" / "rodizio_partida.py", "rodizio_partida_ref")
-    tetos = dict(hook.ARQUIVOS)
+def test_tetos_batem_com_o_teste_de_orcamento_e_o_rodizio(mod):
+    orc = _carregar(REPO / "tests" / "test_orcamento_contexto.py", "test_orcamento_contexto_ref")
+    rod = _carregar(REPO / "templates" / "rodizio_partida.py", "rodizio_partida_ref")
+    tetos = dict(mod.ARQUIVOS)
     assert tetos["CLAUDE.md"] == orc.TETO_CLAUDE_MD
     assert tetos["docs/superpowers/MAPA.md"] == orc.TETO_MAPA == rod.TETO_MAPA
     assert tetos["docs/superpowers/INDEX.md"] == orc.TETO_INDEX == rod.TETO_INDEX
     assert tetos["memory/MEMORY.md"] == orc.TETO_MEMORY_TOPO
 
 
-# --- AC5: processo e registro no plugin -------------------------------------------------------
+# --- o disco de verdade e o processo (pasta montada uma vez) ----------------------------------------
 
-def _rodar(evento, env=None):
-    amb = {**os.environ, **(env or {})}
+@pytest.fixture(scope="module")
+def proj(tmp_path_factory):
+    raiz = tmp_path_factory.mktemp("orcamento")
+    (raiz / "docs" / "superpowers").mkdir(parents=True)
+    (raiz / "CLAUDE.md").write_bytes((MARCA + "\nSão Paulo\n" + "x" * 10500).encode("cp1252"))   # fora de UTF-8
+    (raiz / "docs" / "superpowers" / "MAPA.md").write_text("<!-- " + "guia " * 360 + "-->\n" + "x" * 6100,
+                                                            encoding="utf-8")
+    return raiz
+
+
+def test_casca_le_tamanho_texto_e_marca_do_disco(mod, proj):
+    txt = _contexto(mod.responder(_evento(proj), {}))
+    assert "mover bloco" in txt and "/mss-spec:upgrade" not in txt, "o CLAUDE.md em cp1252 perdeu a marca"
+    assert "MAPA.md 6,1 KB" in txt, "o MAPA do disco não foi medido sem o comentário"
+
+
+def test_processo_avisa_com_json_e_sai_zero(proj):
+    amb = {**os.environ}
     amb.pop("MSS_ORCAMENTO_OFF", None)
     amb.pop("CLAUDE_PROJECT_DIR", None)
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(evento), text=True,
-                          capture_output=True, env=amb, encoding="utf-8", timeout=30)
-
-
-def test_processo_avisa_com_json_e_sai_zero(tmp_path):
-    raiz = _projeto(tmp_path, mapa=20000)
-    r = _rodar(_evento(raiz))
-    assert r.returncode == 0
-    assert "MAPA.md" in _contexto(json.loads(r.stdout))
-
-
-def test_processo_calado_nao_imprime(tmp_path):
-    r = _rodar(_evento(tmp_path))
-    assert r.returncode == 0 and r.stdout.strip() == ""
-
-
-def test_processo_entrada_malformada_sai_zero():
-    r = subprocess.run([sys.executable, str(HOOK)], input="{nao é json", text=True,
-                       capture_output=True, encoding="utf-8", timeout=30)
-    assert r.returncode == 0 and r.stdout.strip() == ""
+    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(_evento(proj)), text=True,
+                       capture_output=True, env=amb, encoding="utf-8", timeout=30)
+    assert r.returncode == 0 and "MAPA.md" in _contexto(json.loads(r.stdout))
 
 
 def test_hook_registrado_no_session_start():

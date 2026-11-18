@@ -13,20 +13,22 @@ Propriedades (spec `docs/specs/conversa-nova-nao-se-perde.md`, critérios 6 a 8)
   título e pelo menos metade — nunca pelo texto dos itens;
 - só informa: o que foi achado sozinho não entra na devolução de resposta;
 - nada casa, 2º pedido, pedido com `Já decidido`, outro projeto, texto vencido, qualquer defeito → igual a hoje.
+
+Camadas (2026-11-17): tudo em memória — os textos prontos guardados de cada projeto, as specs (como texto, lidas
+pela `specs_de`) e o estado de cada conversa ficam num objeto do teste e entram na `regra` como dado. O disco de
+verdade e o processo deste hook ficam no `test_hook_passagem_de_conversa.py` (um teste de cada por hook).
 """
 import importlib.util
-import json
-import os
-import subprocess
-import sys
-import time
-import uuid
+import tempfile
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "passagem_de_conversa.py"
+BASE = Path(tempfile.gettempdir()) / "mss-cenario-sem-disco"
+PROJ = BASE / "projeto"
+AGORA = 1_800_000_000.0
 
 ENTREGA = """**O próximo passo é numa conversa nova.** Abra pelo + e cole o texto pronto abaixo.
 
@@ -59,113 +61,109 @@ Entregue.
 """
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("passagem_de_conversa", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+class Projetos:
+    """O que o hook guarda e lê no disco, em memória: por projeto, os textos prontos guardados e as specs (texto);
+    por conversa, o estado. `avaliar` chama a regra com isso como dado e aplica o que ela devolve — o papel da casca."""
+
+    def __init__(self, mod):
+        self.mod, self.passagens, self.specs, self.estados, self.anotacoes = mod, {}, {}, {}, []
+
+    def spec(self, nome="memoria-em-tabela", texto=SPEC, raiz=PROJ):
+        self.specs.setdefault(str(raiz), {})[f"{nome}.md"] = texto
+
+    def avaliar(self, evento, ambiente=None, agora=AGORA):
+        ambiente = ambiente or {}
+        raiz = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
+        sessao = evento.get("session_id")
+        tipo, texto, mudancas = self.mod.regra(
+            evento, ambiente, self.estados.get(sessao, {}), lambda: self.passagens.get(raiz),
+            lambda: self.mod.specs_de(self.specs.get(raiz, {})), agora)
+        if "estado" in mudancas:
+            self.estados[sessao] = mudancas["estado"]
+        if "passagens" in mudancas:
+            self.passagens[raiz] = mudancas["passagens"]
+        self.anotacoes += mudancas["anotacoes"]
+        return tipo, texto
 
 
 @pytest.fixture()
-def amb(tmp_path):
-    temp = tmp_path / "temp"
-    temp.mkdir()
-    return {"TEMP": str(temp), "TMP": str(temp), "TMPDIR": str(temp)}
+def pj(mod):
+    return Projetos(mod)
 
 
-@pytest.fixture()
-def proj(tmp_path):
-    raiz = tmp_path / "projeto"
-    (raiz / "docs" / "specs").mkdir(parents=True)
-    return raiz
-
-
-def _nova():
-    return "s-" + uuid.uuid4().hex[:8]
-
-
-def _pedido(texto, sessao, raiz):
+def _pedido(texto, sessao, raiz=PROJ):
     return {"hook_event_name": "UserPromptSubmit", "session_id": sessao, "cwd": str(raiz), "prompt": texto}
 
 
-def _fim(texto, sessao, raiz, **extra):
+def _fim(texto, sessao, raiz=PROJ, **extra):
     return {"hook_event_name": "Stop", "session_id": sessao, "cwd": str(raiz), "last_assistant_message": texto,
             **extra}
 
 
-def _spec(proj, nome="memoria-em-tabela", texto=SPEC):
-    (proj / "docs" / "specs" / f"{nome}.md").write_text(texto, encoding="utf-8")
-
-
 # --- o texto pronto fica guardado e a conversa nova o acha -----------------------------------------------
 
-def test_conversa_nova_acha_o_texto_que_outra_entregou(amb, proj):
-    mod = _mod()
-    assert mod.avaliar(_fim(ENTREGA, _nova(), proj), amb) == (None, None)
-    tipo, texto = mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb)
+def test_conversa_nova_acha_o_texto_que_outra_entregou(pj):
+    assert pj.avaliar(_fim(ENTREGA, "a")) == (None, None)
+    tipo, texto = pj.avaliar(_pedido("vamos continuar a memória em tabela", "b"))
     assert tipo == "contexto"
     assert "Gravar continua sendo no arquivo" in texto and "Buscar é na tabela primeiro" in texto
     assert "DECIDIDO" in texto and "lista única" in texto
     assert "Se o aviso das 3 anotações" not in texto, "o que falta decidir não chega como decidido"
 
 
-def test_o_texto_guardado_nao_suja_a_pasta_do_projeto(amb, proj):
-    _mod().avaliar(_fim(ENTREGA, _nova(), proj), amb)
-    assert [p.name for p in proj.rglob("*") if p.is_file()] == []
-    assert any(n.startswith("mss_passagens_") for n in os.listdir(amb["TEMP"]))
-
-
-def test_resposta_refeita_depois_de_devolvida_tambem_fica_guardada(amb, proj):
+def test_resposta_refeita_depois_de_devolvida_tambem_fica_guardada(pj):
     """A resposta que sai certa na 2ª tentativa chega com `stop_hook_active` — é justamente a que vale."""
-    mod = _mod()
-    assert mod.avaliar(_fim(ENTREGA, _nova(), proj, stop_hook_active=True), amb) == (None, None)
-    tipo, _ = mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb)
-    assert tipo == "contexto"
+    assert pj.avaliar(_fim(ENTREGA, "a", stop_hook_active=True)) == (None, None)
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "b"))[0] == "contexto"
 
 
-def test_texto_fora_do_molde_nao_fica_guardado(amb, proj):
-    mod = _mod()
+def test_texto_fora_do_molde_nao_fica_guardado(pj):
     ruim = ENTREGA.replace("Já decidido — não reabrir:", "O que falta:")
-    assert mod.avaliar(_fim(ruim, _nova(), proj), amb)[0] == "devolve"
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb) == (None, None)
+    assert pj.avaliar(_fim(ruim, "a"))[0] == "devolve"
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "b")) == (None, None)
 
 
-def test_o_molde_do_proprio_hook_nao_vira_assunto_guardado(amb, proj):
-    mod = _mod()
-    mod.avaliar(_fim("Na conversa nova, cole o texto pronto:\n\n```text\n" + mod.MOLDE + "\n```\n", _nova(), proj), amb)
-    assert not any(n.startswith("mss_passagens_") for n in os.listdir(amb["TEMP"]))
+def test_o_molde_do_proprio_hook_nao_vira_assunto_guardado(pj, mod):
+    pj.avaliar(_fim("Na conversa nova, cole o texto pronto:\n\n```text\n" + mod.MOLDE + "\n```\n", "a"))
+    assert pj.passagens == {}
 
 
-def test_trecho_privado_nao_fica_guardado(amb, proj):
-    mod = _mod()
-    privado = ENTREGA.replace("2. Buscar é na tabela primeiro.", "2. <private>senha do banco</private>")
-    mod.avaliar(_fim(privado, _nova(), proj), amb)
-    assert not any(n.startswith("mss_passagens_") for n in os.listdir(amb["TEMP"]))
+def test_trecho_privado_nao_fica_guardado(pj):
+    pj.avaliar(_fim(ENTREGA.replace("2. Buscar é na tabela primeiro.", "2. <private>senha do banco</private>"), "a"))
+    assert pj.passagens == {}
 
 
-def test_outro_projeto_nao_acha(amb, proj, tmp_path):
-    mod = _mod()
-    mod.avaliar(_fim(ENTREGA, _nova(), proj), amb)
-    outro = tmp_path / "outro"
-    outro.mkdir()
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), outro), amb) == (None, None)
+def test_outro_projeto_nao_acha(pj):
+    pj.avaliar(_fim(ENTREGA, "a"))
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "b", BASE / "outro")) == (None, None)
 
 
-def test_texto_guardado_vence_em_sete_dias(amb, proj):
-    mod = _mod()
-    mod.avaliar(_fim(ENTREGA, _nova(), proj), amb)
-    arquivo = next(Path(amb["TEMP"]).glob("mss_passagens_*.json"))
-    dados = json.loads(arquivo.read_text(encoding="utf-8"))
-    dados["passagens"][0]["quando"] = time.time() - 8 * 86400
-    arquivo.write_text(json.dumps(dados), encoding="utf-8")
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb) == (None, None)
+def test_texto_guardado_vence_em_sete_dias(pj):
+    pj.avaliar(_fim(ENTREGA, "a"))
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "b"), agora=AGORA + 8 * 86400) == (None, None)
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "c"), agora=AGORA + 6 * 86400)[0] == "contexto"
+
+
+def test_registro_guarda_que_guardou_e_que_achou_sem_o_texto(pj):
+    pj.avaliar(_fim(ENTREGA, "a"))
+    pj.avaliar(_pedido("vamos continuar a memória em tabela parte 2", "b"))
+    assert [d for d, _ in pj.anotacoes] == ["guardou", "achou"]
+    assert not any("Gravar continua" in det or "vamos continuar" in det for _, det in pj.anotacoes)
 
 
 # --- a spec que guarda o que o owner decidiu ---------------------------------------------------------------
 
-def test_conversa_nova_acha_a_secao_da_spec(amb, proj):
-    _spec(proj)
-    tipo, texto = _mod().avaliar(_pedido("bom dia, vamos continuar a memória em tabela", _nova(), proj), amb)
+def test_conversa_nova_acha_a_secao_da_spec(pj):
+    pj.spec()
+    tipo, texto = pj.avaliar(_pedido("bom dia, vamos continuar a memória em tabela", "a"))
     assert tipo == "contexto"
     assert "A tabela é cópia para busca" in texto
     assert "a tabela se atualiza sozinha quando a conversa abre" in texto, "item de duas linhas chegou cortado"
@@ -173,52 +171,50 @@ def test_conversa_nova_acha_a_secao_da_spec(amb, proj):
     assert "criado" not in texto, "a lista passou do fim da seção"
 
 
-def test_spec_sem_a_secao_nao_e_assunto(amb, proj):
-    _spec(proj, texto=SPEC.replace("## O que o owner decidiu", "## Notas"))
-    assert _mod().avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb) == (None, None)
+def test_spec_sem_a_secao_nao_e_assunto(pj):
+    pj.spec(texto=SPEC.replace("## O que o owner decidiu", "## Notas"))
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "a")) == (None, None)
 
 
-def test_texto_guardado_vem_antes_da_spec_e_aponta_a_spec(amb, proj):
-    mod = _mod()
-    _spec(proj)
-    mod.avaliar(_fim(ENTREGA, _nova(), proj), amb)
-    _, texto = mod.avaliar(_pedido("vamos continuar a memória em tabela parte 2", _nova(), proj), amb)
+def test_texto_guardado_vem_antes_da_spec_e_aponta_a_spec(pj):
+    pj.spec()
+    pj.avaliar(_fim(ENTREGA, "a"))
+    _, texto = pj.avaliar(_pedido("vamos continuar a memória em tabela parte 2", "b"))
     assert "Gravar continua sendo no arquivo" in texto
     assert "A tabela é cópia para busca" not in texto
     assert "docs/specs/memoria-em-tabela.md:6" in texto
 
 
-def test_dois_assuntos_empatados_chegam_so_os_nomes(amb, proj):
-    _spec(proj, "tabela-de-precos", SPEC.replace("Memória em tabela", "Tabela de preços"))
-    _spec(proj, "tabela-de-prazos", SPEC.replace("Memória em tabela", "Tabela de prazos"))
-    tipo, texto = _mod().avaliar(
-        _pedido("vamos mexer na tabela de preços e na tabela de prazos", _nova(), proj), amb)
+def test_dois_assuntos_empatados_chegam_so_os_nomes(pj):
+    pj.spec("tabela-de-precos", SPEC.replace("Memória em tabela", "Tabela de preços"))
+    pj.spec("tabela-de-prazos", SPEC.replace("Memória em tabela", "Tabela de prazos"))
+    tipo, texto = pj.avaliar(_pedido("vamos mexer na tabela de preços e na tabela de prazos", "a"))
     assert tipo == "contexto"
     assert "tabela-de-precos.md" in texto and "tabela-de-prazos.md" in texto
     assert "A tabela é cópia para busca" not in texto, "no empate não se entrega item de nenhum"
     assert "qual" in texto.lower()
 
 
-def test_entrega_respeita_o_teto(amb, proj):
+def test_entrega_respeita_o_teto(pj, mod):
     itens = "\n".join(f"{n}. Decisão {n}: " + "palavra " * 30 for n in range(1, 31))
-    _spec(proj, texto=SPEC.split("## O que o owner decidiu")[0] + "## O que o owner decidiu\n" + itens + "\n")
-    mod = _mod()
-    _, texto = mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb)
+    pj.spec(texto=SPEC.split("## O que o owner decidiu")[0] + "## O que o owner decidiu\n" + itens + "\n")
+    _, texto = pj.avaliar(_pedido("vamos continuar a memória em tabela", "a"))
     assert "1. Decisão 1:" in texto and "30. Decisão 30:" not in texto
     assert len(texto.encode("utf-8")) <= mod.ACHADO_TETO + 1200
     assert "não couberam" in texto and "docs/specs/memoria-em-tabela.md:6" in texto
 
 
-def test_item_comprido_chega_inteiro(amb, proj):
+def test_item_comprido_chega_inteiro(mod):
     """Cortar a frase no meio pode inverter o sentido ("nunca responde … sem a regra"): ou vai inteiro, ou não vai."""
     comprido = "Nunca responde que o plugin recusa " + "alguma coisa " * 40 + "sem a regra à vista."
-    _spec(proj, texto=SPEC.replace("A tabela é cópia para busca; o arquivo continua sendo a fonte.", comprido))
-    _, texto = _mod().avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb)
+    pj = Projetos(mod)
+    pj.spec(texto=SPEC.replace("A tabela é cópia para busca; o arquivo continua sendo a fonte.", comprido))
+    _, texto = pj.avaliar(_pedido("vamos continuar a memória em tabela", "a"))
     assert comprido in texto
 
-    mod = _mod()
-    mod.avaliar(_fim(ENTREGA.replace("Buscar é na tabela primeiro.", comprido), _nova(), proj), amb)
-    _, texto = mod.avaliar(_pedido("vamos continuar a memória em tabela parte 2", _nova(), proj), amb)
+    pj = Projetos(mod)
+    pj.avaliar(_fim(ENTREGA.replace("Buscar é na tabela primeiro.", comprido), "a"))
+    _, texto = pj.avaliar(_pedido("vamos continuar a memória em tabela parte 2", "b"))
     assert comprido in texto
 
 
@@ -230,61 +226,55 @@ def test_item_comprido_chega_inteiro(amb, proj):
     "a tabela de preços está errada",
     "como funciona o deploy?",
 ])
-def test_frase_que_nao_casa_fica_calada(amb, proj, frase):
-    _spec(proj)
-    _spec(proj, "conversa-nova-nao-se-perde",
-          SPEC.replace("Memória em tabela — tudo o que é memória do projeto numa tabela local",
-                       "Conversa nova não se perde — o que está decidido chega como decidido"))
-    assert _mod().avaliar(_pedido(frase, _nova(), proj), amb) == (None, None)
+def test_frase_que_nao_casa_fica_calada(pj, frase):
+    pj.spec()
+    pj.spec("conversa-nova-nao-se-perde",
+            SPEC.replace("Memória em tabela — tudo o que é memória do projeto numa tabela local",
+                         "Conversa nova não se perde — o que está decidido chega como decidido"))
+    assert pj.avaliar(_pedido(frase, "a")) == (None, None)
 
 
-def test_so_procura_no_primeiro_pedido_da_conversa(amb, proj):
-    mod, sessao = _mod(), _nova()
-    _spec(proj)
-    assert mod.avaliar(_pedido("bom dia", sessao, proj), amb) == (None, None)
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", sessao, proj), amb) == (None, None)
+def test_so_procura_no_primeiro_pedido_da_conversa(pj):
+    pj.spec()
+    assert pj.avaliar(_pedido("bom dia", "a")) == (None, None)
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "a")) == (None, None)
 
 
-def test_pedido_com_ja_decidido_colado_segue_como_hoje(amb, proj):
-    mod, sessao = _mod(), _nova()
-    _spec(proj)
+def test_pedido_com_ja_decidido_colado_segue_como_hoje(pj):
+    pj.spec()
     pedido = "Vamos continuar a memória em tabela.\nJá decidido — não reabrir:\n1. O item colado vale.\n"
-    tipo, texto = mod.avaliar(_pedido(pedido, sessao, proj), amb)
+    tipo, texto = pj.avaliar(_pedido(pedido, "a"))
     assert tipo == "contexto" and "1 item(ns)" in texto and "A tabela é cópia" not in texto
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", sessao, proj), amb) == (None, None)
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "a")) == (None, None)
 
 
-def test_sem_conversa_identificada_nao_procura(amb, proj):
-    _spec(proj)
-    evento = _pedido("vamos continuar a memória em tabela", None, proj)
-    assert _mod().avaliar(evento, amb) == (None, None)
+def test_sem_conversa_identificada_nao_procura(pj):
+    pj.spec()
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", None)) == (None, None)
 
 
-def test_escape_do_owner(amb, proj):
-    _spec(proj)
-    evento = _pedido("vamos continuar a memória em tabela", _nova(), proj)
-    assert _mod().avaliar(evento, {**amb, "MSS_PASSAGEM_OFF": "1"}) == (None, None)
+def test_escape_do_owner(pj):
+    pj.spec()
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "a"), {"MSS_PASSAGEM_OFF": "1"}) == (None, None)
 
 
-def test_defeito_no_disco_fica_calado(amb, proj):
-    (proj / "docs" / "specs" / "memoria-em-tabela.md").write_bytes(b"\xff\xfe\x00## O que o owner decidiu\n1. x\n")
-    Path(amb["TEMP"], "lixo").write_text("x", encoding="utf-8")
-    mod = _mod()
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", _nova(), proj), amb) == (None, None)
-    sessao = _nova()
-    Path(amb["TEMP"], f"mss_passagens_{mod._chave(str(proj))}.json").write_text("{quebrado", encoding="utf-8")
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", sessao, proj), amb) == (None, None)
-    assert mod.avaliar(_fim(ENTREGA, _nova(), proj), amb) == (None, None)
+def test_defeito_ao_ler_fica_calado(mod):
+    """Leitura que quebra (spec ou texto guardado) não segura o pedido nem a resposta."""
+    def quebrado():
+        raise OSError("disco")
+
+    evento = _pedido("vamos continuar a memória em tabela", "a")
+    assert mod.regra(evento, {}, {}, quebrado, quebrado, AGORA)[:2] == (None, None)
+    assert mod.regra(_fim(ENTREGA, "b"), {}, {}, quebrado, quebrado, AGORA)[:2] == (None, None)
 
 
 # --- só informa: o que foi achado sozinho não devolve resposta --------------------------------------------
 
-def test_achado_sozinho_nao_entra_na_devolucao(amb, proj):
-    mod, sessao = _mod(), _nova()
-    _spec(proj)
-    assert mod.avaliar(_pedido("vamos continuar a memória em tabela", sessao, proj), amb)[0] == "contexto"
+def test_achado_sozinho_nao_entra_na_devolucao(pj):
+    pj.spec()
+    assert pj.avaliar(_pedido("vamos continuar a memória em tabela", "a"))[0] == "contexto"
     resposta = "## Tópico 1 — a tabela\n\nA tabela é cópia para busca, ou o arquivo deixa de ser a fonte?\n"
-    assert mod.avaliar(_fim(resposta, sessao, proj), amb) == (None, None)
+    assert pj.avaliar(_fim(resposta, "a")) == (None, None)
 
 
 # --- a régua: termo curto do tema ---------------------------------------------------------------------------
@@ -298,54 +288,23 @@ def _specs_do_repo():
     return out
 
 
-def test_cada_nome_de_spec_do_repo_acha_a_sua_e_so_ela():
-    mod, specs = _mod(), _specs_do_repo()
+def test_cada_nome_de_spec_do_repo_acha_a_sua_e_so_ela(mod):
+    specs = _specs_do_repo()
     assert len(specs) >= 21
     for spec in specs:
         vencedor, empatados = mod.escolher("vamos continuar " + spec["curto"], specs)
         assert vencedor is not None and vencedor["fonte"] == spec["fonte"], (spec["fonte"], empatados)
 
 
-def test_a_frase_real_do_owner_acha_a_spec_deste_assunto():
-    mod = _mod()
+def test_a_frase_real_do_owner_acha_a_spec_deste_assunto(mod):
     vencedor, _ = mod.escolher("vamos continuar a conversa nova que acha sozinha o que eu já decidi",
                                _specs_do_repo())
     assert vencedor is not None and vencedor["fonte"] == "conversa-nova-nao-se-perde.md"
 
 
-def test_nome_de_uma_palavra_curta_nao_casa_sozinho():
+def test_nome_de_uma_palavra_curta_nao_casa_sozinho(mod):
     """`bug` solto numa frase não é assunto; `upgrade` é."""
-    mod = _mod()
     candidatos = [{"origem": "passagem", "curto": "Bug", "longo": "Bug", "fonte": "a"},
                   {"origem": "spec", "curto": "upgrade", "longo": "Upgrade — trazer o projeto", "fonte": "b"}]
     assert mod.escolher("tem um bug no login", candidatos) == (None, [])
     assert mod.escolher("vamos continuar o upgrade", candidatos)[0]["fonte"] == "b"
-
-
-# --- o processo de verdade ----------------------------------------------------------------------------------
-
-def _rodar(evento, tmp_path, proj):
-    env = {**os.environ, "TEMP": str(tmp_path), "TMP": str(tmp_path), "CLAUDE_PROJECT_DIR": str(proj),
-           "MSS_REGISTRO_ARQUIVO": str(tmp_path / "registro.jsonl")}
-    env.pop("MSS_PASSAGEM_OFF", None)
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(evento), capture_output=True, text=True,
-                          encoding="utf-8", env=env)
-
-
-def test_processo_entrega_o_achado_como_contexto_e_nunca_segura_o_pedido(tmp_path, proj):
-    _spec(proj)
-    proc = _rodar(_pedido("vamos continuar a memória em tabela", "s-acha", proj), tmp_path, proj)
-    assert proc.returncode == 0, proc.stderr
-    saida = json.loads(proc.stdout)
-    assert "decision" not in saida and "systemMessage" not in saida
-    assert saida["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
-    assert "A tabela" in saida["hookSpecificOutput"]["additionalContext"]
-
-
-def test_registro_guarda_que_achou_e_que_guardou_sem_o_texto(tmp_path, proj):
-    _spec(proj)
-    _rodar(_fim(ENTREGA, "s-entrega", proj), tmp_path, proj)
-    _rodar(_pedido("vamos continuar a memória em tabela parte 2", "s-abre", proj), tmp_path, proj)
-    registro = (tmp_path / "registro.jsonl").read_text(encoding="utf-8")
-    assert "guardou" in registro and "achou" in registro
-    assert "Gravar continua" not in registro and "vamos continuar" not in registro

@@ -247,23 +247,33 @@ def motivo(rel, trechos):
             f"vez por arquivo nesta conversa. Escape consciente (só o owner): {ENV_DESLIGA}=1.")
 
 
-def conferir(evento, rel, raiz, ambiente):
-    """Motivo da negação (str) ou None. `rel` = caminho relativo à raiz do projeto, com `/`."""
+def regra(evento, rel, ambiente, ler_atual, avisados):
+    """A REGRA, sem disco: `ler_atual()` devolve o conteúdo do arquivo hoje (None se não existe) e `avisados(sessao)`
+    os arquivos já avisados nesta conversa — o disco, ou o de teste; só são chamadas quando a regra precisa.
+    Devolve `(motivo, chave)`: motivo da negação (str) ou None, e a chave do arquivo a marcar como avisado."""
     if (ambiente.get(ENV_DESLIGA) or "").strip():
-        return None
+        return None, None
     sessao = evento.get("session_id")
     if not sessao or not e_anotacao_ou_diario(rel):
-        return None
+        return None, None
     chave = rel.replace("\\", "/").lower()
-    if chave in ja_avisados(sessao):
-        return None
+    if chave in avisados(sessao):
+        return None, None
     entrada = evento.get("tool_input")
     if not isinstance(entrada, dict):
-        return None
-    antes, depois = antes_e_depois(evento.get("tool_name"), entrada, _ler(os.path.join(raiz, *rel.split("/"))))
+        return None, None
+    antes, depois = antes_e_depois(evento.get("tool_name"), entrada, ler_atual())
     velhos = set(trechos_cortados(antes))
     novos = [t for t in trechos_cortados(depois) if t not in velhos]
     if not novos:
-        return None
-    marcar(sessao, chave)
-    return motivo(rel, novos)
+        return None, None
+    return motivo(rel, novos), chave
+
+
+def conferir(evento, rel, raiz, ambiente):
+    """A casca: a regra com o disco de verdade; grava o arquivo avisado. Motivo da negação (str) ou None.
+    `rel` = caminho relativo à raiz do projeto, com `/`."""
+    texto, chave = regra(evento, rel, ambiente, lambda: _ler(os.path.join(raiz, *rel.split("/"))), ja_avisados)
+    if chave:
+        marcar(evento.get("session_id"), chave)
+    return texto

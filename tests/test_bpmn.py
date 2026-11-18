@@ -4,28 +4,62 @@ O gerador lê o código Python do projeto por `ast` e monta UM processo por port
 (rota Flask/FastAPI, ou `main()`/`if __name__` da raiz quando o projeto não expõe rota). Regra
 dura: nada de caixa que não está no código — o que não é derivável fica declarado como não
 derivável, e arquivo que não parseia vai pra "não lido" (falha ABERTA), nunca derruba a geração.
+
+Camadas (2026-11-18, `docs/decisoes.md`): o extrator lê o projeto por um objeto de disco; aqui ele é um dicionário
+{caminho: texto} (`Disco`). A gravação das saídas (`gerar`: `bpmn.md`, `bpmn.html` e um `.bpmn` por diagrama) e a
+leitura de verdade ficam num teste só, numa pasta montada uma vez; o processo python, num teste só. O `node` compila o
+JS do desenho lido da entrada padrão, sem arquivo.
 """
 import importlib.util
+import os
 import re
 import shutil
 import subprocess
-
-import pytest
+import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
+SCRIPT = REPO / "templates" / "bpmn.py"
+BASE = REPO.parent / "bpmn-que-nao-existe"          # absoluto, nunca criado
 
 
-def _mod():
-    spec = importlib.util.spec_from_file_location("bpmn", REPO / "templates" / "bpmn.py")
+@pytest.fixture(scope="module")
+def bpmn():
+    spec = importlib.util.spec_from_file_location("bpmn", SCRIPT)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
 
-@pytest.fixture(scope="module")
-def bpmn():
-    return _mod()
+class Disco:
+    """O projeto em memória, com os métodos do `DiscoReal`: {caminho relativo: texto}; pasta = prefixo de arquivo."""
+
+    def __init__(self, arquivos, raiz=BASE / "proj"):
+        self.raiz = raiz
+        self.arquivos = {raiz / rel: texto for rel, texto in arquivos.items()}
+        self.pastas = {raiz} | {a for p in self.arquivos for a in p.parents if raiz in a.parents}
+
+    def listar(self, d):
+        if Path(d) not in self.pastas:
+            raise NotADirectoryError(str(d))
+        return [p for p in (*self.arquivos, *self.pastas) if p.parent == Path(d)]
+
+    def eh_pasta(self, p):
+        return Path(p) in self.pastas
+
+    def ler(self, p):
+        try:
+            return self.arquivos[Path(p)]
+        except KeyError:
+            raise FileNotFoundError(str(p)) from None
+
+
+def _extrair(bpmn, arquivos, **kw):
+    d = arquivos if isinstance(arquivos, Disco) else Disco(arquivos)
+    return bpmn.extrair(d.raiz, disco=d, **kw)
 
 
 # ------------------------------------------------------------------------------------- fixtures
@@ -121,37 +155,30 @@ if __name__ == "__main__":
 '''
 
 
+WEB = {"apis/cotacao.py": COTACAO, "servicos/regras.py": REGRAS, "persistencia/db.py": DB,
+       "quebrado.py": "def x(:\n    pass\n", "tests/test_nada.py": "def test_ignorado():\n    assert True\n"}
+
+
 @pytest.fixture(scope="module")
-def proj_web(tmp_path_factory):
+def proj_web():
     """Projeto com rota Flask: guarda, gateway, subprocesso, banco, HTTP, try/except."""
-    p = tmp_path_factory.mktemp("proj_web")
-    for pasta in ("apis", "servicos", "persistencia", "tests"):
-        (p / pasta).mkdir()
-    (p / "apis" / "cotacao.py").write_text(COTACAO, encoding="utf-8")
-    (p / "servicos" / "regras.py").write_text(REGRAS, encoding="utf-8")
-    (p / "persistencia" / "db.py").write_text(DB, encoding="utf-8")
-    (p / "quebrado.py").write_text("def x(:\n    pass\n", encoding="utf-8")
-    (p / "tests" / "test_nada.py").write_text("def test_ignorado():\n    assert True\n",
-                                              encoding="utf-8")
-    return p
+    return Disco(WEB, BASE / "proj_web")
 
 
 @pytest.fixture(scope="module")
-def proj_script(tmp_path_factory):
+def proj_script():
     """Projeto SEM rota: as portas de entrada sao o main()/if __name__ da raiz."""
-    p = tmp_path_factory.mktemp("proj_script")
-    (p / "carga.py").write_text(CARGA, encoding="utf-8")
-    return p
+    return Disco({"carga.py": CARGA}, BASE / "proj_script")
 
 
 @pytest.fixture(scope="module")
 def modelo_web(bpmn, proj_web):
-    return bpmn.extrair(proj_web)
+    return _extrair(bpmn, proj_web)
 
 
 @pytest.fixture(scope="module")
 def modelo_script(bpmn, proj_script):
-    return bpmn.extrair(proj_script)
+    return _extrair(bpmn, proj_script)
 
 
 def _proc(modelo, nome):
@@ -245,8 +272,7 @@ def test_funcao_com_decisao_vira_subprocesso_expandido(modelo_web):
 
 def test_profundidade_limita_a_expansao(bpmn, proj_web):
     """profundidade=1 não desce no subprocesso (poda antes de fidelidade)."""
-    m = bpmn.extrair(proj_web, profundidade=1)
-    p = _proc(m, "POST /cotacao")
+    p = _proc(_extrair(bpmn, proj_web, profundidade=1), "POST /cotacao")
     assert not any(n.get("filhos") for n in _achatar(p["nos"])), "expandiu além da profundidade"
 
 
@@ -290,7 +316,7 @@ def test_rotulo_e_anotacao_vem_do_docstring(modelo_web):
 
 def test_gateway_paralelo(bpmn, proj_script):
     """Elemento 7 — asyncio.gather vira gateway PARALELO (não exclusivo)."""
-    m = bpmn.extrair(proj_script, entradas_extra=["paralelo"])
+    m = _extrair(bpmn, proj_script, entradas_extra=["paralelo"])
     todos = [n for p in m["processos"] for n in _achatar(p["nos"])]
     assert any(n["tipo"] == "gateway_paralelo" for n in todos), [n["tipo"] for n in todos]
 
@@ -336,11 +362,10 @@ def test_texto_declara_nao_lido_e_nao_derivavel(texto_web):
     assert "gateway inclusivo" in texto_web, "elemento não-derivável não declarado"
 
 
-def test_texto_registra_o_corte(bpmn, proj_web):
-    """AC7 — DADO teto menor que o processo ENTÃO o corte deixa rastro '… (+N)' (F-009)."""
-    m = bpmn.extrair(proj_web, limite=3)
-    t = bpmn.render_texto(m)
-    assert "… (+" in t, "corte silencioso: nenhum rastro no texto"
+@pytest.mark.parametrize("render", ["render_texto", "render_html"])
+def test_corte_deixa_rastro(bpmn, proj_web, render):
+    """AC7 — DADO teto menor que o processo ENTÃO o corte deixa rastro '… (+N)' (F-009), no texto e no desenho."""
+    assert "… (+" in getattr(bpmn, render)(_extrair(bpmn, proj_web, limite=3)), "corte silencioso"
 
 
 # ----------------------------------------------------------- T3 — o DESENHO (o humano olha este)
@@ -399,58 +424,36 @@ def test_html_declara_o_que_nao_desenha(html_web):
     assert "bpmn.md" in html_web, "o HTML não aponta a camada de texto que o assistente lê"
 
 
-def test_html_registra_corte(bpmn, proj_web):
-    """AC7 — corte com rastro também no desenho."""
-    h = bpmn.render_html(bpmn.extrair(proj_web, limite=3))
-    assert "… (+" in h, "corte silencioso no desenho"
-
-
-def test_js_do_desenho_passa_no_node_check(html_web, tmp_path):
-    """AC10 / F-007 — substring verde não pega erro de parse; `node --check` pega a tela branca.
-    (pula se node não estiver no PATH)"""
+def test_js_do_desenho_passa_no_node_check(html_web):
+    """AC10 / F-007 — substring verde não pega erro de parse; o node compilando o JS pega a tela branca.
+    O node lê o JS da entrada padrão, sem rodar e sem arquivo (pula se node não estiver no PATH)."""
     if not shutil.which("node"):
         pytest.skip("node não disponível — guarda de sintaxe pulada")
     scripts = re.findall(r"<script>(.*?)</script>", html_web, re.S)
     assert scripts, "o desenho tem JS inline (seletor + pan/zoom)"
-    f = tmp_path / "bpmn.js"
-    f.write_text("\n".join(scripts), encoding="utf-8")
-    r = subprocess.run(["node", "--check", str(f)], capture_output=True, text=True)
+    compila = ("let s='';process.stdin.setEncoding('utf8');process.stdin.on('data',d=>s+=d)"
+               ".on('end',()=>{new (require('vm').Script)(s)})")
+    r = subprocess.run(["node", "-e", compila], input="\n".join(scripts), capture_output=True, text=True,
+                       encoding="utf-8")
     assert r.returncode == 0, f"JS do desenho com erro de sintaxe:\n{r.stderr}"
 
 
-def test_gerar_escreve_as_duas_saidas(bpmn, proj_web, tmp_path):
-    """AC9 — `gerar()` escreve as DUAS saídas em docs/: o texto (assistente) e o desenho (humano)."""
-    md, html = bpmn.gerar(proj_dir=proj_web, out_dir=tmp_path)
-    assert md.name == "bpmn.md" and html.name == "bpmn.html", (md, html)
-    assert md.exists() and html.exists()
-    assert "POST /cotacao" in md.read_text(encoding="utf-8")
-    assert "<svg" in html.read_text(encoding="utf-8")
-
-
-def test_gerar_default_cai_em_docs(bpmn, proj_script):
-    """A saída default vai pra docs/ (isolada da raiz, como mapa-neural e anatomia)."""
-    md, html = bpmn.gerar(proj_dir=proj_script)
-    assert md.parent.name == "docs" and html.parent.name == "docs", (md, html)
-
-
-def test_main_fora_da_raiz_tambem_e_porta_de_entrada(bpmn, tmp_path):
+def test_main_fora_da_raiz_tambem_e_porta_de_entrada(bpmn):
     """Achado do dogfood no próprio kit: projeto sem rota cujos scripts NÃO ficam na raiz (aqui,
     em templates/) ficava com ZERO processo. A cascata é: rota → main() da raiz → main() em
     qualquer módulo. Fixture não vê isso; o projeto real vê (regra do dogfood com diff)."""
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "job.py").write_text(CARGA, encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
-    nomes = [p["nome"] for p in m["processos"]]
+    nomes = [p["nome"] for p in _extrair(bpmn, {"scripts/job.py": CARGA})["processos"]]
     assert any("main" in n for n in nomes), nomes
     assert any("scripts/job.py" in n for n in nomes), nomes
 
 
-def test_nome_do_projeto_com_caminho_relativo(bpmn, proj_script, monkeypatch):
+def test_nome_do_projeto_com_caminho_relativo(bpmn, monkeypatch):
     """Achado do dogfood: `--proj .` (o jeito que o comando roda) saía com o título vazio, porque
-    `Path('.').name` é string vazia. O nome sai do caminho resolvido."""
-    monkeypatch.chdir(proj_script)
-    m = bpmn.extrair(".")
-    assert m["projeto"] == Path(proj_script).name, m["projeto"]
+    `Path('.').name` é string vazia. O nome sai do caminho resolvido (a pasta atual é o próprio kit,
+    lido do dicionário)."""
+    monkeypatch.chdir(REPO)
+    m = bpmn.extrair(".", disco=Disco({"carga.py": CARGA}, REPO))
+    assert m["projeto"] == REPO.name, m["projeto"]
 
 
 def test_layout_nao_sobrepoe_caixas(bpmn, modelo_web, modelo_script):
@@ -469,10 +472,10 @@ def test_layout_nao_sobrepoe_caixas(bpmn, modelo_web, modelo_script):
                 vistos[chave] = c["no"]["rotulo"]
 
 
-def test_gateway_aninhado_nao_reusa_linha_de_ramo_irmao(bpmn, tmp_path):
+def test_gateway_aninhado_nao_reusa_linha_de_ramo_irmao(bpmn):
     """O caso que a fixture web não tem: `if` dentro do ramo de outro `if`, os dois com desfecho.
     Sem alocação global de linha, o ramo interno cairia sobre o ramo externo."""
-    (tmp_path / "app.py").write_text(
+    m = _extrair(bpmn, {"app.py": (
         "def _a(x):\n    return x\n\n\n"
         "def _b(x):\n    return x\n\n\n"
         "def main():\n"
@@ -485,27 +488,24 @@ def test_gateway_aninhado_nao_reusa_linha_de_ramo_irmao(bpmn, tmp_path):
         "            return 'by'\n"
         "    else:\n"
         "        _a(3)\n"
-        "        return 'ax'\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+        "        return 'ax'\n")})
     caixas, _, _ = bpmn._posicionar(m["processos"][0]["nos"])
     chaves = [(c["col"], c["linha"]) for c in caixas]
     assert len(chaves) == len(set(chaves)), f"caixas empilhadas: {chaves}"
 
 
-def test_chamada_resolve_no_modulo_do_chamador(bpmn, tmp_path):
+def test_chamada_resolve_no_modulo_do_chamador(bpmn):
     """Achado do dogfood: `templates/mapa_neural.py` e `templates/anatomia.py` têm cada um uma
     função `gerar`. A resolução por nome simples pegava a PRIMEIRA em ordem de arquivo, e o
     processo do mapa-neural saía desenhando as caixas internas do anatomia — desenho errado com
     cara de certo, que é pior que buraco. Ordem de resolução: mesmo arquivo → import declarado →
     qualquer arquivo (fallback heurístico)."""
-    (tmp_path / "aaa.py").write_text(
-        "def _passo_aaa():\n    return 1\n\n\n"
-        "def gerar():\n    '''Gera o aaa.'''\n    _passo_aaa()\n    return 'aaa'\n", encoding="utf-8")
-    (tmp_path / "zzz.py").write_text(
-        "def _passo_zzz():\n    return 2\n\n\n"
-        "def gerar():\n    '''Gera o zzz.'''\n    _passo_zzz()\n    return 'zzz'\n\n\n"
-        "def main():\n    gerar()\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {
+        "aaa.py": "def _passo_aaa():\n    return 1\n\n\n"
+                  "def gerar():\n    '''Gera o aaa.'''\n    _passo_aaa()\n    return 'aaa'\n",
+        "zzz.py": "def _passo_zzz():\n    return 2\n\n\n"
+                  "def gerar():\n    '''Gera o zzz.'''\n    _passo_zzz()\n    return 'zzz'\n\n\n"
+                  "def main():\n    gerar()\n"})
     p = [x for x in m["processos"] if "zzz.py" in x["nome"]][0]
     ger = [n for n in bpmn.achatar(p["nos"]) if n["fn"] == "gerar"]
     assert ger, [n["fn"] for n in bpmn.achatar(p["nos"])]
@@ -514,31 +514,27 @@ def test_chamada_resolve_no_modulo_do_chamador(bpmn, tmp_path):
     assert "_passo_zzz" in filhos and "_passo_aaa" not in filhos, filhos
 
 
-def test_chamada_resolve_pelo_import_declarado(bpmn, tmp_path):
+def test_chamada_resolve_pelo_import_declarado(bpmn):
     """`from servicos.regras import aprovar` é o sinal honesto de qual módulo é o dono — vence o
     homônimo de outro arquivo."""
-    (tmp_path / "aaa.py").write_text("def aprovar():\n    return 'errado'\n", encoding="utf-8")
-    (tmp_path / "servicos").mkdir()
-    (tmp_path / "servicos" / "regras.py").write_text(
-        "def _checar():\n    return True\n\n\n"
-        "def aprovar():\n    '''Aprova de verdade.'''\n    _checar()\n    return 'certo'\n",
-        encoding="utf-8")
-    (tmp_path / "web.py").write_text(
-        "from servicos.regras import aprovar\n\n\n"
-        "def main():\n    aprovar()\n    return 1\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {
+        "aaa.py": "def aprovar():\n    return 'errado'\n",
+        "servicos/regras.py": "def _checar():\n    return True\n\n\n"
+                              "def aprovar():\n    '''Aprova de verdade.'''\n    _checar()\n    return 'certo'\n",
+        "web.py": "from servicos.regras import aprovar\n\n\n"
+                  "def main():\n    aprovar()\n    return 1\n"})
     p = [x for x in m["processos"] if "web.py" in x["nome"]][0]
     ap = [n for n in bpmn.achatar(p["nos"]) if n["fn"] == "aprovar"]
     assert ap and ap[0]["arquivo"] == "servicos/regras.py", ap and ap[0]["arquivo"]
     assert ap[0]["raia"] == "servicos", ap[0]["raia"]
 
 
-def test_codigo_com_html_nao_quebra_o_desenho(bpmn, tmp_path):
+def test_codigo_com_html_nao_quebra_o_desenho(bpmn):
     """Todo rótulo nasce do código do projeto e vai para dentro de um ATRIBUTO XML: condição com
     `<`/`>`/`&` ou docstring com `<script>` entrando cru quebraria o parse e a página ficaria em
     branco. Os dois caminhos que de fato chegam ao XML são a pergunta do gateway e o nome da
     tarefa — o docstring do entrypoint não chega (vira anotação, que o XML não emite)."""
-    (tmp_path / "app.py").write_text(
+    m = _extrair(bpmn, {"app.py": (
         "def _perigoso(a):\n"
         '    """Compara <script> & "aspas" no rotulo."""\n'
         "    return a\n\n\n"
@@ -546,15 +542,13 @@ def test_codigo_com_html_nao_quebra_o_desenho(bpmn, tmp_path):
         "    if a < 3 and b > 4:\n"
         "        _perigoso(1)\n"
         "        return 'ok'\n"
-        "    return 'nao'\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
-    xml = _xmls_embutidos(bpmn.render_html(m))
+        "    return 'nao'\n")})
+    html = bpmn.render_html(m)
+    xml = _xmls_embutidos(html)
     assert "&lt;" in xml and "&amp;" in xml, "condição/rótulo com < e & não foram escapados"
     assert "&lt;script&gt;" in xml, "docstring com <script> entrou cru no rótulo da tarefa"
     assert not re.search(r'name="[^"]*<', xml), "sobrou `<` cru dentro de atributo XML"
-    import xml.etree.ElementTree as ET
-    for bloco in re.findall(r'<script type="application/xml"[^>]*>(.*?)</script>',
-                            bpmn.render_html(m), re.S):
+    for bloco in re.findall(r'<script type="application/xml"[^>]*>(.*?)</script>', html, re.S):
         ET.fromstring(bloco)          # parse de verdade: substring verde não prova XML válido
 
 
@@ -582,15 +576,14 @@ def test_indice_navega_por_ancora(html_web, bpmn, modelo_web):
             assert f'id="{d["slug"]}"' in html_web, f"diagrama sem âncora própria: {d['nome']}"
 
 
-def test_processos_do_mais_rico_pro_mais_pobre(bpmn, proj_web):
+def test_processos_do_mais_rico_pro_mais_pobre(bpmn, modelo_web):
     """A página abria em `GET /` (2 nós: início + fim) porque a ordem era alfabética, enquanto
     `POST /endosso` (41 nós) ficava enterrado — parecia que a ferramenta não achou nada.
     Ordem passa a ser nº de nós desc, nome asc como desempate (determinística)."""
-    m = bpmn.extrair(proj_web)
-    tamanhos = [len(bpmn.achatar(p["nos"])) for p in m["processos"]]
+    tamanhos = [len(bpmn.achatar(p["nos"])) for p in modelo_web["processos"]]
     assert tamanhos == sorted(tamanhos, reverse=True), \
-        f"processos fora de ordem (rico → pobre): {[(p['nome'], len(bpmn.achatar(p['nos']))) for p in m['processos']]}"
-    assert m["processos"][0]["nome"] == "POST /cotacao", m["processos"][0]["nome"]
+        f"processos fora de ordem (rico → pobre): {[(p['nome'], len(bpmn.achatar(p['nos']))) for p in modelo_web['processos']]}"
+    assert modelo_web["processos"][0]["nome"] == "POST /cotacao", modelo_web["processos"][0]["nome"]
 
 
 # --------------------------- gap achado rodando no MSS-SSC: cliente de LLM nao virava piscina
@@ -636,25 +629,16 @@ def extrair(pdf):
 '''
 
 
-@pytest.fixture(scope="module")
-def proj_llm(tmp_path_factory):
-    p = tmp_path_factory.mktemp("proj_llm")
-    (p / "routers").mkdir()
-    (p / "services").mkdir()
-    (p / "routers" / "api.py").write_text(ROTA_LLM, encoding="utf-8")
-    (p / "services" / "gemini.py").write_text(GEMINI_SVC, encoding="utf-8")
-    (p / "services" / "resumo.py").write_text(OPENAI_SVC, encoding="utf-8")
-    return p
 
-
-def test_cliente_de_llm_vira_piscina_externa(bpmn, proj_llm):
+def test_cliente_de_llm_vira_piscina_externa(bpmn):
     """Rodando no MSS-SSC (24 rotas, 56 armazenamentos de dados) saíram ZERO fluxos de mensagem —
     num app cuja razão de existir é chamar o Gemini. Duas causas: `google.generativeai` fora da
     tabela de libs, e a chamada de verdade ser método de instância (`self.model.generate_content`),
     que nenhuma heurística de nome de import resolve. O sinal honesto é o **import do SDK** no
     arquivo (mesmo tardio, dentro do método): com ele, construtor de cliente e método de geração
     contam como fluxo de mensagem (11) pra piscina (13) nomeada pelo SDK."""
-    m = bpmn.extrair(proj_llm)
+    m = _extrair(bpmn, {"routers/api.py": ROTA_LLM, "services/gemini.py": GEMINI_SVC,
+                        "services/resumo.py": OPENAI_SVC})
     assert "Gemini" in m["piscinas"], m["piscinas"]
     assert "OpenAI" in m["piscinas"], m["piscinas"]
     p = m["processos"][0]
@@ -663,46 +647,38 @@ def test_cliente_de_llm_vira_piscina_externa(bpmn, proj_llm):
     assert "OpenAI" in msgs, msgs
 
 
-def test_sem_import_de_sdk_nao_inventa_piscina(bpmn, tmp_path):
+def test_sem_import_de_sdk_nao_inventa_piscina(bpmn):
     """A contrapartida: sem import de SDK no arquivo, um método chamado `generate_content` ou uma
     função `create` NÃO viram piscina — o gerador não inventa integração."""
-    (tmp_path / "app.py").write_text(
-        "class Coisa:\n    def generate_content(self, x):\n        return x\n\n\n"
-        "def main():\n    Coisa().generate_content(1)\n    return 2\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {"app.py": "class Coisa:\n    def generate_content(self, x):\n        return x\n\n\n"
+                                  "def main():\n    Coisa().generate_content(1)\n    return 2\n"})
     assert m["piscinas"] == [], m["piscinas"]
 
 
-def test_fluxo_de_mensagem_dentro_do_subprocesso_e_desenhado(bpmn, tmp_path):
+def test_fluxo_de_mensagem_dentro_do_subprocesso_e_desenhado(bpmn):
     """Reconferindo o MSS-SSC: `Gemini` estava no texto e na lista de piscinas, a caixa da piscina
     era desenhada — e NENHUMA seta apontava pra ela. O nó do Gemini fica 2 níveis fundo (dentro da
     expansão do subprocesso), e o SVG da expansão era gerado com a lista de piscinas VAZIA. O
     teste antigo não pegou porque procurava a substring "msg", que casa com o CSS."""
-    (tmp_path / "routers").mkdir()
-    (tmp_path / "services").mkdir()
-    (tmp_path / "routers" / "api.py").write_text(
-        "from fastapi import FastAPI\n"
-        "from services.fluxo import orquestrar\n\n"
-        "app = FastAPI()\n\n\n"
-        '@app.post("/extrair")\n'
-        "def extrair(pdf):\n"
-        '    """Extrai o consolidado."""\n'
-        "    return orquestrar(pdf)\n", encoding="utf-8")
-    (tmp_path / "services" / "fluxo.py").write_text(
-        "from services.llm import chamar_modelo\n\n\n"
-        "def orquestrar(pdf):\n"
-        '    """Orquestra a extracao."""\n'
-        "    if not pdf:\n"
-        "        raise ValueError('sem pdf')\n"
-        "    return chamar_modelo(pdf)\n", encoding="utf-8")
-    (tmp_path / "services" / "llm.py").write_text(
-        "def chamar_modelo(pdf):\n"
-        '    """Envia o PDF ao Gemini."""\n'
-        "    import google.generativeai as genai\n"
-        "    m = genai.GenerativeModel('x')\n"
-        "    return m.generate_content([pdf])\n", encoding="utf-8")
-
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {
+        "routers/api.py": ("from fastapi import FastAPI\n"
+                           "from services.fluxo import orquestrar\n\n"
+                           "app = FastAPI()\n\n\n"
+                           '@app.post("/extrair")\n'
+                           "def extrair(pdf):\n"
+                           '    """Extrai o consolidado."""\n'
+                           "    return orquestrar(pdf)\n"),
+        "services/fluxo.py": ("from services.llm import chamar_modelo\n\n\n"
+                              "def orquestrar(pdf):\n"
+                              '    """Orquestra a extracao."""\n'
+                              "    if not pdf:\n"
+                              "        raise ValueError('sem pdf')\n"
+                              "    return chamar_modelo(pdf)\n"),
+        "services/llm.py": ("def chamar_modelo(pdf):\n"
+                            '    """Envia o PDF ao Gemini."""\n'
+                            "    import google.generativeai as genai\n"
+                            "    m = genai.GenerativeModel('x')\n"
+                            "    return m.generate_content([pdf])\n")})
     h = bpmn.render_html(m)
     assert "Gemini" in m["piscinas"], m["piscinas"]
     # o auto-layout do bpmn.io NAO posiciona fluxo de mensagem: a integração vive no texto e na
@@ -716,26 +692,23 @@ def test_fluxo_de_mensagem_dentro_do_subprocesso_e_desenhado(bpmn, tmp_path):
         [(n["rotulo"], n["mensagens"]) for n in topo]
 
 
-def test_chamada_dentro_do_return_vira_tarefa(bpmn, tmp_path):
+def test_chamada_dentro_do_return_vira_tarefa(bpmn):
     """`return servico(x)` — o padrão do router fino — perdia a tarefa: o statement caía no ramo
     do `ast.Return` e saía só o evento de fim. Achado montando o teste do fluxo de mensagem em 3
     níveis; no MSS-SSC escapou porque as rotas fazem `dados = gen(...)` antes do `return`."""
-    (tmp_path / "servicos").mkdir()
-    (tmp_path / "servicos" / "calc.py").write_text(
-        "def _somar(a):\n    return a\n\n\n"
-        "def calcular(x):\n"
-        '    """Calcula o premio."""\n'
-        "    if x < 0:\n"
-        "        raise ValueError('negativo')\n"
-        "    return _somar(x)\n", encoding="utf-8")
-    (tmp_path / "web.py").write_text(
-        "from fastapi import FastAPI\n"
-        "from servicos.calc import calcular\n\n"
-        "app = FastAPI()\n\n\n"
-        '@app.get("/premio")\n'
-        "def premio(x):\n"
-        "    return calcular(x)\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {
+        "servicos/calc.py": ("def _somar(a):\n    return a\n\n\n"
+                             "def calcular(x):\n"
+                             '    """Calcula o premio."""\n'
+                             "    if x < 0:\n"
+                             "        raise ValueError('negativo')\n"
+                             "    return _somar(x)\n"),
+        "web.py": ("from fastapi import FastAPI\n"
+                   "from servicos.calc import calcular\n\n"
+                   "app = FastAPI()\n\n\n"
+                   '@app.get("/premio")\n'
+                   "def premio(x):\n"
+                   "    return calcular(x)\n")})
     p = [x for x in m["processos"] if x["nome"] == "GET /premio"][0]
     fns = [n["fn"] for n in bpmn.achatar(p["nos"])]
     assert "calcular" in fns, f"a tarefa do `return calcular(x)` sumiu: {fns}"
@@ -744,11 +717,11 @@ def test_chamada_dentro_do_return_vira_tarefa(bpmn, tmp_path):
 
 # ------------------------------------- rotulo de DESENHO em pt-BR (o modelo segue verbatim)
 
-def test_gateway_vira_pergunta_em_pt_br(bpmn, tmp_path):
+def test_gateway_vira_pergunta_em_pt_br(bpmn):
     """Owner: "trazer o conteúdo em pt-br, inglês só no que for texto de programação". O gateway
     saía rotulado com o nome da variável solto (`anexos`, `row`) — não dizia nada. Agora é
     pergunta em pt-BR com o identificador do código dentro."""
-    (tmp_path / "app.py").write_text(
+    m = _extrair(bpmn, {"app.py": (
         "def _f(x):\n    return x\n\n\n"
         "def main(dados, linha, valor, anexos):\n"
         "    if not dados:\n"
@@ -761,8 +734,7 @@ def test_gateway_vira_pergunta_em_pt_br(bpmn, tmp_path):
         "    if anexos:\n"
         "        _f(2)\n"
         "        return 'com anexo'\n"
-        "    return 'ok'\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+        "    return 'ok'\n")})
     gws = [n for n in bpmn.achatar(m["processos"][0]["nos"]) if n["tipo"] == "gateway"]
     perguntas = [bpmn.rotulo_desenho(g) for g in gws]
     assert "Falta dados?" in perguntas, perguntas
@@ -773,49 +745,26 @@ def test_gateway_vira_pergunta_em_pt_br(bpmn, tmp_path):
     assert bpmn.rotulo_ramo(gws[0], 0) == "sim" and bpmn.rotulo_ramo(gws[0], 1) == "não"
 
 
-def test_fim_e_erro_em_pt_br(bpmn, tmp_path):
-    """`JSONResponse({...})` cru no evento de fim não diz o desfecho; `raise X` idem."""
-    (tmp_path / "app.py").write_text(
-        "def main(x):\n"
-        "    if not x:\n"
-        "        raise ValidacaoError('ruim')\n"
-        "    return JSONResponse({'ok': True})\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
-    nos = bpmn.achatar(m["processos"][0]["nos"])
-    rot = [bpmn.rotulo_desenho(n) for n in nos if n["tipo"] in ("fim", "fim_erro")]
-    assert "Retorna JSONResponse" in rot, rot
-    assert "Erro: ValidacaoError" in rot, rot
-
-
-def test_tarefa_de_banco_ganha_verbo_do_sql(bpmn, tmp_path):
-    """`cur.execute` como nome de tarefa é texto de programação onde cabia pt-BR: o verbo sai do
-    próprio SQL (SELECT → consulta, INSERT → grava, UPDATE → atualiza, DELETE → exclui)."""
-    (tmp_path / "app.py").write_text(
-        "import pyodbc\n\n\n"
-        "def main(cur):\n"
-        '    cur.execute("SELECT id FROM apolice WHERE id = ?", 1)\n'
-        '    cur.execute("INSERT INTO endosso (n) VALUES (?)", 2)\n'
-        '    cur.execute("UPDATE apolice SET n = ?", 3)\n'
-        "    return 1\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
-    rot = [bpmn.rotulo_desenho(n) for n in bpmn.achatar(m["processos"][0]["nos"])
-           if n["tipo"] == "tarefa"]
-    assert "Consulta o banco" in rot, rot
-    assert "Grava no banco" in rot, rot
-    assert "Atualiza o banco" in rot, rot
-
-
-def test_tarefa_de_servico_externo_diz_quem_chama(bpmn, tmp_path):
-    """`genai.GenerativeModel` como nome de tarefa não diz nada; "Chama Gemini" diz."""
-    (tmp_path / "app.py").write_text(
-        "def main():\n"
-        "    import google.generativeai as genai\n"
-        "    m = genai.GenerativeModel('x')\n"
-        "    return 1\n", encoding="utf-8")
-    mo = bpmn.extrair(tmp_path)
-    rot = [bpmn.rotulo_desenho(n) for n in bpmn.achatar(mo["processos"][0]["nos"])
-           if n["mensagens"]]
-    assert "Chama Gemini" in rot, rot
+@pytest.mark.parametrize("codigo,quais,esperados", [
+    # `JSONResponse({...})` cru no evento de fim não diz o desfecho; `raise X` idem
+    ("def main(x):\n    if not x:\n        raise ValidacaoError('ruim')\n    return JSONResponse({'ok': True})\n",
+     lambda n: n["tipo"] in ("fim", "fim_erro"), ["Retorna JSONResponse", "Erro: ValidacaoError"]),
+    # `cur.execute` como nome de tarefa é texto de programação onde cabia pt-BR: o verbo sai do próprio SQL
+    ("import pyodbc\n\n\ndef main(cur):\n"
+     '    cur.execute("SELECT id FROM apolice WHERE id = ?", 1)\n'
+     '    cur.execute("INSERT INTO endosso (n) VALUES (?)", 2)\n'
+     '    cur.execute("UPDATE apolice SET n = ?", 3)\n'
+     "    return 1\n",
+     lambda n: n["tipo"] == "tarefa", ["Consulta o banco", "Grava no banco", "Atualiza o banco"]),
+    # `genai.GenerativeModel` como nome de tarefa não diz nada; "Chama Gemini" diz
+    ("def main():\n    import google.generativeai as genai\n    m = genai.GenerativeModel('x')\n    return 1\n",
+     lambda n: n["mensagens"], ["Chama Gemini"]),
+], ids=["fim-e-erro", "verbo-do-sql", "servico-externo"])
+def test_rotulo_de_desenho_em_pt_br(bpmn, codigo, quais, esperados):
+    m = _extrair(bpmn, {"app.py": codigo})
+    rot = [bpmn.rotulo_desenho(n) for n in bpmn.achatar(m["processos"][0]["nos"]) if quais(n)]
+    for esperado in esperados:
+        assert esperado in rot, rot
 
 
 def test_rotulo_de_tarefa_cabe_na_caixa(bpmn, modelo_web):
@@ -845,9 +794,7 @@ def test_diagramas_em_niveis(diags_web):
 
 
 def test_xml_parseia_e_tem_os_elementos_bpmn(bpmn, diags_web):
-    import xml.etree.ElementTree as ET
-    xml = bpmn.render_bpmn(diags_web[0])
-    raiz = ET.fromstring(xml)
+    raiz = ET.fromstring(bpmn.render_bpmn(diags_web[0]))
     tags = {e.tag.split("}")[-1] for e in raiz.iter()}
     assert "process" in tags and "startEvent" in tags and "sequenceFlow" in tags, tags
     assert {"task", "subProcess"} & tags, tags
@@ -857,11 +804,9 @@ def test_xml_parseia_e_tem_os_elementos_bpmn(bpmn, diags_web):
 def test_todo_no_declara_incoming_e_outgoing(bpmn, diags_web):
     """Regressão do spike: o auto-layout monta o grafo pelos <incoming>/<outgoing> do NÓ, não
     pelo sourceRef do fluxo. Sem eles o DI saía com shapes e ZERO edges — setas invisíveis."""
-    import xml.etree.ElementTree as ET
     B = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
     for d in diags_web:
-        raiz = ET.fromstring(bpmn.render_bpmn(d))
-        proc = raiz.find(f"{B}process")
+        proc = ET.fromstring(bpmn.render_bpmn(d)).find(f"{B}process")
         fluxos = {f.get("id") for f in proc.findall(f"{B}sequenceFlow")}
         citados = set()
         for e in proc:
@@ -878,53 +823,31 @@ def test_xml_usa_rotulo_em_pt_br_e_contrai_o_segue(bpmn, diags_web):
     assert 'name="sim"' in xml and 'name="não"' in xml, "ramos do gateway não saíram sim/não"
 
 
-def test_subprocesso_sem_conteudo_sai_como_tarefa(bpmn, tmp_path):
+def test_subprocesso_sem_conteudo_sai_como_tarefa(bpmn):
     """O `+` de subprocesso colapsado prometia um drill-down que não existia."""
-    (tmp_path / "app.py").write_text(
-        "def _vazio(x):\n    return x\n\n\n"
-        "def _cheio(x):\n"
-        "    if not x:\n"
-        "        raise ValueError('x')\n"
-        "    return _vazio(x)\n\n\n"
-        "def main(x):\n    _cheio(x)\n    return 1\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
-    xml = bpmn.render_bpmn(bpmn.diagramas(m["processos"][0])[0])
+    d = Disco({"app.py": ("def _vazio(x):\n    return x\n\n\n"
+                          "def _cheio(x):\n"
+                          "    if not x:\n"
+                          "        raise ValueError('x')\n"
+                          "    return _vazio(x)\n\n\n"
+                          "def main(x):\n    _cheio(x)\n    return 1\n")})
+    xml = bpmn.render_bpmn(bpmn.diagramas(_extrair(bpmn, d)["processos"][0])[0])
     assert "<bpmn:subProcess" in xml, xml[:400]
-    m2 = bpmn.extrair(tmp_path, profundidade=1)
-    xml2 = bpmn.render_bpmn(bpmn.diagramas(m2["processos"][0])[0])
+    xml2 = bpmn.render_bpmn(bpmn.diagramas(_extrair(bpmn, d, profundidade=1)["processos"][0])[0])
     assert "<bpmn:subProcess" not in xml2, "colapsado sem conteúdo lido continua prometendo '+'"
 
 
-def test_gerar_escreve_os_bpmn_por_diagrama(bpmn, proj_web, tmp_path):
-    """Três saídas: `bpmn.md` (texto, o assistente lê), `bpmn.html` (desenho, o humano vê) e um
-    `.bpmn` por diagrama em `bpmn/` — esse último é o que abre no Bizagi, onde raia e piscina
-    ganham posição que o auto-layout não dá."""
-    md, html = bpmn.gerar(proj_dir=proj_web, out_dir=tmp_path)
-    assert md.exists() and html.exists()
-    pasta = tmp_path / "bpmn"
-    assert pasta.is_dir(), "não criou a pasta dos .bpmn"
-    arquivos = sorted(x.name for x in pasta.glob("*.bpmn"))
-    esperados = sum(len(bpmn.diagramas(p)) for p in bpmn.extrair(proj_web)["processos"])
-    assert len(arquivos) == esperados, (arquivos, esperados)
-    import xml.etree.ElementTree as ET
-    for x in pasta.glob("*.bpmn"):
-        ET.parse(x)          # cada arquivo tem de ser XML válido de verdade
-
-
-def test_rotulo_do_evento_de_borda_e_so_a_excecao(bpmn, tmp_path):
+def test_rotulo_do_evento_de_borda_e_so_a_excecao(bpmn):
     """Visto na tela do MSS-SSC: o rótulo saía `mssc_service.ValidacaoError` e estourava a marca
     do evento de borda ("mssc_service.V alidacaoEr…"). Só a exceção, sem o prefixo do módulo."""
-    (tmp_path / "app.py").write_text(
-        "def _grava(x):\n"
-        "    try:\n"
-        "        return x.save()\n"
-        "    except mssc_service.ValidacaoError:\n"
-        "        raise\n\n\n"
-        "def main(x):\n    _grava(x)\n    return 1\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {"app.py": ("def _grava(x):\n"
+                                   "    try:\n"
+                                   "        return x.save()\n"
+                                   "    except mssc_service.ValidacaoError:\n"
+                                   "        raise\n\n\n"
+                                   "def main(x):\n    _grava(x)\n    return 1\n")})
     xml = "".join(bpmn.render_bpmn(d) for d in bpmn.diagramas(m["processos"][0]))
-    import re as _re
-    bordas = _re.findall(r'<bpmn:boundaryEvent[^>]*name="([^"]*)"', xml)
+    bordas = re.findall(r'<bpmn:boundaryEvent[^>]*name="([^"]*)"', xml)
     assert bordas, xml[:400]
     assert "ValidacaoError" in bordas[0], bordas
     assert "mssc_service" not in bordas[0], f"prefixo do módulo estourou a marca: {bordas[0]!r}"
@@ -943,31 +866,26 @@ def test_indice_lista_so_as_portas_de_entrada(bpmn, modelo_web):
         assert f'href="#{d0["slug"]}"' in nav, f"porta de entrada fora do índice: {p['nome']}"
 
 
-def test_slug_de_diagrama_e_unico_no_documento(bpmn, tmp_path):
+def test_slug_de_diagrama_e_unico_no_documento(bpmn):
     """O BUG que o owner viu: três processos deste repo têm um subprocesso chamado `gerar`, e o
     slug do drill-down era `1-gerar` para os três. `getElementById` devolve o PRIMEIRO, então a
     seção do `mapa_neural` renderizava o XML do `anatomia` — cabeçalho de um, desenho de outro.
     No MSS-SSC duas seções estavam trocadas do mesmo jeito. Slug tem de ser único no documento."""
-    (tmp_path / "a").mkdir()
-    (tmp_path / "b").mkdir()
-    for pasta, sufixo in (("a", "A"), ("b", "B")):
-        (tmp_path / pasta / "svc.py").write_text(
-            f"def _passo{sufixo}(x):\n    return x\n\n\n"
-            "def gerar(x):\n"          # SEM docstring, como os três `gerar` deste repo: o rótulo
-            "    if not x:\n"          # fica igual nos dois e os slugs colidem
-            f"        raise ValueError('{sufixo}')\n"
-            f"    return _passo{sufixo}(x)\n", encoding="utf-8")
-    (tmp_path / "web.py").write_text(
-        "from fastapi import FastAPI\n"
-        "from a.svc import gerar as gerar_a\n"
-        "from b.svc import gerar as gerar_b\n\n"
-        "app = FastAPI()\n\n\n"
-        '@app.get("/a")\n'
-        "def rota_a(x):\n    return gerar_a(x)\n\n\n"
-        '@app.get("/b")\n'
-        "def rota_b(x):\n    return gerar_b(x)\n", encoding="utf-8")
-
-    m = bpmn.extrair(tmp_path)
+    arquivos = {f"{pasta}/svc.py": (f"def _passo{sufixo}(x):\n    return x\n\n\n"
+                                    "def gerar(x):\n"          # SEM docstring, como os três `gerar` deste repo: o
+                                    "    if not x:\n"          # rótulo fica igual nos dois e os slugs colidem
+                                    f"        raise ValueError('{sufixo}')\n"
+                                    f"    return _passo{sufixo}(x)\n")
+                for pasta, sufixo in (("a", "A"), ("b", "B"))}
+    arquivos["web.py"] = ("from fastapi import FastAPI\n"
+                          "from a.svc import gerar as gerar_a\n"
+                          "from b.svc import gerar as gerar_b\n\n"
+                          "app = FastAPI()\n\n\n"
+                          '@app.get("/a")\n'
+                          "def rota_a(x):\n    return gerar_a(x)\n\n\n"
+                          '@app.get("/b")\n'
+                          "def rota_b(x):\n    return gerar_b(x)\n")
+    m = _extrair(bpmn, arquivos)
     slugs = [d["slug"] for p in m["processos"] for d in bpmn.diagramas(p)]
     assert len(slugs) == len(set(slugs)), f"slug repetido no modelo: {slugs}"
 
@@ -985,23 +903,20 @@ def test_slug_transliteta_acento_em_vez_de_apagar(bpmn):
     assert bpmn._slug("Apólice — validação") == "apolice-validacao"
 
 
-def test_import_com_apelido_resolve(bpmn, tmp_path):
+def test_import_com_apelido_resolve(bpmn):
     """`from servicos.regras import aprovar as aprovar_cotacao` e depois `aprovar_cotacao(x)`:
     eu guardava só o nome LOCAL do import, então procurava `aprovar_cotacao` no módulo destino,
     não achava e a tarefa **desaparecia** — o processo saía início → fim. Apelido é comum."""
-    (tmp_path / "servicos").mkdir()
-    (tmp_path / "servicos" / "regras.py").write_text(
-        "def _checar(x):\n    return x\n\n\n"
-        "def aprovar(x):\n"
-        '    """Aprova a cotacao."""\n'
-        "    return _checar(x)\n", encoding="utf-8")
-    (tmp_path / "web.py").write_text(
-        "from fastapi import FastAPI\n"
-        "from servicos.regras import aprovar as aprovar_cotacao\n\n"
-        "app = FastAPI()\n\n\n"
-        '@app.get("/x")\n'
-        "def rota(x):\n    return aprovar_cotacao(x)\n", encoding="utf-8")
-    m = bpmn.extrair(tmp_path)
+    m = _extrair(bpmn, {
+        "servicos/regras.py": ("def _checar(x):\n    return x\n\n\n"
+                               "def aprovar(x):\n"
+                               '    """Aprova a cotacao."""\n'
+                               "    return _checar(x)\n"),
+        "web.py": ("from fastapi import FastAPI\n"
+                   "from servicos.regras import aprovar as aprovar_cotacao\n\n"
+                   "app = FastAPI()\n\n\n"
+                   '@app.get("/x")\n'
+                   "def rota(x):\n    return aprovar_cotacao(x)\n")})
     nos = bpmn.achatar(m["processos"][0]["nos"])
     achado = [n for n in nos if n["fn"] == "aprovar"]
     assert achado, f"a tarefa do apelido sumiu: {[(n['tipo'], n['fn']) for n in nos]}"
@@ -1021,3 +936,41 @@ def test_montagem_espera_a_moldura_ter_tamanho(html_web):
         "não espera a moldura ter tamanho antes do fit-viewport"
     assert js.count("isFinite") >= 2, "aplica altura/escala sem checar se é finita"
     assert "data-montado" in js, "sem marca de montado, a moldura pode ser montada duas vezes"
+
+
+# ---- o disco de verdade e o processo (pasta montada uma vez) ------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    raiz = tmp_path_factory.mktemp("bpmn") / "proj_web"
+    for rel, texto in WEB.items():
+        (raiz / rel).parent.mkdir(parents=True, exist_ok=True)
+        (raiz / rel).write_text(texto, encoding="utf-8")
+    return raiz
+
+
+def test_gerar_escreve_as_duas_saidas(bpmn, pasta):
+    """AC9 — `gerar()` lê o projeto do disco e escreve as saídas: `bpmn.md` (texto, o assistente lê), `bpmn.html`
+    (desenho, o humano vê) e um `.bpmn` por diagrama em `bpmn/` — o que abre no Bizagi, onde raia e piscina ganham a
+    posição que o auto-layout não dá. Sem `out_dir`, a saída vai pra `docs/` (como mapa-neural e anatomia)."""
+    out = pasta / "_out"
+    md, html = bpmn.gerar(proj_dir=pasta, out_dir=out)
+    assert md.name == "bpmn.md" and html.name == "bpmn.html", (md, html)
+    assert "POST /cotacao" in md.read_text(encoding="utf-8") and "quebrado.py" in md.read_text(encoding="utf-8")
+    assert "<svg" in html.read_text(encoding="utf-8")
+    esperados = sum(len(bpmn.diagramas(p)) for p in bpmn.extrair(pasta)["processos"])
+    arquivos = sorted((out / "bpmn").glob("*.bpmn"))
+    assert len(arquivos) == esperados, ([x.name for x in arquivos], esperados)
+    for x in arquivos:
+        ET.parse(x)          # cada arquivo tem de ser XML válido de verdade
+    md, html = bpmn.gerar(proj_dir=pasta)
+    assert md.parent == pasta / "docs" and html.parent == pasta / "docs", (md, html)
+
+
+def test_processo_gera_o_desenho(pasta):
+    r = subprocess.run([sys.executable, str(SCRIPT), "--proj", str(pasta), "--out", str(pasta / "_cli")],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                       env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+    assert r.returncode == 0, r.stderr
+    assert "processo(s) desenhado(s)" in r.stdout
+    assert (pasta / "_cli" / "bpmn.md").is_file() and (pasta / "_cli" / "bpmn.html").is_file()

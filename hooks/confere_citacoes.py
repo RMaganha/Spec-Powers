@@ -80,59 +80,86 @@ def _texto(valor):
     return valor.strip() if isinstance(valor, str) and valor.strip() else None
 
 
+class DiscoReal:
+    """O disco que a regra consulta — a única parte deste hook que toca arquivo. Em teste, a regra recebe no lugar
+    um objeto com os mesmos 6 métodos, sobre um dicionário de arquivos."""
+
+    @staticmethod
+    def eh_pasta(caminho):
+        return os.path.isdir(caminho)
+
+    @staticmethod
+    def eh_arquivo(caminho):
+        return os.path.isfile(caminho)
+
+    @staticmethod
+    def linhas(caminho):
+        """Quantas linhas o arquivo tem."""
+        with open(caminho, "rb") as f:
+            dados = f.read()
+        return dados.count(b"\n") + (0 if dados.endswith(b"\n") or not dados else 1)
+
+    @staticmethod
+    def ler(caminho):
+        """O texto do arquivo (levanta exceção se não dá pra ler)."""
+        with open(caminho, encoding="utf-8") as f:
+            return f.read()
+
+    @staticmethod
+    def nomes(pasta):
+        return os.listdir(pasta) if os.path.isdir(pasta) else []
+
+    @staticmethod
+    def listar(raiz):
+        """Caminhos relativos (com `/`) dos arquivos de uma raiz: git ls-files, ou varredura com teto."""
+        try:
+            proc = subprocess.run(["git", "-C", raiz, "ls-files", "-co", "--exclude-standard"],
+                                  capture_output=True, text=True, timeout=5, encoding="utf-8")
+            if proc.returncode == 0:
+                return [l.strip() for l in proc.stdout.splitlines() if l.strip()]
+        except Exception:                            # noqa: BLE001
+            pass
+        saida = []
+        for base, pastas, arquivos in os.walk(raiz):
+            pastas[:] = [p for p in pastas if p not in (".git", "node_modules", ".venv", "__pycache__")]
+            rel = os.path.relpath(base, raiz).replace("\\", "/")
+            saida += [a if rel == "." else f"{rel}/{a}" for a in arquivos]
+            if len(saida) > MAX_ARQUIVOS:
+                break
+        return saida
+
+
+def _ultima_resposta_do_texto(texto):
+    """Texto da última mensagem do assistente (fora de subagente) no conteúdo do transcript, ou None."""
+    ultimo = None
+    for linha in (texto or "").splitlines():
+        try:
+            reg = json.loads(linha)
+        except ValueError:
+            continue
+        if not isinstance(reg, dict) or reg.get("type") != "assistant" or reg.get("isSidechain"):
+            continue
+        partes = [b.get("text", "") for b in (reg.get("message") or {}).get("content") or []
+                  if isinstance(b, dict) and b.get("type") == "text"]
+        if any(p.strip() for p in partes):
+            ultimo = "\n".join(partes)
+    return ultimo
+
+
 def _ultima_resposta(transcript):
-    """Texto da última mensagem do assistente (fora de subagente) no transcript, ou None."""
+    """Texto da última mensagem do assistente no transcript (caminho), ou None. Usado também pelo
+    `passagem_de_conversa.py`."""
     try:
-        ultimo = None
-        with open(transcript, encoding="utf-8") as f:
-            for linha in f:
-                try:
-                    reg = json.loads(linha)
-                except ValueError:
-                    continue
-                if reg.get("type") != "assistant" or reg.get("isSidechain"):
-                    continue
-                partes = [b.get("text", "") for b in (reg.get("message") or {}).get("content") or []
-                          if isinstance(b, dict) and b.get("type") == "text"]
-                if any(p.strip() for p in partes):
-                    ultimo = "\n".join(partes)
-        return ultimo
+        return _ultima_resposta_do_texto(DiscoReal.ler(transcript))
     except Exception:                                # noqa: BLE001
         return None
 
 
-def _arquivos_de(raiz):
-    """Caminhos relativos (com `/`) dos arquivos de uma raiz: git ls-files, ou varredura com teto."""
-    try:
-        proc = subprocess.run(["git", "-C", raiz, "ls-files", "-co", "--exclude-standard"],
-                              capture_output=True, text=True, timeout=5, encoding="utf-8")
-        if proc.returncode == 0:
-            return [l.strip() for l in proc.stdout.splitlines() if l.strip()]
-    except Exception:                                # noqa: BLE001
-        pass
-    saida = []
-    for base, pastas, arquivos in os.walk(raiz):
-        pastas[:] = [p for p in pastas if p not in (".git", "node_modules", ".venv", "__pycache__")]
-        rel = os.path.relpath(base, raiz).replace("\\", "/")
-        saida += [a if rel == "." else f"{rel}/{a}" for a in arquivos]
-        if len(saida) > MAX_ARQUIVOS:
-            break
-    return saida
-
-
-def _conhecidos(raiz):
+def _conhecidos(raiz, disco):
     """Tudo contra o que uma citação parcial pode casar: arquivos do projeto e do kit, e os moldes do kit
     pelo nome (o `docs/SEGURANCA.md` de um projeto nasce de `templates/SEGURANCA.md`)."""
-    todos = set(_arquivos_de(raiz)) | set(_arquivos_de(KIT))
-    moldes = os.path.join(KIT, "templates")
-    nomes_molde = set(os.listdir(moldes)) if os.path.isdir(moldes) else set()
-    return todos, nomes_molde
-
-
-def _linhas(caminho):
-    with open(caminho, "rb") as f:
-        dados = f.read()
-    return dados.count(b"\n") + (0 if dados.endswith(b"\n") or not dados else 1)
+    todos = set(disco.listar(raiz)) | set(disco.listar(KIT))
+    return todos, set(disco.nomes(os.path.join(KIT, "templates")))
 
 
 def _para_windows(p):
@@ -140,7 +167,7 @@ def _para_windows(p):
     return f"{m.group(1).upper()}:/" + p[3:] if os.name == "nt" and m else p
 
 
-def _confere_caminho(bruto, raiz, nomes):
+def _confere_caminho(bruto, raiz, nomes, disco):
     """None se existe; senão o motivo curto."""
     m = RE_CAMINHO.match(bruto)
     if not m:
@@ -152,7 +179,7 @@ def _confere_caminho(bruto, raiz, nomes):
         candidatos = [arq]
     else:
         candidatos = [os.path.join(raiz, arq), os.path.join(KIT, arq)]
-    achado = next((c for c in candidatos if os.path.isfile(c)), None)
+    achado = next((c for c in candidatos if disco.eh_arquivo(c)), None)
     if achado is None:
         rel = arq.replace("\\", "/").lstrip("./")
         todos, nomes_molde = nomes()
@@ -160,7 +187,7 @@ def _confere_caminho(bruto, raiz, nomes):
             return None                               # caminho parcial/nome solto que existe, ou molde do kit
         return "arquivo não encontrado"
     if linha:
-        total = _linhas(achado)
+        total = disco.linhas(achado)
         if int(linha) > total:
             return f"o arquivo tem {total} linhas"
     return None
@@ -172,14 +199,14 @@ def _linhas_de_fato(texto):
     return [l for l in texto.split("\n") if not RE_FUTURO.search(l)]
 
 
-def citacoes_invalidas(texto, raiz):
-    """[(citação, motivo)] — só o que dá pra conferir no disco."""
+def citacoes_invalidas(texto, raiz, disco=DiscoReal):
+    """[(citação, motivo)] — só o que dá pra conferir no disco (`disco`: o real, ou o de teste)."""
     sem_codigo = "\n".join(_linhas_de_fato(RE_CERCADO.sub(" ", texto)))
     cache = {}
 
     def nomes():
         if "n" not in cache:
-            cache["n"] = _conhecidos(raiz)
+            cache["n"] = _conhecidos(raiz, disco)
         return cache["n"]
 
     saida, vistos = [], set()
@@ -190,17 +217,16 @@ def citacoes_invalidas(texto, raiz):
                 or c.startswith(("#", "mailto:")):
             continue
         vistos.add(c)
-        motivo = _confere_caminho(c, raiz, nomes)
+        motivo = _confere_caminho(c, raiz, nomes, disco)
         if motivo:
             saida.append((c, motivo))
     for nome in dict.fromkeys(RE_COMANDO.findall(sem_codigo)):
-        if not (os.path.isfile(os.path.join(KIT, "commands", nome + ".md"))
-                or os.path.isdir(os.path.join(KIT, "skills", nome))):
+        if not (disco.eh_arquivo(os.path.join(KIT, "commands", nome + ".md"))
+                or disco.eh_pasta(os.path.join(KIT, "skills", nome))):
             saida.append((f"/mss-spec:{nome}", "comando/skill que o kit não tem"))
     evals = os.path.join(raiz, "docs", "EVALS.md")
-    if os.path.isfile(evals):
-        with open(evals, encoding="utf-8") as f:
-            existentes = set(RE_CASO.findall(f.read()))
+    if disco.eh_arquivo(evals):
+        existentes = set(RE_CASO.findall(disco.ler(evals)))
         for n in dict.fromkeys(RE_CASO.findall(sem_codigo)):
             if n not in existentes:
                 saida.append((f"F-{n}", "caso que não está no docs/EVALS.md"))
@@ -275,9 +301,11 @@ def _citada(ponteiro, texto_norm, norm):
     return bool(titulo) and "indice/" in arquivo and norm(titulo) in texto_norm
 
 
-def memorias_da_proposta(texto, raiz, ja_vistas=()):
-    """[(tema, ponteiro)] — memória/subíndice/decisão do tema que a resposta propõe e não cita."""
-    if not os.path.isdir(os.path.join(raiz, "memory")):
+def memorias_da_proposta(texto, raiz, ja_vistas=(), disco=DiscoReal, carregar_motor=None):
+    """[(tema, ponteiro)] — memória/subíndice/decisão do tema que a resposta propõe e não cita. `disco` responde se
+    o projeto tem `memory/` (`DiscoReal`, ou o de teste); `carregar_motor()` devolve o `memoria_indice` (padrão:
+    `_motor`), chamado só quando a resposta propõe mudança num tema."""
+    if not disco.eh_pasta(os.path.join(raiz, "memory")):
         return []
     sem_codigo = RE_CERCADO.sub(" ", texto)
     if not RE_PROPOSTA.search(sem_codigo):
@@ -286,7 +314,7 @@ def memorias_da_proposta(texto, raiz, ja_vistas=()):
     if not temas:
         return []
     from pathlib import Path
-    motor = _motor()
+    motor = (carregar_motor or _motor)()
     norm = lambda s: " ".join(re.sub(r"[^a-z0-9]+", " ", motor._norm(s)).split())   # noqa: E731
     texto_norm = norm(texto)
     saida, vistos = [], set(ja_vistas)
@@ -308,24 +336,19 @@ def memorias_da_proposta(texto, raiz, ja_vistas=()):
     return saida
 
 
-def _ultimo_prompt(transcript):
-    """Último prompt de texto do owner no transcript (não resultado de ferramenta), ou ''."""
-    if not _texto(transcript):
-        return ""
-    try:
-        ultimo = ""
-        with open(transcript, encoding="utf-8") as f:
-            for linha in f:
-                try:
-                    reg = json.loads(linha)
-                except ValueError:
-                    continue
-                c = (reg.get("message") or {}).get("content") if reg.get("type") == "user" else None
-                if isinstance(c, str) and c.strip():
-                    ultimo = c
-        return ultimo
-    except Exception:                                # noqa: BLE001
-        return ""
+def _ultimo_prompt_do_texto(texto):
+    """Último prompt de texto do owner no conteúdo do transcript (não resultado de ferramenta), ou ''."""
+    ultimo = ""
+    for linha in (texto or "").splitlines():
+        try:
+            reg = json.loads(linha)
+        except ValueError:
+            continue
+        c = (reg.get("message") or {}).get("content") if isinstance(reg, dict) and reg.get("type") == "user" \
+            else None
+        if isinstance(c, str) and c.strip():
+            ultimo = c
+    return ultimo
 
 
 def rotas_nao_pedidas(texto, prompt):
@@ -334,61 +357,101 @@ def rotas_nao_pedidas(texto, prompt):
             and len(sem_codigo.split()) > MIN_PALAVRAS_ROTA and not RE_PEDIU_OPCOES.search(prompt or ""))
 
 
-def decidir(evento, ambiente=None):
-    """None = deixa sair; str = motivo pra devolver a resposta. Qualquer defeito → None (falha aberta)."""
+def _memorias(texto, raiz, sessao, ambiente, disco=DiscoReal):
+    """[(parte do motivo, detalhe pro registro)] da memória de ação e da memória da proposta — os dois buscam no
+    `memory/` do projeto e guardam o que já mostraram (`hooks/_memoria_de_acao.py`). Cada busca quebrada → nada.
+    `disco` responde se o projeto tem `memory/` pra memória da proposta (`DiscoReal`, ou o de teste)."""
+    saida = []
     try:
-        ambiente = os.environ if ambiente is None else ambiente
+        import _memoria_de_acao as mem
+        achadas = mem.casar(texto, "resposta", raiz, sessao)
+        if achadas:
+            mem.marcar(sessao, [m[0] for m in achadas])
+            saida.append((MOTIVO_MEMORIA.format(lista="\n".join(
+                f"- `{n}` ({a}): {d}" for n, a, d, _ in achadas[:3])), "memoria=" + ",".join(m[0] for m in achadas[:3])))
+    except Exception:                                # noqa: BLE001 — memória quebrada não muda o resto
+        pass
+    try:
+        if not _texto(ambiente.get("MSS_MEMORIA_ACAO_OFF")):
+            import _memoria_de_acao as mem
+            da_proposta = memorias_da_proposta(texto, raiz, mem.ja_mostradas(sessao), disco)
+            if da_proposta:
+                mem.marcar(sessao, [p.split(" — ")[0] for _, p in da_proposta])
+                temas = ", ".join(dict.fromkeys(t for t, _ in da_proposta))
+                saida.append((MOTIVO_PROPOSTA.format(temas=temas, lista="\n".join(
+                    f"- {p}" for _, p in da_proposta)), f"proposta={len(da_proposta)}"))
+    except Exception:                                # noqa: BLE001 — busca quebrada não muda o resto
+        pass
+    return saida
+
+
+def regra(evento, ambiente, disco, memorias):
+    """A REGRA, sem disco próprio: `disco` responde o que existe (`DiscoReal`, ou o de teste) e `memorias(texto,
+    raiz, sessao, ambiente)` devolve as partes do motivo que vêm da memória do projeto.
+    Devolve `(motivo, anotacoes)`: motivo None = deixa sair, str = devolve a resposta; anotacoes =
+    `[(decisao, detalhe)]` pro registro. Qualquer defeito → (None, …) (falha aberta)."""
+    anotacoes = []
+    try:
         if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict):
-            return None
+            return None, anotacoes
         if evento.get("stop_hook_active"):
-            return None                               # já devolveu uma vez neste turno
+            return None, anotacoes                    # já devolveu uma vez neste turno
         raiz = _texto(ambiente.get("CLAUDE_PROJECT_DIR")) or _texto(evento.get("cwd"))
-        if raiz is None or not os.path.isdir(raiz):
-            return None
+        if raiz is None or not disco.eh_pasta(raiz):
+            return None, anotacoes
+        transcript = _texto(evento.get("transcript_path"))
+        conteudo = {}
+
+        def do_transcript():
+            if "t" not in conteudo:
+                try:
+                    conteudo["t"] = disco.ler(transcript)
+                except Exception:                    # noqa: BLE001
+                    conteudo["t"] = None
+            return conteudo["t"]
+
         texto = evento.get("last_assistant_message")
         if not isinstance(texto, str):
-            texto = _ultima_resposta(evento.get("transcript_path")) if _texto(evento.get("transcript_path")) else None
+            texto = _ultima_resposta_do_texto(do_transcript()) if transcript else None
         if not _texto(texto):
-            return None
+            return None, anotacoes
         partes, detalhes = [], []
-        invalidas = citacoes_invalidas(texto, raiz)
+        invalidas = citacoes_invalidas(texto, raiz, disco)
         if invalidas:
             partes.append(MOTIVO.format(lista="\n".join(f"- `{c}` — {m}" for c, m in invalidas[:10])))
             detalhes.append(f"citacoes={len(invalidas)}")
-        prompt = _ultimo_prompt(evento.get("transcript_path"))
+        prompt = _ultimo_prompt_do_texto(do_transcript()) if transcript else ""
         if rotas_nao_pedidas(texto, prompt):
             partes.append(MOTIVO_ROTAS)
             detalhes.append("rotas")
-        try:
-            import _memoria_de_acao as mem
-            sessao = evento.get("session_id")
-            achadas = mem.casar(texto, "resposta", raiz, sessao)
-            if achadas:
-                mem.marcar(sessao, [m[0] for m in achadas])
-                partes.append(MOTIVO_MEMORIA.format(lista="\n".join(
-                    f"- `{n}` ({a}): {d}" for n, a, d, _ in achadas[:3])))
-                detalhes.append("memoria=" + ",".join(m[0] for m in achadas[:3]))
-        except Exception:                            # noqa: BLE001 — memória quebrada não muda o resto
-            pass
-        try:
-            if not _texto(ambiente.get("MSS_MEMORIA_ACAO_OFF")):
-                import _memoria_de_acao as mem
-                sessao = evento.get("session_id")
-                da_proposta = memorias_da_proposta(texto, raiz, mem.ja_mostradas(sessao))
-                if da_proposta:
-                    mem.marcar(sessao, [p.split(" — ")[0] for _, p in da_proposta])
-                    temas = ", ".join(dict.fromkeys(t for t, _ in da_proposta))
-                    partes.append(MOTIVO_PROPOSTA.format(temas=temas, lista="\n".join(
-                        f"- {p}" for _, p in da_proposta)))
-                    detalhes.append(f"proposta={len(da_proposta)}")
-        except Exception:                            # noqa: BLE001 — busca quebrada não muda o resto
-            pass
+        for parte, detalhe in memorias(texto, raiz, evento.get("session_id"), ambiente):
+            partes.append(parte)
+            detalhes.append(detalhe)
         if not partes:
-            return None
-        _anotar("devolveu", " ".join(detalhes)[:200], evento)
-        return "\n\n".join(partes)
+            return None, anotacoes
+        anotacoes.append(("devolveu", " ".join(detalhes)[:200]))
+        return "\n\n".join(partes), anotacoes
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, anotacoes
+
+
+def decidir(evento, ambiente=None):
+    """A casca: a regra com o disco de verdade, e o registro gravado. None = deixa sair; str = motivo pra
+    devolver a resposta. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        motivo, anotacoes = regra(evento, ambiente, DiscoReal, _memorias)
+        for decisao, detalhe in anotacoes:
+            _anotar(decisao, detalhe, evento)
+        return motivo
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(motivo):
+    """O que o processo imprime, ou None (calado). Contrato do Stop: JSON no stdout e exit 0. `json.dumps` sem
+    `ensure_ascii=False` deixa o texto em ASCII puro (acentos escapados): a página de código do console não importa."""
+    return None if motivo is None else json.dumps({"decision": "block", "reason": motivo})
 
 
 def main():
@@ -397,12 +460,9 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    motivo = decidir(evento)
-    if motivo is None:
-        sys.exit(0)
-    # Contrato do Stop: JSON no stdout e exit 0. `json.dumps` sem `ensure_ascii=False` deixa o texto em
-    # ASCII puro (acentos escapados), então a página de código do console não importa.
-    print(json.dumps({"decision": "block", "reason": motivo}))
+    impresso = saida(decidir(evento))
+    if impresso is not None:
+        print(impresso)
     sys.exit(0)
 
 

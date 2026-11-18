@@ -23,12 +23,9 @@ RE_FRONT = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.S)
 CAMPOS = {"comando": "gatilho_comando", "resposta": "gatilho_resposta"}
 
 
-def _frontmatter(caminho):
-    try:
-        with open(caminho, encoding="utf-8") as f:
-            m = RE_FRONT.match(f.read())
-    except (OSError, UnicodeDecodeError):
-        return {}
+def _campos(texto):
+    """Os campos `chave: valor` do frontmatter de um texto de memória ({} sem frontmatter)."""
+    m = RE_FRONT.match(texto or "")
     if not m:
         return {}
     campos = {}
@@ -39,17 +36,40 @@ def _frontmatter(caminho):
     return campos
 
 
-def memorias(raiz, qual):
-    """[(nome, caminho para mostrar, descrição, regex compilado)] das memórias com gatilho de `qual`."""
-    campo, saida, vistos = CAMPOS[qual], [], set()
+def _de_memoria(nome):
+    return nome.endswith(".md") and nome not in ("MEMORY.md", "DIARIO.md")
+
+
+def _ler_fontes(raiz):
+    """Disco: [(rótulo, {nome: texto})] das memórias do projeto e do kit (memória de máquina, como a do heredoc,
+    mora no kit). Arquivo ilegível fica de fora."""
+    fontes = []
     for base, rotulo in ((raiz, ""), (KIT, "(kit) ")):
-        pasta = os.path.join(base, "memory")
+        pasta = os.path.join(base, "memory") if base else None
         if not base or not os.path.isdir(pasta):
             continue
+        textos = {}
         for nome in sorted(os.listdir(pasta)):
-            if not nome.endswith(".md") or nome in ("MEMORY.md", "DIARIO.md") or nome in vistos:
+            if not _de_memoria(nome):
                 continue
-            fm = _frontmatter(os.path.join(pasta, nome))
+            try:
+                with open(os.path.join(pasta, nome), encoding="utf-8") as f:
+                    textos[nome] = f.read()
+            except (OSError, UnicodeDecodeError):
+                continue
+        fontes.append((rotulo, textos))
+    return fontes
+
+
+def memorias_de(fontes, qual):
+    """[(nome, caminho para mostrar, descrição, regex compilado)] das memórias com gatilho de `qual`, de
+    [(rótulo, {nome: texto})]. A do projeto vence a do kit de mesmo nome; `obsoleta:` e regex inválido ficam de fora."""
+    campo, saida, vistos = CAMPOS[qual], [], set()
+    for rotulo, textos in fontes:
+        for nome in sorted(textos):
+            if not _de_memoria(nome) or nome in vistos:
+                continue
+            fm = _campos(textos[nome])
             if fm.get("obsoleta") or not fm.get(campo):
                 continue
             try:
@@ -59,6 +79,11 @@ def memorias(raiz, qual):
             vistos.add(nome)
             saida.append((nome[:-3], f"{rotulo}memory/{nome}", fm.get("description", ""), rx))
     return saida
+
+
+def memorias(raiz, qual):
+    """As memórias com gatilho de `qual`, lidas do disco (projeto e kit)."""
+    return memorias_de(_ler_fontes(raiz), qual)
 
 
 def _estado(sessao):
@@ -83,11 +108,15 @@ def marcar(sessao, nomes):
         pass
 
 
+def casar_em(texto, lista, feitas):
+    """A REGRA, sem disco: das memórias de `lista`, as que casam `texto` e não estão em `feitas`."""
+    return [m for m in lista if m[0] not in feitas and m[3].search(texto)]
+
+
 def casar(texto, qual, raiz, sessao):
     """Memórias de `qual` cujo gatilho casa `texto` e que ainda não foram mostradas nesta sessão.
     Sem número de sessão não age: "uma vez por sessão" não se garante — o estado cairia num arquivo único,
     dividido por toda conversa (e por toda rodada de teste)."""
     if not isinstance(texto, str) or not texto or not sessao:
         return []
-    feitas = ja_mostradas(sessao)
-    return [m for m in memorias(raiz, qual) if m[0] not in feitas and m[3].search(texto)]
+    return casar_em(texto, memorias(raiz, qual), ja_mostradas(sessao))

@@ -15,18 +15,22 @@ Propriedades (spec `docs/specs/conversa-nova-nao-se-perde.md`, critérios 1 a 5)
 - "o kit não aceita / negou / bloqueou" sem `arquivo:linha` ou sem pergunta → volta; "Nada no kit proíbe" passa;
 - contrato do `Stop`: JSON `{"decision": "block"}` e saída 0; `stop_hook_active` → deixa sair; falha ABERTA;
   escape só do owner: `MSS_PASSAGEM_OFF=1`.
+
+Camadas (2026-11-17): a REGRA (`regra`) é testada em memória — o que o hook guardaria no disco (o estado de cada
+conversa, os textos prontos do projeto, as specs) fica num objeto do teste e entra como dado. O disco de verdade
+fica num teste só (a casca `avaliar` lê e grava), numa pasta montada uma vez; o processo python, num teste só.
 """
 import importlib.util
 import json
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 HOOK = REPO / "hooks" / "passagem_de_conversa.py"
+AGORA = 1_800_000_000.0
 
 PEDIDO_REAL = """/mss-spec:nova-feature Memória em tabela — parte 2: a busca usa a tabela e a tabela se atualiza sozinha.
 Leia antes de qualquer desenho, nesta ordem: docs/specs/memoria-em-tabela.md.
@@ -81,20 +85,36 @@ Com o seu OK nesta lista, abro a branch e sigo para o plano e o código.
 """
 
 
-def _mod():
+@pytest.fixture(scope="module")
+def mod():
     spec = importlib.util.spec_from_file_location("passagem_de_conversa", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+class Guardado:
+    """O que o hook guarda no disco, em memória: o estado de cada conversa, os textos prontos e as specs do projeto.
+    `avaliar` chama a regra com isso como dado e aplica o que ela devolve — o papel da casca, sem disco."""
+
+    def __init__(self, mod):
+        self.mod, self.estados, self.passagens, self.specs, self.anotacoes = mod, {}, None, [], []
+
+    def avaliar(self, evento, ambiente=None):
+        sessao = evento.get("session_id") if isinstance(evento, dict) else None
+        tipo, texto, mudancas = self.mod.regra(evento, ambiente or {}, self.estados.get(sessao, {}),
+                                                 lambda: self.passagens, lambda: list(self.specs), AGORA)
+        if "estado" in mudancas:
+            self.estados[sessao] = mudancas["estado"]
+        if "passagens" in mudancas:
+            self.passagens = mudancas["passagens"]
+        self.anotacoes += mudancas["anotacoes"]
+        return tipo, texto
 
 
 @pytest.fixture()
-def amb(tmp_path):
-    return {"TEMP": str(tmp_path), "TMP": str(tmp_path), "TMPDIR": str(tmp_path)}
-
-
-def _nova():
-    return "s-" + uuid.uuid4().hex[:8]
+def hook(mod):
+    return Guardado(mod)
 
 
 def _pedido(texto, sessao):
@@ -108,8 +128,8 @@ def _fim(texto, sessao, **extra):
 
 # --- quem recebe: os itens chegam como decididos --------------------------------------------------------
 
-def test_le_os_itens_decididos_do_pedido_real():
-    itens = _mod().decididos(PEDIDO_REAL)
+def test_le_os_itens_decididos_do_pedido_real(mod):
+    itens = mod.decididos(PEDIDO_REAL)
     assert len(itens) == 6, itens
     assert itens[0].startswith("Gravar continua sendo no arquivo")
     assert itens[4].endswith("assistente escolhe quais abrir."), "a linha de continuação do item 5 se perdeu"
@@ -123,93 +143,85 @@ def test_le_os_itens_decididos_do_pedido_real():
     "O que eu já decidi:",
     "Decisões já tomadas:",
 ])
-def test_formas_do_titulo(titulo):
+def test_formas_do_titulo(mod, titulo):
     texto = f"/mss-spec:nova-feature x\n{titulo}\n1. A tabela é cópia para busca.\n2. O arquivo é o original.\n\nFalta decidir:\n1. onde mora"
-    assert _mod().decididos(texto) == ["A tabela é cópia para busca.", "O arquivo é o original."]
+    assert mod.decididos(texto) == ["A tabela é cópia para busca.", "O arquivo é o original."]
 
 
-def test_pedido_colado_tambem():
+def test_pedido_colado_tambem(mod):
     colado = '<pasted_content id="77">\n' + PEDIDO_REAL + "</pasted_content>"
-    assert len(_mod().decididos(colado)) == 6
+    assert len(mod.decididos(colado)) == 6
 
 
-def test_pedido_sem_lista_decidida_nao_tem_itens():
-    mod = _mod()
+def test_pedido_sem_lista_decidida_nao_tem_itens(mod):
     assert mod.decididos("já decidi que vou almoçar; agora me explique o hook") == []
     assert mod.decididos("Já decidido — não reabrir: nada\nFalta decidir:\n1. tudo") == []
     assert mod.decididos(None) == []
 
 
-def test_pedido_com_decididos_entrega_a_regra_so_ao_assistente(amb):
-    mod, s = _mod(), _nova()
-    tipo, texto = mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
+def test_pedido_com_decididos_entrega_a_regra_so_ao_assistente(hook):
+    tipo, texto = hook.avaliar(_pedido(PEDIDO_REAL, "s-a"))
     assert tipo == "contexto"
     assert "6" in texto and "DECIDID" in texto
     assert "lista única" in texto and "de uma vez" in texto and "arquivo e linha" in texto
-    assert mod.avaliar(_pedido("bom dia, me explique o hook", _nova()), amb) == (None, None)
+    assert hook.avaliar(_pedido("bom dia, me explique o hook", "s-b")) == (None, None)
 
 
 # --- critério 1: a resposta real do F-058 volta ---------------------------------------------------------
 
-def test_resposta_real_do_f058_volta(amb):
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
-    tipo, motivo = mod.avaliar(_fim(RESPOSTA_F058, s), amb)
+def test_resposta_real_do_f058_volta(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
+    tipo, motivo = hook.avaliar(_fim(RESPOSTA_F058, "s"))
     assert tipo == "devolve", "a resposta que reabriu tópico a tópico saiu (F-058)"
     assert "tópico" in motivo.lower() and "lista única" in motivo
     assert "6" in motivo, "o motivo não diz quantos itens chegaram decididos"
 
 
-def test_sem_decididos_o_topico_a_topico_passa(amb):
+def test_sem_decididos_o_topico_a_topico_passa(hook):
     """O formato tópico a tópico vale para o que ainda NÃO foi decidido — conversa sem passagem não é barrada."""
-    assert _mod().avaliar(_fim(RESPOSTA_F058, _nova()), amb) == (None, None)
+    assert hook.avaliar(_fim(RESPOSTA_F058, "s")) == (None, None)
 
 
 # --- critério 2: a resposta que deu certo sai -----------------------------------------------------------
 
-def test_resposta_real_que_deu_certo_sai(amb):
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
-    assert mod.avaliar(_fim(RESPOSTA_QUE_DEU_CERTO, s), amb) == (None, None)
+def test_resposta_real_que_deu_certo_sai(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
+    assert hook.avaliar(_fim(RESPOSTA_QUE_DEU_CERTO, "s")) == (None, None)
 
 
-def test_perguntas_de_uma_vez_no_fim_saem(amb):
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
+def test_perguntas_de_uma_vez_no_fim_saem(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
     resposta = ("**Lista única das minhas escolhas.**\n\n1. Hook calado. Motivo: `docs/decisoes.md:61`.\n"
                 "2. Estado no temp.\n\n## O que só você decide\n\n"
                 "1. O aviso das 3 anotações troca de motor agora ou depois da medição?\n"
                 "2. A versão sai como 0.56.0?\n")
-    assert mod.avaliar(_fim(resposta, s), amb) == (None, None)
+    assert hook.avaliar(_fim(resposta, "s")) == (None, None)
 
 
 # --- critério 3: pergunta que repete item decidido ------------------------------------------------------
 
-def test_pergunta_que_repete_item_decidido_volta(amb):
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
+def test_pergunta_que_repete_item_decidido_volta(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
     resposta = ("**Minhas escolhas abaixo.**\n\n1. Hook calado.\n\n## O que só você decide\n\n"
                 "A busca vai na tabela primeiro e só depois nos arquivos, confirma?\n")
-    tipo, motivo = mod.avaliar(_fim(resposta, s), amb)
+    tipo, motivo = hook.avaliar(_fim(resposta, "s"))
     assert tipo == "devolve"
     assert "Buscar é na tabela primeiro" in motivo, "o motivo não aponta o item decidido"
 
 
-def test_perguntas_espalhadas_pelo_meio_voltam(amb):
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
+def test_perguntas_espalhadas_pelo_meio_voltam(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
     meio = "\n".join(f"{n}. escolha {n}, com o motivo dela." for n in range(1, 16))
     resposta = f"**Escolhas.**\n\nO hook roda em qual momento?\n\n{meio}\n\nE a versão, qual vai ser?\n"
-    tipo, motivo = mod.avaliar(_fim(resposta, s), amb)
+    tipo, motivo = hook.avaliar(_fim(resposta, "s"))
     assert tipo == "devolve" and "de uma vez" in motivo
 
 
-def test_devolve_uma_vez_por_tipo_na_conversa(amb):
+def test_devolve_uma_vez_por_tipo_na_conversa(hook):
     """Volta à toa custa segundos; em laço custa a conversa: cada conferência de quem recebe age uma vez."""
-    mod, s = _mod(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, s), amb)
-    assert mod.avaliar(_fim(RESPOSTA_F058, s), amb)[0] == "devolve"
-    assert mod.avaliar(_fim(RESPOSTA_F058, s), amb) == (None, None)
+    hook.avaliar(_pedido(PEDIDO_REAL, "s"))
+    assert hook.avaliar(_fim(RESPOSTA_F058, "s"))[0] == "devolve"
+    assert hook.avaliar(_fim(RESPOSTA_F058, "s")) == (None, None)
 
 
 # --- critério 4: "o kit não aceita" ---------------------------------------------------------------------
@@ -222,21 +234,21 @@ def test_devolve_uma_vez_por_tipo_na_conversa(amb):
     "O comando foi negado pelo hook do kit.",
     "Não posso seguir por esse caminho porque a regra do kit proíbe banco como fonte.",
 ])
-def test_recusa_sem_regra_e_sem_pergunta_volta(amb, frase):
-    tipo, motivo = _mod().avaliar(_fim(f"**Parei aqui.**\n\n{frase}\n", _nova()), amb)
+def test_recusa_sem_regra_e_sem_pergunta_volta(hook, frase):
+    tipo, motivo = hook.avaliar(_fim(f"**Parei aqui.**\n\n{frase}\n", "s"))
     assert tipo == "devolve", f"recusa atribuída ao kit saiu sem regra: {frase}"
     assert "arquivo e linha" in motivo and "pergunt" in motivo.lower()
 
 
-def test_recusa_com_regra_e_pergunta_sai(amb):
+def test_recusa_com_regra_e_pergunta_sai(hook):
     resposta = ("**Uma regra do kit parece proibir isto.**\n\nO hook negou o push: `hooks/git_publicacao.py:17` diz "
                 "que push para `main` é ato do owner.\n\nVocê mantém essa regra ou quer que eu prepare o passo a passo?\n")
-    assert _mod().avaliar(_fim(resposta, _nova()), amb) == (None, None)
+    assert hook.avaliar(_fim(resposta, "s")) == (None, None)
 
 
-def test_recusa_so_com_regra_ainda_volta(amb):
+def test_recusa_so_com_regra_ainda_volta(hook):
     resposta = "O hook negou o push (`hooks/git_publicacao.py:17`). Parei aqui.\n"
-    tipo, motivo = _mod().avaliar(_fim(resposta, _nova()), amb)
+    tipo, motivo = hook.avaliar(_fim(resposta, "s"))
     assert tipo == "devolve" and "pergunt" in motivo.lower()
 
 
@@ -251,8 +263,8 @@ def test_recusa_so_com_regra_ainda_volta(amb):
     "```\nO hook negou o push.\n```",                                                  # dentro de bloco
     "> O kit não permite isso.",                                                       # citação
 ])
-def test_o_que_nao_e_recusa_passa(amb, frase):
-    assert _mod().avaliar(_fim(frase + "\n", _nova()), amb) == (None, None), f"disparou à toa: {frase}"
+def test_o_que_nao_e_recusa_passa(hook, frase):
+    assert hook.avaliar(_fim(frase + "\n", "s")) == (None, None), f"disparou à toa: {frase}"
 
 
 # --- critério 5: quem entrega o texto pronto ------------------------------------------------------------
@@ -285,28 +297,27 @@ regra com arquivo e linha e me pergunte.
 """
 
 
-def test_texto_pronto_sem_as_tres_partes_volta_com_o_molde(amb):
-    tipo, motivo = _mod().avaliar(_fim(TEXTO_PRONTO_RUIM, _nova()), amb)
+def test_texto_pronto_sem_as_tres_partes_volta_com_o_molde(hook):
+    tipo, motivo = hook.avaliar(_fim(TEXTO_PRONTO_RUIM, "s"))
     assert tipo == "devolve"
     for parte in ("Já decidido — não reabrir:", "Falta decidir:", "Regras desta conversa:"):
         assert parte in motivo, f"o molde não traz `{parte}`"
 
 
-def test_texto_pronto_com_as_tres_partes_sai(amb):
-    assert _mod().avaliar(_fim(TEXTO_PRONTO_BOM, _nova()), amb) == (None, None)
+def test_texto_pronto_com_as_tres_partes_sai(hook):
+    assert hook.avaliar(_fim(TEXTO_PRONTO_BOM, "s")) == (None, None)
 
 
-def test_texto_pronto_com_um_topico_por_vez_volta(amb):
+def test_texto_pronto_com_um_topico_por_vez_volta(hook):
     """O texto real de 2026-11-11 pedia "um tópico por vez" — e a conversa que recebeu obedeceu."""
     ruim = TEXTO_PRONTO_BOM.replace("siga depois do meu OK.", "siga depois do meu OK. Um tópico por vez.")
-    tipo, motivo = _mod().avaliar(_fim(ruim, _nova()), amb)
+    tipo, motivo = hook.avaliar(_fim(ruim, "s"))
     assert tipo == "devolve" and "tópico por vez" in motivo
 
 
-def test_o_molde_do_proprio_hook_e_um_texto_valido(amb):
-    mod = _mod()
+def test_o_molde_do_proprio_hook_e_um_texto_valido(hook, mod):
     resposta = "Abra uma conversa nova e cole:\n\n```text\n" + mod.MOLDE + "\n```\n"
-    assert mod.avaliar(_fim(resposta, _nova()), amb) == (None, None), "o molde que o hook ensina não passa nele"
+    assert hook.avaliar(_fim(resposta, "s")) == (None, None), "o molde que o hook ensina não passa nele"
     assert mod.decididos(mod.MOLDE), "a conversa que recebe não lê os itens do molde"
 
 
@@ -318,70 +329,92 @@ def test_o_molde_do_proprio_hook_e_um_texto_valido(amb):
     # bloco de código, não de texto
     "Na conversa nova, cole este comando:\n\n```bash\ngit status -sb\ngit log --oneline -3\ngit branch\ngit diff\ngit stash list\n```\n",
 ])
-def test_o_que_nao_e_texto_pronto_de_passagem_passa(amb, resposta):
-    assert _mod().avaliar(_fim(resposta, _nova()), amb) == (None, None)
+def test_o_que_nao_e_texto_pronto_de_passagem_passa(hook, resposta):
+    assert hook.avaliar(_fim(resposta, "s")) == (None, None)
 
 
 # --- garantias ------------------------------------------------------------------------------------------
 
-def test_stop_hook_active_deixa_sair(amb):
-    assert _mod().avaliar(_fim("O kit não permite isso.", _nova(), stop_hook_active=True), amb) == (None, None)
+def test_stop_hook_active_deixa_sair(hook):
+    assert hook.avaliar(_fim("O kit não permite isso.", "s", stop_hook_active=True)) == (None, None)
 
 
-def test_escape_do_owner(amb):
-    mod = _mod()
-    desligado = {**amb, "MSS_PASSAGEM_OFF": "1"}
-    assert mod.avaliar(_fim("O kit não permite isso.", _nova()), desligado) == (None, None)
-    assert mod.avaliar(_pedido(PEDIDO_REAL, _nova()), desligado) == (None, None)
+def test_escape_do_owner(hook):
+    desligado = {"MSS_PASSAGEM_OFF": "1"}
+    assert hook.avaliar(_fim("O kit não permite isso.", "s"), desligado) == (None, None)
+    assert hook.avaliar(_pedido(PEDIDO_REAL, "s"), desligado) == (None, None)
 
 
 @pytest.mark.parametrize("ruim", [None, "texto", 42, [], {}, {"hook_event_name": "Stop"},
                                   {"hook_event_name": "UserPromptSubmit", "prompt": None}])
-def test_entrada_malformada_libera(amb, ruim):
-    assert _mod().avaliar(ruim, amb) == (None, None)
+def test_entrada_malformada_libera(hook, ruim):
+    assert hook.avaliar(ruim) == (None, None)
 
 
-def test_conversas_sao_independentes(amb):
-    mod, a, b = _mod(), _nova(), _nova()
-    mod.avaliar(_pedido(PEDIDO_REAL, a), amb)
-    assert mod.avaliar(_fim(RESPOSTA_F058, b), amb) == (None, None), "a conversa B herdou os itens da A"
-    assert mod.avaliar(_fim(RESPOSTA_F058, a), amb)[0] == "devolve"
+def test_conversas_sao_independentes(hook):
+    hook.avaliar(_pedido(PEDIDO_REAL, "a"))
+    assert hook.avaliar(_fim(RESPOSTA_F058, "b")) == (None, None), "a conversa B herdou os itens da A"
+    assert hook.avaliar(_fim(RESPOSTA_F058, "a"))[0] == "devolve"
 
 
-def _rodar(evento, tmp_path):
-    env = {**__import__("os").environ, "TEMP": str(tmp_path), "TMP": str(tmp_path),
-           "MSS_REGISTRO_ARQUIVO": str(tmp_path / "registro.jsonl")}
-    return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(evento), capture_output=True, text=True,
-                          encoding="utf-8", env=env)
+def test_registro_guarda_que_devolveu_sem_o_texto(hook):
+    hook.avaliar(_fim("O kit não permite abrir a conversa daqui.", "s"))
+    assert [d for d, _ in hook.anotacoes] == ["devolveu"]
+    assert not any("abrir a conversa daqui" in detalhe for _, detalhe in hook.anotacoes), \
+        "o texto da resposta foi pro registro"
 
 
-def test_processo_devolve_pelo_contrato_do_stop(tmp_path):
-    """JSON `{"decision": "block"}` no stdout e saída 0 — exit 2 + stderr se perde nesta máquina (decisão de
-    2026-10-30)."""
-    proc = _rodar(_fim("O kit não permite abrir a conversa daqui.", "s-proc"), tmp_path)
+def test_saida_pelo_contrato_de_cada_evento(mod):
+    """`Stop`: JSON `{"decision": "block"}` (exit 2 + stderr se perde nesta máquina, decisão de 2026-10-30).
+    Pedido: `additionalContext`, nunca `systemMessage` — o owner não tem nada a fazer. Nada a dizer: calado."""
+    devolve = json.loads(mod.saida("devolve", "motivo com arquivo e linha"))
+    assert devolve == {"decision": "block", "reason": "motivo com arquivo e linha"}
+    contexto = json.loads(mod.saida("contexto", "itens DECIDIDOS"))
+    assert "systemMessage" not in contexto
+    assert contexto["hookSpecificOutput"] == {"hookEventName": "UserPromptSubmit",
+                                              "additionalContext": "itens DECIDIDOS"}
+    assert mod.saida(None, None) is None
+
+
+# --- o disco de verdade: a casca lê e grava (pasta montada uma vez) -------------------------------------
+
+@pytest.fixture(scope="module")
+def pasta(tmp_path_factory):
+    base = tmp_path_factory.mktemp("passagem")
+    temp, proj = base / "temp", base / "projeto"
+    temp.mkdir()
+    (proj / "docs" / "specs").mkdir(parents=True)
+    (proj / "docs" / "specs" / "memoria-em-tabela.md").write_text(
+        "# Memória em tabela\n\n## O que o owner decidiu\n\n1. Gravar é no arquivo.\n", encoding="utf-8")
+    return temp, proj
+
+
+def test_casca_le_e_grava_o_estado_os_textos_prontos_e_a_spec(mod, pasta):
+    temp, proj = pasta
+    amb = {"TEMP": str(temp), "TMP": str(temp), "TMPDIR": str(temp), "CLAUDE_PROJECT_DIR": str(proj)}
+    # textos prontos: a conversa A entrega, a B acha (lidos do disco), junto com a spec do projeto
+    assert mod.avaliar(_fim(TEXTO_PRONTO_BOM, "disco-a"), amb) == (None, None)
+    assert list(proj.rglob("mss_passagens_*.json")) == [], "o texto guardado sujou a pasta do projeto"
+    tipo, achado = mod.avaliar(_pedido("vamos continuar a memória em tabela", "disco-b"), amb)
+    assert tipo == "contexto" and "Buscar é na tabela primeiro." in achado
+    assert "docs/specs/memoria-em-tabela.md:3" in achado, "a spec do disco não foi lida"
+    # estado da conversa: os itens gravados num evento e lidos no seguinte
+    assert mod.avaliar(_pedido(PEDIDO_REAL, "disco-c"), amb)[0] == "contexto"
+    assert mod.avaliar(_fim(RESPOSTA_F058, "disco-c"), amb)[0] == "devolve"
+    assert mod.avaliar(_fim(RESPOSTA_F058, "disco-c"), amb) == (None, None), "o que já devolveu não foi gravado"
+    # defeito no disco: spec ilegível e texto guardado quebrado não seguram o pedido; a spec boa ainda é achada
+    (proj / "docs" / "specs" / "ilegivel.md").write_bytes(b"\xff\xfe\x00## O que o owner decidiu\n1. x\n")
+    next(temp.glob("mss_passagens_*.json")).write_text("{quebrado", encoding="utf-8")
+    tipo, achado = mod.avaliar(_pedido("vamos continuar a memória em tabela", "disco-d"), amb)
+    assert tipo == "contexto" and "Gravar é no arquivo." in achado
+
+
+def test_processo_devolve_pelo_contrato_do_stop(pasta):
+    """O processo python de verdade: lê a entrada, imprime o JSON e sai com 0."""
+    temp, _ = pasta
+    env = {**__import__("os").environ, "TEMP": str(temp), "TMP": str(temp), "TMPDIR": str(temp)}
+    proc = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(_fim("O kit não permite isso.", "s-proc")),
+                          capture_output=True, text=True, encoding="utf-8", env=env)
     assert proc.returncode == 0, proc.stderr
     saida = json.loads(proc.stdout)
     assert saida["decision"] == "block" and "arquivo e linha" in saida["reason"]
-
-
-def test_processo_entrega_a_regra_como_contexto(tmp_path):
-    proc = _rodar(_pedido(PEDIDO_REAL, "s-proc2"), tmp_path)
-    assert proc.returncode == 0, proc.stderr
-    saida = json.loads(proc.stdout)
-    assert "systemMessage" not in saida, "recado ao owner: ele não tem nada a fazer"
-    assert "DECIDID" in saida["hookSpecificOutput"]["additionalContext"]
-    assert saida["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
-
-
-def test_processo_calado_quando_nada_a_dizer(tmp_path):
-    proc = _rodar(_fim("Feito: 12 testes verdes.", "s-proc3"), tmp_path)
-    assert proc.returncode == 0 and proc.stdout.strip() == ""
-    proc = _rodar(_pedido("bom dia", "s-proc3"), tmp_path)
-    assert proc.returncode == 0 and proc.stdout.strip() == ""
-
-
-def test_registro_guarda_que_devolveu_sem_o_texto(tmp_path):
-    _rodar(_fim("O kit não permite abrir a conversa daqui.", "s-reg"), tmp_path)
-    registro = (tmp_path / "registro.jsonl").read_text(encoding="utf-8")
-    assert "passagem_de_conversa" in registro and "devolveu" in registro
-    assert "abrir a conversa daqui" not in registro, "o texto da resposta foi pro registro"

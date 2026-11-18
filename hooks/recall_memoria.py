@@ -58,38 +58,58 @@ def _motor():
     return mod
 
 
-def responder(evento, ambiente=None):
-    """dict pra imprimir, ou None = silêncio. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, tem_memoria, motor):
+    """A REGRA, sem disco: `tem_memoria(raiz)` diz se o projeto tem a pasta `memory/` e `motor()` devolve o
+    `templates/memoria_indice.py` (ou o de teste) — quem lê a memória pra casar é o motor. Devolve
+    `(resposta, mudancas)`: o dict pra imprimir ou None (silêncio); mudancas tem `"anotacoes"`. Qualquer defeito →
+    None (falha aberta; `MSS_RECALL_DEBUG=1` mostra o traceback)."""
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip():
-            return None
+            return None, mudancas
         if not isinstance(evento, dict):
-            return None
+            return None, mudancas
         prompt = evento.get("prompt")
         if not isinstance(prompt, str) or prompt.lstrip().startswith("/"):
-            return None
+            return None, mudancas
         raiz = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
         if not isinstance(raiz, str) or not raiz.strip():
-            return None
+            return None, mudancas
         proj = Path(raiz)
-        if not (proj / "memory").is_dir():
-            return None
-        motor = _motor()
-        toks, _ = motor.tokens(prompt)
+        if not tem_memoria(proj):
+            return None, mudancas
+        m = motor()
+        toks, _ = m.tokens(prompt)
         if len(toks) < MIN_TOKENS_PROMPT:
-            return None
-        texto = motor.formatar_injecao(motor.casar(proj, prompt, limite=LIMITE, diario=False))
+            return None, mudancas
+        texto = m.formatar_injecao(m.casar(proj, prompt, limite=LIMITE, diario=False))
         if not texto:
-            return None
+            return None, mudancas
         # só o ponteiro (arquivo:linha), nunca o prompt nem o resumo da memória
         ponteiros = [l[2:].split(" — ")[0] for l in texto.splitlines() if l.startswith("- ")]
-        _anotar("injetou", ", ".join(ponteiros), evento)
-        return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": texto}}
+        mudancas["anotacoes"].append(("injetou", ", ".join(ponteiros)))
+        return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": texto}}, mudancas
     except Exception:                                # noqa: BLE001 — falha ABERTA
         if str((ambiente or os.environ).get(ENV_DEBUG, "")).strip():
             traceback.print_exc(file=sys.stderr)
+        return None, {"anotacoes": []}
+
+
+def responder(evento, ambiente=None):
+    """A casca: a regra com o disco e o motor de verdade; grava o registro. dict pra imprimir, ou None = silêncio."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        resposta, mudancas = regra(evento, ambiente, lambda proj: (proj / "memory").is_dir(), _motor)
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return resposta
+    except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(resposta):
+    """O que o processo imprime, ou None (calado)."""
+    return None if resposta is None else json.dumps(resposta, ensure_ascii=False)
 
 
 def main():
@@ -98,14 +118,14 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    saida = responder(evento)
-    if saida is None:
+    impresso = saida(responder(evento))
+    if impresso is None:
         sys.exit(0)
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:  # noqa: BLE001
         pass
-    print(json.dumps(saida, ensure_ascii=False))
+    print(impresso)
     sys.exit(0)
 
 

@@ -112,48 +112,78 @@ def _e_comando_do_kit(caminho):
     return p.startswith(KIT) or "mss-spec" in p
 
 
-def decidir(evento, ambiente=None):
-    """Motivo da negativa (str) ou None = libera calado. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, entrou_na):
+    """A REGRA, sem disco: `entrou_na(sessao)` diz se um comando do kit já entrou nesta conversa — o disco, ou o de
+    teste; só é chamada quando a regra precisa. Devolve `(motivo, mudancas)`: motivo da negativa (str) ou None =
+    libera calado; mudancas tem `"anotacoes"` (`[(decisao, detalhe)]` pro registro) e, quando um comando do kit
+    entra, `"marcar"` (por onde entrou). Qualquer defeito → None (falha aberta)."""
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if _texto(ambiente.get(ENV_DESLIGA)):
-            return None
+            return None, mudancas
         if not isinstance(evento, dict):
-            return None
+            return None, mudancas
         sessao = evento.get("session_id")
         nome_evento = evento.get("hook_event_name")
         if nome_evento == "UserPromptSubmit":
             # o pedido COLADO chega dentro de `<pasted_content …>`: o comando é o começo do texto, não da marca (F-053)
             if _pedido(evento.get("prompt")).lstrip().startswith("/" + PREFIXO_KIT):
-                marcar(sessao, ambiente, "prompt")
-            return None
+                mudancas["marcar"] = "prompt"
+            return None, mudancas
         if nome_evento != "PreToolUse":
-            return None
+            return None, mudancas
         ferramenta = evento.get("tool_name")
         entrada = evento.get("tool_input")
         if not isinstance(entrada, dict):
-            return None
+            return None, mudancas
         if ferramenta == "Read":
             caminho = _texto(entrada.get("file_path"))
             if caminho and _e_comando_do_kit(caminho):
-                marcar(sessao, ambiente, "read " + os.path.basename(caminho))
-            return None
+                mudancas["marcar"] = "read " + os.path.basename(caminho)
+            return None, mudancas
         if ferramenta != "Skill":
-            return None
+            return None, mudancas
         skill = _texto(entrada.get("skill")).strip()
         if not skill:
-            return None
+            return None, mudancas
         if skill.startswith(PREFIXO_KIT):
-            marcar(sessao, ambiente, "skill " + skill)
-            return None
+            mudancas["marcar"] = "skill " + skill
+            return None, mudancas
         if not skill.startswith(PREFIXO_SUPERPOWERS):
-            return None
-        if entrou(sessao, ambiente):
-            return None
-        _anotar("negou", skill, evento)
-        return MOTIVO.format(skill=skill)
+            return None, mudancas
+        if entrou_na(sessao):
+            return None, mudancas
+        mudancas["anotacoes"].append(("negou", skill))
+        return MOTIVO.format(skill=skill), mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, mudancas
+
+
+def decidir(evento, ambiente=None):
+    """A casca: a regra com o estado do disco; grava a entrada pelo kit e o registro. Motivo da negativa (str) ou
+    None = libera calado. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        motivo, mudancas = regra(evento, ambiente, lambda sessao: entrou(sessao, ambiente))
+        if "marcar" in mudancas:
+            marcar(evento.get("session_id"), ambiente, mudancas["marcar"])
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return motivo
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return None
+
+
+def saida(motivo):
+    """(stdout, stderr, código de saída): o mesmo contrato do `git_publicacao.py` — JSON `deny` no stdout, motivo
+    no stderr e exit 2; liberar é calado e exit 0."""
+    if motivo is None:
+        return None, None, 0
+    return json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": motivo,
+    }}), motivo, 2
 
 
 def main():
@@ -162,21 +192,17 @@ def main():
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    motivo = decidir(evento)
-    if motivo is None:
+    impresso, erro, codigo = saida(decidir(evento))
+    if impresso is None:
         sys.exit(0)
-    for saida in (sys.stdout, sys.stderr):
+    for fluxo in (sys.stdout, sys.stderr):
         try:
-            saida.reconfigure(encoding="utf-8")
+            fluxo.reconfigure(encoding="utf-8")
         except (AttributeError, OSError):
             pass
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": motivo,
-    }}))
-    print(motivo, file=sys.stderr)
-    sys.exit(2)
+    print(impresso)
+    print(erro, file=sys.stderr)
+    sys.exit(codigo)
 
 
 if __name__ == "__main__":

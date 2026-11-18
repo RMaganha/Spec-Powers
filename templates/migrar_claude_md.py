@@ -90,15 +90,36 @@ class NaoEhUtf8(Exception):
         self.arquivo = arquivo
 
 
-def _decodificar(p: Path) -> str:
+class DiscoReal:
+    """O que `montar` e `conferir` leem do projeto — a única parte deles que toca arquivo. Em teste, entra no lugar
+    um objeto com os mesmos 3 métodos, sobre um dicionário {caminho: bytes}."""
+
+    @staticmethod
+    def eh_arquivo(p: Path) -> bool:
+        return Path(p).is_file()
+
+    @staticmethod
+    def ler_bytes(p: Path) -> bytes:
+        return Path(p).read_bytes()
+
+    @staticmethod
+    def regras(pasta: Path) -> list:
+        """Nomes relativos (com `/`) dos `.md` de `.claude/rules/`, em ordem de caminho; pasta ausente → []."""
+        pasta = Path(pasta)
+        if not pasta.is_dir():
+            return []
+        return [p.relative_to(pasta).as_posix() for p in sorted(pasta.rglob("*.md")) if p.is_file()]
+
+
+def _decodificar(p: Path, disco=DiscoReal) -> str:
     try:
-        return p.read_bytes().decode("utf-8")
+        return disco.ler_bytes(p).decode("utf-8")
     except UnicodeDecodeError as e:
         raise NaoEhUtf8(p) from e
 
 
-def _ler(p: Path):
-    bruto = _decodificar(p)
+def _ler(p: Path, disco=DiscoReal):
+    bruto = _decodificar(p, disco)
     eol = "\r\n" if "\r\n" in bruto else "\n"
     return bruto.replace("\r\n", "\n"), eol
 
@@ -330,12 +351,10 @@ def _aspas(item: str) -> str:
     return item.strip()
 
 
-def _ler_regras(proj: Path) -> dict:
+def _ler_regras(proj: Path, disco=DiscoReal) -> dict:
     """{nome relativo a .claude/rules/ (com `/`): (texto LF, eol)} em ordem de nome."""
     pasta = Path(proj).joinpath(*PASTA_REGRAS)
-    if not pasta.is_dir():
-        return {}
-    return {p.relative_to(pasta).as_posix(): _ler(p) for p in sorted(pasta.rglob("*.md")) if p.is_file()}
+    return {nome: _ler(pasta.joinpath(*nome.split("/")), disco) for nome in disco.regras(pasta)}
 
 
 def _tirar_item(texto: str, rotulo: str):
@@ -404,23 +423,25 @@ def _juntar(linhas: list) -> list:
     return out
 
 
-def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO) -> Migracao:
+def montar(proj: Path, linhas_kit: set, teto: int = TETO_PROJETO, disco=DiscoReal) -> Migracao:
+    """A migração montada, sem gravar nada. `disco` responde o que o projeto tem (`DiscoReal`, ou o de teste)."""
     proj = Path(proj)
     linhas_kit = set(linhas_kit)
     mig = Migracao()
     arq = proj / "CLAUDE.md"
-    if not arq.is_file():
+    if not disco.eh_arquivo(arq):
         mig.falhas.append(f"não existe {arq}")
         return mig
-    bruto = _decodificar(arq)
+    bruto = _decodificar(arq, disco)
     if any(l.strip() == MARCA for l in _lf(bruto).split("\n")):
         mig.claude_novo, mig.ja_migrado = bruto, True
         return mig
-    texto, eol = _ler(arq)
+    texto, eol = _ler(arq, disco)
     bom = "\ufeff" if texto.startswith("\ufeff") else ""
     texto = texto.lstrip("\ufeff")                # o BOM volta no começo do arquivo novo, nunca no meio
-    regras = {n: t for n, (t, _) in _ler_regras(proj).items()}
-    eol_regras = {n: e for n, (_, e) in _ler_regras(proj).items()}
+    lidas = _ler_regras(proj, disco)
+    regras = {n: t for n, (t, _) in lidas.items()}
+    eol_regras = {n: e for n, (_, e) in lidas.items()}
     atuais = dict(regras)
     titulos_kit = {r for r in (_rotulo(l) for l in linhas_kit) if r}
     tirados = set()
@@ -573,18 +594,19 @@ def _git_status(proj: Path, tocados: list) -> list:
     return falhas
 
 
-def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
-    """Falhas que impedem gravar (vazio = ok). Só lê: nem o projeto nem o git do projeto mudam."""
+def conferir(proj: Path, m: Migracao, linhas_kit=None, disco=DiscoReal, git_status=None) -> list:
+    """Falhas que impedem gravar (vazio = ok). Só lê: nem o projeto nem o git do projeto mudam. `disco` responde o
+    que o projeto tem e `git_status(proj, tocados)` as falhas do ponto de volta (padrão: o git de verdade)."""
     if m.ja_migrado:
         return []
     proj = Path(proj)
     falhas = list(m.falhas)
     linhas_kit = set(carregar_linhas_do_kit() if linhas_kit is None else linhas_kit)
     arq = proj / "CLAUDE.md"
-    if not arq.is_file():
+    if not disco.eh_arquivo(arq):
         return falhas or [f"não existe {arq}"]
-    antes, _ = _ler(arq)
-    regras_antes = {n: t for n, (t, _) in _ler_regras(proj).items()}
+    antes, _ = _ler(arq, disco)
+    regras_antes = {n: t for n, (t, _) in _ler_regras(proj, disco).items()}
     novo = _lf(m.claude_novo)
     sobrando = sorted(set(m.regras_novas) - set(regras_antes))
     if sobrando:
@@ -663,7 +685,7 @@ def conferir(proj: Path, m: Migracao, linhas_kit=None) -> list:
 
     # ponto de volta
     tocados = ["CLAUDE.md"] + [f".claude/rules/{n}" for n in sorted(m.regras_novas)]
-    falhas += _git_status(proj, tocados)
+    falhas += (git_status or _git_status)(proj, tocados)
     return falhas
 
 

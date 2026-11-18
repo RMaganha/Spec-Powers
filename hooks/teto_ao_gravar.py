@@ -116,14 +116,36 @@ def _medida(n, teto):
     return f"{_kb(n)} (teto {_kb(teto)})"
 
 
-def _tem_marca(raiz):
-    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
-    try:
-        with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
-            texto = f.read().lstrip("\ufeff")
-    except (OSError, UnicodeError):
-        return False
-    return any(linha.strip() == MARCA for linha in texto.splitlines())
+def marca_no(texto):
+    """True se o texto do `CLAUDE.md` tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
+    return any(linha.strip() == MARCA for linha in (texto or "").lstrip("﻿").splitlines())
+
+
+class DiscoReal:
+    """O disco que a regra consulta. Em teste, a regra recebe no lugar um objeto com os mesmos 3 métodos."""
+
+    @staticmethod
+    def eh_pasta(caminho):
+        return os.path.isdir(caminho)
+
+    @staticmethod
+    def versao(caminho):
+        """[tamanho, mtime_ns] do arquivo, ou None se não existe."""
+        try:
+            st = os.stat(caminho)
+            return [st.st_size, st.st_mtime_ns]
+        except OSError:
+            return None
+
+    @staticmethod
+    def ler_claude(raiz):
+        """O `CLAUDE.md` da raiz, ou None. `errors="replace"`: a marca é ASCII, então um CLAUDE.md fora de UTF-8
+        ainda a mostra."""
+        try:
+            with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except (OSError, UnicodeError):
+            return None
 
 
 def _arquivo_de_estado(sessao):
@@ -132,19 +154,13 @@ def _arquivo_de_estado(sessao):
 
 
 def _ler_estado(sessao):
+    """Disco: o estado desta conversa — os avisos que já saíram (`_avisados`) e a última versão vista de cada alvo."""
     try:
         with open(_arquivo_de_estado(sessao), encoding="utf-8") as f:
             dado = json.load(f)
         return dado if isinstance(dado, dict) else {}
     except Exception:                                # noqa: BLE001
         return {}
-
-
-def _ja_avisou(sessao, nome):
-    """True se o aviso 'acima do teto' de `nome` (MAPA.md · INDEX.md · CLAUDE.md) já saiu nesta sessão (0.52.0:
-    uma vez por sessão por arquivo — o Whats recebia o mesmo pedido em toda edição)."""
-    lista = _ler_estado(sessao).get(CHAVE_AVISADOS)
-    return isinstance(lista, list) and nome in lista
 
 
 def _marcar_avisado(sessao, nome):
@@ -161,19 +177,10 @@ def _marcar_avisado(sessao, nome):
         pass
 
 
-def _versao(caminho):
-    """[tamanho, mtime_ns] do arquivo, ou None se não existe."""
-    try:
-        st = os.stat(caminho)
-        return [st.st_size, st.st_mtime_ns]
-    except OSError:
-        return None
-
-
 def marcar_visto(caminho, sessao):
-    """Guarda a versão (tamanho, mtime_ns) que o hook acabou de ver, pra não tratar a mesma de novo."""
+    """Disco: guarda a versão (tamanho, mtime_ns) que o hook acabou de ver, pra não tratar a mesma de novo."""
     try:
-        versao = _versao(caminho)
+        versao = DiscoReal.versao(caminho)
         if versao is None:
             return
         estado = _ler_estado(sessao)
@@ -184,67 +191,83 @@ def marcar_visto(caminho, sessao):
         pass
 
 
+def _mudou(versao, vista, agora):
+    """Gravado agora: mtime dentro de `JANELA_S` E versão diferente da última vista nesta conversa."""
+    return versao is not None and 0 <= agora - versao[1] / 1e9 <= JANELA_S and vista != versao
+
+
 def mudou_agora(caminho, sessao, agora=None):
-    """True se `caminho` foi gravado agora: mtime dentro de `JANELA_S` E versão diferente da última vista
-    nesta sessão. Só confere; quem grava o estado é `marcar_visto`."""
+    """True se `caminho` foi gravado agora (disco). Só confere; quem grava o estado é `marcar_visto`."""
     try:
-        agora = time.time() if agora is None else agora
-        versao = _versao(caminho)
-        if versao is None or not (0 <= agora - versao[1] / 1e9 <= JANELA_S):
-            return False
-        return _ler_estado(sessao).get(_norm(caminho)) != versao
+        return _mudou(DiscoReal.versao(caminho), _ler_estado(sessao).get(_norm(caminho)),
+                      time.time() if agora is None else agora)
     except Exception:                                # noqa: BLE001
         return False
 
 
-def responder(evento, ambiente=None):
-    """dict pra imprimir, ou None = silêncio. Qualquer defeito → None (falha aberta)."""
+def regra(evento, ambiente, disco, ler_estado, motor, agora):
+    """A REGRA, sem disco: `disco` responde se a raiz é pasta, a versão de um arquivo e o texto do CLAUDE.md
+    (`DiscoReal`, ou o de teste); `ler_estado()` devolve o estado desta conversa; `motor()` o `rodizio_partida` (que
+    move o excesso do MAPA/INDEX — ele mesmo grava); `agora` em segundos. As funções só são chamadas quando a regra
+    precisa. Devolve `(saida, mudancas)`: saida = dict pra imprimir, ou None = silêncio; mudancas tem `"avisados"`
+    (avisos a marcar nesta conversa), `"vistos"` (arquivos cuja versão marcar como vista) e `"anotacoes"`."""
+    mudancas = {"avisados": [], "vistos": [], "anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if str(ambiente.get(ENV_DESLIGA, "")).strip() or not isinstance(evento, dict):
-            return None
+            return None, mudancas
         raiz = ambiente.get("CLAUDE_PROJECT_DIR") or evento.get("cwd")
-        if not isinstance(raiz, str) or not raiz.strip() or not os.path.isdir(raiz):
-            return None
+        if not isinstance(raiz, str) or not raiz.strip() or not disco.eh_pasta(raiz):
+            return None, mudancas
         alvos = tocados(evento, raiz)
-        sessao = evento.get("session_id")
+        lido = {}
+
+        def estado():
+            if "e" not in lido:
+                lido["e"] = ler_estado()
+            return lido["e"]
+
         if evento.get("tool_name") in TOOLS_DE_SHELL:
             # citar o arquivo no comando não é gravar: só conta o que mudou agora e ainda não foi visto
-            alvos = [a for a in alvos if mudou_agora(os.path.join(raiz, *a.split("/")), sessao)]
+            alvos = [a for a in alvos
+                     if _mudou(disco.versao(os.path.join(raiz, *a.split("/"))),
+                               estado().get(_norm(os.path.join(raiz, *a.split("/")))), agora)]
         if not alvos:
-            return None
-        try:
-            return _agir(evento, raiz, alvos, sessao)
-        finally:
-            for a in alvos:                          # a versão que o hook viu (já enxugada) não dispara de novo
-                marcar_visto(os.path.join(raiz, *a.split("/")), sessao)
+            return None, mudancas
+        # a versão que o hook viu (já enxugada) não dispara de novo — a casca marca depois do enxugar
+        mudancas["vistos"] = [os.path.join(raiz, *a.split("/")) for a in alvos]
+        return _agir(raiz, alvos, estado, disco, motor, mudancas), mudancas
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None
+        return None, mudancas
 
 
-def _agir(evento, raiz, alvos, sessao):
+def _agir(raiz, alvos, estado, disco, motor, mudancas):
     """O que fazer com os ALVOS gravados: enxugar MAPA/INDEX (recado só pro assistente) e, no CLAUDE.md acima do
     teto, avisar o owner. Todo aviso "acima do teto" sai UMA vez por sessão por arquivo (0.52.0)."""
     partes, do_owner, detalhes, acima = [], [], [], False
+
+    def ja_avisou(nome):
+        lista = estado().get(CHAVE_AVISADOS)
+        return (isinstance(lista, list) and nome in lista) or nome in mudancas["avisados"]
+
     if any(a != "CLAUDE.md" for a in alvos):
-        motor = _motor()
-        for qual, r in motor.enxugar(Path(raiz), aplicar=True).items():
+        m = motor()
+        for qual, r in m.enxugar(Path(raiz), aplicar=True).items():
             nome = "MAPA.md" if qual == "mapa" else "INDEX.md"
-            acima = acima or r.bytes_antes > (motor.TETO_MAPA if qual == "mapa" else motor.TETO_INDEX)
+            acima = acima or r.bytes_antes > (m.TETO_MAPA if qual == "mapa" else m.TETO_INDEX)
             if r.passos:
                 partes.append(f"{nome} {_kb(r.bytes_antes)} → {_kb(r.bytes_depois)}: " + " · ".join(r.passos))
                 detalhes.append(f"{nome}={r.bytes_antes}->{r.bytes_depois}")
             partes += r.problemas
-            if r.avisos and not _ja_avisou(sessao, nome):   # "ainda acima: conteúdo vivo" — uma vez por sessão
+            if r.avisos and not ja_avisou(nome):          # "ainda acima: conteúdo vivo" — uma vez por sessão
                 partes += r.avisos
-                _marcar_avisado(sessao, nome)
-    if "CLAUDE.md" in alvos and not _ja_avisou(sessao, "CLAUDE.md"):
-        caminho = os.path.join(raiz, "CLAUDE.md")
-        n = os.path.getsize(caminho) if os.path.isfile(caminho) else 0
+                mudancas["avisados"].append(nome)
+    if "CLAUDE.md" in alvos and not ja_avisou("CLAUDE.md"):
+        versao = disco.versao(os.path.join(raiz, "CLAUDE.md"))
+        n = versao[0] if versao else 0
         if n > TETO_CLAUDE_MD:
             acima = True
             medida = f"CLAUDE.md com {_medida(n, TETO_CLAUDE_MD)}"
-            if _tem_marca(raiz):
+            if marca_no(disco.ler_claude(raiz)):
                 do_owner.append(f"{medida}: mova um bloco INTEIRO com ponteiro — regra de tipo de arquivo pra "
                                 "`.claude/rules/<x>.md` com `paths:`, procedimento pra `docs/` — e nunca comprima a "
                                 "redação de uma regra (F-029). Não movi nada aqui: é julgamento.")
@@ -252,7 +275,7 @@ def _agir(evento, raiz, alvos, sessao):
                 do_owner.append(f"{medida}: rode `/mss-spec:upgrade` pra migrar o CLAUDE.md (as regras do kit passam "
                                 "a vir do plugin). Não movi nada aqui; nunca comprima a redação de uma regra (F-029).")
             detalhes.append(f"CLAUDE.md={n}")
-            _marcar_avisado(sessao, "CLAUDE.md")
+            mudancas["avisados"].append("CLAUDE.md")
     if not partes and not do_owner:
         return None
     moveu = any("→" in p for p in partes)
@@ -266,11 +289,29 @@ def _agir(evento, raiz, alvos, sessao):
         texto += " MAPA/INDEX não é assunto pro owner: não o avise disso."
     if do_owner:
         texto += " O CLAUDE.md é ato dele: avise o owner em 1 linha."
-    _anotar("moveu" if moveu else "avisou", " ".join(detalhes)[:200], evento)
+    mudancas["anotacoes"].append(("moveu" if moveu else "avisou", " ".join(detalhes)[:200]))
     saida = {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": texto}}
     if do_owner:                                     # linha de sistema só quando o ato é do owner (0.52.0)
         saida["systemMessage"] = f"[mss-spec] {rotulo}: " + " | ".join(p[:120] for p in do_owner)[:300]
     return saida
+
+
+def responder(evento, ambiente=None):
+    """A casca: a regra com o disco e o motor de verdade; grava os avisos, as versões vistas e o registro.
+    dict pra imprimir, ou None = silêncio. Qualquer defeito → None (falha aberta)."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        sessao = evento.get("session_id") if isinstance(evento, dict) else None
+        saida, mudancas = regra(evento, ambiente, DiscoReal, lambda: _ler_estado(sessao), _motor, time.time())
+        for nome in mudancas["avisados"]:
+            _marcar_avisado(sessao, nome)
+        for caminho in mudancas["vistos"]:
+            marcar_visto(caminho, sessao)
+        for decisao, detalhe in mudancas["anotacoes"]:
+            _anotar(decisao, detalhe, evento)
+        return saida
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None
 
 
 def main():

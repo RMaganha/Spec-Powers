@@ -87,19 +87,65 @@ def _busca():
     return mod
 
 
-def _registros(arquivo):
+class DiscoReal:
+    """O que o script lê e grava — a única parte que toca arquivo. Em teste, entra no lugar um objeto com os mesmos
+    métodos, sobre um dicionário de arquivos."""
+
+    @staticmethod
+    def linhas(arquivo):
+        """As linhas do arquivo, uma por vez (a conversa pode ter centenas de MB); levanta OSError/TypeError."""
+        with open(arquivo, encoding="utf-8", errors="replace") as f:
+            yield from f
+
+    @staticmethod
+    def jsonl(pasta) -> list:
+        """Os `*.jsonl` (arquivos) da pasta; levanta OSError se não dá pra listar."""
+        return [p for p in Path(pasta).glob("*.jsonl") if p.is_file()]
+
+    @staticmethod
+    def marca(p) -> tuple:
+        """(data em segundos, tamanho) do arquivo; levanta OSError."""
+        st = Path(p).stat()
+        return st.st_mtime, st.st_size
+
+    @staticmethod
+    def eh_arquivo(p) -> bool:
+        return Path(p).is_file()
+
+    @staticmethod
+    def eh_pasta(p) -> bool:
+        return Path(p).is_dir()
+
+    @staticmethod
+    def pastas_em(base) -> list:
+        return list(Path(base).iterdir())
+
+    @staticmethod
+    def ler_texto(p) -> str:
+        return Path(p).read_text(encoding="utf-8")
+
+    @staticmethod
+    def gravar(destino, conteudo: str) -> None:
+        """Grava num provisório e troca: quem lê nunca vê o texto pela metade."""
+        destino = Path(destino)
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        provisorio = destino.with_suffix(".txt.parcial")
+        provisorio.write_text(conteudo, encoding="utf-8")
+        os.replace(provisorio, destino)
+
+
+def _registros(arquivo, disco=DiscoReal):
     """Os registros de fala da conversa, um por vez (o arquivo pode ter centenas de MB)."""
     try:
-        with open(arquivo, encoding="utf-8", errors="replace") as f:
-            for bruto in f:
-                if '"user"' not in bruto and '"assistant"' not in bruto and '"queued_command"' not in bruto:
-                    continue
-                try:
-                    reg = json.loads(bruto)
-                except ValueError:
-                    continue
-                if isinstance(reg, dict) and not reg.get("isSidechain"):
-                    yield reg
+        for bruto in disco.linhas(arquivo):
+            if '"user"' not in bruto and '"assistant"' not in bruto and '"queued_command"' not in bruto:
+                continue
+            try:
+                reg = json.loads(bruto)
+            except ValueError:
+                continue
+            if isinstance(reg, dict) and not reg.get("isSidechain"):
+                yield reg
     except (OSError, TypeError):
         return
 
@@ -177,7 +223,7 @@ def _do_assistente(reg):
     return "\n\n".join(textos), gravou
 
 
-def falas(arquivo) -> list:
+def falas(arquivo, disco=DiscoReal) -> list:
     """As falas da conversa, na ordem: cada pedido do owner e, entre dois pedidos, o turno do assistente."""
     saida, turno = [], None
     da_fila, do_registro = [], []      # a mesma fala pode vir pela fila E como registro `user`: entra uma vez
@@ -188,7 +234,7 @@ def falas(arquivo) -> list:
             saida.append(turno)
         turno = None
 
-    for reg in _registros(arquivo):
+    for reg in _registros(arquivo, disco):
         if reg.get("type") in ("user", "attachment"):
             texto = _fala_do_owner(reg)
             if not texto:
@@ -228,16 +274,11 @@ def pasta_de_saida(ambiente=None) -> Path:
     return Path(informada) if informada else Path.home() / "mss-spec" / "conversas"
 
 
-def gravar_texto(arquivo, pasta_saida=None, lista=None):
-    """Grava `<pasta_saida>/<id>.txt` com as falas numeradas e devolve o caminho; `None` se a conversa não tem
-    fala nenhuma (nada é gravado). `lista`: as falas já lidas (o `lote` não relê o arquivo)."""
-    arquivo = Path(arquivo)
-    lista = falas(arquivo) if lista is None else lista
-    if not lista:
-        return None
+def texto_da_conversa(ident: str, lista: list) -> str:
+    """O texto das falas numeradas, sem disco: cabeçalho, uma fala por bloco, linhas de até `LARGURA` letras."""
     datas = [f.quando for f in lista if f.quando]
     periodo = f" — {datas[0]} a {datas[-1]}" if datas else ""
-    linhas = [f"# Conversa {arquivo.stem}{periodo} — {len(lista)} falas",
+    linhas = [f"# Conversa {ident}{periodo} — {len(lista)} falas",
               "# Só as falas do owner e do assistente; resultado de ferramenta e fala de ajudante ficaram de fora.",
               "# Horários como estão na conversa (UTC).",
               ""]
@@ -248,17 +289,23 @@ def gravar_texto(arquivo, pasta_saida=None, lista=None):
             linhas.extend(textwrap.wrap("(gravou: " + ", ".join(fala.gravou) + ")", width=LARGURA,
                                         break_long_words=True, break_on_hyphens=False))
         linhas.append("")
-    pasta = Path(pasta_saida) if pasta_saida else pasta_de_saida()
-    pasta.mkdir(parents=True, exist_ok=True)
-    destino = pasta / f"{arquivo.stem}.txt"
-    provisorio = destino.with_suffix(".txt.parcial")
-    provisorio.write_text("\n".join(linhas), encoding="utf-8")
-    os.replace(provisorio, destino)
+    return "\n".join(linhas)
+
+
+def gravar_texto(arquivo, pasta_saida=None, lista=None, disco=DiscoReal):
+    """Grava `<pasta_saida>/<id>.txt` com as falas numeradas e devolve o caminho; `None` se a conversa não tem
+    fala nenhuma (nada é gravado). `lista`: as falas já lidas (o `lote` não relê o arquivo)."""
+    arquivo = Path(arquivo)
+    lista = falas(arquivo, disco) if lista is None else lista
+    if not lista:
+        return None
+    destino = (Path(pasta_saida) if pasta_saida else pasta_de_saida()) / f"{arquivo.stem}.txt"
+    disco.gravar(destino, texto_da_conversa(arquivo.stem, lista))
     return destino
 
 
-def primeiro_pedido(arquivo) -> str:
-    for reg in _registros(arquivo):
+def primeiro_pedido(arquivo, disco=DiscoReal) -> str:
+    for reg in _registros(arquivo, disco):
         if reg.get("type") == "user":
             texto = _fala_do_owner(reg)
             if texto:
@@ -266,53 +313,53 @@ def primeiro_pedido(arquivo) -> str:
     return ""
 
 
-def _conversas(pasta) -> list:
+def _conversas(pasta, disco=DiscoReal) -> list:
     """Os `.jsonl` de conversa da pasta, da mais nova pra mais velha (arquivo de ajudante não é conversa)."""
     try:
-        arquivos = [p for p in Path(pasta).glob("*.jsonl") if p.is_file() and not p.name.startswith("agent-")]
+        arquivos = [p for p in disco.jsonl(pasta) if not p.name.startswith("agent-")]
     except OSError:
         return []
 
     def data(p):
         try:
-            return p.stat().st_mtime
+            return disco.marca(p)[0]
         except OSError:
             return 0.0
     return sorted(arquivos, key=data, reverse=True)
 
 
-def listar(pasta, quantas: int = QUANTAS, ambiente=None) -> list:
+def listar(pasta, quantas: int = QUANTAS, ambiente=None, disco=DiscoReal) -> list:
     ambiente = os.environ if ambiente is None else ambiente
     em_curso = str(ambiente.get("CLAUDE_CODE_SESSION_ID") or "").strip()
     resumos = []
-    for arq in _conversas(pasta)[:max(quantas, 0)]:
+    for arq in _conversas(pasta, disco)[:max(quantas, 0)]:
         try:
-            st = arq.stat()
+            data, tamanho = disco.marca(arq)
         except OSError:
             continue
-        quando = datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")
-        resumos.append(Resumo(arq, arq.stem, quando, st.st_size, primeiro_pedido(arq)[:TETO_PEDIDO_NA_LISTA],
+        quando = datetime.fromtimestamp(data).strftime("%Y-%m-%d %H:%M")
+        resumos.append(Resumo(arq, arq.stem, quando, tamanho, primeiro_pedido(arq, disco)[:TETO_PEDIDO_NA_LISTA],
                               esta=bool(em_curso) and arq.stem == em_curso))
     return resumos
 
 
-def achar(pasta, pedaco: str) -> list:
+def achar(pasta, pedaco: str, disco=DiscoReal) -> list:
     """As conversas que casam com `pedaco`: um caminho de `.jsonl`; senão as que começam por ele no id MAIS as
     que têm todas as palavras no primeiro pedido (sem ligar pra maiúscula) — as duas juntas, porque uma palavra
     como `cafe` também é começo de id."""
     pedaco = str(pedaco or "").strip().strip('"')
     if not pedaco:
         return []
-    direto = _caminho_direto(pedaco)
+    direto = _caminho_direto(pedaco, disco)
     if direto:
         return [direto]
     palavras = pedaco.casefold().split()
     achadas = []
-    for p in _conversas(pasta) if pasta else []:
+    for p in _conversas(pasta, disco) if pasta else []:
         if p.stem.casefold().startswith(pedaco.casefold()):
             achadas.append(p)
             continue
-        pedido = primeiro_pedido(p).casefold()
+        pedido = primeiro_pedido(p, disco).casefold()
         if pedido and all(w in pedido for w in palavras):
             achadas.append(p)
     return achadas
@@ -329,40 +376,40 @@ class ItemDoLote:
     texto: Path = None        # None = a conversa não tem fala (nada gravado)
 
 
-def _dia_do_arquivo(p: Path) -> str:
-    return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")
+def _dia_do_arquivo(p: Path, disco=DiscoReal) -> str:
+    return datetime.fromtimestamp(disco.marca(p)[0]).strftime("%Y-%m-%d")
 
 
-def lote(pasta, desde: str, pasta_saida, ambiente=None) -> list:
+def lote(pasta, desde: str, pasta_saida, ambiente=None, disco=DiscoReal) -> list:
     """Grava o texto de todas as conversas da pasta mudadas DEPOIS do dia `desde` ('' = todas), menos a conversa em
     curso e as de ajudante, e devolve um item por conversa, da mais nova pra mais velha (o sono da memória, parte 2,
     `docs/specs/sono-da-memoria.md`). O dia é o da última gravação do arquivo, como na conta do aviso de sono."""
     ambiente = os.environ if ambiente is None else ambiente
     em_curso = str(ambiente.get("CLAUDE_CODE_SESSION_ID") or "").strip()
     itens = []
-    for arq in _conversas(pasta):
+    for arq in _conversas(pasta, disco):
         try:
-            dia = _dia_do_arquivo(arq)
+            dia = _dia_do_arquivo(arq, disco)
         except OSError:
             continue
         if arq.stem == em_curso or (desde and dia <= desde):
             continue
-        lista = falas(arq)
+        lista = falas(arq, disco)
         datas = [f.quando for f in lista if f.quando]
-        destino = gravar_texto(arq, pasta_saida, lista) if lista else None
-        letras = len(destino.read_text(encoding="utf-8")) if destino else 0
+        destino = gravar_texto(arq, pasta_saida, lista, disco) if lista else None
+        letras = len(disco.ler_texto(destino)) if destino else 0
         pedido = next((f.texto for f in lista if f.quem == "OWNER"), "")
-        itens.append(ItemDoLote(arq.stem, datetime.fromtimestamp(arq.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+        itens.append(ItemDoLote(arq.stem, datetime.fromtimestamp(disco.marca(arq)[0]).strftime("%Y-%m-%d %H:%M"),
                                 f"{datas[0]} a {datas[-1]}" if datas else "", len(lista), letras,
                                 pedido[:TETO_PEDIDO_NA_LISTA], destino))
     return itens
 
 
-def _caminho_direto(pedaco: str):
+def _caminho_direto(pedaco: str, disco=DiscoReal):
     """O próprio `.jsonl`, quando `pedaco` é o caminho de um arquivo que existe; senão `None`."""
     try:
         direto = Path(pedaco)
-        return direto if direto.suffix == ".jsonl" and direto.is_file() else None
+        return direto if direto.suffix == ".jsonl" and disco.eh_arquivo(direto) else None
     except (OSError, ValueError):
         return None
 
@@ -373,16 +420,16 @@ def apelido_da_pasta(raiz) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", str(raiz))
 
 
-def pasta_das_conversas(ambiente=None, raiz=None):
+def pasta_das_conversas(ambiente=None, raiz=None, disco=DiscoReal):
     """A pasta das conversas deste projeto: a da conversa em curso; senão a que o app dá ao caminho do projeto.
     `None` quando não dá pra saber — nunca um palpite."""
     ambiente = os.environ if ambiente is None else ambiente
-    em_curso = _busca().arquivo_da_conversa(ambiente)
+    em_curso = _busca().arquivo_da_conversa(ambiente, disco)
     if em_curso:
         return Path(em_curso).parent
     base = Path(ambiente.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude") / "projects"
     pasta = base / apelido_da_pasta(Path(raiz) if raiz else Path.cwd())
-    return pasta if pasta.is_dir() else None
+    return pasta if disco.eh_pasta(pasta) else None
 
 
 def _linha(r: Resumo) -> str:
@@ -391,7 +438,7 @@ def _linha(r: Resumo) -> str:
     return f"{r.quando}  {kb:>7} KB  {r.ident}{marca}  {r.pedido or '(sem pedido do owner)'}"
 
 
-def main(argv=None) -> int:
+def main(argv=None, disco=DiscoReal) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:  # noqa: BLE001
@@ -413,9 +460,9 @@ def main(argv=None) -> int:
         print(f"--desde tem de ser AAAA-MM-DD; veio {a.desde!r}.")
         return 2
 
-    pasta = Path(a.pasta) if a.pasta else pasta_das_conversas()
-    sem_pasta = pasta is None or not Path(pasta).is_dir()
-    if sem_pasta and a.modo == "texto" and _caminho_direto(" ".join(a.pedaco).strip().strip('"')):
+    pasta = Path(a.pasta) if a.pasta else pasta_das_conversas(disco=disco)
+    sem_pasta = pasta is None or not disco.eh_pasta(pasta)
+    if sem_pasta and a.modo == "texto" and _caminho_direto(" ".join(a.pedaco).strip().strip('"'), disco):
         pasta, sem_pasta = None, False                # o caminho do `.jsonl` basta
     if sem_pasta:
         print("não achei a pasta das conversas deste projeto. Informe com `--pasta <pasta>` "
@@ -423,7 +470,7 @@ def main(argv=None) -> int:
         return 2
 
     if a.modo == "listar":
-        resumos = listar(pasta, a.quantas)
+        resumos = listar(pasta, a.quantas, disco=disco)
         if not resumos:
             print(f"nenhuma conversa em {pasta}")
             return 1
@@ -434,7 +481,7 @@ def main(argv=None) -> int:
         return 0
 
     if a.modo == "lote":
-        itens = lote(pasta, a.desde, a.saida)
+        itens = lote(pasta, a.desde, a.saida, disco=disco)
         if not itens:
             print(f"nenhuma conversa em {pasta}" + (f" gravada depois de {a.desde}" if a.desde else "") + ".")
             return 1
@@ -448,24 +495,24 @@ def main(argv=None) -> int:
         return 0
 
     pedaco = " ".join(a.pedaco)
-    achadas = achar(pasta, pedaco)
+    achadas = achar(pasta, pedaco, disco)
     if not achadas:
         print(f"nenhuma conversa casa com {pedaco!r}. Rode `conversa_texto.py listar` e escolha pelo começo do id.")
         return 1
     if len(achadas) > 1:
         print(f"mais de uma conversa casa com {pedaco!r} — rode de novo com o começo do id de uma delas:")
-        for r in listar(pasta, len(_conversas(pasta))):
+        for r in listar(pasta, len(_conversas(pasta, disco)), disco=disco):
             if r.arquivo in achadas:
                 print(_linha(r))
         return 1
     if achadas[0].name.startswith("agent-"):
         print(f"{achadas[0].name} é a gravação de um ajudante, não uma conversa do owner; nada foi gravado.")
         return 1
-    destino = gravar_texto(achadas[0], a.saida)
+    destino = gravar_texto(achadas[0], a.saida, disco=disco)
     if destino is None:
         print(f"a conversa {achadas[0].stem} não tem fala do owner nem do assistente; nada foi gravado.")
         return 1
-    texto = destino.read_text(encoding="utf-8")
+    texto = disco.ler_texto(destino)
     contagem = re.search(r"— (\d+) falas$", texto.split("\n", 1)[0])
     print(f"texto: {destino}")
     print(f"{contagem.group(1) if contagem else '?'} falas, " + f"{len(texto):,} letras".replace(",", ".")

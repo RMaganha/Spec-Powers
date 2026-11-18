@@ -138,8 +138,9 @@ def _sai_da_principal(ponto):
     return bool(ponto) and ponto.rsplit("/", 1)[-1] in PRINCIPAIS
 
 
-def mudanca(verbo, resto, pasta, git_dir):
-    """("cria", nome, ponto de partida ou None) · ("troca", alvo, None) · None = não mexe na branch da pasta."""
+def mudanca(verbo, resto, pasta, e_branch, existe):
+    """("cria", nome, ponto de partida ou None) · ("troca", alvo, None) · None = não mexe na branch da pasta.
+    `e_branch(nome)`: o nome é branch do repositório; `existe(caminho)`: há arquivo ou pasta ali."""
     try:
         tokens = shlex.split(resto, posix=True)
     except ValueError:
@@ -164,7 +165,7 @@ def mudanca(verbo, resto, pasta, git_dir):
     if verbo == "checkout":
         if len(posicionais) > 1:
             return None                               # `git checkout <branch> <arquivo>`: arquivo de outra branch
-        if alvo != "-" and not _e_branch(git_dir, alvo) and os.path.exists(os.path.join(pasta, alvo)):
+        if alvo != "-" and not e_branch(alvo) and existe(os.path.join(pasta, alvo)):
             return None                               # `git checkout <arquivo>`
     return ("troca", alvo, None)
 
@@ -177,7 +178,7 @@ def _estado(sessao, ambiente):
 
 
 def desta_conversa(sessao, ambiente, repo):
-    """Branches que esta conversa abriu neste repositório."""
+    """Disco: branches que esta conversa abriu neste repositório."""
     try:
         with open(_estado(sessao, ambiente), encoding="utf-8") as f:
             return set(json.load(f).get(repo) or [])
@@ -186,6 +187,7 @@ def desta_conversa(sessao, ambiente, repo):
 
 
 def lembrar(sessao, ambiente, repo, branch):
+    """Disco: guarda que esta conversa abriu `branch` neste repositório."""
     try:
         caminho = _estado(sessao, ambiente)
         try:
@@ -201,7 +203,7 @@ def lembrar(sessao, ambiente, repo, branch):
 
 
 def ha_mudanca(pasta):
-    """True se há arquivo acompanhado pelo git com mudança por commitar. Levanta se o git não responder."""
+    """Disco: True se há arquivo acompanhado pelo git com mudança por commitar. Levanta se o git não responder."""
     proc = subprocess.run(["git", "-C", pasta, "status", "--porcelain", "--untracked-files=no"],
                           capture_output=True, timeout=10)
     if proc.returncode != 0:
@@ -209,26 +211,33 @@ def ha_mudanca(pasta):
     return bool(proc.stdout.strip())
 
 
-def _uma(comando, m, cwd, sessao, ambiente, sujo):
-    pasta = _pasta_do_comando(comando, m, cwd)
+def _repo_do_disco(pasta):
+    """Disco: (chave do repositório, branch atual ou None, e_branch) do repositório que contém `pasta`, ou None."""
     git_dir = _git_dir(pasta)
     if git_dir is None:
         return None
-    atual = branch_atual(git_dir)
+    return os.path.normcase(os.path.realpath(git_dir)), branch_atual(git_dir), lambda nome: _e_branch(git_dir, nome)
+
+
+def _uma(comando, m, cwd, repo_de, abertas, sujo, existe, lembradas):
+    pasta = _pasta_do_comando(comando, m, cwd)
+    repo = repo_de(pasta)
+    if repo is None:
+        return None
+    chave, atual, e_branch = repo
     if atual is None:
         return None
-    achado = mudanca(m.group("verbo"), m.group("resto") or "", pasta, git_dir)
+    achado = mudanca(m.group("verbo"), m.group("resto") or "", pasta, e_branch, existe)
     if achado is None:
         return None
     tipo, alvo, ponto = achado
     if tipo == "troca" and alvo == atual:
         return None
-    repo = os.path.normcase(os.path.realpath(git_dir))
-    livre = atual in PRINCIPAIS or atual in desta_conversa(sessao, ambiente, repo)
+    livre = atual in PRINCIPAIS or atual in abertas(chave) or (chave, atual) in lembradas
     trecho = comando[m.start():m.end()].strip(" ;&|\n(")[:200]
     if tipo == "cria":
         if livre:
-            lembrar(sessao, ambiente, repo, alvo)
+            lembradas.append((chave, alvo))
             return None
         if not _sai_da_principal(ponto):
             return NEGA, MOTIVO_CRIA.format(atual=atual, comando=trecho, env=ENV_DESLIGA), \
@@ -245,20 +254,35 @@ def _uma(comando, m, cwd, sessao, ambiente, sujo):
     return PERGUNTA, MOTIVO_PERGUNTA.format(atual=atual, comando=trecho), f"trocar de branch ({atual})"
 
 
-def avaliar(comando, cwd, sessao, ambiente, sujo=None):
-    """(tipo, motivo, detalhe) da ação mais grave — negar > perguntar — ou (None, None, None). Falha ABERTA."""
+def regra(comando, cwd, sessao, ambiente, repo_de, abertas, sujo, existe):
+    """A REGRA, sem disco: `repo_de(pasta)` devolve (chave, branch atual, e_branch) do repositório ou None,
+    `abertas(chave)` as branches que esta conversa abriu nele, `sujo(pasta)` se há mudança por commitar e
+    `existe(caminho)` se há arquivo ali — o disco, ou o de teste.
+    Devolve `(tipo, motivo, detalhe, lembradas)` da ação mais grave — negar > perguntar — ou (None, None, None, …);
+    `lembradas` = [(chave, branch)] que esta conversa abriu neste comando. Falha ABERTA."""
+    lembradas = []
     try:
         if _texto(ambiente.get(ENV_DESLIGA)) or not _texto(comando) or not sessao:
-            return None, None, None
-        sujo = ha_mudanca if sujo is None else sujo
+            return None, None, None, lembradas
         achados = []
         for m in RE_TROCA.finditer(comando):
-            achado = _uma(comando, m, cwd, sessao, ambiente, sujo)
+            achado = _uma(comando, m, cwd, repo_de, abertas, sujo, existe, lembradas)
             if achado:
                 achados.append(achado)
         if not achados:
-            return None, None, None
+            return None, None, None, lembradas
         negados = [a for a in achados if a[0] == NEGA]
-        return negados[0] if negados else achados[0]
+        return (*(negados[0] if negados else achados[0]), lembradas)
     except Exception:                                # noqa: BLE001 — falha ABERTA
-        return None, None, None
+        return None, None, None, lembradas
+
+
+def avaliar(comando, cwd, sessao, ambiente, sujo=None):
+    """A casca: a regra com o disco de verdade, e as branches abertas gravadas. (tipo, motivo, detalhe) ou
+    (None, None, None)."""
+    tipo, motivo, detalhe, lembradas = regra(
+        comando, cwd, sessao, ambiente, _repo_do_disco, lambda chave: desta_conversa(sessao, ambiente, chave),
+        ha_mudanca if sujo is None else sujo, os.path.exists)
+    for chave, branch in lembradas:
+        lembrar(sessao, ambiente, chave, branch)
+    return tipo, motivo, detalhe

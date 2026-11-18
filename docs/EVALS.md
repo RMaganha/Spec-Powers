@@ -82,6 +82,14 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-071 | 2026-11-17 | quando atribuir lentidão a uma causa fora do código (máquina, antivírus, instalação) | premissa derrubada pelo owner (a TI e o suporte da Dell conferiram a máquina) e fato afirmado a partir de uma consulta que falhou ("nenhum erro de hardware") | proposto: medir o que o código faz antes de culpar o ambiente; afirmar só com a saída da consulta conferida | aberto |
 | F-072 | 2026-11-17 | quando declarar uma parte do plano como feita | "parte 3 feita" com 4 de 54 arquivos de teste reescritos | proposto: contar o feito contra o total antes de dizer pronto | aberto |
 | F-073 | 2026-11-17 | quando rodar teste na máquina do owner | rodou 6 arquivos de teste ainda não reescritos (85 pastas temporárias) depois de reconhecer que eles criam pasta | regra 9 + `templates/testes_do_que_mudou.py`; proposto: teste não reescrito roda só no CI — anotação `memory/feedback_suite_inteira_so_no_ci.md` | aberto |
+| F-074 | 2026-11-18 | quando mover um teste de um arquivo para outro | o teste que guarda o F-047 perdeu a alternativa "ou o título" ao sair do `test_hook_memoria_da_proposta.py` (`ef7bd15`), contra a regra "mesmo nome E mesmo sentido"; só a rodada única pegou | proposto: antes do commit, comparar cada `assert` movido com o original (`git show <commit>~1:<arquivo>`) | aberto |
+
+### F-074 — teste do F-047 mudou de sentido ao mudar de arquivo (aberto)
+
+- **Falhou:** na reescrita em camadas, o teste da busca da proposta saiu do `test_hook_memoria_da_proposta.py` para o `test_memoria_indice.py` (`ef7bd15`) aceitando só o nome da anotação; o original aceitava também o título (a linha do subíndice que aponta pra ela). Ficou vermelho na rodada única.
+- **Verdade:** a regra da reescrita era "os testes que o `docs/EVALS.md` cita ficam com o mesmo nome E o mesmo sentido"; o `git show ef7bd15~1` mostrava o "ou" que sumiu. Voltou como era em `23a96e1`.
+- **Guardrail:** proposto — antes do commit que move um teste, comparar cada `assert` com o original (`git show <commit>~1:<arquivo>`).
+- **Teste:** nenhum.
 
 ### F-073 — testes antigos rodados na máquina depois do aviso (aberto)
 

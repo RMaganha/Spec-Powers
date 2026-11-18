@@ -229,7 +229,7 @@ def _caminho_estado(ambiente):
 
 
 def _ler_estado(caminho):
-    """{"<session_id>|<projeto>": {projeto, feature, quando, fechadas}}; ausente ou ilegível → vazio."""
+    """Disco: {"<session_id>|<projeto>": {projeto, feature, quando, fechadas}}; ausente ou ilegível → vazio."""
     try:
         with open(caminho, encoding="utf-8") as f:
             estado = json.load(f)
@@ -238,20 +238,25 @@ def _ler_estado(caminho):
         return {}
 
 
-def _gravar_estado(caminho, estado, agora):
-    """Descarta chat com mais de VALIDADE e grava atômico. Defeito aqui não muda a decisão."""
+def _vivos(estado, agora):
+    """Sem os chats parados há mais de VALIDADE (registro torto sai)."""
+    vivos = {}
+    for sessao, reg in estado.items():
+        try:
+            if agora - datetime.fromisoformat(reg["quando"]) <= VALIDADE:
+                vivos[sessao] = reg
+        except Exception:                            # noqa: BLE001 — registro torto sai
+            pass
+    return vivos
+
+
+def _gravar_estado(caminho, estado):
+    """Disco: grava atômico. Defeito aqui não muda a decisão."""
     try:
-        vivos = {}
-        for sessao, reg in estado.items():
-            try:
-                if agora - datetime.fromisoformat(reg["quando"]) <= VALIDADE:
-                    vivos[sessao] = reg
-            except Exception:                        # noqa: BLE001 — registro torto sai
-                pass
         os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
         temporario = f"{caminho}.{os.getpid()}.tmp"
         with open(temporario, "w", encoding="utf-8") as f:
-            json.dump(vivos, f, ensure_ascii=False, indent=1)
+            json.dump(estado, f, ensure_ascii=False, indent=1)
         os.replace(temporario, caminho)
     except Exception:                                # noqa: BLE001 — no Windows, outro chat lendo
         try:                                         # faz o replace falhar: não deixa .tmp órfão
@@ -267,41 +272,45 @@ def _ler(caminho):
         return f.read()
 
 
-def avaliar(evento, ambiente=None):
-    """("libera", None) · ("avisa", texto) · ("bloqueia", motivo). Qualquer defeito → libera."""
+def regra(evento, ambiente, ler, ler_estado, agora):
+    """A REGRA, sem disco: entra o evento e o que está guardado, sai a decisão e o que guardar.
+
+    `ler(rel)`: o texto de `INDEX_REL` / `HISTORICO_REL` deste projeto (`""` se não há) · `ler_estado()`: o estado
+    dos chats · `agora`: `datetime`. As duas funções só são chamadas quando a regra precisa delas.
+    Devolve `(decisao, texto, mudancas)`: ("libera", None) · ("avisa", texto) · ("bloqueia", motivo); `mudancas` tem
+    `"anotacoes"` (`[(decisao, detalhe)]` pro registro) e, quando há o que gravar, `"estado"` (o novo, já sem os
+    chats vencidos). Qualquer defeito → libera.
+    """
+    mudancas = {"anotacoes": []}
     try:
-        ambiente = os.environ if ambiente is None else ambiente
         if _texto(ambiente.get(ENV_DESLIGA)) or not isinstance(evento, dict):
-            return "libera", None
+            return "libera", None, mudancas
         prompt = evento.get("prompt")
         # pedido COLADO: o comando é o começo do texto, não da marca `<pasted_content …>` do app (F-053)
         prompt = _pedido(prompt) if isinstance(prompt, str) else None
         m = RE_COMANDO.match(prompt) if isinstance(prompt, str) else None
         cwd = _texto(evento.get("cwd"))
         if not m or cwd is None:
-            return "libera", None
-        texto_index = _ler(os.path.join(cwd, *INDEX_REL))
+            return "libera", None, mudancas
+        texto_index = ler(INDEX_REL)
         if not texto_index:
-            return "libera", None
+            return "libera", None, mudancas
         # O nome é só o resto da linha do comando; as linhas de baixo são contexto.
         pedida = (m.group(1) or "").strip()
         if not pedida:
-            return "libera", None
+            return "libera", None, mudancas
         abertas_agora = abertas(texto_index)
 
         sessao = _texto(evento.get("session_id"))
         if sessao is not None:
-            caminho = _caminho_estado(ambiente)
-            estado = _ler_estado(caminho)
+            estado = dict(ler_estado())
             projeto = _chave_projeto(cwd)
             chave = f"{sessao}|{projeto}"            # voltar a um projeto mantém a trava de lá
             reg = estado.get(chave)
             reg = reg if isinstance(reg, dict) else {}
             dele = _texto(reg.get("feature"))
             itens = (list(_itens_por_secao(texto_index))
-                     + [(item, True) for item, _ in
-                        _itens_por_secao(_ler(os.path.join(cwd, *HISTORICO_REL)))])
-            agora = datetime.now()
+                     + [(item, True) for item, _ in _itens_por_secao(ler(HISTORICO_REL))])
             quando = agora.isoformat(timespec="seconds")
             if dele is None:
                 retomando = False
@@ -322,21 +331,40 @@ def avaliar(evento, ambiente=None):
                     onde = "ainda aberta" if linhas else (
                         "não achei a linha dela no INDEX pelo nome — o passo 3 pode ter gravado outro "
                         "título, ou ela ainda não nasceu; se ela já fechou, abra um chat novo")
-                    _anotar("bloqueou", f"abertas={len(abertas_agora)}", evento)
-                    return "bloqueia", MOTIVO.format(dele=dele, onde=onde, pedida=pedida, env=ENV_DESLIGA)
+                    mudancas["anotacoes"].append(("bloqueou", f"abertas={len(abertas_agora)}"))
+                    motivo = MOTIVO.format(dele=dele, onde=onde, pedida=pedida, env=ENV_DESLIGA)
+                    return "bloqueia", motivo, mudancas
             if retomando:                            # renova a validade de feature longa
                 estado[chave] = {**reg, "quando": quando}
             else:                                    # chat novo, ou a dele encerrou: passa a ser da pedida
                 estado[chave] = {"projeto": projeto, "feature": pedida, "quando": quando,
                                  "fechadas": _fechadas(itens)}
-            _gravar_estado(caminho, estado, agora)
+            mudancas["estado"] = _vivos(estado, agora)
 
         outras = [item for item in abertas_agora if not mesmo_assunto(pedida, item)]
         if not outras:
-            return "libera", None
-        _anotar("avisou", f"abertas={len(outras)}", evento)
+            return "libera", None, mudancas
+        mudancas["anotacoes"].append(("avisou", f"abertas={len(outras)}"))
         lista = "\n".join(f"  - {item}" for item in outras)
-        return "avisa", AVISO.format(pedida=pedida, lista=lista)
+        return "avisa", AVISO.format(pedida=pedida, lista=lista), mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return "libera", None, mudancas
+
+
+def avaliar(evento, ambiente=None):
+    """A casca: lê o INDEX e o estado do disco, chama `regra` e grava o que ela devolveu.
+    ("libera", None) · ("avisa", texto) · ("bloqueia", motivo). Qualquer defeito → libera."""
+    try:
+        ambiente = os.environ if ambiente is None else ambiente
+        cwd = _texto(evento.get("cwd")) if isinstance(evento, dict) else None
+        caminho = _caminho_estado(ambiente)
+        decisao, texto, mudancas = regra(evento, ambiente, lambda rel: _ler(os.path.join(cwd, *rel)),
+                                         lambda: _ler_estado(caminho), datetime.now())
+        if "estado" in mudancas:
+            _gravar_estado(caminho, mudancas["estado"])
+        for anotacao, detalhe in mudancas["anotacoes"]:
+            _anotar(anotacao, detalhe, evento)
+        return decisao, texto
     except Exception:                                # noqa: BLE001 — falha ABERTA
         return "libera", None
 
@@ -347,25 +375,32 @@ def decidir(evento, ambiente=None):
     return texto if decisao == "bloqueia" else None
 
 
+def saida(decisao, texto):
+    """(stdout, stderr, código de saída) do processo para cada decisão; None = nada a imprimir."""
+    if decisao == "bloqueia":
+        return json.dumps({"decision": "block", "reason": texto}), texto, 2
+    if decisao == "avisa":
+        # No app Desktop o systemMessage não aparece: o additionalContext faz o assistente repassar.
+        return json.dumps({
+            "systemMessage": texto,
+            "hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+                                   "additionalContext": PRO_ASSISTENTE + texto},
+        }), None, 0
+    return None, None, 0
+
+
 def main():
     try:
         from _entrada import ler_evento          # UTF-8, seja qual for a página de código do console
         evento = ler_evento()
     except Exception:                                # noqa: BLE001
         sys.exit(0)
-    decisao, texto = avaliar(evento)
-    if decisao == "bloqueia":
-        print(json.dumps({"decision": "block", "reason": texto}))
-        print(texto, file=sys.stderr)
-        sys.exit(2)
-    if decisao == "avisa":
-        # No app Desktop o systemMessage não aparece: o additionalContext faz o assistente repassar.
-        print(json.dumps({
-            "systemMessage": texto,
-            "hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
-                                   "additionalContext": PRO_ASSISTENTE + texto},
-        }))
-    sys.exit(0)
+    saida_padrao, erro, codigo = saida(*avaliar(evento))
+    if saida_padrao is not None:
+        print(saida_padrao)
+    if erro is not None:
+        print(erro, file=sys.stderr)
+    sys.exit(codigo)
 
 
 if __name__ == "__main__":

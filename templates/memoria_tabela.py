@@ -109,20 +109,104 @@ def caminho_tabela() -> Path:
     return Path(informado) if informado else Path.home() / "mss-spec" / "memoria.sqlite3"
 
 
+class DiscoReal:
+    """O que o script lê do projeto e da máquina — a única parte que toca arquivo fora da tabela. Em teste, entra
+    no lugar um objeto com os mesmos métodos, sobre um dicionário de arquivos."""
+
+    @staticmethod
+    def eh_arquivo(p: Path) -> bool:
+        return Path(p).is_file()
+
+    @staticmethod
+    def ler_bytes(p: Path) -> bytes:
+        return Path(p).read_bytes()
+
+    @staticmethod
+    def arquivos(raiz: Path, pasta: str) -> list:
+        """Caminhos relativos à raiz (com `/`) de todo arquivo em `raiz/pasta`, em qualquer profundidade."""
+        return [(Path(base) / nome).relative_to(raiz).as_posix()
+                for base, _pastas, nomes in os.walk(Path(raiz) / pasta) for nome in nomes]
+
+    @staticmethod
+    def marca(p: Path):
+        """(tamanho, data em ns) do arquivo, ou None se não dá pra ler."""
+        try:
+            s = Path(p).stat()
+        except OSError:
+            return None
+        return s.st_size, s.st_mtime_ns
+
+    @staticmethod
+    def git(raiz: Path, *args):
+        return _git(raiz, *args)
+
+    @staticmethod
+    def conversas(pasta: Path) -> list:
+        """[(nome, data em segundos)] dos `*.jsonl` da pasta — só nome e data; levanta OSError se não dá pra ler."""
+        return [(p.name, p.stat().st_mtime) for p in Path(pasta).glob("*.jsonl")]
+
+    @staticmethod
+    def ler_texto(p: Path) -> str:
+        """O texto do arquivo (UTF-8, byte inválido vira substituição); levanta OSError/TypeError sem arquivo."""
+        with open(p, encoding="utf-8", errors="replace") as f:
+            return f.read()
+
+    @staticmethod
+    def pastas_em(base: Path) -> list:
+        """Os itens de uma pasta; levanta OSError se não dá pra listar."""
+        return list(Path(base).iterdir())
+
+    @staticmethod
+    def lidas_ate(raiz: Path) -> str:
+        """O dia da leitura de conversas mais nova registrada no diário (`memoria_indice.conversas_lidas_ate`)."""
+        return _motor().conversas_lidas_ate(raiz)[0]
+
+
+class BancoReal:
+    """A tabela num arquivo SQLite. Em teste, entra no lugar um banco em memória com os mesmos métodos."""
+
+    def __init__(self, caminho: Path):
+        self.caminho = Path(caminho)
+
+    def __str__(self):
+        return str(self.caminho)
+
+    def existe(self) -> bool:
+        return self.caminho.is_file()
+
+    def preparar(self) -> None:
+        self.caminho.parent.mkdir(parents=True, exist_ok=True)
+
+    def conectar(self, timeout: float):
+        return sqlite3.connect(str(self.caminho), timeout=timeout)
+
+
+def _banco(tabela):
+    """O banco da tabela: o objeto que veio (o de teste) ou o arquivo (`tabela`, ou o caminho padrão)."""
+    if hasattr(tabela, "conectar"):
+        return tabela
+    return BancoReal(Path(tabela) if tabela else caminho_tabela())
+
+
+def _caminho(banco):
+    """O que aparece no `Resultado` e nas mensagens: o caminho do arquivo, ou o próprio banco de teste."""
+    return getattr(banco, "caminho", banco)
+
+
 def _limpo(bruto: bytes) -> str:
     """Conteúdo sem `\\r` e sem trecho `<private>`; bytes fora de UTF-8 viram substituição, nunca exceção."""
     return RE_PRIVADO.sub(" ", bruto.decode("utf-8", "replace").replace("\r\n", "\n"))
 
 
-def _texto(p: Path) -> str:
-    return _limpo(p.read_bytes())
+def _texto(p: Path, disco=DiscoReal) -> str:
+    return _limpo(disco.ler_bytes(p))
 
 
-def nome_projeto(raiz: Path) -> str:
+def nome_projeto(raiz: Path, disco=DiscoReal) -> str:
     raiz = Path(raiz)
     claude = raiz / "CLAUDE.md"
-    if claude.is_file():
-        for linha in _texto(claude).split("\n"):
+    if disco.eh_arquivo(claude):
+        for linha in _texto(claude, disco).split("\n"):
             if linha.startswith("# "):
                 nome = linha[2:].split(" — ")[0].strip()
                 if nome and not nome.startswith("<"):
@@ -140,31 +224,30 @@ def _git(raiz: Path, *args):
     return r.stdout if r.returncode == 0 else None
 
 
-def _relativos(raiz: Path, usar_git: bool) -> list:
+def _relativos(raiz: Path, usar_git: bool, disco=DiscoReal) -> list:
     rels = None
     if usar_git:
-        saida = _git(raiz, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *PASTAS, *SOLTOS)
+        saida = disco.git(raiz, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *PASTAS, *SOLTOS)
         if saida is not None:
             rels = [x for x in saida.decode("utf-8", "ignore").split("\0") if x]
-    if rels is None:                       # sem git: a pasta como está (os.walk já devolve só arquivo)
-        rels = [(Path(base) / nome).relative_to(raiz).as_posix()
-                for pasta in PASTAS for base, _pastas, nomes in os.walk(raiz / pasta) for nome in nomes]
-        rels += [s for s in SOLTOS if (raiz / s).is_file()]
+    if rels is None:                       # sem git: a pasta como está (a varredura já devolve só arquivo)
+        rels = [r for pasta in PASTAS for r in disco.arquivos(raiz, pasta)]
+        rels += [s for s in SOLTOS if disco.eh_arquivo(raiz / s)]
         return sorted({r for r in rels if Path(r).suffix.lower() in EXTENSOES})
     # com git: o índice lista também arquivo apagado e ainda não commitado — esse não entra
-    return sorted({r for r in rels if Path(r).suffix.lower() in EXTENSOES and (raiz / r).is_file()})
+    return sorted({r for r in rels if Path(r).suffix.lower() in EXTENSOES and disco.eh_arquivo(raiz / r)})
 
 
-def arquivos_do_projeto(raiz: Path, usar_git: bool = True) -> list:
+def arquivos_do_projeto(raiz: Path, usar_git: bool = True, disco=DiscoReal) -> list:
     raiz = Path(raiz).resolve()
-    return [raiz / r for r in _relativos(raiz, usar_git)]
+    return [raiz / r for r in _relativos(raiz, usar_git, disco)]
 
 
-def _criacao(raiz: Path, caminhos=None) -> dict:
+def _criacao(raiz: Path, caminhos=None, disco=DiscoReal) -> dict:
     """arquivo → (data, autor) do commit que o criou. Vazio sem git. `caminhos` limita a pergunta a poucos
     arquivos (a atualização depois de uma gravação não precisa do histórico das pastas inteiras)."""
-    saida = _git(raiz, "-c", "core.quotepath=false", "log", "--diff-filter=A", "--date=short",
-                 "--format=@@%ad|%an", "--name-only", "--", *(caminhos or PASTAS + SOLTOS))
+    saida = disco.git(raiz, "-c", "core.quotepath=false", "log", "--diff-filter=A", "--date=short",
+                      "--format=@@%ad|%an", "--name-only", "--", *(caminhos or PASTAS + SOLTOS))
     achados, atual = {}, ("", "")
     for linha in (saida or b"").decode("utf-8", "ignore").split("\n"):
         linha = linha.strip()
@@ -176,15 +259,15 @@ def _criacao(raiz: Path, caminhos=None) -> dict:
     return achados
 
 
-def _pendencias(raiz: Path) -> list:
+def _pendencias(raiz: Path, disco=DiscoReal) -> list:
     avisos = []
-    saida = _git(raiz, "status", "--porcelain", "-z", "--untracked-files=all", "--", *PASTAS, *SOLTOS)
+    saida = disco.git(raiz, "status", "--porcelain", "-z", "--untracked-files=all", "--", *PASTAS, *SOLTOS)
     if saida is not None:
         mexidos = [x for x in saida.decode("utf-8", "ignore").split("\0")
                    if len(x) > 3 and Path(x[3:]).suffix.lower() in EXTENSOES]
         if mexidos:
             avisos.append(f"{len(mexidos)} arquivo(s) de memória com mudança ainda não commitada")
-    adiante = _git(raiz, "rev-list", "--count", "@{u}..HEAD")
+    adiante = disco.git(raiz, "rev-list", "--count", "@{u}..HEAD")
     if adiante and adiante.strip().isdigit() and int(adiante.strip()) > 0:
         avisos.append(f"{int(adiante.strip())} commit(s) ainda não publicados (publicar é ato do owner)")
     return avisos
@@ -221,12 +304,12 @@ def _tipo_do_documento(rel: str) -> str:
     return "documento"
 
 
-def _subindice(raiz: Path, rels: list, mi) -> dict:
+def _subindice(raiz: Path, rels: list, mi, disco=DiscoReal) -> dict:
     """arquivo da anotação → ([frases de quando usar], [ganchos]) lidos de memory/indice/*.md (ou do MEMORY.md plano)."""
     fontes = [r for r in rels if r.startswith(f"memory/{mi.SUBDIR}/")] or [r for r in rels if r == "memory/MEMORY.md"]
     achados = {}
     for rel in fontes:
-        for linha in _texto(raiz / rel).split("\n"):
+        for linha in _texto(raiz / rel, disco).split("\n"):
             m = mi.RE_ITEM.match(linha)
             if m and f"{mi.SUBDIR}/" not in m.group("arquivo"):
                 frases, ganchos = achados.setdefault(Path(m.group("arquivo")).name, ([], []))
@@ -235,11 +318,11 @@ def _subindice(raiz: Path, rels: list, mi) -> dict:
     return achados
 
 
-def _linhas_do_diario(raiz: Path, mi) -> dict:
+def _linhas_do_diario(raiz: Path, mi, disco=DiscoReal) -> dict:
     achados = {}
     indice = raiz / "memory" / "DIARIO.md"
-    if indice.is_file():
-        for linha in _texto(indice).split("\n"):
+    if disco.eh_arquivo(indice):
+        for linha in _texto(indice, disco).split("\n"):
             m = mi.RE_LINHA_DIARIO.match(linha)
             if m:
                 achados[m.group(1)] = m.group(2).strip()
@@ -248,44 +331,50 @@ def _linhas_do_diario(raiz: Path, mi) -> dict:
     return achados
 
 
-def linhas_do_projeto(raiz: Path, usar_git: bool = True) -> list:
-    return _ler_projeto(raiz, usar_git)[0]
+def linhas_do_projeto(raiz: Path, usar_git: bool = True, disco=DiscoReal) -> list:
+    return _ler_projeto(raiz, usar_git, disco=disco)[0]
 
 
-def assinatura_do_disco(raiz: Path) -> str:
+def assinatura_do_disco(raiz: Path, disco=DiscoReal) -> str:
     """Nome, tamanho e data de cada `.md`/`.html` de `memory/`, `docs/`, dos soltos e dos vigiados — SEM ler
     conteúdo e sem git. É a conferência rápida: igual à guardada na linha de controle → nada mudou."""
     raiz = Path(raiz)
     itens = []
 
     def anota(p: Path, rel: str):
-        try:
-            s = p.stat()
-        except OSError:
-            return
-        itens.append(f"{rel}|{s.st_size}|{s.st_mtime_ns}")
+        marca = disco.marca(p)
+        if marca is not None:
+            itens.append(f"{rel}|{marca[0]}|{marca[1]}")
 
     for pasta in PASTAS:
-        for base, _pastas, nomes in os.walk(raiz / pasta):
-            for nome in nomes:
-                if nome.lower().endswith(EXTENSOES):
-                    p = Path(base) / nome
-                    anota(p, p.relative_to(raiz).as_posix())
+        for rel in disco.arquivos(raiz, pasta):
+            if rel.rsplit("/", 1)[-1].lower().endswith(EXTENSOES):
+                anota(raiz / rel, rel)
     for solto in SOLTOS + VIGIADOS:
         anota(raiz / solto, solto)
     return hashlib.sha1("\n".join(sorted(itens)).encode("utf-8")).hexdigest()[:16]
 
 
-def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
+def _frontmatter_e_corpo(mi, bruto: bytes):
+    """O frontmatter e o corpo de uma anotação, como o `memoria_indice` lê do arquivo: UTF-8 estrito (fora disso,
+    `{}` e '')."""
+    try:
+        texto = bruto.decode("utf-8").replace("\r\n", "\n")
+    except UnicodeDecodeError:
+        return {}, ""
+    return mi.frontmatter_do_texto(texto), mi.corpo_do_texto(texto)
+
+
+def _ler_projeto(raiz: Path, usar_git: bool, criacao=None, disco=DiscoReal):
     """(linhas, arquivos grandes demais que ficaram fora) — cada arquivo é lido uma vez. `criacao` já pronto
     (o `montar` passa `{}` e preenche dono e data só do que mudou) evita o `git log` das pastas inteiras."""
     mi = _motor()
     raiz = Path(raiz).resolve()
-    projeto, raiz_txt = nome_projeto(raiz), raiz.as_posix()
-    rels = _relativos(raiz, usar_git)
+    projeto, raiz_txt = nome_projeto(raiz, disco), raiz.as_posix()
+    rels = _relativos(raiz, usar_git, disco)
     if criacao is None:
-        criacao = _criacao(raiz) if usar_git else {}
-    sub, diario = _subindice(raiz, rels, mi), _linhas_do_diario(raiz, mi)
+        criacao = _criacao(raiz, disco=disco) if usar_git else {}
+    sub, diario = _subindice(raiz, rels, mi, disco), _linhas_do_diario(raiz, mi, disco)
     linhas, grandes = [], []
 
     def junta(tipo, classe, rel, ponteiro, titulo, quando, resumo, texto, data, assinatura, estado=""):
@@ -297,7 +386,7 @@ def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
 
     for rel in rels:
         p = raiz / rel
-        bruto = p.read_bytes()
+        bruto = disco.ler_bytes(p)
         if len(bruto) > TETO_ARQUIVO:
             grandes.append(rel)
             continue
@@ -309,7 +398,8 @@ def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
         if partes[0] == "memory":
             if len(partes) == 2 and partes[1] not in INDICES_DA_MEMORIA and rel.endswith(".md"):
                 try:
-                    fm, corpo = mi.frontmatter(p), RE_PRIVADO.sub(" ", mi.corpo(p))
+                    fm, corpo = _frontmatter_e_corpo(mi, bruto)
+                    corpo = RE_PRIVADO.sub(" ", corpo)
                 except Exception:                                    # noqa: BLE001 — anotação torta não derruba a tabela
                     fm, corpo = {}, _limpo(bruto)
                 frases, ganchos = sub.get(partes[1], ([], []))
@@ -352,8 +442,8 @@ def _ler_projeto(raiz: Path, usar_git: bool, criacao=None):
     return linhas, grandes
 
 
-def _abrir(tabela: Path):
-    conn = sqlite3.connect(str(tabela), timeout=5)
+def _abrir(banco):
+    conn = banco.conectar(timeout=5)
     versao = conn.execute("PRAGMA user_version").fetchone()[0]
     existe = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'memoria'").fetchone()
     if versao != VERSAO_ESQUEMA or not existe:        # é cópia: esquema diferente se refaz do zero
@@ -383,19 +473,19 @@ def _diferenca(conn, raiz_txt: str, grupos: dict):
     return novos, refeitos, removidos, len(grupos) - len(novos) - len(refeitos)
 
 
-def _dono_e_data(raiz: Path, grupos: dict, mudados: list) -> None:
+def _dono_e_data(raiz: Path, grupos: dict, mudados: list, disco=DiscoReal) -> None:
     """Preenche dono e data (criação no git) só nas linhas dos arquivos novos ou refeitos."""
-    criacao = _criacao(raiz, mudados if len(mudados) <= MUITOS_ARQUIVOS else None)
+    criacao = _criacao(raiz, mudados if len(mudados) <= MUITOS_ARQUIVOS else None, disco)
     for arq in mudados:
         data, dono = criacao.get(arq, ("", ""))
         for linha in grupos[arq]:
             linha["data"], linha["dono"] = linha["data"] or data, dono
 
 
-def _controle(tabela: Path, raiz_txt: str):
+def _controle(tabela, raiz_txt: str):
     """Assinatura do disco guardada na última montagem deste projeto, ou None (tabela de outra versão, sem a
     linha de controle ou sem a tabela `memoria`)."""
-    conn = sqlite3.connect(str(tabela), timeout=2)
+    conn = _banco(tabela).conectar(timeout=2)
     try:
         if (conn.execute("PRAGMA user_version").fetchone()[0] != VERSAO_ESQUEMA
                 or not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'memoria'").fetchone()):
@@ -407,28 +497,29 @@ def _controle(tabela: Path, raiz_txt: str):
     return achado[0] if achado else None
 
 
-def atualizar(raiz: Path, tabela: Path = None, usar_git: bool = True):
+def atualizar(raiz: Path, tabela=None, usar_git: bool = True, disco=DiscoReal):
     """A tabela em dia, sem ninguém pedir: `None` quando nada mudou no disco (não lê arquivo, não chama o git);
-    senão monta o que mudou e devolve o `Resultado`. Tabela ausente é montada na hora."""
+    senão monta o que mudou e devolve o `Resultado`. Tabela ausente é montada na hora. `tabela` é o caminho do
+    arquivo (padrão: `caminho_tabela()`) ou o banco de teste; `disco`, o que lê o projeto."""
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
-    if tabela.is_file() and _controle(tabela, raiz.as_posix()) == assinatura_do_disco(raiz):
+    banco = _banco(tabela)
+    if banco.existe() and _controle(banco, raiz.as_posix()) == assinatura_do_disco(raiz, disco):
         return None
-    return montar(raiz, tabela, usar_git=usar_git, com_pendencias=False)
+    return montar(raiz, banco, usar_git=usar_git, com_pendencias=False, disco=disco)
 
 
-def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencias: bool = True) -> Resultado:
+def montar(raiz: Path, tabela=None, usar_git: bool = True, com_pendencias: bool = True, disco=DiscoReal) -> Resultado:
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
-    tabela.parent.mkdir(parents=True, exist_ok=True)
-    disco = assinatura_do_disco(raiz)          # antes de ler: o que mudar durante a leitura é pego na próxima
-    linhas, grandes = _ler_projeto(raiz, usar_git, criacao={})
-    grupos, raiz_txt, projeto = _por_arquivo(linhas), raiz.as_posix(), nome_projeto(raiz)
-    conn = _abrir(tabela)
+    banco = _banco(tabela)
+    banco.preparar()
+    assinatura = assinatura_do_disco(raiz, disco)   # antes de ler: o que mudar durante a leitura é pego na próxima
+    linhas, grandes = _ler_projeto(raiz, usar_git, criacao={}, disco=disco)
+    grupos, raiz_txt, projeto = _por_arquivo(linhas), raiz.as_posix(), nome_projeto(raiz, disco)
+    conn = _abrir(banco)
     try:
         novos, refeitos, removidos, iguais = _diferenca(conn, raiz_txt, grupos)
         if usar_git and (novos or refeitos):
-            _dono_e_data(raiz, grupos, novos + refeitos)
+            _dono_e_data(raiz, grupos, novos + refeitos, disco)
         for arq in refeitos + removidos:
             conn.execute("DELETE FROM memoria WHERE raiz = ? AND arq = ?", (raiz_txt, arq))
         marcas = ",".join("?" * len(COLUNAS))
@@ -440,8 +531,8 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
         adiado = antes[0] if antes and str(antes[0]).startswith(PREFIXO_ADIADO) else ""
         conn.execute("DELETE FROM memoria WHERE raiz = ? AND tipo = ?", (raiz_txt, TIPO_CONTROLE))
         conn.execute(f"INSERT INTO memoria ({','.join(COLUNAS)}) VALUES ({marcas})",
-                     tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": disco,
-                            "data": max(_ultima_conferencia(linhas), _motor().conversas_lidas_ate(raiz)[0]),
+                     tuple({"projeto": projeto, "raiz": raiz_txt, "tipo": TIPO_CONTROLE, "assinatura": assinatura,
+                            "data": max(_ultima_conferencia(linhas), disco.lidas_ate(raiz)),
                             "estado": adiado}.get(c, "")
                            for c in COLUNAS))
         conn.execute("UPDATE memoria SET projeto = ? WHERE raiz = ? AND projeto <> ?", (projeto, raiz_txt, projeto))
@@ -450,10 +541,10 @@ def montar(raiz: Path, tabela: Path = None, usar_git: bool = True, com_pendencia
                                      (raiz_txt, TIPO_CONTROLE)))
     finally:
         conn.close()
-    pendencias = _pendencias(raiz) if (usar_git and com_pendencias) else []
+    pendencias = _pendencias(raiz, disco) if (usar_git and com_pendencias) else []
     if grandes:
         pendencias.append(f"{len(grandes)} arquivo(s) acima de 1,5 MB ficaram fora: " + ", ".join(grandes[:5]))
-    return Resultado(tabela, projeto, por_tipo, len(novos), len(refeitos), len(removidos), iguais, pendencias)
+    return Resultado(_caminho(banco), projeto, por_tipo, len(novos), len(refeitos), len(removidos), iguais, pendencias)
 
 
 # ---------------------------------------------------------------- sono da memória (0.62.0)
@@ -466,14 +557,14 @@ def _ultima_conferencia(linhas: list) -> str:
     return max(datas) if datas else ""
 
 
-def ultimo_sono(raiz: Path, tabela: Path = None) -> str:
+def ultimo_sono(raiz: Path, tabela=None) -> str:
     """Data a partir da qual as conversas contam: o último sono ou o último "agora não" do owner, o mais novo
     ('' = nunca). Lê só a linha de controle; tabela sem ela → ''."""
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
-    if not tabela.is_file():
+    banco = _banco(tabela)
+    if not banco.existe():
         return ""
-    conn = sqlite3.connect(str(tabela), timeout=2)
+    conn = banco.conectar(timeout=2)
     try:
         if conn.execute("PRAGMA user_version").fetchone()[0] != VERSAO_ESQUEMA:
             return ""
@@ -487,13 +578,13 @@ def ultimo_sono(raiz: Path, tabela: Path = None) -> str:
     return max(str(achado[0] or ""), adiado)
 
 
-def adiar_sono(raiz: Path, tabela: Path = None, hoje: str = None, usar_git: bool = True) -> str:
+def adiar_sono(raiz: Path, tabela=None, hoje: str = None, usar_git: bool = True, disco=DiscoReal) -> str:
     """O owner disse "agora não": guarda a data na linha de controle e a conta das conversas recomeça dali."""
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
+    banco = _banco(tabela)
     hoje = hoje or time.strftime("%Y-%m-%d")
-    atualizar(raiz, tabela, usar_git=usar_git)
-    conn = sqlite3.connect(str(tabela), timeout=5)
+    atualizar(raiz, banco, usar_git=usar_git, disco=disco)
+    conn = banco.conectar(timeout=5)
     try:
         conn.execute("UPDATE memoria SET estado = ? WHERE raiz = ? AND tipo = ?",
                      (PREFIXO_ADIADO + hoje, raiz.as_posix(), TIPO_CONTROLE))
@@ -503,17 +594,16 @@ def adiar_sono(raiz: Path, tabela: Path = None, hoje: str = None, usar_git: bool
     return hoje
 
 
-def conversas_desde(pasta: Path, desde: str, atual: Path = None) -> int:
+def conversas_desde(pasta: Path, desde: str, atual: Path = None, disco=DiscoReal) -> int:
     """Quantos arquivos de conversa (`*.jsonl`) da pasta mudaram DEPOIS do dia `desde` ('' = todos), sem contar a
     conversa atual. Só nome e data do arquivo — o conteúdo nunca é aberto."""
-    pasta = Path(pasta)
     atual_nome = Path(atual).name if atual else ""
     n = 0
     try:
-        for p in pasta.glob("*.jsonl"):
-            if p.name == atual_nome:
+        for nome, data in disco.conversas(Path(pasta)):
+            if nome == atual_nome:
                 continue
-            dia = time.strftime("%Y-%m-%d", time.localtime(p.stat().st_mtime))
+            dia = time.strftime("%Y-%m-%d", time.localtime(data))
             if not desde or dia > desde:
                 n += 1
     except OSError:
@@ -521,11 +611,11 @@ def conversas_desde(pasta: Path, desde: str, atual: Path = None) -> int:
     return n
 
 
-def aviso_de_sono(raiz: Path, tabela: Path, pasta_conversas: Path, atual: Path = None,
-                  limite: int = CONVERSAS_PARA_O_SONO):
+def aviso_de_sono(raiz: Path, tabela, pasta_conversas: Path, atual: Path = None,
+                  limite: int = CONVERSAS_PARA_O_SONO, disco=DiscoReal):
     """Recado de 1 parágrafo pro ASSISTENTE quando há `limite` conversas ou mais desde o último sono; senão None."""
     desde = ultimo_sono(raiz, tabela)
-    n = conversas_desde(pasta_conversas, desde, atual)
+    n = conversas_desde(pasta_conversas, desde, atual, disco)
     if n < limite:
         return None
     script = Path(__file__).resolve()
@@ -548,18 +638,18 @@ def _termos(texto: str) -> list:
     return [f'"{p[:6]}"*' if len(p) > 6 else f'"{p}"' for p in sorted(palavras) if RE_PALAVRA.fullmatch(p)]
 
 
-def buscar(raiz: Path, texto: str, contexto=(), tabela: Path = None, limite: int = LIMITE_BUSCA, sem_tipos=()) -> list:
+def buscar(raiz: Path, texto: str, contexto=(), tabela=None, limite: int = LIMITE_BUSCA, sem_tipos=()) -> list:
     """Até `limite` achados — um por arquivo (o melhor trecho), só do projeto da raiz, do mais provável pro menos.
     `contexto` são os pedidos anteriores do owner, palavra por palavra (não se resume o pedido: medido, piora).
     Tabela ausente ou presa → `sqlite3.Error` (quem chama manda buscar nos arquivos)."""
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
-    if not tabela.is_file():
-        raise sqlite3.OperationalError(f"a tabela de memória não existe em {tabela}")
+    banco = _banco(tabela)
+    if not banco.existe():
+        raise sqlite3.OperationalError(f"a tabela de memória não existe em {banco}")
     termos = _termos(" ".join([*contexto, texto]))
     if not termos:
         return []
-    conn = sqlite3.connect(str(tabela), timeout=5)
+    conn = banco.conectar(timeout=5)
     try:
         linhas = conn.execute(
             "SELECT arq, tipo, ponteiro, titulo, resumo, substr(texto, 1, 220) FROM memoria "
@@ -612,31 +702,36 @@ def _pedido_do_owner(reg, minimo: int = PEDIDO_MINIMO) -> str:
     return t
 
 
-def pedidos_da_conversa(arquivo, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO) -> list:
-    """Os últimos `quantos` pedidos do owner nesta conversa, do mais antigo pro mais novo, cada um cortado em
-    `teto` letras. O ÚLTIMO entra mesmo curto (é o pedido em curso: `/mss-spec:duvida e o deploy?`); os
-    anteriores curtos ("ok", "pode seguir") ficam fora. Sem arquivo, ou com linha torta, devolve o que der."""
-    textos = []
+def pedidos_da_conversa(arquivo, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO, disco=DiscoReal) -> list:
+    """Os pedidos do owner no arquivo da conversa (ver `pedidos_do_texto`). Sem arquivo → []."""
     try:
-        with open(arquivo, encoding="utf-8", errors="replace") as f:
-            for bruto in f:
-                if '"user"' not in bruto:
-                    continue
-                try:
-                    texto = _pedido_do_owner(json.loads(bruto), minimo=1)
-                except ValueError:
-                    continue
-                if texto:
-                    textos.append(texto)
+        conteudo = disco.ler_texto(arquivo)
     except (OSError, TypeError):
         return []
+    return pedidos_do_texto(conteudo, quantos, teto)
+
+
+def pedidos_do_texto(conteudo: str, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO) -> list:
+    """Os últimos `quantos` pedidos do owner nesta conversa (o texto do `.jsonl`), do mais antigo pro mais novo,
+    cada um cortado em `teto` letras. O ÚLTIMO entra mesmo curto (é o pedido em curso: `/mss-spec:duvida e o
+    deploy?`); os anteriores curtos ("ok", "pode seguir") ficam fora. Linha torta fica de fora."""
+    textos = []
+    for bruto in conteudo.splitlines():
+        if '"user"' not in bruto:
+            continue
+        try:
+            texto = _pedido_do_owner(json.loads(bruto), minimo=1)
+        except ValueError:
+            continue
+        if texto:
+            textos.append(texto)
     if not textos:
         return []
     pedidos = [t for t in textos[:-1] if len(t) >= PEDIDO_MINIMO] + [textos[-1]]
     return [p[:teto] for p in pedidos[-quantos:]]
 
 
-def arquivo_da_conversa(ambiente=None):
+def arquivo_da_conversa(ambiente=None, disco=DiscoReal):
     """O `.jsonl` da conversa em curso (`<pasta do app>/projects/<projeto>/<sessão>.jsonl`), achado pelo número da
     sessão que o app põe no ambiente; `None` quando não dá pra saber — aí a busca usa só o texto informado."""
     ambiente = os.environ if ambiente is None else ambiente
@@ -645,28 +740,29 @@ def arquivo_da_conversa(ambiente=None):
         return None
     base = Path(ambiente.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude") / "projects"
     try:
-        for pasta in base.iterdir():
+        for pasta in disco.pastas_em(base):
             arq = pasta / f"{sessao}.jsonl"
-            if arq.is_file():
+            if disco.eh_arquivo(arq):
                 return arq
     except OSError:
         pass
     return None
 
 
-def _modo_buscar(raiz: Path, tabela: Path, a) -> int:
+def _modo_buscar(raiz: Path, tabela, a, disco=DiscoReal, ambiente=None) -> int:
     """0 = achou (imprime os dois blocos) · 1 = nada pra este pedido · 2 = tabela indisponível. Em 1 e 2 a saída
     diz pra ir nos arquivos: a busca nunca falha calada."""
     texto, contexto = " ".join(a.texto).strip(), []
     if not texto:
-        pedidos = pedidos_da_conversa(Path(a.conversa) if a.conversa else arquivo_da_conversa())
+        pedidos = pedidos_da_conversa(Path(a.conversa) if a.conversa else arquivo_da_conversa(ambiente, disco),
+                                      disco=disco)
         if not pedidos:
             print("sem texto pra buscar e sem o arquivo desta conversa: rode de novo com o pedido do owner entre "
                   f"aspas, palavra por palavra — ou {RESERVA}")
             return 1
         texto, contexto = pedidos[-1], pedidos[:-1]
     try:
-        atualizar(raiz, tabela, usar_git=not a.sem_git)
+        atualizar(raiz, tabela, usar_git=not a.sem_git, disco=disco)
         achados = buscar(raiz, texto, contexto, tabela, limite=a.limite)
     except (sqlite3.Error, OSError) as erro:
         print(f"tabela de memória indisponível ({erro}) — {RESERVA}")
@@ -683,18 +779,18 @@ def _como_remontar(raiz: Path) -> str:
     return f'python "{Path(__file__).resolve()}" montar --proj "{raiz}"'
 
 
-def status(raiz: Path, tabela: Path = None, usar_git: bool = True) -> Situacao:
+def status(raiz: Path, tabela=None, usar_git: bool = True, disco=DiscoReal) -> Situacao:
     raiz = Path(raiz).resolve()
-    tabela = Path(tabela) if tabela else caminho_tabela()
-    if not tabela.is_file():
-        return Situacao(False, 0, 0, f"a tabela de memória não existe em {tabela} — rode: {_como_remontar(raiz)}")
-    grupos, raiz_txt = _por_arquivo(linhas_do_projeto(raiz, usar_git)), raiz.as_posix()
-    conn = sqlite3.connect(str(tabela), timeout=5)
+    banco = _banco(tabela)
+    if not banco.existe():
+        return Situacao(False, 0, 0, f"a tabela de memória não existe em {banco} — rode: {_como_remontar(raiz)}")
+    grupos, raiz_txt = _por_arquivo(linhas_do_projeto(raiz, usar_git, disco)), raiz.as_posix()
+    conn = banco.conectar(timeout=5)
     try:
         em_dia = (conn.execute("PRAGMA user_version").fetchone()[0] == VERSAO_ESQUEMA
                   and conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'memoria'").fetchone())
         if not em_dia:
-            return Situacao(True, 0, len(grupos), f"a tabela em {tabela} é de outra versão — rode: {_como_remontar(raiz)}")
+            return Situacao(True, 0, len(grupos), f"a tabela em {banco} é de outra versão — rode: {_como_remontar(raiz)}")
         novos, refeitos, removidos, _ = _diferenca(conn, raiz_txt, grupos)
         linhas = conn.execute("SELECT count(*) FROM memoria WHERE raiz = ? AND tipo <> ?",
                               (raiz_txt, TIPO_CONTROLE)).fetchone()[0]
@@ -704,7 +800,7 @@ def status(raiz: Path, tabela: Path = None, usar_git: bool = True) -> Situacao:
     if mudaram:
         return Situacao(True, linhas, mudaram,
                         f"tabela desatualizada: {mudaram} arquivo(s) mudaram desde a última montagem — rode: {_como_remontar(raiz)}")
-    return Situacao(True, linhas, 0, f"tabela em dia: {linhas} linha(s) deste projeto em {tabela}")
+    return Situacao(True, linhas, 0, f"tabela em dia: {linhas} linha(s) deste projeto em {banco}")
 
 
 def main(argv=None) -> int:

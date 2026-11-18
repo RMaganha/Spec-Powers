@@ -101,14 +101,59 @@ def _no(id, dim=None, filhos=None, resumo=None, local=None, data=None):
     return n
 
 
-def _data(path: Path) -> str:
-    """Data do arquivo = mtime em `YYYY-MM-DD`. Escolha do mtime (não do commit-date): durante a
-    sessão o arquivo pode mudar (hook/upgrade/geração) e o commit atrasaria; o mtime reflete a
-    verdade LOCAL agora (após push/pull todos sincronizam). Vazio se o arquivo não existe."""
-    try:
-        return datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d")
-    except OSError:
-        return ""
+class DiscoReal:
+    """O que os extratores leem do projeto — a única parte deles que toca o disco. Em teste, entra no lugar um
+    objeto com os mesmos métodos, sobre um dicionário {caminho: texto}."""
+
+    @staticmethod
+    def existe(p: Path) -> bool:
+        return Path(p).exists()
+
+    @staticmethod
+    def eh_arquivo(p: Path) -> bool:
+        return Path(p).is_file()
+
+    @staticmethod
+    def eh_pasta(p: Path) -> bool:
+        return Path(p).is_dir()
+
+    @staticmethod
+    def ler(p: Path, estrito: bool = False) -> str:
+        """O texto (UTF-8). `estrito=False` ignora byte inválido; `True` levanta."""
+        return Path(p).read_text(encoding="utf-8", errors="strict" if estrito else "ignore")
+
+    @staticmethod
+    def data(p: Path) -> str:
+        """Data do arquivo = mtime em `YYYY-MM-DD`. Escolha do mtime (não do commit-date): durante a
+        sessão o arquivo pode mudar (hook/upgrade/geração) e o commit atrasaria; o mtime reflete a
+        verdade LOCAL agora (após push/pull todos sincronizam). Vazio se o arquivo não existe."""
+        try:
+            return datetime.fromtimestamp(Path(p).stat().st_mtime).strftime("%Y-%m-%d")
+        except OSError:
+            return ""
+
+    @staticmethod
+    def listar(d: Path) -> list:
+        """Os itens de uma pasta (levanta OSError se não dá pra listar)."""
+        return list(Path(d).iterdir())
+
+    @staticmethod
+    def percorrer(d: Path):
+        """Como o `os.walk` (de cima pra baixo; quem chama poda mexendo em `dirs`), com a pasta como Path."""
+        for raiz, dirs, arqs in os.walk(d):
+            yield Path(raiz), dirs, arqs
+
+    @staticmethod
+    def glob(base: Path, padrao: str) -> list:
+        return list(Path(base).glob(padrao))
+
+    @staticmethod
+    def git_ignorados(proj: Path, nomes) -> set:
+        return _git_ignorados(proj, nomes)
+
+
+def _data(path: Path, disco=DiscoReal) -> str:
+    return disco.data(path)
 
 
 def _cortar(nos: list, limite: int) -> list:
@@ -120,11 +165,11 @@ def _cortar(nos: list, limite: int) -> list:
     return nos[:limite] + [_no("… (+%d)" % (len(nos) - limite))]
 
 
-def _resumo(path: Path) -> str:
+def _resumo(path: Path, disco=DiscoReal) -> str:
     """1-linha do que a peça faz: docstring de módulo (.py) ou `description` do frontmatter (.md)."""
     if path.suffix.lower() not in (".py", ".md"):
         return ""
-    txt = path.read_text(encoding="utf-8", errors="ignore")
+    txt = disco.ler(path)
     if path.suffix == ".py":
         # só a ABERTURA da docstring — exigir o fecho na mesma janela fazia módulo de docstring
         # longa (o próprio mapa_neural.py) ficar sem resumo no índice
@@ -141,17 +186,16 @@ def _resumo(path: Path) -> str:
     return ""
 
 
-def _py_files(proj: Path, limite=400, fora=frozenset()):
+def _py_files(proj: Path, limite=400, fora=frozenset(), disco=DiscoReal):
     """Os `.py` DESTE projeto. A poda é feita na descida (`os.walk` + corte de `dirs`), não na
     saída: assim o gerador nem entra em `.claude/`, `node_modules/` & cia. — barato e, no caso do
     `.claude/worktrees/`, é o que impede o mapa de descrever o projeto do vizinho. `fora` são as
     pastas de 1º nível que não são o projeto (gitignoradas, `--ignorar`): o que não é camada
     também não expõe endpoint (cópia velha em `backup/` não é a API)."""
     out = []
-    raiz_proj = str(Path(proj).resolve())
-    for raiz, dirs, arqs in os.walk(proj):
+    for volta, (raiz, dirs, arqs) in enumerate(disco.percorrer(proj)):
         dirs[:] = sorted(d for d in dirs if d not in _IGNORAR_DIRS)
-        if str(Path(raiz).resolve()) == raiz_proj:
+        if volta == 0:                               # a 1ª volta da varredura é a raiz do projeto
             dirs[:] = [d for d in dirs if d not in fora]
         for a in sorted(arqs):
             if a.endswith(".py"):
@@ -161,12 +205,12 @@ def _py_files(proj: Path, limite=400, fora=frozenset()):
     return out
 
 
-def _tem_conteudo(d: Path) -> bool:
+def _tem_conteudo(d: Path, disco=DiscoReal) -> bool:
     """A pasta tem **algum arquivo** (em qualquer profundidade, fora dos ignorados)? É o que
     qualifica uma pasta como **camada**: *se está no repo, está no mapa*. Critério por arquivo, e
     não por extensão, porque camada de verdade nem sempre tem `.py` — `web/` guarda o HTML da UI,
     `prompts/` o system prompt, `n8n/` os fluxos de trabalho; todas são peças do projeto."""
-    for raiz, dirs, arqs in os.walk(d):
+    for raiz, dirs, arqs in disco.percorrer(d):
         dirs[:] = [x for x in dirs if x not in _IGNORAR_DIRS and not x.startswith(".")]
         if arqs:
             return True
@@ -191,7 +235,7 @@ def _git_ignorados(proj: Path, nomes) -> set:
             for t in saida.split("\0") if t.strip()}
 
 
-def _pastas_fora(proj: Path, ignorar=()) -> set:
+def _pastas_fora(proj: Path, ignorar=(), disco=DiscoReal) -> set:
     """Pastas de 1º nível que **não** entram no mapa. A regra é uma só — *se está no repo, está no
     mapa* — e as exceções são explicáveis em uma linha cada: pasta de ferramenta (`.venv`,
     `node_modules`, `.claude`…), pasta que já tem ramo próprio (`docs/`, `memory/`), o que o
@@ -199,14 +243,14 @@ def _pastas_fora(proj: Path, ignorar=()) -> set:
     `--ignorar`. Nada de adivinhar intenção lendo prosa do `CLAUDE.md` — quem lê prosa é o
     assistente, e o que ele conclui chega aqui como `--ignorar`."""
     try:
-        nomes = [d.name for d in proj.iterdir() if d.is_dir()]
+        nomes = [d.name for d in disco.listar(proj) if disco.eh_pasta(d)]
     except OSError:
         return set(_DIM_PROPRIA)
     fora = {n for n in nomes if n in _IGNORAR_DIRS or n.startswith(".")}
     fora |= set(_DIM_PROPRIA)
     fora |= {n for n in nomes if n.lower() in _NAO_RUNTIME}
     fora |= {str(x).strip().strip("/\\") for x in (ignorar or ()) if str(x).strip()}
-    fora |= _git_ignorados(proj, [n for n in nomes if n not in fora])
+    fora |= disco.git_ignorados(proj, [n for n in nomes if n not in fora])
     return fora
 
 
@@ -223,16 +267,16 @@ def _e_molde(campo: str) -> bool:
     return bool(_PLACEHOLDER_RE.search(campo))
 
 
-def _linhas_uteis(p: Path) -> list:
+def _linhas_uteis(p: Path, disco=DiscoReal) -> list:
     """Linhas de um `.md` sem os comentários HTML — o comentário-guia dos moldes é instrução pra
     quem preenche, não conteúdo (e os moldes têm bullets lá dentro)."""
-    return _COMENT_RE.sub("", p.read_text(encoding="utf-8", errors="ignore")).splitlines()
+    return _COMENT_RE.sub("", disco.ler(p)).splitlines()
 
 
-def nome_projeto(proj: Path) -> str:
+def nome_projeto(proj: Path, disco=DiscoReal) -> str:
     mapa = proj / "docs" / "superpowers" / "MAPA.md"
-    if mapa.exists():
-        m = _TITULO_RE.search(_COMENT_RE.sub("", mapa.read_text(encoding="utf-8")))
+    if disco.existe(mapa):
+        m = _TITULO_RE.search(_COMENT_RE.sub("", disco.ler(mapa, estrito=True)))
         if m:
             return m.group(1).strip()
     return proj.resolve().name
@@ -284,13 +328,13 @@ def parse_conexoes(texto: str, so_a_secao: bool = True) -> list:
     return saida
 
 
-def extrair_conexoes(proj: Path) -> dict:
+def extrair_conexoes(proj: Path, disco=DiscoReal) -> dict:
     sp = proj / "docs" / "superpowers"
     conexoes = []
-    if (sp / "MAPA.md").exists():
-        conexoes += parse_conexoes((sp / "MAPA.md").read_text(encoding="utf-8"))
-    if (sp / "CONEXOES.md").exists():
-        conexoes += parse_conexoes((sp / "CONEXOES.md").read_text(encoding="utf-8"), so_a_secao=False)
+    if disco.existe(sp / "MAPA.md"):
+        conexoes += parse_conexoes(disco.ler(sp / "MAPA.md", estrito=True))
+    if disco.existe(sp / "CONEXOES.md"):
+        conexoes += parse_conexoes(disco.ler(sp / "CONEXOES.md", estrito=True), so_a_secao=False)
     filhos, vistas = [], set()
     for c in conexoes:
         chave = (c["direcao"], c["alvo"], c["rotulo"], c["ponto"])
@@ -308,7 +352,7 @@ def extrair_conexoes(proj: Path) -> dict:
 
 # ---- extrator: arquitetura interna ---------------------------------------
 
-def _camadas(proj: Path, fora: set) -> list:
+def _camadas(proj: Path, fora: set, disco=DiscoReal) -> list:
     """As camadas REAIS do projeto, na ordem de leitura. **Descritivo, não prescritivo**:
       - todo `.py` da raiz é entrypoint (não só `main.py` — projeto pode ter dois, com nomes
         próprios, e renomeá-los costuma estar fora de escopo);
@@ -317,63 +361,63 @@ def _camadas(proj: Path, fora: set) -> list:
     `_CAMADAS` entra só como **ordem**: entrypoints → camadas conhecidas na ordem canônica →
     demais em ordem alfabética.
     """
-    raiz_py = sorted((p.name for p in proj.glob("*.py") if p.name != "__init__.py"), key=str.lower)
+    raiz_py = sorted((p.name for p in disco.glob(proj, "*.py") if p.name != "__init__.py"), key=str.lower)
     if "main.py" in raiz_py:  # entrypoint canônico primeiro, quando existe
         raiz_py.remove("main.py")
         raiz_py.insert(0, "main.py")
-    dirs = [d.name for d in sorted(proj.iterdir(), key=lambda p: p.name.lower())
-            if d.is_dir() and d.name not in fora and _tem_conteudo(d)]
+    dirs = [d.name for d in sorted(disco.listar(proj), key=lambda p: p.name.lower())
+            if disco.eh_pasta(d) and d.name not in fora and _tem_conteudo(d, disco)]
     conhecidas = [n for n in _CAMADAS if n in dirs]
     detectadas = [n for n in dirs if n not in conhecidas]
     return raiz_py + conhecidas + detectadas
 
 
-def _filhos_pasta(d: Path, rel: str, limite: int, prof: int = 1) -> list:
+def _filhos_pasta(d: Path, rel: str, limite: int, prof: int = 1, disco=DiscoReal) -> list:
     """Filhos de uma camada: os arquivos de conteúdo dela **e as subpastas, recursivamente**
     (até `_PROF_MAX`). Descer é o ponto: código dentro de subpasta é código do projeto — antes o
     mapa parava no 1º nível e `apis/v1/rotas.py` simplesmente não existia."""
     try:
-        itens = sorted(d.iterdir(), key=lambda p: p.name.lower())
+        itens = sorted(disco.listar(d), key=lambda p: p.name.lower())
     except OSError:
         return []
-    nos = [_no(p.name, resumo=_resumo(p), local="%s/%s" % (rel, p.name), data=_data(p))
+    nos = [_no(p.name, resumo=_resumo(p, disco), local="%s/%s" % (rel, p.name), data=_data(p, disco))
            for p in itens
-           if p.is_file() and p.name != "__init__.py" and p.suffix.lower() in _EXT_CONTEUDO]
+           if disco.eh_arquivo(p) and p.name != "__init__.py" and p.suffix.lower() in _EXT_CONTEUDO]
     if prof < _PROF_MAX:
         for s in itens:
-            if not s.is_dir() or s.name in _IGNORAR_DIRS or s.name.startswith("."):
+            if not disco.eh_pasta(s) or s.name in _IGNORAR_DIRS or s.name.startswith("."):
                 continue
-            if not _tem_conteudo(s):
+            if not _tem_conteudo(s, disco):
                 continue
             sub_rel = "%s/%s" % (rel, s.name)
             nos.append(_no(s.name + "/", local=sub_rel + "/",
-                           filhos=_filhos_pasta(s, sub_rel, limite, prof + 1)))
+                           filhos=_filhos_pasta(s, sub_rel, limite, prof + 1, disco)))
     return _cortar(nos, limite)
 
 
-def extrair_arquitetura(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
-    fora = _pastas_fora(proj, ignorar)
+def extrair_arquitetura(proj: Path, limite: int = _LIMITE, ignorar=(), disco=DiscoReal) -> dict:
+    fora = _pastas_fora(proj, ignorar, disco)
     filhos = []
-    for camada in _camadas(proj, fora):
+    for camada in _camadas(proj, fora, disco):
         alvo = proj / camada
-        if not alvo.exists():
+        if not disco.existe(alvo):
             continue
-        if alvo.is_file():
-            filhos.append(_no(camada, resumo=_resumo(alvo), local=camada, data=_data(alvo)))
+        if disco.eh_arquivo(alvo):
+            filhos.append(_no(camada, resumo=_resumo(alvo, disco), local=camada, data=_data(alvo, disco)))
             continue
         filhos.append(_no(camada + "/", local=camada + "/",
-                          filhos=_filhos_pasta(alvo, camada, limite)))
+                          filhos=_filhos_pasta(alvo, camada, limite, disco=disco)))
     return _no("Arquitetura interna", "arq", _cortar(filhos, limite))
 
 
 # ---- extrator: APIs & integrações ----------------------------------------
 
-def extrair_apis(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
+def extrair_apis(proj: Path, limite: int = _LIMITE, ignorar=(), disco=DiscoReal) -> dict:
     endpoints, imports = [], set()
-    for py in _py_files(proj, fora=_pastas_fora(proj, ignorar)):
+    for py in _py_files(proj, fora=_pastas_fora(proj, ignorar, disco), disco=disco):
         if any(seg in ("tests", "test") for seg in py.parts):
             continue  # rota/import em teste não é a API do projeto (evita fixtures como falso-positivo)
-        txt = py.read_text(encoding="utf-8", errors="ignore")
+        txt = disco.ler(py)
         for metodo, path in _ROTA_RE.findall(txt):            # FastAPI: método no decorator
             ep = "%s %s" % (metodo.upper(), path)
             if ep not in endpoints:
@@ -402,14 +446,14 @@ def extrair_apis(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
 
 # ---- extrator: memórias & conhecimento -----------------------------------
 
-def _titulo_md(p: Path) -> str:
-    m = _H1_RE.search(p.read_text(encoding="utf-8", errors="ignore"))
+def _titulo_md(p: Path, disco=DiscoReal) -> str:
+    m = _H1_RE.search(disco.ler(p))
     return m.group(1).strip() if m else p.stem
 
 
-def _lead_md(p: Path) -> str:
+def _lead_md(p: Path, disco=DiscoReal) -> str:
     """1ª linha de conteúdo real de um .md (após o H1, pulando `Data:`/citações/subtítulos)."""
-    linhas = p.read_text(encoding="utf-8", errors="ignore").splitlines()
+    linhas = disco.ler(p).splitlines()
     vistos_h1 = False
     for ln in linhas:
         if ln.startswith("# "):
@@ -427,20 +471,21 @@ def _rel(p: Path, proj: Path) -> str:
     return str(p.relative_to(proj)).replace("\\", "/")
 
 
-def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
+def extrair_memorias(proj: Path, limite: int = _LIMITE, disco=DiscoReal) -> dict:
     filhos = []
     # specs — título + caminho + lead como resumo
-    specs = sorted({p for p in proj.glob("docs/**/specs/*.md")} |
-                   {p for p in proj.glob("docs/specs/*.md")})
+    specs = sorted({p for p in disco.glob(proj, "docs/**/specs/*.md")} |
+                   {p for p in disco.glob(proj, "docs/specs/*.md")})
     if specs:
         filhos.append(_no("specs", filhos=_cortar([
-            _no(_titulo_md(p), local=_rel(p, proj), resumo=_lead_md(p), data=_data(p)) for p in specs
+            _no(_titulo_md(p, disco), local=_rel(p, proj), resumo=_lead_md(p, disco), data=_data(p, disco))
+            for p in specs
         ], limite)))
     # índice de memória (linha `- [Título](arquivo) — gancho`): título + caminho + gancho como resumo
     mem_idx = proj / "memory" / "MEMORY.md"
-    if mem_idx.exists():
+    if disco.existe(mem_idx):
         itens = []
-        for ln in _linhas_uteis(mem_idx):
+        for ln in _linhas_uteis(mem_idx, disco):
             ln = ln.strip()
             if not ln.startswith("- "):
                 continue
@@ -449,7 +494,7 @@ def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
                 arq = m.group(2).strip()
                 loc = (arq if "/" in arq else "memory/" + arq).replace("\\", "/")
                 itens.append(_no(m.group(1).strip(), local=loc, resumo=(m.group(3) or "").strip(),
-                                 data=_data(proj / loc)))
+                                 data=_data(proj / loc, disco)))
             else:
                 corpo = ln[2:]
                 itens.append(_no(corpo.split("—")[0].strip(),
@@ -458,30 +503,30 @@ def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
             filhos.append(_no("memórias", filhos=_cortar(itens, limite)))
     # decisões transversais — cada uma vira um filho (texto = resumo; caminho = decisoes.md)
     dec = proj / "docs" / "decisoes.md"
-    if dec.exists():
+    if disco.existe(dec):
         decs = []
-        for ln in _linhas_uteis(dec):
+        for ln in _linhas_uteis(dec, disco):
             ln = ln.strip()
             if ln.startswith("- "):
                 txt = re.sub(r"^\d{4}-\d{2}-\d{2}\s*[—-]\s*", "", ln[2:].strip())
-                decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220], data=_data(dec)))
+                decs.append(_no(txt[:60], local="docs/decisoes.md", resumo=txt[:220], data=_data(dec, disco)))
         if decs:
             filhos.append(_no("decisões (%d)" % len(decs), filhos=_cortar(decs, limite)))
     # to-dolist (raiz, versionado desde a 0.47.0; só entra se existir) — captura rápida e o #fora-de-escopo
     # (sem filtro de `<placeholder>` aqui: item de verdade cita a sintaxe de comando com `<algo>`)
     todo = proj / "to-dolist.md"
-    if todo.exists():
-        itens = [ln.strip()[2:].strip() for ln in _linhas_uteis(todo)
+    if disco.existe(todo):
+        itens = [ln.strip()[2:].strip() for ln in _linhas_uteis(todo, disco)
                  if ln.strip().startswith("- ")]
         if itens:
             filhos.append(_no("to-dolist (%d)" % len(itens),
                               filhos=_cortar([_no(t[:60], local="to-dolist.md", resumo=t,
-                                                  data=_data(todo)) for t in itens], limite)))
+                                                  data=_data(todo, disco)) for t in itens], limite)))
     # diário de sessão (memory/DIARIO.md → memory/sessions/<data>-<assunto>.md): "o que conversamos/decidimos"
     diario = proj / "memory" / "DIARIO.md"
-    if diario.exists():
+    if disco.existe(diario):
         data_atual, difilhos = "", []
-        for ln in _linhas_uteis(diario):
+        for ln in _linhas_uteis(diario, disco):
             ln = ln.strip()
             if ln.startswith("## "):
                 data_atual = "" if _e_molde(ln) else ln[3:].strip()
@@ -496,7 +541,7 @@ def extrair_memorias(proj: Path, limite: int = _LIMITE) -> dict:
                 loc = alvo if alvo.startswith("memory/") else ("memory/" + alvo if alvo else "memory/DIARIO.md")
                 titulo = ("%s · %s" % (data_atual, assunto)) if data_atual else assunto
                 loc = loc.replace("\\", "/")
-                difilhos.append(_no(titulo[:60], local=loc, resumo=gist[:220], data=_data(proj / loc)))
+                difilhos.append(_no(titulo[:60], local=loc, resumo=gist[:220], data=_data(proj / loc, disco)))
         if difilhos:
             filhos.append(_no("diário (%d)" % len(difilhos), filhos=_cortar(difilhos, limite)))
     return _no("Memórias & conhecimento", "mem", filhos)
@@ -533,7 +578,7 @@ def _secao_arquivos_tocados(texto: str) -> str:
     return "\n".join(out)
 
 
-def extrair_associacoes(proj: Path) -> list:
+def extrair_associacoes(proj: Path, disco=DiscoReal) -> list:
     """Arestas associativas heurísticas e DETERMINÍSTICAS, de duas fontes REAIS (nunca inventadas):
       - **memória↔memória**: os `[[links]]` no corpo das memórias, resolvidos a um arquivo real de
         `memory/` (slug normalizado: minúsculas, `-`↔`_`, tolerando prefixo `feedback_`/`project_`/…);
@@ -555,8 +600,8 @@ def extrair_associacoes(proj: Path) -> list:
 
     # memória↔memória: [[links]] resolvíveis (normalização de slug; só arquivo real vira aresta)
     memdir = proj / "memory"
-    if memdir.is_dir():
-        arquivos = [p for p in memdir.glob("*.md") if p.name not in ("MEMORY.md", "DIARIO.md")]
+    if disco.eh_pasta(memdir):
+        arquivos = [p for p in disco.glob(memdir, "*.md") if p.name not in ("MEMORY.md", "DIARIO.md")]
         por_slug, por_pelado = {}, {}
         for p in arquivos:
             slug = _norm_slug(p.stem)
@@ -564,37 +609,37 @@ def extrair_associacoes(proj: Path) -> list:
             por_pelado.setdefault(_slug_pelado(slug), "memory/" + p.name)
         for p in arquivos:
             origem = "memory/" + p.name
-            for bruto in _LINK_RE.findall(p.read_text(encoding="utf-8", errors="ignore")):
+            for bruto in _LINK_RE.findall(disco.ler(p)):
                 s = _norm_slug(bruto)
                 alvo = por_slug.get(s) or por_pelado.get(_slug_pelado(s))  # arquivo real, ou None
                 if alvo:
                     _add(origem, alvo, "mem")
 
     # spec↔código: caminhos de `## Arquivos tocados` que existem em disco
-    specs = sorted({p for p in proj.glob("docs/**/specs/*.md")} |
-                   {p for p in proj.glob("docs/specs/*.md")})
+    specs = sorted({p for p in disco.glob(proj, "docs/**/specs/*.md")} |
+                   {p for p in disco.glob(proj, "docs/specs/*.md")})
     for p in specs:
-        sec = _secao_arquivos_tocados(p.read_text(encoding="utf-8", errors="ignore"))
+        sec = _secao_arquivos_tocados(disco.ler(p))
         for tok in re.findall(r"`([^`]+)`", sec):
             cam = tok.strip().replace("\\", "/")
-            if "/" in cam and cam.lower().endswith(_COD_EXT) and (proj / cam).is_file():
+            if "/" in cam and cam.lower().endswith(_COD_EXT) and disco.eh_arquivo(proj / cam):
                 _add(_rel(p, proj), cam, "spec")
     return arestas
 
 
 # ---- árvore + saídas -----------------------------------------------------
 
-def construir_arvore(proj: Path, limite: int = _LIMITE, ignorar=()) -> dict:
+def construir_arvore(proj: Path, limite: int = _LIMITE, ignorar=(), disco=DiscoReal) -> dict:
     proj = Path(proj)
-    return _no(nome_projeto(proj), "projeto", [
-        extrair_arquitetura(proj, limite, ignorar),
-        extrair_apis(proj, limite, ignorar),
-        extrair_memorias(proj, limite),
-        extrair_conexoes(proj),
+    return _no(nome_projeto(proj, disco), "projeto", [
+        extrair_arquitetura(proj, limite, ignorar, disco),
+        extrair_apis(proj, limite, ignorar, disco),
+        extrair_memorias(proj, limite, disco),
+        extrair_conexoes(proj, disco),
     ])
 
 
-def coletar_docs(proj: Path, arvore: dict) -> dict:
+def coletar_docs(proj: Path, arvore: dict, disco=DiscoReal) -> dict:
     """Lê o conteúdo dos `.md` referenciados por algum nó (campo `local`) pra embutir inline no HTML.
 
     Chave = caminho relativo (como está no `local`); valor = conteúdo do arquivo. Deduplica e
@@ -607,8 +652,8 @@ def coletar_docs(proj: Path, arvore: dict) -> dict:
         loc = n.get("local")
         if loc and loc.lower().endswith(".md") and loc not in docs:
             alvo = proj / loc
-            if alvo.is_file():
-                docs[loc] = alvo.read_text(encoding="utf-8", errors="ignore")
+            if disco.eh_arquivo(alvo):
+                docs[loc] = disco.ler(alvo)
         for f in n.get("filhos", []):
             caminha(f)
 

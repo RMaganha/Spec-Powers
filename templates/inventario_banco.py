@@ -227,11 +227,16 @@ _RE_PAR = re.compile(r"^(DEV|HML|PROD)_(\w+?)_(KEY|CIPHERTEXT)$")
 
 
 def ler_pares_fernet(fonte):
-    """{(PREFIXO, BASE): {"KEY": b"..", "CIPHERTEXT": b".."}} lidos por `ast`.
+    """Os pares Fernet do arquivo `fonte` (ver `pares_fernet_do_texto`)."""
+    return pares_fernet_do_texto(Path(fonte).read_text(encoding="utf-8-sig"))
 
-    O arquivo é PARSEADO, nunca importado: o get_connection.py de outro projeto não roda aqui. Só
+
+def pares_fernet_do_texto(texto):
+    """{(PREFIXO, BASE): {"KEY": b"..", "CIPHERTEXT": b".."}} lidos por `ast`, sem disco.
+
+    O texto é PARSEADO, nunca importado: o get_connection.py de outro projeto não roda aqui. Só
     atribuições de topo com literal str/bytes entram; par incompleto (sem KEY ou sem CIPHERTEXT) sai."""
-    arvore = ast.parse(Path(fonte).read_text(encoding="utf-8-sig"))
+    arvore = ast.parse(texto)
     pares = {}
     for no in arvore.body:
         if isinstance(no, ast.Assign) and len(no.targets) == 1:
@@ -290,24 +295,33 @@ def decriptar_fernet(chave, cifra):
     return Fernet(chave).decrypt(cifra).decode()
 
 
-def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=None, decriptar=decriptar_fernet):
-    """--fonte (par Fernet reaproveitado) > MSS_INVENTARIO_CONN > erro que diz o que faltou."""
+def _ler_fonte(caminho):
+    """Disco: o texto da fonte (UTF-8, com ou sem BOM), ou None quando não é arquivo."""
+    return caminho.read_text(encoding="utf-8-sig") if caminho.is_file() else None
+
+
+def resolver_conn(env, fonte=None, ambiente="D0", par=None, base=None, porta=None, decriptar=decriptar_fernet,
+                  ler=_ler_fonte):
+    """--fonte (par Fernet reaproveitado) > MSS_INVENTARIO_CONN > erro que diz o que faltou. `ler(caminho)` devolve
+    o texto da fonte ou None (padrão: o disco)."""
     avisos = []
     if fonte:
         caminho = Path(fonte)
         if env.get(VARIAVEL_CONN):
             avisos.append(f"{VARIAVEL_CONN} ignorada: --fonte foi passado (a flag é a intenção mais específica).")
-        if not caminho.is_file():
+        try:
+            texto = ler(caminho)
+        except (UnicodeDecodeError, OSError) as e:
+            raise ErroCredencial(f"não consegui ler {caminho} como Python ({type(e).__name__}) — aponte o "
+                                  "get_connection.py de um projeto que conecta de verdade.") from None
+        if texto is None:
             raise ErroCredencial(f"--fonte não encontrado: {caminho}")
         try:
-            pares = ler_pares_fernet(caminho)
+            pares = pares_fernet_do_texto(texto)
         except SyntaxError as e:
             raise ErroCredencial(
                 f"não consegui ler {caminho} como Python ({e.msg}, linha {e.lineno}) — aponte o "
                 "get_connection.py de um projeto que conecta de verdade, não o molde do kit.") from None
-        except (UnicodeDecodeError, OSError) as e:
-            raise ErroCredencial(f"não consegui ler {caminho} como Python ({type(e).__name__}) — aponte o "
-                                  "get_connection.py de um projeto que conecta de verdade.") from None
         chave, cifra = escolher_par(pares, ambiente, par)
         if b"<" in chave or b"<" in cifra:
             raise ErroCredencial(f"o par em {caminho} ainda é placeholder — aponte um projeto que conecta de verdade.")
@@ -495,43 +509,81 @@ class Citacao:
     fraco: bool = False
 
 
-def _ler_texto(arq):
+def texto_de_bytes(bruto):
     """UTF-16 com BOM (o "Unicode" do Generate Scripts do SSMS) ou UTF-8; cp1252 cai no replace — os
     identificadores são ASCII, então o caractere trocado só vira fronteira de token."""
-    bruto = arq.read_bytes()
     codificacao = "utf-16" if bruto[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
     return bruto.decode(codificacao, errors="replace")
 
 
-def indexar_codigo(proj, excluir=None, nomes=None):
-    """{token minúsculo: ["arquivo:linha", ...]} (no máximo MAX_OCORRENCIAS por token) dos arquivos de
-    código. Busca por TOKEN: `Nome`, `dbo.Nome` e `[dbo].[Nome]` caem no mesmo token. `excluir` é a pasta
-    de saída (anti-autoconfirmação); `nomes` (minúsculos) limita o índice aos objetos do inventário —
-    sem isso, um monólito de 2M linhas guardaria todo token do repo."""
-    proj = Path(proj).resolve()
-    excluir = Path(excluir).resolve() if excluir else None
+def _ler_texto(arq):
+    return texto_de_bytes(arq.read_bytes())
+
+
+def entra_no_indice(rel, excluir=None):
+    """O arquivo `rel` (relativo ao projeto, com `/`) é código que conta pro cruzamento? Fora: pasta gerada
+    (`DIRS_IGNORADOS`, sem diferenciar caixa), a pasta de saída `excluir` (relativa, anti-autoconfirmação), o que
+    não é código e a saída dos outros geradores do kit."""
+    *pastas, nome = rel.split("/")
+    if any(p.lower() in DIRS_IGNORADOS for p in pastas):
+        return False
+    if excluir and (rel + "/").startswith(excluir.rstrip("/") + "/"):
+        return False
+    return (Path(nome).suffix.lower() in EXT_CODIGO and rel not in SAIDAS_DO_KIT
+            and not rel.startswith(PASTAS_SAIDA_DO_KIT))
+
+
+def indexar_textos(arquivos, excluir=None, nomes=None):
+    """A REGRA do índice, sem disco: `arquivos` são pares (rel, texto) — lidos sob demanda pela casca —, e sai
+    {token minúsculo: ["arquivo:linha", ...]} (no máximo MAX_OCORRENCIAS por token). Busca por TOKEN: `Nome`,
+    `dbo.Nome` e `[dbo].[Nome]` caem no mesmo token. `nomes` (minúsculos) limita o índice aos objetos do
+    inventário — sem isso, um monólito de 2M linhas guardaria todo token do repo."""
     indice = {}
-    for raiz, dirs, arquivos in os.walk(proj):
-        raiz = Path(raiz)
-        dirs[:] = sorted(d for d in dirs if d.lower() not in DIRS_IGNORADOS and raiz / d != excluir)
-        for nome in sorted(arquivos):
-            arq = raiz / nome
-            rel = arq.relative_to(proj).as_posix()
-            if (arq.suffix.lower() not in EXT_CODIGO or rel in SAIDAS_DO_KIT
-                    or rel.startswith(PASTAS_SAIDA_DO_KIT)):
-                continue
-            try:
-                texto = _ler_texto(arq)
-            except OSError:
-                continue
-            for n, linha in enumerate(texto.splitlines(), 1):
-                for tok in {t.lower() for t in _RE_IDENT.findall(linha)}:
-                    if nomes is not None and tok not in nomes:
-                        continue
-                    lugares = indice.setdefault(tok, [])
-                    if len(lugares) < MAX_OCORRENCIAS:
-                        lugares.append(f"{rel}:{n}")
+    for rel, texto in arquivos:
+        if not entra_no_indice(rel, excluir):
+            continue
+        for n, linha in enumerate(texto.splitlines(), 1):
+            for tok in {t.lower() for t in _RE_IDENT.findall(linha)}:
+                if nomes is not None and tok not in nomes:
+                    continue
+                lugares = indice.setdefault(tok, [])
+                if len(lugares) < MAX_OCORRENCIAS:
+                    lugares.append(f"{rel}:{n}")
     return indice
+
+
+def indexar_codigo(proj, excluir=None, nomes=None):
+    """A casca do índice: percorre os arquivos de código do projeto (sem descer em pasta gerada nem na pasta de
+    saída `excluir`) e lê um por vez pra `indexar_textos`."""
+    proj = Path(proj).resolve()
+    excluir_rel = None
+    if excluir:
+        try:
+            excluir_rel = Path(excluir).resolve().relative_to(proj).as_posix()
+        except ValueError:
+            excluir_rel = None                       # saída fora do projeto: nada a excluir na varredura
+
+    def ler():
+        for raiz, dirs, nomes_arq in os.walk(proj):
+            raiz = Path(raiz)
+            base = raiz.relative_to(proj).as_posix()
+            dirs[:] = sorted(d for d in dirs if entra_na_varredura(d if base == "." else f"{base}/{d}", excluir_rel))
+            for nome in sorted(nomes_arq):
+                rel = nome if base == "." else f"{base}/{nome}"
+                if not entra_no_indice(rel, excluir_rel):
+                    continue
+                try:
+                    yield rel, _ler_texto(raiz / nome)
+                except OSError:
+                    continue
+    return indexar_textos(ler(), excluir_rel, nomes)
+
+
+def entra_na_varredura(rel_pasta, excluir=None):
+    """A varredura desce na pasta `rel_pasta`? Não em pasta gerada nem na pasta de saída."""
+    if rel_pasta.rsplit("/", 1)[-1].lower() in DIRS_IGNORADOS:
+        return False
+    return not (excluir and rel_pasta == excluir.rstrip("/"))
 
 
 def objetos(catalogo):
@@ -604,27 +656,36 @@ class Gravacao:
     objetos_em_conflito: list = field(default_factory=list)  # "esquema.nome" de quem ficou sem corpo gravado
 
 
-def gravar_corpos(catalogo, pasta):
-    """1 .sql por módulo com corpo (UTF-8 com BOM, marca na 1ª linha, segredo mascarado).
+@dataclass
+class PlanoDosCorpos:
+    """O que a casca faz no disco, na ordem: renomear (só a caixa), escrever, remover."""
+    gravacao: Gravacao
+    renomear: list = field(default_factory=list)   # [(nome antigo, nome novo)]
+    escrever: list = field(default_factory=list)   # [(nome, texto)] — UTF-8 com BOM, quebra de linha do corpo
+    remover: list = field(default_factory=list)    # [nome]
+
+
+def plano_dos_corpos(catalogo, existentes):
+    """A REGRA da gravação, sem disco: `existentes` = {nome do .sql que já está na pasta: é do inventário (tem a
+    marca na 1ª linha)?}. 1 .sql por módulo com corpo (marca na 1ª linha, segredo mascarado).
 
     Brownfield: só escreve por cima e só remove arquivo que começa com a marca. Remove o .sql nosso
     SÓ de objeto que sumiu do catálogo — objeto que existe mas veio sem corpo nesta rodada (login sem
     VIEW DEFINITION, virou WITH ENCRYPTION) mantém o .sql anterior, que pode ser a única cópia. Nomes
     comparados sem caixa: no NTFS `dbo.X.sql` e `dbo.x.sql` são o mesmo arquivo."""
-    pasta = Path(pasta)
-    pasta.mkdir(parents=True, exist_ok=True)
-    existentes = {p.name.casefold(): p for p in pasta.glob("*.sql")}
+    por_chave = {nome.casefold(): (nome, nosso) for nome, nosso in existentes.items()}
     no_catalogo = {nome_arquivo(m["esquema"], m["nome"]).casefold() for m in catalogo.dados["modulos"]}
-    g = Gravacao([], [], [], [], [], [])
+    plano = PlanoDosCorpos(Gravacao([], [], [], [], [], []))
+    g = plano.gravacao
     usados = set()
     for m in catalogo.dados["modulos"]:
         if m["corpo"] is None:
             continue
         arq = nome_arquivo(m["esquema"], m["nome"])
         chave = arq.casefold()
-        alvo = existentes.get(chave)
+        alvo = por_chave.get(chave)
         objeto = f"{m['esquema']}.{m['nome']}"
-        if chave in usados or (alvo is not None and not _e_do_inventario(alvo)):
+        if chave in usados or (alvo is not None and not alvo[1]):
             g.conflitos.append(arq)
             g.objetos_em_conflito.append(objeto)
             continue
@@ -634,23 +695,38 @@ def gravar_corpos(catalogo, pasta):
         if achados:
             cabecalho += cabecalho_segredo(achados, nl)
             g.segredos.extend((objeto, n, tipo) for n, tipo in achados)
-        if alvo is not None and alvo.name != arq:  # renomeado só na caixa: renomeia (sem janela sem cópia)
-            alvo.rename(pasta / arq)
-        (pasta / arq).write_text(cabecalho + corpo, encoding="utf-8-sig", newline="")
+        if alvo is not None and alvo[0] != arq:  # renomeado só na caixa: renomeia (sem janela sem cópia)
+            plano.renomear.append((alvo[0], arq))
+        plano.escrever.append((arq, cabecalho + corpo))
         usados.add(chave)
         g.gravados.append(arq)
     em_conflito = {c.casefold() for c in g.conflitos}
-    for chave, velho in sorted(existentes.items()):
+    for chave, (nome, nosso) in sorted(por_chave.items()):
         if chave in usados or chave in em_conflito:
             continue
-        if not _e_do_inventario(velho):
-            g.preservados.append(velho.name)
+        if not nosso:
+            g.preservados.append(nome)
         elif chave in no_catalogo:
-            g.mantidos.append(velho.name)
+            g.mantidos.append(nome)
         else:
-            velho.unlink()
-            g.removidos.append(velho.name)
-    return g
+            plano.remover.append(nome)
+            g.removidos.append(nome)
+    return plano
+
+
+def gravar_corpos(catalogo, pasta):
+    """A casca: lê quais .sql já estão na pasta (e se têm a marca), pede o plano e aplica — renomeia, escreve
+    (UTF-8 com BOM, a quebra de linha do corpo preservada) e remove."""
+    pasta = Path(pasta)
+    pasta.mkdir(parents=True, exist_ok=True)
+    plano = plano_dos_corpos(catalogo, {p.name: _e_do_inventario(p) for p in pasta.glob("*.sql")})
+    for velho, novo in plano.renomear:
+        (pasta / velho).rename(pasta / novo)
+    for nome, texto in plano.escrever:
+        (pasta / nome).write_text(texto, encoding="utf-8-sig", newline="")
+    for nome in plano.remover:
+        (pasta / nome).unlink()
+    return plano.gravacao
 
 
 # ---------------------------------------------------------------------------------------- render
@@ -817,11 +893,23 @@ class Relatorio:
     linha_gitignore: str  # "" quando já está ancorada ou a saída não é a padrão
 
 
+def linha_gitignore(texto):
+    """A linha que falta no `.gitignore` (texto, ou None se não há arquivo) pra saída padrão, ou "" quando já está
+    ancorada (com ou sem a barra inicial)."""
+    ancoradas = {l.strip() for l in texto.splitlines()} if texto is not None else set()
+    return "" if ancoradas & {"/docs/banco.md", "docs/banco.md"} else "/docs/banco.md"
+
+
+def md_alheio(texto):
+    """O `banco.md` que já existe (texto, ou None se não há) é do projeto, não do inventário?"""
+    return texto is not None and not texto.startswith(MARCA_MD)
+
+
 def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=None):
     proj = Path(proj).resolve()
     destino = Path(out).resolve() if out else proj / "docs"
     md = destino / "banco.md"
-    if md.exists() and not md.read_text(encoding="utf-8-sig", errors="replace").startswith(MARCA_MD):
+    if md_alheio(md.read_text(encoding="utf-8-sig", errors="replace") if md.exists() else None):
         raise ErroSaida(f"{md} já existe e não foi gerado pelo inventário — não sobrescrevo. "
                         "Renomeie o arquivo do projeto ou use --out.")
     catalogo = coletar(cursor, max_objetos)  # o teto estoura aqui, antes de gravar qualquer coisa
@@ -833,9 +921,7 @@ def gerar(proj, cursor, origem, out=None, max_objetos=MAX_OBJETOS_PADRAO, hoje=N
     linha = ""
     if out is None:
         gi = proj / ".gitignore"
-        ancoradas = ({l.strip() for l in gi.read_text(encoding="utf-8-sig", errors="replace").splitlines()}
-                     if gi.exists() else set())
-        linha = "" if ancoradas & {"/docs/banco.md", "docs/banco.md"} else "/docs/banco.md"
+        linha = linha_gitignore(gi.read_text(encoding="utf-8-sig", errors="replace") if gi.exists() else None)
     return Relatorio(md, destino / "banco", len(objetos(catalogo)), g.gravados, g.removidos, g.preservados,
                      g.mantidos, g.conflitos, g.segredos, catalogo.lacunas, linha)
 
