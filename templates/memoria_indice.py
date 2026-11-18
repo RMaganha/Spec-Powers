@@ -71,18 +71,76 @@ class Relatorio:
         return not self.problemas
 
 
+# ------------------------------------------------------------------ o disco (camadas, docs/decisoes.md 2026-11-18)
+
+def _git(pasta: Path, *args):
+    """Saída do git em bytes, ou None se o git não existe, falhou ou a pasta não é repositório (quem chama pede
+    `-z` e decodifica: `text=True` quebra a chamada ao git no Windows)."""
+    try:
+        r = subprocess.run(["git", "-C", str(pasta), *args], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+class DiscoReal:
+    """O que o script lê e grava — o projeto e, nas citações, o kit — e a única parte dele que toca o disco. Em
+    teste, entra no lugar um objeto com os mesmos métodos, sobre um dicionário {caminho: bytes}."""
+
+    @staticmethod
+    def ler_bytes(p: Path) -> bytes:
+        return Path(p).read_bytes()
+
+    @staticmethod
+    def ler_texto(p: Path) -> str:
+        """O texto (UTF-8, byte inválido vira substituição); levanta OSError sem arquivo."""
+        return Path(p).read_text(encoding="utf-8", errors="replace")
+
+    @staticmethod
+    def gravar_bytes(p: Path, dados: bytes) -> None:
+        Path(p).parent.mkdir(parents=True, exist_ok=True)
+        Path(p).write_bytes(dados)
+
+    @staticmethod
+    def eh_arquivo(p: Path) -> bool:
+        return Path(p).is_file()
+
+    @staticmethod
+    def eh_pasta(p: Path) -> bool:
+        return Path(p).is_dir()
+
+    @staticmethod
+    def existe(p: Path) -> bool:
+        return Path(p).exists()
+
+    @staticmethod
+    def glob(base: Path, padrao: str) -> list:
+        return list(Path(base).glob(padrao))
+
+    @staticmethod
+    def nomes(raiz: Path) -> set:
+        """O nome de todo arquivo e pasta debaixo da raiz, fora as pastas de ferramenta; vazio se não dá pra ler."""
+        try:
+            return {p.name for p in Path(raiz).rglob("*") if not PASTAS_IGNORADAS & set(p.parts)}
+        except OSError:
+            return set()
+
+    @staticmethod
+    def git(pasta: Path, *args):
+        return _git(pasta, *args)
+
+
 # ------------------------------------------------------------------ utilidades de texto
 
-def _ler(p: Path):
+def _ler(p: Path, disco=DiscoReal):
     """(texto com \\n, eol original) — preserva CRLF de repo Windows."""
-    bruto = p.read_bytes().decode("utf-8")
+    bruto = disco.ler_bytes(p).decode("utf-8")
     eol = "\r\n" if "\r\n" in bruto else "\n"
     return bruto.replace("\r\n", "\n"), eol
 
 
-def _gravar(p: Path, texto: str, eol: str) -> None:
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_bytes(texto.replace("\n", eol).encode("utf-8"))
+def _gravar(p: Path, texto: str, eol: str, disco=DiscoReal) -> None:
+    disco.gravar_bytes(p, texto.replace("\n", eol).encode("utf-8"))
 
 
 def slug(titulo: str) -> str:
@@ -96,9 +154,9 @@ def relink(linha: str) -> str:
     return RE_LINK_LOCAL.sub(r"](../\1)", linha)
 
 
-def frontmatter(p: Path) -> dict:
+def frontmatter(p: Path, disco=DiscoReal) -> dict:
     try:
-        texto, _ = _ler(p)
+        texto, _ = _ler(p, disco)
     except (OSError, UnicodeDecodeError):
         return {}
     return frontmatter_do_texto(texto)
@@ -121,10 +179,10 @@ def frontmatter_do_texto(texto: str) -> dict:
     return campos
 
 
-def corpo(p: Path) -> str:
+def corpo(p: Path, disco=DiscoReal) -> str:
     """O markdown depois do frontmatter ('' se não há arquivo/frontmatter)."""
     try:
-        texto, _ = _ler(p)
+        texto, _ = _ler(p, disco)
     except (OSError, UnicodeDecodeError):
         return ""
     return corpo_do_texto(texto)
@@ -185,10 +243,10 @@ def _frase(gatilho: str) -> str:
     return g if len(g) <= MAX_FRASE else g[:MAX_FRASE].rsplit(" ", 1)[0] + "…"
 
 
-def frases_de_gatilho(fam: Familia, memdir: Path) -> list:
+def frases_de_gatilho(fam: Familia, memdir: Path, disco=DiscoReal) -> list:
     frases = []
     for it in fam.itens:
-        g = frontmatter(memdir / it.arquivo).get("gatilho")
+        g = frontmatter(memdir / it.arquivo, disco).get("gatilho")
         if g:
             f = _frase(g)
             if f and f not in frases:
@@ -198,13 +256,13 @@ def frases_de_gatilho(fam: Familia, memdir: Path) -> list:
     return frases
 
 
-def montar_topo(fams: list, memdir: Path) -> str:
+def montar_topo(fams: list, memdir: Path, disco=DiscoReal) -> str:
     out = ["# Memória do projeto — índice por gatilho", "",
            "<!-- 1 linha por FAMÍLIA. Gatilho bateu? abra o subíndice da família ANTES de agir.",
            f"     Teto deste topo: {TETO_TOPO // 1000} KB (orçamento de partida). Memória nova entra no",
            "     subíndice; `python memoria_indice.py verificar` confere e corrige o N. -->", ""]
     for f in fams:
-        frases = frases_de_gatilho(f, memdir)
+        frases = frases_de_gatilho(f, memdir, disco)
         cauda = f" · quando: {' · '.join(frases)}" if frases else ""
         out.append(f"- **{f.titulo}** → [subíndice]({SUBDIR}/{f.slug}.md) — {len(f.itens)} memórias{cauda}")
     return "\n".join(out) + "\n"
@@ -216,16 +274,16 @@ def montar_subindice(f: Familia) -> str:
 
 # ------------------------------------------------------------------ dividir
 
-def dividir(memdir: Path, aplicar: bool = False) -> Relatorio:
+def dividir(memdir: Path, aplicar: bool = False, disco=DiscoReal) -> Relatorio:
     memdir = Path(memdir)
     rel = Relatorio()
     idx = memdir / "MEMORY.md"
-    if not idx.is_file():
+    if not disco.eh_arquivo(idx):
         rel.problemas.append(f"não existe {idx}")
         return rel
-    texto, eol = _ler(idx)
+    texto, eol = _ler(idx, disco)
     rel.bytes_antes = len(texto.encode("utf-8"))
-    if (memdir / SUBDIR).exists():
+    if disco.existe(memdir / SUBDIR):
         rel.problemas.append(f"{memdir / SUBDIR} já existe — o índice já foi dividido? use `verificar`")
         return rel
     soltas = []
@@ -238,7 +296,7 @@ def dividir(memdir: Path, aplicar: bool = False) -> Relatorio:
     # conservação 1: nenhum ponteiro quebrado
     for f in fams:
         for it in f.itens:
-            if "/" not in it.arquivo and not (memdir / it.arquivo).is_file():
+            if "/" not in it.arquivo and not disco.eh_arquivo(memdir / it.arquivo):
                 rel.problemas.append(f"ponteiro quebrado em '{f.titulo}': {it.arquivo}")
     # conservação 2: slug único
     slugs = [f.slug for f in fams]
@@ -248,7 +306,7 @@ def dividir(memdir: Path, aplicar: bool = False) -> Relatorio:
     if rel.problemas:
         return rel
     rel.familias = fams
-    rel.topo = montar_topo(fams, memdir)
+    rel.topo = montar_topo(fams, memdir, disco)
     rel.bytes_topo = len(rel.topo.encode("utf-8"))
     if rel.bytes_topo > TETO_TOPO:
         rel.problemas.append(f"topo ficaria com {rel.bytes_topo} bytes (teto {TETO_TOPO}) — famílias demais?")
@@ -267,8 +325,8 @@ def dividir(memdir: Path, aplicar: bool = False) -> Relatorio:
         rel.avisos.append("o comentário-modelo do índice antigo não é memória: sai do topo")
     if aplicar:
         for s, corpo in subs.items():
-            _gravar(memdir / SUBDIR / f"{s}.md", corpo, eol)
-        _gravar(idx, rel.topo, eol)
+            _gravar(memdir / SUBDIR / f"{s}.md", corpo, eol, disco)
+        _gravar(idx, rel.topo, eol, disco)
         rel.gravou = True
     return rel
 
@@ -284,15 +342,15 @@ def _tabela(rel: Relatorio) -> str:
 
 # ------------------------------------------------------------------ verificar / fila
 
-def _memorias(memdir: Path) -> list:
-    return sorted(p for p in memdir.glob("*.md") if p.name not in INDICES)
+def _memorias(memdir: Path, disco=DiscoReal) -> list:
+    return sorted(p for p in disco.glob(memdir, "*.md") if p.name not in INDICES)
 
 
-def _linhas_dos_subindices(memdir: Path) -> list:
+def _linhas_dos_subindices(memdir: Path, disco=DiscoReal) -> list:
     """[(subíndice Path, nº da linha, Item)] de todos os memory/indice/*.md."""
     out = []
-    for sub in sorted((memdir / SUBDIR).glob("*.md")):
-        texto, _ = _ler(sub)
+    for sub in sorted(disco.glob(memdir / SUBDIR, "*.md")):
+        texto, _ = _ler(sub, disco)
         for n, linha in enumerate(texto.split("\n"), 1):
             m = RE_ITEM.match(linha)
             if m:
@@ -325,26 +383,22 @@ CAMPO_SEM_ACAO = "sem_gatilho_de_acao"
 TIPO_DE_REGRA = "feedback"
 
 
-def _sem_commit(memdir: Path) -> set:
+def _sem_commit(memdir: Path, disco=DiscoReal) -> set:
     """Nomes dos arquivos de `memory/` que o git ainda não tem (novos nesta captura). Em bytes e com `-z`
     (`text=True` quebra a chamada ao git no Windows). Sem git, fora de repositório ou com defeito → vazio:
     sem saber o que é novo, nada é cobrado pelo nome."""
-    try:
-        r = subprocess.run(["git", "-C", str(memdir), "status", "--porcelain", "-z", "--untracked-files=all", "--", "."],
-                           capture_output=True, timeout=30)
-    except (OSError, subprocess.SubprocessError):
+    saida = disco.git(memdir, "status", "--porcelain", "-z", "--untracked-files=all", "--", ".")
+    if saida is None:
         return set()
-    if r.returncode != 0:
-        return set()
-    return {item[3:].rsplit("/", 1)[-1] for item in r.stdout.decode("utf-8", "ignore").split("\0")
+    return {item[3:].rsplit("/", 1)[-1] for item in saida.decode("utf-8", "ignore").split("\0")
             if len(item) > 3 and (item[:2] == "??" or item[0] == "A")}
 
 
-def sem_gatilho_de_acao(memdir: Path) -> list:
+def sem_gatilho_de_acao(memdir: Path, disco=DiscoReal) -> list:
     """Anotações de regra (`type: feedback`, não obsoletas) sem gatilho de ação e sem o motivo de não ter."""
     out = []
-    for md in _memorias(Path(memdir)):
-        fm = frontmatter(md)
+    for md in _memorias(Path(memdir), disco):
+        fm = frontmatter(md, disco)
         if fm.get("obsoleta") or fm.get("type") != TIPO_DE_REGRA:
             continue
         if not any(fm.get(c) for c in CAMPOS_DE_ACAO) and not fm.get(CAMPO_SEM_ACAO):
@@ -356,7 +410,7 @@ def sem_gatilho_de_acao(memdir: Path) -> list:
 # Anotação ou diário ANTIGO com comando ou SQL com reticências: só se conta. O comando original não está no arquivo,
 # então o assistente não completa sozinho — a lista vai ao owner. O detector é o mesmo da conferência ao gravar
 # (`hooks/_comando_inteiro.py`); sem ele (ou com defeito) a lista sai vazia.
-def com_comando_cortado(memdir: Path) -> list:
+def com_comando_cortado(memdir: Path, disco=DiscoReal) -> list:
     """Nomes (relativos a `memory/`, com `/`) das anotações e diários com comando ou SQL com reticências."""
     try:
         import importlib.util
@@ -365,9 +419,8 @@ def com_comando_cortado(memdir: Path) -> list:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         memdir = Path(memdir)
-        arquivos = _memorias(memdir) + sorted((memdir / "sessions").glob("*.md"))
-        return [p.relative_to(memdir).as_posix() for p in arquivos
-                if mod.trechos_cortados(p.read_text(encoding="utf-8", errors="replace"))]
+        arquivos = _memorias(memdir, disco) + sorted(disco.glob(memdir / "sessions", "*.md"))
+        return [p.relative_to(memdir).as_posix() for p in arquivos if mod.trechos_cortados(disco.ler_texto(p))]
     except Exception:  # noqa: BLE001
         return []
 
@@ -414,17 +467,17 @@ def conferida_fora_do_formato(valor: str, texto_corpo: str = "") -> str:
 RE_LIDAS_ATE = re.compile(r"(?im)^[\s\-*]*conversas lidas até:\**\s*(\d{4}-\d{2}-\d{2})")
 
 
-def conversas_lidas_ate(proj: Path) -> tuple:
+def conversas_lidas_ate(proj: Path, disco=DiscoReal) -> tuple:
     """(dia, diário) da leitura de conversas mais nova registrada em `memory/sessions/`; ('', '') = nunca leu."""
     pasta = Path(proj) / "memory" / "sessions"
     achado = ("", "")
     try:
-        diarios = sorted(pasta.glob("*.md")) if pasta.is_dir() else []
+        diarios = sorted(disco.glob(pasta, "*.md")) if disco.eh_pasta(pasta) else []
     except OSError:
         return achado
     for md in diarios:
         try:
-            texto = md.read_text(encoding="utf-8", errors="replace")
+            texto = disco.ler_texto(md)
         except OSError:
             continue
         for dia in RE_LIDAS_ATE.findall(texto):
@@ -433,7 +486,7 @@ def conversas_lidas_ate(proj: Path) -> tuple:
     return achado
 
 
-def roteiro_do_sono(proj: Path) -> dict:
+def roteiro_do_sono(proj: Path, disco=DiscoReal) -> dict:
     """O que o sono tem pela frente: contagem por estado, as nunca conferidas, a data do último sono (a conferência
     mais nova), as citações mortas e as duplicatas pelo método de hoje. Anotação `obsoleta:` fica fora."""
     proj = Path(proj)
@@ -441,8 +494,8 @@ def roteiro_do_sono(proj: Path) -> dict:
     por_estado = {e: 0 for e in ESTADOS}
     por_estado[NUNCA] = 0
     nunca, conflitos, datas, mais_velhas = [], [], [], []
-    for md in _memorias(memdir) if memdir.is_dir() else []:
-        fm = frontmatter(md)
+    for md in _memorias(memdir, disco) if disco.eh_pasta(memdir) else []:
+        fm = frontmatter(md, disco)
         if fm.get("obsoleta"):
             continue
         lido = ler_conferida(fm.get(CAMPO_CONFERIDA, ""))
@@ -457,39 +510,40 @@ def roteiro_do_sono(proj: Path) -> dict:
     datas.sort()
     return {"por_estado": por_estado, "nunca": sorted(nunca), "conflitos": sorted(conflitos),
             "ultimo_sono": datas[-1][0] if datas else "", "mais_velhas": [n for _, n in datas[:10]],
-            "citacoes": citacoes_mortas(proj), "duplicatas": duplicatas(memdir) if memdir.is_dir() else [],
-            "conversas_lidas_ate": conversas_lidas_ate(proj)}
+            "citacoes": citacoes_mortas(proj, disco=disco),
+            "duplicatas": duplicatas(memdir, disco) if disco.eh_pasta(memdir) else [],
+            "conversas_lidas_ate": conversas_lidas_ate(proj, disco)}
 
 
-def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
+def verificar(memdir: Path, aplicar: bool = False, sem_commit=None, disco=DiscoReal) -> list:
     """`sem_commit`: nomes das anotações novas (default: o que o git ainda não tem commitado em `memory/`)."""
     memdir = Path(memdir)
     probs = []
     idx = memdir / "MEMORY.md"
-    if not idx.is_file():
+    if not disco.eh_arquivo(idx):
         return [f"não existe {idx}"]
-    topo, eol = _ler(idx)
+    topo, eol = _ler(idx, disco)
     b = len(topo.encode("utf-8"))
     if b > TETO_TOPO:
         probs.append(f"topo com {b} bytes — acima do teto de {TETO_TOPO} (orçamento de partida)")
-    if not (memdir / SUBDIR).is_dir():
+    if not disco.eh_pasta(memdir / SUBDIR):
         return probs + [f"sem {memdir / SUBDIR}/ — índice plano; rode `memoria_indice.py dividir`"]
     declarados = _n_do_topo(topo)
     for s in declarados:
-        if not (memdir / SUBDIR / f"{s}.md").is_file():
+        if not disco.eh_arquivo(memdir / SUBDIR / f"{s}.md"):
             probs.append(f"topo aponta subíndice inexistente: {SUBDIR}/{s}.md")
-    linhas = _linhas_dos_subindices(memdir)
+    linhas = _linhas_dos_subindices(memdir, disco)
     por_arquivo = {}
     for sub, n, it in linhas:
         alvo = _sem_prefixo(it.arquivo)
         por_arquivo.setdefault(alvo, []).append(f"{sub.name}:{n}")
-        if "/" not in alvo and not (memdir / alvo).is_file():
+        if "/" not in alvo and not disco.eh_arquivo(memdir / alvo):
             probs.append(f"ponteiro quebrado em {sub.name}:{n}: {it.arquivo}")
         if len(it.linha.encode("utf-8")) > TETO_LINHA:
             probs.append(f"linha acima de {TETO_LINHA} bytes em {sub.name}:{n}")
-    for md in _memorias(memdir):
+    for md in _memorias(memdir, disco):
         onde = por_arquivo.get(md.name, [])
-        fm = frontmatter(md)
+        fm = frontmatter(md, disco)
         if not onde and not fm.get("obsoleta"):
             probs.append(f"{md.name} sem linha em nenhum subíndice (memória invisível)")
         if onde and fm.get("obsoleta"):
@@ -505,10 +559,10 @@ def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
         if not fm.get("obsoleta") and fm.get("type") == TIPO_PROCEDIMENTO:
             if not fm.get("gatilho"):
                 probs.append(f"procedimento sem `gatilho:` em {md.name} — sem gatilho ele nunca chega ao assistente")
-            for erro in validar_procedimento(corpo(md)):
+            for erro in validar_procedimento(corpo(md, disco)):
                 probs.append(f"procedimento fora do formato em {md.name}: {erro}")
         if not fm.get("obsoleta") and fm.get(CAMPO_CONFERIDA):
-            motivo = conferida_fora_do_formato(fm[CAMPO_CONFERIDA], corpo(md))
+            motivo = conferida_fora_do_formato(fm[CAMPO_CONFERIDA], corpo(md, disco))
             if motivo:
                 probs.append(f"`{CAMPO_CONFERIDA}:` fora do formato em {md.name}: {motivo}")
         for campo in CAMPOS_DE_ACAO:
@@ -518,14 +572,14 @@ def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
                 except re.error as erro:
                     probs.append(f"regex quebrado em `{campo}:` de {md.name} ({erro}) — o hook ignora a anotação "
                                  f"calado e ela nunca dispara; corrija o regex")
-    novas = _sem_commit(memdir) if sem_commit is None else set(sem_commit)
-    for nome in sem_gatilho_de_acao(memdir):
+    novas = _sem_commit(memdir, disco) if sem_commit is None else set(sem_commit)
+    for nome in sem_gatilho_de_acao(memdir, disco):
         if nome in novas:
             probs.append(f"regra de ação sem gatilho de ação em {nome}: anotação `type: {TIPO_DE_REGRA}` declara "
                          f"`gatilho_comando:` ou `gatilho_resposta:` (regex testado contra o caso real e contra 2-3 "
                          f"que não devem casar) — ou `{CAMPO_SEM_ACAO}: <motivo>` quando a ação não tem sinal que "
                          f"dê pra ver num comando ou numa resposta")
-    for a, b, motivo in duplicatas(memdir):
+    for a, b, motivo in duplicatas(memdir, disco):
         probs.append(f"possível duplicata: {a} × {b} — {motivo}; atualize uma e marque a outra `obsoleta:`")
     contagem = {}
     for sub, _, _ in linhas:
@@ -541,7 +595,7 @@ def verificar(memdir: Path, aplicar: bool = False, sem_commit=None) -> list:
         if s not in declarados:
             probs.append(f"subíndice {SUBDIR}/{s}.md sem linha no topo")
     if aplicar and novo_topo != topo:
-        _gravar(idx, novo_topo, eol)
+        _gravar(idx, novo_topo, eol, disco)
     return probs
 
 
@@ -573,9 +627,9 @@ def gatilho_fraco(gatilho: str) -> str:
     return ""
 
 
-def duplicatas(memdir: Path) -> list:
+def duplicatas(memdir: Path, disco=DiscoReal) -> list:
     """[(arquivo a, arquivo b, motivo)] — mesmo `name:` em dois arquivos, ou descrições quase iguais."""
-    mems = [(md.name, frontmatter(md)) for md in _memorias(Path(memdir))]
+    mems = [(md.name, frontmatter(md, disco)) for md in _memorias(Path(memdir), disco)]
     mems = [(n, fm) for n, fm in mems if not fm.get("obsoleta")]
     out, por_name = [], {}
     for n, fm in mems:
@@ -594,19 +648,16 @@ def duplicatas(memdir: Path) -> list:
     return out
 
 
-def _nomes_de_arquivo(raiz: Path) -> set:
-    try:
-        return {p.name for p in raiz.rglob("*") if not PASTAS_IGNORADAS & set(p.parts)}
-    except OSError:
-        return set()
+def _nomes_de_arquivo(raiz: Path, disco=DiscoReal) -> set:
+    return disco.nomes(raiz)
 
 
-def _ignorado_pelo_git(proj: Path, caminho: str) -> bool:
+def _ignorado_pelo_git(proj: Path, caminho: str, disco=DiscoReal) -> bool:
     """O `.gitignore` da raiz do projeto ignora `caminho` (padrões simples: `/docs/x.html`, `docs/*.html`, `x.md`).
     Nome solto (`mapa-neural.html`) vale quando algum padrão ignora um arquivo com esse nome."""
     from fnmatch import fnmatch
     try:
-        linhas = (Path(proj) / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
+        linhas = disco.ler_texto(Path(proj) / ".gitignore").splitlines()
     except OSError:
         return False
     nome = caminho.rsplit("/", 1)[-1]
@@ -622,7 +673,7 @@ def _ignorado_pelo_git(proj: Path, caminho: str) -> bool:
     return False
 
 
-def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
+def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES, disco=DiscoReal) -> list:
     """[(arquivo:linha, citação)] de todo caminho em crase, fora de bloco de código, que não existe no projeto
     nem no kit. Caminho com separador resolve relativo ao projeto (ou ao kit); nome solto vale se existe algum
     arquivo com esse nome. Placeholder (`<x>`, `${X}`, `{x}`, `*`) não é citação. Memória `obsoleta:` fica fora."""
@@ -639,31 +690,31 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
             return True
         p = Path(c)
         if p.is_absolute() and not c.startswith("/"):
-            return p.exists()
+            return disco.existe(p)
         while c.startswith(("./", "/")):
             c = c[2:] if c.startswith("./") else c[1:]
         nome = c.rsplit("/", 1)[-1]
         if len(nome.rsplit(".", 1)[0]) <= 1:        # `x.sql`, `x.md`: exemplo, não citação
             return True
         if not nomes:
-            nomes["todos"] = _nomes_de_arquivo(proj) | _nomes_de_arquivo(KIT)
-            nomes["moldes"] = _nomes_de_arquivo(KIT / "templates")
+            nomes["todos"] = _nomes_de_arquivo(proj, disco) | _nomes_de_arquivo(KIT, disco)
+            nomes["moldes"] = _nomes_de_arquivo(KIT / "templates", disco)
         if "/" in c:
             # molde do kit (`docs/ARQUITETURA.md`, `docs/SEGURANCA.md`): nasce no projeto pelo kickoff/upgrade;
             # arquivo gerado que o `.gitignore` deixa fora do git (`docs/anatomia.html`) não existe num clone
-            return ((proj / c).exists() or (KIT / c).exists() or nome in nomes["moldes"]
-                    or _ignorado_pelo_git(proj, c))
-        return nome in nomes["todos"] or _ignorado_pelo_git(proj, c)
+            return (disco.existe(proj / c) or disco.existe(KIT / c) or nome in nomes["moldes"]
+                    or _ignorado_pelo_git(proj, c, disco))
+        return nome in nomes["todos"] or _ignorado_pelo_git(proj, c, disco)
 
     out = []
     for pasta in pastas:
         base = proj / pasta
-        if not base.is_dir():
+        if not disco.eh_pasta(base):
             continue
-        for md in sorted(base.glob("*.md")):
-            if md.name in INDICES or frontmatter(md).get("obsoleta"):
+        for md in sorted(disco.glob(base, "*.md")):
+            if md.name in INDICES or frontmatter(md, disco).get("obsoleta"):
                 continue
-            texto, _ = _ler(md)
+            texto, _ = _ler(md, disco)
             cerca = False
             for n, l in enumerate(texto.split("\n"), 1):
                 if l.strip().startswith("```"):
@@ -677,20 +728,20 @@ def citacoes_mortas(proj: Path, pastas=PASTAS_CITACOES) -> list:
     return out
 
 
-def fila(memdir: Path) -> dict:
+def fila(memdir: Path, disco=DiscoReal) -> dict:
     memdir = Path(memdir)
-    sem = [md.name for md in _memorias(memdir)
-           if not frontmatter(md).get("gatilho") and not frontmatter(md).get("obsoleta")]
+    sem = [md.name for md in _memorias(memdir, disco)
+           if not frontmatter(md, disco).get("gatilho") and not frontmatter(md, disco).get("obsoleta")]
     fams_sem_frase = []
-    if (memdir / SUBDIR).is_dir():
-        linhas = _linhas_dos_subindices(memdir)
-        for sub in sorted((memdir / SUBDIR).glob("*.md")):
+    if disco.eh_pasta(memdir / SUBDIR):
+        linhas = _linhas_dos_subindices(memdir, disco)
+        for sub in sorted(disco.glob(memdir / SUBDIR, "*.md")):
             fam = Familia(sub.stem, [Item(it.linha, it.titulo, _sem_prefixo(it.arquivo))
                                      for s, _, it in linhas if s == sub])
-            if not frases_de_gatilho(fam, memdir):
+            if not frases_de_gatilho(fam, memdir, disco):
                 fams_sem_frase.append(sub.stem)
     return {"sem_gatilho": sem, "familias_sem_frase": fams_sem_frase,
-            "sem_gatilho_de_acao": sem_gatilho_de_acao(memdir)}
+            "sem_gatilho_de_acao": sem_gatilho_de_acao(memdir, disco)}
 
 
 # ------------------------------------------------------------------ motor de casamento (hook + buscar)
@@ -753,13 +804,13 @@ def _corta(s: str, n: int = 120) -> str:
     return s if len(s) <= n else s[:n].rsplit(" ", 1)[0] + "…"
 
 
-def fontes_ambientes(proj: Path) -> list:
+def fontes_ambientes(proj: Path, disco=DiscoReal) -> list:
     """Uma fonte por seção `## <ambiente>` de `docs/AMBIENTES.md` (0.50.0, F-048): o texto da seção (nomes,
     variáveis, quem acessa) mais as palavras de ambiente; o ponteiro é a linha da seção."""
     amb = Path(proj) / "docs" / "AMBIENTES.md"
-    if not amb.is_file():
+    if not disco.eh_arquivo(amb):
         return []
-    texto, _ = _ler(amb)
+    texto, _ = _ler(amb, disco)
     out, secao, inicio, corpo = [], None, 0, []
 
     def fechar():
@@ -781,15 +832,15 @@ def fontes_ambientes(proj: Path) -> list:
     return out
 
 
-def fontes(proj: Path, diario: bool = True) -> list:
+def fontes(proj: Path, diario: bool = True, disco=DiscoReal) -> list:
     proj = Path(proj)
     memdir = proj / "memory"
     out = []
-    if not memdir.is_dir():
+    if not disco.eh_pasta(memdir):
         return out
     aposentadas = set()                  # o sono gera `obsoleta:`; linha de subíndice esquecida não pode trazê-la de volta
-    for md in _memorias(memdir):
-        fm = frontmatter(md)
+    for md in _memorias(memdir, disco):
+        fm = frontmatter(md, disco)
         if fm.get("obsoleta"):
             aposentadas.add(md.name)
             continue
@@ -800,19 +851,19 @@ def fontes(proj: Path, diario: bool = True) -> list:
                 out.append(Fonte(texto, f"PROCEDIMENTO memory/{md.name} — {gancho}", PRIO["procedimento"], md.name))
             else:
                 out.append(Fonte(texto, f"memory/{md.name} — {gancho}", PRIO["memoria"], md.name))
-    indices = list((memdir / SUBDIR).glob("*.md")) if (memdir / SUBDIR).is_dir() else [memdir / "MEMORY.md"]
+    indices = disco.glob(memdir / SUBDIR, "*.md") if disco.eh_pasta(memdir / SUBDIR) else [memdir / "MEMORY.md"]
     for sub in sorted(indices):
-        if not sub.is_file():
+        if not disco.eh_arquivo(sub):
             continue
-        texto, _ = _ler(sub)
+        texto, _ = _ler(sub, disco)
         rel = sub.relative_to(proj).as_posix()
         for n, l in enumerate(texto.split("\n"), 1):
             m = RE_ITEM.match(l)
             if m and "indice/" not in m.group("arquivo") and _sem_prefixo(m.group("arquivo")) not in aposentadas:
                 out.append(Fonte(l, f"{rel}:{n} — {m.group('titulo')}", PRIO["indice"], _sem_prefixo(m.group("arquivo"))))
     ev = proj / "docs" / "EVALS.md"
-    if ev.is_file():
-        texto, _ = _ler(ev)
+    if disco.eh_arquivo(ev):
+        texto, _ = _ler(ev, disco)
         for l in texto.split("\n"):
             m = RE_LINHA_EVALS.match(l)
             if m:
@@ -820,17 +871,17 @@ def fontes(proj: Path, diario: bool = True) -> list:
                 if len(cel) >= 3:
                     out.append(Fonte(cel[2], f"docs/EVALS.md — {m.group(1)} {_corta(cel[2])}", PRIO["evals"]))
     dec = proj / "docs" / "decisoes.md"
-    if dec.is_file():
-        texto, _ = _ler(dec)
+    if disco.eh_arquivo(dec):
+        texto, _ = _ler(dec, disco)
         for n, l in enumerate(texto.split("\n"), 1):
             if re.match(r"^- \d{4}-\d{2}-\d{2}", l):
                 out.append(Fonte(l, f"docs/decisoes.md:{n} — {_corta(l[2:])}", PRIO["decisao"]))
     # fora de escopo é "não agora" e só aparece quando o owner pede ao to-dolist (0.47.0): nem o
     # `to-dolist.md` nem o `FORA-DE-ESCOPO.md` antigo entram aqui — a busca roda a cada mensagem e repetia o item
-    out.extend(fontes_ambientes(proj))
+    out.extend(fontes_ambientes(proj, disco))
     dia = memdir / "DIARIO.md"
-    if diario and dia.is_file():
-        texto, _ = _ler(dia)
+    if diario and disco.eh_arquivo(dia):
+        texto, _ = _ler(dia, disco)
         for n, l in enumerate(texto.split("\n"), 1):
             m = RE_LINHA_DIARIO.match(l)
             if m and m.group(1) != "<assunto>":
@@ -839,14 +890,15 @@ def fontes(proj: Path, diario: bool = True) -> list:
     return [f for f in out if not RE_VENCIDA.search(_norm(f.texto))]
 
 
-def casar(proj: Path, prompt: str, limite: int = 3, minimo: int = MINIMO_TOKENS, diario: bool = True) -> list:
+def casar(proj: Path, prompt: str, limite: int = 3, minimo: int = MINIMO_TOKENS, diario: bool = True,
+          disco=DiscoReal) -> list:
     """Ponteiros ordenados por score desc, prioridade asc. Memória e sua linha de índice: sai só a memória.
     `diario=False` (o hook): diário de sessão é passado, sob demanda — injetado sozinho vira "estado atual" (F-030)."""
     toks, _ = tokens(prompt)
     if len(toks) < minimo:
         return []
     achados = []
-    for f in fontes(proj, diario=diario):
+    for f in fontes(proj, diario=diario, disco=disco):
         ftoks, fids = tokens(f.texto)
         comum = toks & ftoks
         if len(comum) < minimo:

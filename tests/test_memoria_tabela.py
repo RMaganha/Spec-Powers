@@ -15,6 +15,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,7 @@ class Disco:
 
     def __init__(self):
         self.dados, self.versao, self.lidos, self.gits, self.lidas = {}, {}, 0, 0, ""
+        self.jsonl = []                    # as conversas da máquina: [(nome, data em segundos)]
 
     def gravar(self, p, texto):
         self.dados[Path(p)] = texto.encode("utf-8") if isinstance(texto, str) else texto
@@ -79,7 +81,7 @@ class Disco:
         return None
 
     def conversas(self, pasta):
-        return []
+        return list(self.jsonl)
 
     def lidas_ate(self, raiz):
         return self.lidas
@@ -405,6 +407,121 @@ def test_arquivo_grande_demais_fica_fora_e_vira_pendencia(mod, disco, banco, mon
     r = _montar(mod, disco, banco, raiz)
     assert not banco.sql("SELECT 1 FROM memoria WHERE arq = 'docs/enorme.md'")
     assert any("docs/enorme.md" in p for p in r.pendencias), r.pendencias
+
+
+# ------------------------------------------------------------------ sono da memória (docs/specs/sono-da-memoria.md)
+# Vieram de `tests/test_sono_da_memoria.py` (2026-11-18): o lado da tabela — a coluna de estado, o último sono na
+# linha de controle, a conta das conversas e o "agora não". O hook que leva o aviso ao assistente é provado em
+# `tests/test_hook_memoria_tabela_em_dia.py`; o formato do `conferida:` e a leitura do diário, no `memoria_indice`.
+
+def _anotacao(disco, raiz, nome, conferida=None, corpo="corpo\n"):
+    linha = f"conferida: {conferida}\n" if conferida is not None else ""
+    disco.gravar(raiz / "memory" / f"{nome}.md",
+                 f"---\nname: {nome}\ndescription: descrição longa o bastante de {nome}\n"
+                 f"gatilho: quando acontecer a situação observável de {nome}\n{linha}metadata:\n  type: project\n---\n\n"
+                 f"{corpo}")
+
+
+CONVERSAS = BASE / "conversas"
+
+
+def _conversas(disco, n, idade_dias=0.0):
+    quando = time.time() - idade_dias * 86400
+    disco.jsonl += [(f"sessao-{i:03d}.jsonl", quando) for i in range(n)]
+
+
+def _aviso(mod, disco, banco, raiz):
+    return mod.aviso_de_sono(raiz, banco, CONVERSAS, CONVERSAS / "atual.jsonl", disco=disco)
+
+
+def test_montar_copia_o_estado_e_guarda_o_ultimo_sono_no_controle(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", "2026-11-12 — confirmada — fonte: hooks/x.py:12")
+    _anotacao(disco, raiz, "nota_b", "2026-11-13 — conflito — fonte: docs/decisoes.md:1", corpo="CONFLITO: a; b\n")
+    _montar(mod, disco, banco, raiz)
+    estados = dict(banco.sql("SELECT arq, estado FROM memoria WHERE tipo = 'anotacao'"))
+    assert estados["memory/nota_a.md"] == "2026-11-12 — confirmada — fonte: hooks/x.py:12"
+    assert estados["memory/project_boleto.md"] == "", "nunca conferida: coluna vazia"
+    assert banco.sql("SELECT data FROM memoria WHERE tipo = 'controle'") == [("2026-11-13",)]
+    assert mod.ultimo_sono(raiz, banco) == "2026-11-13"
+
+
+def test_busca_continua_achando_depois_da_coluna_nova(mod, disco, banco):
+    raiz = _projeto(disco)
+    _montar(mod, disco, banco, raiz)
+    assert any("project_boleto" in str(a.get("ponteiro")) for a in mod.buscar(raiz, "boleto corretor", tabela=banco))
+
+
+def test_dez_conversas_depois_do_ultimo_sono_dao_o_aviso_ao_assistente(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", "2026-01-01 — confirmada — fonte: hooks/x.py:12")
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 10)
+    texto = _aviso(mod, disco, banco, raiz)
+    assert "sono" in texto and "10" in texto and "2026-01-01" in texto
+    assert "adiar-sono" in texto, "o assistente precisa saber o que rodar quando o owner disser agora não"
+
+
+def test_nove_conversas_nao_dao_aviso(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", "2026-01-01 — confirmada — fonte: hooks/x.py:12")
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 9)
+    assert _aviso(mod, disco, banco, raiz) is None
+
+
+def test_conversa_anterior_ao_ultimo_sono_nao_conta_e_a_atual_tambem_nao(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", f"{time.strftime('%Y-%m-%d')} — confirmada — fonte: hooks/x.py:12")
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 15, idade_dias=3)
+    disco.jsonl.append(("atual.jsonl", time.time()))
+    assert _aviso(mod, disco, banco, raiz) is None
+
+
+def test_projeto_que_nunca_dormiu_conta_todas_as_conversas(mod, disco, banco):
+    raiz = _projeto(disco)
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 12, idade_dias=40)
+    texto = _aviso(mod, disco, banco, raiz)
+    assert "sono" in texto and "nunca" in texto
+
+
+def test_aviso_nao_le_o_conteudo_das_conversas(mod, disco, banco):
+    raiz = _projeto(disco)
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 12)
+    lidos = disco.lidos
+    assert "sono" in _aviso(mod, disco, banco, raiz)
+    assert disco.lidos == lidos, "o aviso conta nome e data; nunca lê arquivo"
+
+
+def test_adiar_guarda_a_data_no_controle_e_a_conta_recomeca(mod, disco, banco):
+    raiz = _projeto(disco)
+    _montar(mod, disco, banco, raiz)
+    _conversas(disco, 12, idade_dias=2)
+    hoje = time.strftime("%Y-%m-%d")
+    assert mod.adiar_sono(raiz, banco, usar_git=False, disco=disco) == hoje
+    assert mod.ultimo_sono(raiz, banco) == hoje
+    assert _aviso(mod, disco, banco, raiz) is None
+    _montar(mod, disco, banco, raiz)                                          # remontar não perde o adiamento
+    assert mod.ultimo_sono(raiz, banco) == hoje
+
+
+def test_leitura_mais_nova_que_a_conferencia_vira_o_ultimo_sono(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", "2026-11-13 — confirmada — fonte: hooks/x.py:12")
+    disco.lidas = "2026-11-16"                    # o diário `conversas lidas até: 2026-11-16` (memoria_indice)
+    _montar(mod, disco, banco, raiz)
+    assert mod.ultimo_sono(raiz, banco) == "2026-11-16"
+
+
+def test_conferencia_mais_nova_que_a_leitura_continua_valendo(mod, disco, banco):
+    raiz = _projeto(disco)
+    _anotacao(disco, raiz, "nota_a", "2026-11-20 — confirmada — fonte: hooks/x.py:12")
+    disco.lidas = "2026-11-16"
+    _montar(mod, disco, banco, raiz)
+    assert mod.ultimo_sono(raiz, banco) == "2026-11-20"
 
 
 # ------------------------------------------------------------------ status e linha de comando
