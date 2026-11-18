@@ -33,9 +33,7 @@ import datetime as _dt
 import functools
 import importlib.util
 import re
-import shutil
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -62,15 +60,50 @@ class Relatorio:
         return not self.problemas
 
 
-def _ler(p: Path):
-    bruto = p.read_bytes().decode("utf-8")
+class DiscoReal:
+    """O que o script lê e grava do projeto — a única parte dele que toca o disco (camadas, `docs/decisoes.md`
+    2026-11-18). Em teste, entra no lugar um objeto com os mesmos métodos, sobre um dicionário {caminho: bytes}."""
+
+    @staticmethod
+    def ler_bytes(p: Path) -> bytes:
+        return Path(p).read_bytes()
+
+    @staticmethod
+    def gravar_bytes(p: Path, dados: bytes) -> None:
+        Path(p).parent.mkdir(parents=True, exist_ok=True)
+        Path(p).write_bytes(dados)
+
+    @staticmethod
+    def eh_arquivo(p: Path) -> bool:
+        return Path(p).is_file()
+
+
+class Rascunho:
+    """O disco do `enxugar` sem `--aplicar`: lê do disco de baixo e guarda as gravações num dicionário que some com
+    ele — mede exatamente o que o `--aplicar` gravaria sem tocar no projeto (até 2026-11-18 era uma cópia de
+    `docs/superpowers` numa pasta temporária)."""
+
+    def __init__(self, base):
+        self.base, self.gravados = base, {}
+
+    def ler_bytes(self, p: Path) -> bytes:
+        return self.gravados[Path(p)] if Path(p) in self.gravados else self.base.ler_bytes(p)
+
+    def gravar_bytes(self, p: Path, dados: bytes) -> None:
+        self.gravados[Path(p)] = dados
+
+    def eh_arquivo(self, p: Path) -> bool:
+        return Path(p) in self.gravados or self.base.eh_arquivo(p)
+
+
+def _ler(p: Path, disco=DiscoReal):
+    bruto = disco.ler_bytes(p).decode("utf-8")
     eol = "\r\n" if "\r\n" in bruto else "\n"
     return bruto.replace("\r\n", "\n"), eol
 
 
-def _gravar(p: Path, texto: str, eol: str) -> None:
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_bytes(texto.replace("\n", eol).encode("utf-8"))
+def _gravar(p: Path, texto: str, eol: str, disco=DiscoReal) -> None:
+    disco.gravar_bytes(p, texto.replace("\n", eol).encode("utf-8"))
 
 
 def secoes(texto: str) -> list:
@@ -113,31 +146,32 @@ def _nao_vazias(linhas: list) -> list:
     return [l for l in linhas if l.strip()]
 
 
-def _prepend_historico(path: Path, titulo_novo: str, secoes_novas: list, eol: str) -> None:
+def _prepend_historico(path: Path, titulo_novo: str, secoes_novas: list, eol: str, disco=DiscoReal) -> None:
     """Insere as seções novas logo depois do H1 do histórico (cria o arquivo se não existe)."""
     corpo = "\n".join(secoes_novas).rstrip("\n") + "\n"
-    if path.is_file():
-        texto, eol_h = _ler(path)
+    if disco.eh_arquivo(path):
+        texto, eol_h = _ler(path, disco)
         linhas = texto.split("\n")
         pos = next((i for i, l in enumerate(linhas) if l.startswith("# ")), None)
         if pos is None:
             novo = corpo + "\n" + texto
         else:
             novo = "\n".join(linhas[:pos + 1]) + "\n\n" + corpo + "\n" + "\n".join(linhas[pos + 1:]).lstrip("\n")
-        _gravar(path, novo, eol_h)
+        _gravar(path, novo, eol_h, disco)
     else:
-        _gravar(path, f"{titulo_novo}\n\n{corpo}", eol)
+        _gravar(path, f"{titulo_novo}\n\n{corpo}", eol, disco)
 
 
-def rodizio_mapa(proj: Path, hoje=None, aplicar: bool = False, manter: int = MANTER_BLOCOS) -> Relatorio:
+def rodizio_mapa(proj: Path, hoje=None, aplicar: bool = False, manter: int = MANTER_BLOCOS,
+                 disco=DiscoReal) -> Relatorio:
     proj = Path(proj)
     hoje = hoje or _dt.date.today().isoformat()
     rel = Relatorio()
     mapa = proj.joinpath(*SP, "MAPA.md")
-    if not mapa.is_file():
+    if not disco.eh_arquivo(mapa):
         rel.problemas.append(f"não existe {mapa}")
         return rel
-    texto, eol = _ler(mapa)
+    texto, eol = _ler(mapa, disco)
     rel.bytes_antes = _bytes(texto)
     novas, movidos = [], []
     for titulo, linhas in secoes(texto):
@@ -177,8 +211,8 @@ def rodizio_mapa(proj: Path, hoje=None, aplicar: bool = False, manter: int = MAN
         for titulo, corpo in movidos:
             secs += [f'## {hoje} — rodízio de "{titulo}"', ""] + corpo + [""]
         _prepend_historico(proj.joinpath(*SP, "MAPA-historico.md"),
-                           f"# Histórico do mapa de contexto — {nome}", secs, eol)
-        _gravar(mapa, novo, eol)
+                           f"# Histórico do mapa de contexto — {nome}", secs, eol, disco)
+        _gravar(mapa, novo, eol, disco)
         rel.gravou = True
     return rel
 
@@ -207,15 +241,15 @@ def fechada(linha: str) -> bool:
     return False
 
 
-def rodizio_index(proj: Path, hoje=None, aplicar: bool = False) -> Relatorio:
+def rodizio_index(proj: Path, hoje=None, aplicar: bool = False, disco=DiscoReal) -> Relatorio:
     proj = Path(proj)
     hoje = hoje or _dt.date.today().isoformat()
     rel = Relatorio()
     idx = proj.joinpath(*SP, "INDEX.md")
-    if not idx.is_file():
+    if not disco.eh_arquivo(idx):
         rel.problemas.append(f"não existe {idx}")
         return rel
-    texto, eol = _ler(idx)
+    texto, eol = _ler(idx, disco)
     rel.bytes_antes = _bytes(texto)
     ficam, saem, abertas = [], [], 0
     for titulo, linhas in secoes(texto):
@@ -243,8 +277,8 @@ def rodizio_index(proj: Path, hoje=None, aplicar: bool = False) -> Relatorio:
     if aplicar and saem:
         _prepend_historico(proj.joinpath(*SP, "INDEX-historico.md"),
                            "# Índice de tarefas — histórico (fechadas)",
-                           [f"## {hoje} — fechadas", ""] + saem + [""], eol)
-        _gravar(idx, novo, eol)
+                           [f"## {hoje} — fechadas", ""] + saem + [""], eol, disco)
+        _gravar(idx, novo, eol, disco)
         rel.gravou = True
     return rel
 
@@ -431,12 +465,12 @@ def _encurtar_proximo_passo(texto: str):
     return "\n".join(novas), _aparar(saem)
 
 
-def _gravar_destino(path: Path, h1: str, hoje: str, origem: str, linhas: list, eol: str) -> None:
+def _gravar_destino(path: Path, h1: str, hoje: str, origem: str, linhas: list, eol: str, disco=DiscoReal) -> None:
     secao = [f"## {hoje} — movido do {origem}", ""] + linhas + [""]
-    if path.is_file():
-        _prepend_historico(path, h1, secao, eol)
+    if disco.eh_arquivo(path):
+        _prepend_historico(path, h1, secao, eol, disco)
     else:
-        _gravar(path, h1 + "\n\n" + NOTA_MOVIDO + "\n\n" + "\n".join(secao).rstrip("\n") + "\n", eol)
+        _gravar(path, h1 + "\n\n" + NOTA_MOVIDO + "\n\n" + "\n".join(secao).rstrip("\n") + "\n", eol, disco)
 
 
 def _conserva(antes: str, depois: str, movidas: list) -> list:
@@ -449,7 +483,7 @@ H1_CONEXOES = "# Conexões — o detalhe de cada integração"
 
 
 def _mover(proj: Path, nome: str, texto: str, atual: str, destinos: list, hoje: str, eol: str,
-           trocadas=()) -> Relatorio:
+           trocadas=(), disco=DiscoReal) -> Relatorio:
     """Confere a conservação e grava os destinos e o arquivo; qualquer linha sem destino → nada é gravado."""
     rel = Relatorio(bytes_antes=_bytes(texto))
     movidas = [l for _, _, ls in destinos for l in ls]
@@ -460,44 +494,44 @@ def _mover(proj: Path, nome: str, texto: str, atual: str, destinos: list, hoje: 
     if not atual.endswith("\n"):
         atual += "\n"
     for arquivo, h1, linhas in destinos:
-        _gravar_destino(Path(proj).joinpath(*SP, arquivo), h1, hoje, nome, linhas, eol)
+        _gravar_destino(Path(proj).joinpath(*SP, arquivo), h1, hoje, nome, linhas, eol, disco)
         rel.passos.append(f"{len(_nao_vazias(linhas))} linha(s) → {arquivo}")
     if destinos:
-        _gravar(Path(proj).joinpath(*SP, nome), atual, eol)
+        _gravar(Path(proj).joinpath(*SP, nome), atual, eol, disco)
         rel.gravou = True
     rel.movidas = len(_nao_vazias(movidas))
     rel.bytes_depois = _bytes(atual)
     return rel
 
 
-def forma(proj: Path, qual: str, hoje: str) -> Relatorio:
+def forma(proj: Path, qual: str, hoje: str, disco=DiscoReal) -> Relatorio:
     """O que vale em TODA gravação, mesmo abaixo do teto (0.44.0): INDEX → `fechada` pro INDEX-historico.md;
     MAPA → item longo do Próximo passo pro PROXIMO-PASSO.md e, havendo CONEXOES.md, Conexões só com os nomes."""
     if qual == "index":
-        r = rodizio_index(proj, hoje=hoje, aplicar=True)
+        r = rodizio_index(proj, hoje=hoje, aplicar=True, disco=disco)
         r.avisos = []
         if r.movidas:
             r.passos.append(f"{r.movidas} linha(s) fechadas → INDEX-historico.md")
         return r
     alvo = Path(proj).joinpath(*SP, "MAPA.md")
-    texto, eol = _ler(alvo)
+    texto, eol = _ler(alvo, disco)
     atual, saem = _encurtar_proximo_passo(texto)
     destinos = [(PROXIMO_PASSO, "# Próximo passo — o texto completo de cada item", saem)] if saem else []
     trocadas = []
-    if Path(proj).joinpath(*SP, "CONEXOES.md").is_file():
+    if disco.eh_arquivo(Path(proj).joinpath(*SP, "CONEXOES.md")):
         atual, saem, trocadas = _tirar_conexoes(atual, hoje)
         if saem:
             destinos.append(("CONEXOES.md", H1_CONEXOES, saem))
     if not destinos:
         return Relatorio(bytes_antes=_bytes(texto), bytes_depois=_bytes(texto))
-    return _mover(proj, "MAPA.md", texto, atual, destinos, hoje, eol, trocadas)
+    return _mover(proj, "MAPA.md", texto, atual, destinos, hoje, eol, trocadas, disco)
 
 
-def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
+def aliviar(proj: Path, qual: str, hoje: str, disco=DiscoReal) -> Relatorio:
     """2ª etapa, sempre gravando (o `enxugar` é quem decide dry-run). Para assim que o arquivo cabe."""
     teto, nome = (TETO_INDEX, "INDEX.md") if qual == "index" else (TETO_MAPA, "MAPA.md")
     alvo = Path(proj).joinpath(*SP, nome)
-    texto, eol = _ler(alvo)
+    texto, eol = _ler(alvo, disco)
     atual, destinos, trocadas = texto, [], []
     if qual == "index":
         for chave, arquivo, descricao in SECOES_INDEX:
@@ -514,7 +548,7 @@ def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
         atual, saem, trocadas = _tirar_conexoes(atual, hoje)
         if saem:
             destinos.append(("CONEXOES.md", H1_CONEXOES, saem))
-    rel = _mover(proj, nome, texto, atual, destinos, hoje, eol, trocadas)
+    rel = _mover(proj, nome, texto, atual, destinos, hoje, eol, trocadas, disco)
     if not rel.ok:
         return rel
     if rel.bytes_depois > teto:
@@ -523,49 +557,49 @@ def aliviar(proj: Path, qual: str, hoje: str) -> Relatorio:
     return rel
 
 
-def _enxugar_gravando(proj: Path, hoje: str) -> dict:
+def _enxugar_gravando(proj: Path, hoje: str, disco=DiscoReal) -> dict:
     out = {}
     for qual, nome, teto, etapa1 in (("mapa", "MAPA.md", TETO_MAPA, rodizio_mapa),
                                      ("index", "INDEX.md", TETO_INDEX, rodizio_index)):
         alvo = Path(proj).joinpath(*SP, nome)
-        if not alvo.is_file():
+        if not disco.eh_arquivo(alvo):
             continue
-        texto, _ = _ler(alvo)
+        texto, _ = _ler(alvo, disco)
         rel = Relatorio(bytes_antes=_bytes(texto), bytes_depois=_bytes(texto))
         out[qual] = rel
         if _conflito(texto):
             rel.problemas.append(f"{nome} tem marcador de conflito de merge — não mexo até o merge ser resolvido")
             continue
-        r0 = forma(proj, qual, hoje)
+        r0 = forma(proj, qual, hoje, disco)
         rel.problemas += r0.problemas
         if not r0.ok:
             continue
         rel.passos += r0.passos
         rel.gravou = r0.gravou
-        if _bytes(_ler(alvo)[0]) <= teto:
-            rel.bytes_depois = _bytes(_ler(alvo)[0])
+        if _bytes(_ler(alvo, disco)[0]) <= teto:
+            rel.bytes_depois = _bytes(_ler(alvo, disco)[0])
             rel.movidas = sum(int(p.split(" ", 1)[0]) for p in rel.passos)
             continue
-        r1 = etapa1(proj, hoje=hoje, aplicar=True)
+        r1 = etapa1(proj, hoje=hoje, aplicar=True, disco=disco)
         rel.problemas += r1.problemas
         if not r1.ok:
             continue
         if r1.movidas:
             rel.passos.append(f"{r1.movidas} linha(s) antigas → {nome[:-3]}-historico.md")
             rel.gravou = r1.gravou
-        if _bytes(_ler(alvo)[0]) > teto:
-            r2 = aliviar(proj, qual, hoje)
+        if _bytes(_ler(alvo, disco)[0]) > teto:
+            r2 = aliviar(proj, qual, hoje, disco)
             rel.problemas += r2.problemas
             rel.passos += r2.passos
             rel.avisos += r2.avisos
             rel.gravou = rel.gravou or r2.gravou
-        if qual == "mapa" and rel.ok and _bytes(_ler(alvo)[0]) > teto:
-            r3 = rodizio_mapa(proj, hoje=hoje, aplicar=True, manter=1)    # acima do teto: só o bloco atual fica
+        if qual == "mapa" and rel.ok and _bytes(_ler(alvo, disco)[0]) > teto:
+            r3 = rodizio_mapa(proj, hoje=hoje, aplicar=True, manter=1, disco=disco)    # acima do teto: só o bloco atual fica
             rel.problemas += r3.problemas
             if r3.ok and r3.movidas:
                 rel.passos.append(f"{r3.movidas} linha(s) do bloco anterior → MAPA-historico.md")
                 rel.gravou = True
-        rel.bytes_depois = _bytes(_ler(alvo)[0])
+        rel.bytes_depois = _bytes(_ler(alvo, disco)[0])
         rel.avisos = [] if rel.bytes_depois <= teto else [
             f"{nome} ainda acima do teto ({rel.bytes_depois} > {teto} B de conteúdo; comentário não conta) depois de tudo "
             "que é mecânico: o excesso é conteúdo vivo" + (" (o bloco atual)" if qual == "mapa" else " (linhas de tarefa aberta)")
@@ -574,19 +608,14 @@ def _enxugar_gravando(proj: Path, hoje: str) -> dict:
     return out
 
 
-def enxugar(proj: Path, hoje=None, aplicar: bool = False) -> dict:
-    """{"mapa": Relatorio, "index": Relatorio} (só dos que existem). Dry-run roda tudo numa CÓPIA e descarta —
-    mede exatamente o que o `--aplicar` gravaria."""
+def enxugar(proj: Path, hoje=None, aplicar: bool = False, disco=DiscoReal) -> dict:
+    """{"mapa": Relatorio, "index": Relatorio} (só dos que existem). Dry-run roda tudo num RASCUNHO em memória por
+    cima do disco e descarta — mede exatamente o que o `--aplicar` gravaria."""
     hoje = hoje or _dt.date.today().isoformat()
     proj = Path(proj)
     if aplicar:
-        return _enxugar_gravando(proj, hoje)
-    with tempfile.TemporaryDirectory() as tmp:
-        copia = Path(tmp) / "proj"
-        origem = proj.joinpath(*SP)
-        if origem.is_dir():
-            shutil.copytree(origem, copia.joinpath(*SP))
-        rels = _enxugar_gravando(copia, hoje)
+        return _enxugar_gravando(proj, hoje, disco)
+    rels = _enxugar_gravando(proj, hoje, Rascunho(disco))
     for r in rels.values():
         r.gravou = False
     return rels
