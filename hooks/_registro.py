@@ -49,21 +49,29 @@ def _projeto(evento, ambiente):
     return os.path.basename(os.path.normpath(str(raiz))) if str(raiz).strip() else ""
 
 
+def linha_de(hook, decisao, detalhe, evento, ambiente, quando):
+    """A REGRA, sem disco: a linha que o registro grava, ou None se o owner desligou (`MSS_REGISTRO_OFF`).
+    `quando`: `datetime`. Só rótulos do hook — nunca o texto do prompt nem a linha de comando."""
+    if str(ambiente.get(ENV_DESLIGA) or "").strip():
+        return None
+    evento = evento if isinstance(evento, dict) else {}
+    return {
+        "quando": quando.isoformat(timespec="seconds"),
+        "hook": str(hook),
+        "decisao": str(decisao),
+        "detalhe": " ".join(str(detalhe or "").split())[:TETO_DETALHE],
+        "projeto": _projeto(evento, ambiente),
+        "sessao": str(evento.get("session_id") or "")[:8],
+    }
+
+
 def registrar(hook, decisao, detalhe="", evento=None, ambiente=None):
-    """Anexa uma linha. Qualquer defeito → não grava, calado."""
+    """A casca: anexa a linha no arquivo (rodízio pro `.1` acima do teto). Qualquer defeito → não grava, calado."""
     try:
         ambiente = os.environ if ambiente is None else ambiente
-        if str(ambiente.get(ENV_DESLIGA) or "").strip():
+        linha = linha_de(hook, decisao, detalhe, evento, ambiente, datetime.datetime.now())
+        if linha is None:
             return
-        evento = evento if isinstance(evento, dict) else {}
-        linha = {
-            "quando": datetime.datetime.now().isoformat(timespec="seconds"),
-            "hook": str(hook),
-            "decisao": str(decisao),
-            "detalhe": " ".join(str(detalhe or "").split())[:TETO_DETALHE],
-            "projeto": _projeto(evento, ambiente),
-            "sessao": str(evento.get("session_id") or "")[:8],
-        }
         alvo = caminho(ambiente)
         alvo.parent.mkdir(parents=True, exist_ok=True)
         if alvo.exists() and alvo.stat().st_size > TETO_BYTES:
