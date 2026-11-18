@@ -736,6 +736,17 @@ def test_main_proj_inexistente_nao_cria_pasta(inv, capsys):
     assert not alvo.exists() and "--proj" in capsys.readouterr().err
 
 
+def test_processo_com_proj_inexistente_sai_com_2_sem_conectar():
+    """O script como o `/mss-spec:inventario-banco` roda: para antes da credencial e do banco."""
+    import os
+    import subprocess
+    env = {k: v for k, v in os.environ.items() if k != "MSS_INVENTARIO_CONN"}
+    r = subprocess.run([sys.executable, str(SCRIPT), "--proj", str(FALSA / "typo")], capture_output=True,
+                       text=True, encoding="utf-8", errors="replace", env=env, timeout=60)
+    assert r.returncode == 2 and "--proj não é uma pasta existente" in r.stderr
+    assert not FALSA.exists()
+
+
 def test_porta_nao_numerica_e_recusada(inv):
     with pytest.raises(SystemExit):
         inv.main(["--proj", EXISTENTE, "--porta", "abc"], env=ENV_OK, conectar_fn=lambda s: pytest.fail("conectou"))
