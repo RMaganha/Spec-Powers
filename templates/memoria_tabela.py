@@ -146,6 +146,17 @@ class DiscoReal:
         return [(p.name, p.stat().st_mtime) for p in Path(pasta).glob("*.jsonl")]
 
     @staticmethod
+    def ler_texto(p: Path) -> str:
+        """O texto do arquivo (UTF-8, byte inválido vira substituição); levanta OSError/TypeError sem arquivo."""
+        with open(p, encoding="utf-8", errors="replace") as f:
+            return f.read()
+
+    @staticmethod
+    def pastas_em(base: Path) -> list:
+        """Os itens de uma pasta; levanta OSError se não dá pra listar."""
+        return list(Path(base).iterdir())
+
+    @staticmethod
     def lidas_ate(raiz: Path) -> str:
         """O dia da leitura de conversas mais nova registrada no diário (`memoria_indice.conversas_lidas_ate`)."""
         return _motor().conversas_lidas_ate(raiz)[0]
@@ -691,31 +702,36 @@ def _pedido_do_owner(reg, minimo: int = PEDIDO_MINIMO) -> str:
     return t
 
 
-def pedidos_da_conversa(arquivo, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO) -> list:
-    """Os últimos `quantos` pedidos do owner nesta conversa, do mais antigo pro mais novo, cada um cortado em
-    `teto` letras. O ÚLTIMO entra mesmo curto (é o pedido em curso: `/mss-spec:duvida e o deploy?`); os
-    anteriores curtos ("ok", "pode seguir") ficam fora. Sem arquivo, ou com linha torta, devolve o que der."""
-    textos = []
+def pedidos_da_conversa(arquivo, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO, disco=DiscoReal) -> list:
+    """Os pedidos do owner no arquivo da conversa (ver `pedidos_do_texto`). Sem arquivo → []."""
     try:
-        with open(arquivo, encoding="utf-8", errors="replace") as f:
-            for bruto in f:
-                if '"user"' not in bruto:
-                    continue
-                try:
-                    texto = _pedido_do_owner(json.loads(bruto), minimo=1)
-                except ValueError:
-                    continue
-                if texto:
-                    textos.append(texto)
+        conteudo = disco.ler_texto(arquivo)
     except (OSError, TypeError):
         return []
+    return pedidos_do_texto(conteudo, quantos, teto)
+
+
+def pedidos_do_texto(conteudo: str, quantos: int = PEDIDOS_NA_BUSCA, teto: int = TETO_PEDIDO) -> list:
+    """Os últimos `quantos` pedidos do owner nesta conversa (o texto do `.jsonl`), do mais antigo pro mais novo,
+    cada um cortado em `teto` letras. O ÚLTIMO entra mesmo curto (é o pedido em curso: `/mss-spec:duvida e o
+    deploy?`); os anteriores curtos ("ok", "pode seguir") ficam fora. Linha torta fica de fora."""
+    textos = []
+    for bruto in conteudo.splitlines():
+        if '"user"' not in bruto:
+            continue
+        try:
+            texto = _pedido_do_owner(json.loads(bruto), minimo=1)
+        except ValueError:
+            continue
+        if texto:
+            textos.append(texto)
     if not textos:
         return []
     pedidos = [t for t in textos[:-1] if len(t) >= PEDIDO_MINIMO] + [textos[-1]]
     return [p[:teto] for p in pedidos[-quantos:]]
 
 
-def arquivo_da_conversa(ambiente=None):
+def arquivo_da_conversa(ambiente=None, disco=DiscoReal):
     """O `.jsonl` da conversa em curso (`<pasta do app>/projects/<projeto>/<sessão>.jsonl`), achado pelo número da
     sessão que o app põe no ambiente; `None` quando não dá pra saber — aí a busca usa só o texto informado."""
     ambiente = os.environ if ambiente is None else ambiente
@@ -724,28 +740,29 @@ def arquivo_da_conversa(ambiente=None):
         return None
     base = Path(ambiente.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude") / "projects"
     try:
-        for pasta in base.iterdir():
+        for pasta in disco.pastas_em(base):
             arq = pasta / f"{sessao}.jsonl"
-            if arq.is_file():
+            if disco.eh_arquivo(arq):
                 return arq
     except OSError:
         pass
     return None
 
 
-def _modo_buscar(raiz: Path, tabela: Path, a) -> int:
+def _modo_buscar(raiz: Path, tabela, a, disco=DiscoReal, ambiente=None) -> int:
     """0 = achou (imprime os dois blocos) · 1 = nada pra este pedido · 2 = tabela indisponível. Em 1 e 2 a saída
     diz pra ir nos arquivos: a busca nunca falha calada."""
     texto, contexto = " ".join(a.texto).strip(), []
     if not texto:
-        pedidos = pedidos_da_conversa(Path(a.conversa) if a.conversa else arquivo_da_conversa())
+        pedidos = pedidos_da_conversa(Path(a.conversa) if a.conversa else arquivo_da_conversa(ambiente, disco),
+                                      disco=disco)
         if not pedidos:
             print("sem texto pra buscar e sem o arquivo desta conversa: rode de novo com o pedido do owner entre "
                   f"aspas, palavra por palavra — ou {RESERVA}")
             return 1
         texto, contexto = pedidos[-1], pedidos[:-1]
     try:
-        atualizar(raiz, tabela, usar_git=not a.sem_git)
+        atualizar(raiz, tabela, usar_git=not a.sem_git, disco=disco)
         achados = buscar(raiz, texto, contexto, tabela, limite=a.limite)
     except (sqlite3.Error, OSError) as erro:
         print(f"tabela de memória indisponível ({erro}) — {RESERVA}")
