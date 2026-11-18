@@ -23,9 +23,19 @@ dado sem mudar o comportamento; na máquina só `templates/testes_do_que_mudou.p
 - Reescritos, um commit cada: `passagem_de_conversa` (`1c19046`, `ce25bd3`), `um_item_por_janela` (`fb22400`),
   `confere_citacoes` (`1c78682`), `banco_producao` (`ac74dcc`). Em cada um, os testes antigos passaram com o hook
   novo antes da troca do teste.
-- `regra_antes_de_gravar`: hook separado; teste novo pronto no scratchpad, esperando a rodada dos antigos.
+- 2026-11-18: mais 14 — `regra_antes_de_gravar`, `pasta_e_branch`, `conversa_nova_acha_sozinha`, `kit_primeiro`,
+  `teto_ao_gravar`, `regras_do_kit`, `orcamento_partida`, `memoria_de_acao`, `comando_inteiro`, `diario_junto`,
+  `decisao_junto`, `registro`, `ancora_projeto_ativo`, `alerta_contexto` (18 de 34). Contagem do
+  `test_memoria_gatilho_de_acao.py` corrigida pra 28 (a captura da suite lenta criou a 28ª memória com gatilho).
+- Pivô do owner (2026-11-18): rodar a suíte a cada arquivo era o gargalo (15 a 25 min por rodada, arrastando
+  arquivos antigos) — agora um commit por arquivo, sem rodada no meio, e UMA rodada no fim. Isso também cumpre
+  `memory/feedback_suite_inteira_so_no_ci.md`: teste não reescrito não roda na máquina.
+- Escolhas aprovadas pelo owner: no `teto_ao_gravar` o motor `rodizio_partida` entra falso em memória; módulo
+  (`_memoria_de_acao`, `_comando_inteiro`) sem teste de processo; dentro de outro hook, as leituras do módulo são
+  trocadas por `monkeypatch`; no `registro` a matriz de 12 hooks × processos saiu.
+- Última rodada: `882 passed` depois do `conversa_nova_acha_sozinha`. Do `kit_primeiro` em diante, sem rodada.
 
 ## Próximo
-Seguir a ordem do grupo 1 a partir de `regra_antes_de_gravar`. Aberto: o `testes_do_que_mudou.py` não escolhe teste
-que carrega o hook pelo nome sem `.py` (`tests/test_hook_memoria_da_proposta.py` chama o `confere_citacoes` e não
-rodou contra o código novo; roda no CI no push) — oferecido ao owner como item do `to-dolist.md`.
+16 arquivos (5 do grupo 1, 11 do grupo 2) e a rodada única no fim — o texto pronto está no fim desta conversa.
+Aberto, oferecido ao owner pro `to-dolist.md`: o `testes_do_que_mudou.py` não escolhe teste que carrega o hook
+pelo nome sem `.py` (ex.: `test_hook_memoria_da_proposta.py`) nem teste que depende de `memory/`.
