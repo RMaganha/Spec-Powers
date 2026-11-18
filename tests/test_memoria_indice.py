@@ -509,3 +509,35 @@ def test_recall_pula_decisao_obsoleta(tmp_path):
         encoding="utf-8")
     texto = _recall(mod, raiz, "a cotação via n8n com callback no whatsapp funciona?")
     assert "decisoes.md" not in texto, "o recall injetou uma decisão marcada obsoleta"
+
+
+def test_busca_da_proposta_acha_pelo_termo_curto_do_tema_no_formato_do_whats(tmp_path):
+    """F-047: as memórias que vetavam a etapa nova de build não tinham `gatilho:`; a busca com o termo curto do tema
+    (como o `confere_citacoes.memorias_da_proposta` chama) acha as duas e não a fora do tema. Veio de
+    `tests/test_hook_memoria_da_proposta.py` (2026-11-18), onde o motor entra falso."""
+    mod = _mod()
+    mem = tmp_path / "whats" / "memory"
+    (mem / "indice").mkdir(parents=True)
+    for nome, desc in (
+            ("subida-nao-pode-depender-de-build", "Acrescentei --build ao atalho de subida para proteger de imagem "
+                                                  "defasada, e transformei falha de rede em nada sobe"),
+            ("contar-arquivos-novos-antes-de-propor", "propus 4 módulos novos onde 1 bastava; arquivo novo só se "
+                                                      "justifica por capacidade que não existe"),
+            ("fluxo-do-turno", "o fluxo do turno é a base do diagnóstico de conversa")):
+        (mem / f"{nome}.md").write_text(FRONT_SEM_GATILHO.format(name=nome, desc=desc), encoding="utf-8")
+    (mem / "indice" / "como-eu-devo-trabalhar.md").write_text(
+        "# Como eu devo trabalhar\n\n"
+        "- [Subida não pode depender de build](../subida-nao-pode-depender-de-build.md) — proteção que cria modo "
+        "de falha novo é regressão\n"
+        "- [Contar arquivos novos antes de propor](../contar-arquivos-novos-antes-de-propor.md) — arquivo novo só "
+        "por capacidade que não existe\n", encoding="utf-8")
+    (mem / "MEMORY.md").write_text(
+        "- **Como eu devo trabalhar** → [subíndice](indice/como-eu-devo-trabalhar.md) — 2 memórias\n", encoding="utf-8")
+
+    def achados(termo):
+        minimo = len(mod.tokens(termo)[0])
+        return " ".join(p.ponteiro for p in mod.casar(mem.parent, termo, limite=9, minimo=minimo, diario=False))
+    build, novos = achados("build"), achados("arquivos novos")
+    assert "subida-nao-pode-depender-de-build" in build
+    assert "contar-arquivos-novos-antes-de-propor" in novos
+    assert "fluxo-do-turno" not in build + novos

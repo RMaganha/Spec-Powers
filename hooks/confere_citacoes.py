@@ -301,9 +301,11 @@ def _citada(ponteiro, texto_norm, norm):
     return bool(titulo) and "indice/" in arquivo and norm(titulo) in texto_norm
 
 
-def memorias_da_proposta(texto, raiz, ja_vistas=()):
-    """[(tema, ponteiro)] — memória/subíndice/decisão do tema que a resposta propõe e não cita."""
-    if not os.path.isdir(os.path.join(raiz, "memory")):
+def memorias_da_proposta(texto, raiz, ja_vistas=(), disco=DiscoReal, carregar_motor=None):
+    """[(tema, ponteiro)] — memória/subíndice/decisão do tema que a resposta propõe e não cita. `disco` responde se
+    o projeto tem `memory/` (`DiscoReal`, ou o de teste); `carregar_motor()` devolve o `memoria_indice` (padrão:
+    `_motor`), chamado só quando a resposta propõe mudança num tema."""
+    if not disco.eh_pasta(os.path.join(raiz, "memory")):
         return []
     sem_codigo = RE_CERCADO.sub(" ", texto)
     if not RE_PROPOSTA.search(sem_codigo):
@@ -312,7 +314,7 @@ def memorias_da_proposta(texto, raiz, ja_vistas=()):
     if not temas:
         return []
     from pathlib import Path
-    motor = _motor()
+    motor = (carregar_motor or _motor)()
     norm = lambda s: " ".join(re.sub(r"[^a-z0-9]+", " ", motor._norm(s)).split())   # noqa: E731
     texto_norm = norm(texto)
     saida, vistos = [], set(ja_vistas)
@@ -355,9 +357,10 @@ def rotas_nao_pedidas(texto, prompt):
             and len(sem_codigo.split()) > MIN_PALAVRAS_ROTA and not RE_PEDIU_OPCOES.search(prompt or ""))
 
 
-def _memorias(texto, raiz, sessao, ambiente):
+def _memorias(texto, raiz, sessao, ambiente, disco=DiscoReal):
     """[(parte do motivo, detalhe pro registro)] da memória de ação e da memória da proposta — os dois buscam no
-    `memory/` do projeto e guardam o que já mostraram (`hooks/_memoria_de_acao.py`). Cada busca quebrada → nada."""
+    `memory/` do projeto e guardam o que já mostraram (`hooks/_memoria_de_acao.py`). Cada busca quebrada → nada.
+    `disco` responde se o projeto tem `memory/` pra memória da proposta (`DiscoReal`, ou o de teste)."""
     saida = []
     try:
         import _memoria_de_acao as mem
@@ -371,7 +374,7 @@ def _memorias(texto, raiz, sessao, ambiente):
     try:
         if not _texto(ambiente.get("MSS_MEMORIA_ACAO_OFF")):
             import _memoria_de_acao as mem
-            da_proposta = memorias_da_proposta(texto, raiz, mem.ja_mostradas(sessao))
+            da_proposta = memorias_da_proposta(texto, raiz, mem.ja_mostradas(sessao), disco)
             if da_proposta:
                 mem.marcar(sessao, [p.split(" — ")[0] for _, p in da_proposta])
                 temas = ", ".join(dict.fromkeys(t for t, _ in da_proposta))
