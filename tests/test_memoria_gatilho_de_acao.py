@@ -255,11 +255,12 @@ def test_gatilho_aprovado_casa_o_caso_real_e_nao_casa_o_vizinho(nome, lado, casa
 
 
 def test_sao_os_aprovados_pelo_owner_mais_os_5_que_ja_existiam():
-    """21 aprovados em 2026-11-11 + 5 que já existiam + 1 aprovado na captura de 2026-11-12."""
+    """21 aprovados em 2026-11-11 + 5 que já existiam + 1 aprovado na captura de 2026-11-12 + 1 da captura de
+    2026-11-17 (`feedback_suite_inteira_so_no_ci`)."""
     acao = _acao()
     com = {n for lado in ("comando", "resposta") for n, _, _, _ in acao.memorias(str(REPO), lado)}
     assert {a[0] for a in APROVADOS} <= com
-    assert len(com) == 27, sorted(com)
+    assert len(com) == 28, sorted(com)
 
 
 # --- a captura manda cobrar (wiring do comando-prosa) -----------------------------------------------------
