@@ -73,15 +73,23 @@ def _texto(valor):
     return valor.strip() if isinstance(valor, str) and valor.strip() else None
 
 
-def tem_marca(raiz):
-    """True se o `CLAUDE.md` da raiz tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR).
-    `errors="replace"`: a marca é ASCII, então um CLAUDE.md fora de UTF-8 ainda a mostra."""
+def marca_no(texto):
+    """True se o texto do `CLAUDE.md` tem a linha-marca (depois de tirar o BOM; `strip()` leva o CR)."""
+    return any(linha.strip() == MARCA for linha in (texto or "").lstrip("﻿").splitlines())
+
+
+def _ler_claude_md(raiz):
+    """Disco: o `CLAUDE.md` da raiz, ou None. `errors="replace"`: a marca é ASCII, então um CLAUDE.md fora de
+    UTF-8 ainda a mostra."""
     try:
         with open(os.path.join(raiz, "CLAUDE.md"), encoding="utf-8", errors="replace") as f:
-            texto = f.read().lstrip("﻿")
+            return f.read()
     except OSError:
-        return False
-    return any(linha.strip() == MARCA for linha in texto.splitlines())
+        return None
+
+
+def tem_marca(raiz):
+    return marca_no(_ler_claude_md(raiz))
 
 
 # --- glob -------------------------------------------------------------------------------------
@@ -160,25 +168,40 @@ def _corpo_vazio(texto):
     return not any(l.strip() and not re.match(r"^\s{0,3}#{1,6}(\s|$)", l) for l in texto.split("\n"))
 
 
-def regras_do_projeto(raiz):
-    """[(nome = caminho dentro de `.claude/rules/` com `/`, padrões do `paths:`, texto sem frontmatter)]
-    — só regras COM `paths:` e com corpo; desce nas subpastas. Arquivo ilegível ou com frontmatter
-    quebrado é pulado (falha aberta)."""
+def _ler_regras(raiz):
+    """Disco: {nome = caminho dentro de `.claude/rules/` com `/`: conteúdo} dos `.md`, descendo nas subpastas.
+    Arquivo ilegível fica de fora (falha aberta)."""
     pasta = os.path.join(raiz, *PASTA_REGRAS)
     nomes = []
     for dirpath, _, arquivos in os.walk(pasta):
         base = os.path.relpath(dirpath, pasta).replace("\\", "/")
         nomes += [n if base == "." else f"{base}/{n}" for n in arquivos if n.lower().endswith(".md")]
-    regras = []
-    for nome in sorted(nomes):
+    conteudos = {}
+    for nome in nomes:
         try:
             with open(os.path.join(pasta, *nome.split("/")), encoding="utf-8") as f:
-                paths, texto = _separar(f.read())
+                conteudos[nome] = f.read()
+        except Exception:                            # noqa: BLE001
+            continue
+    return conteudos
+
+
+def regras_de(conteudos):
+    """[(nome, padrões do `paths:`, texto sem frontmatter)] de {nome: conteúdo}, em ordem de nome — só regras COM
+    `paths:` e com corpo. Frontmatter quebrado é pulado (falha aberta)."""
+    regras = []
+    for nome in sorted(conteudos):
+        try:
+            paths, texto = _separar(conteudos[nome])
         except Exception:                            # noqa: BLE001
             continue
         if paths and not _corpo_vazio(texto):
             regras.append((nome, paths, texto))
     return regras
+
+
+def regras_do_projeto(raiz):
+    return regras_de(_ler_regras(raiz))
 
 
 # --- estado: regras já mostradas nesta sessão -------------------------------------------------
@@ -238,60 +261,70 @@ def _motivo(rel, casadas):
             f"({nomes}):\n\n{blocos}\n\nDepois repita a gravação.")
 
 
-def _motivo_das_regras(evento, ambiente, raiz, rel):
-    """Texto das regras de `.claude/rules/` que casam o arquivo e ainda não foram mostradas, ou None."""
-    if _texto(ambiente.get(ENV_DESLIGA)) or not tem_marca(raiz):   # projeto fora do kit: as regras não agem
-        return None
-    casadas = [r for r in regras_do_projeto(raiz) if any(casa_glob(rel, p) for p in r[1])]
-    if not casadas:
-        return None
-    sessao = evento.get("session_id")
-    feitas = ja_mostradas(sessao)
-    casadas = [r for r in casadas if r[0] not in feitas]
-    if not casadas:
-        return None
-    marcar(sessao, [r[0] for r in casadas])
-    _anotar("negou", ", ".join(r[0] for r in casadas), evento)    # nomes das regras, nunca o caminho
-    return _motivo(rel, casadas)
+def _comando_cortado_do_kit(evento, rel, raiz, ambiente):
+    """Motivo do `_comando_inteiro.py` (anotação ou diário com comando cortado), ou None."""
+    return None if _comando_inteiro is None else _comando_inteiro.conferir(evento, rel, raiz, ambiente)
 
 
-def _motivo_do_comando_cortado(evento, ambiente, raiz, rel):
-    """Motivo do `_comando_inteiro.py` (anotação ou diário com comando cortado), ou None. Falha ABERTA."""
+def regra(evento, ambiente, ler_claude_md, ler_regras, ja_mostradas_na, comando_cortado):
+    """A REGRA, sem disco: `ler_claude_md(raiz)` devolve o `CLAUDE.md` (None se não há), `ler_regras(raiz)` o
+    {nome: conteúdo} de `.claude/rules/`, `ja_mostradas_na(sessao)` as regras já mostradas nesta conversa e
+    `comando_cortado(evento, rel, raiz, ambiente)` o motivo da 2ª conferência — o disco, ou o de teste; só são
+    chamadas quando a regra precisa.
+    Devolve `(saida, mudancas)`: saida = o deny do PreToolUse, ou None (libera calado); mudancas tem `"anotacoes"`
+    (`[(decisao, detalhe)]` pro registro) e, quando há, `"mostradas"` (as regras a marcar nesta conversa)."""
+    mudancas = {"anotacoes": []}
     try:
-        if _comando_inteiro is None:
-            return None
-        motivo = _comando_inteiro.conferir(evento, rel, raiz, ambiente)
-        if motivo:
-            _anotar("negou", "comando-inteiro", evento)            # nunca o caminho nem o comando
-        return motivo
-    except Exception:                                # noqa: BLE001
-        return None
+        if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_ESCRITA:
+            return None, mudancas
+        entrada = evento.get("tool_input")
+        alvo = _texto(entrada.get("file_path")) if isinstance(entrada, dict) else None
+        cwd = _texto(evento.get("cwd"))
+        raiz = _texto(ambiente.get(ENV_RAIZ)) or cwd
+        if not alvo or not raiz:
+            return None, mudancas
+        rel = relativo_a_raiz(alvo, raiz, cwd)
+        if rel is None:
+            return None, mudancas
+        motivos = []
+        # projeto fora do kit: as regras não agem
+        if not _texto(ambiente.get(ENV_DESLIGA)) and marca_no(ler_claude_md(raiz)):
+            casadas = [r for r in regras_de(ler_regras(raiz)) if any(casa_glob(rel, p) for p in r[1])]
+            if casadas:
+                feitas = ja_mostradas_na(evento.get("session_id"))
+                casadas = [r for r in casadas if r[0] not in feitas]
+            if casadas:
+                mudancas["mostradas"] = [r[0] for r in casadas]
+                mudancas["anotacoes"].append(("negou", ", ".join(r[0] for r in casadas)))   # nunca o caminho
+                motivos.append(_motivo(rel, casadas))
+        try:                                         # 2ª conferência: falha ABERTA própria
+            cortado = comando_cortado(evento, rel, raiz, ambiente)
+            if cortado:
+                mudancas["anotacoes"].append(("negou", "comando-inteiro"))             # nunca o caminho nem o comando
+                motivos.append(cortado)
+        except Exception:                            # noqa: BLE001
+            pass
+        if not motivos:
+            return None, mudancas
+        return {"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "\n\n".join(motivos),
+        }}, mudancas
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return None, mudancas
 
 
 def responder(evento, ambiente=None):
-    """Saída de deny do PreToolUse, ou None (libera calado)."""
+    """A casca: a regra com o disco de verdade; grava as regras mostradas e o registro. Saída de deny do
+    PreToolUse, ou None (libera calado)."""
     ambiente = os.environ if ambiente is None else ambiente
-    if not isinstance(evento, dict) or evento.get("tool_name") not in TOOLS_DE_ESCRITA:
-        return None
-    entrada = evento.get("tool_input")
-    alvo = _texto(entrada.get("file_path")) if isinstance(entrada, dict) else None
-    cwd = _texto(evento.get("cwd"))
-    raiz = _texto(ambiente.get(ENV_RAIZ)) or cwd
-    if not alvo or not raiz:
-        return None
-
-    rel = relativo_a_raiz(alvo, raiz, cwd)
-    if rel is None:
-        return None
-    motivos = [m for m in (_motivo_das_regras(evento, ambiente, raiz, rel),
-                           _motivo_do_comando_cortado(evento, ambiente, raiz, rel)) if m]
-    if not motivos:
-        return None
-    return {"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": "\n\n".join(motivos),
-    }}
+    saida, mudancas = regra(evento, ambiente, _ler_claude_md, _ler_regras, ja_mostradas, _comando_cortado_do_kit)
+    if mudancas.get("mostradas"):
+        marcar(evento.get("session_id"), mudancas["mostradas"])
+    for decisao, detalhe in mudancas["anotacoes"]:
+        _anotar(decisao, detalhe, evento)
+    return saida
 
 
 def zerar(sessao):
