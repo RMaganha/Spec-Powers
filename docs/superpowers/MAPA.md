@@ -8,7 +8,7 @@ Branch `feature/molde-de-ci` — 0.66.0 feita, 1606 passed, CI verde; faltava o 
 ## Próximo passo
 00. ⬜ **Owner: push da `main`** — `git push origin main` (merge `b197f0e`, 0.66.0); conferir o CI verde na `main`.
 01. ⬜ **Provar o molde de CI num projeto de verdade** — `/mss-spec:upgrade` num projeto do Azure DevOps (o owner liga o pipeline no portal) e marcar `externo` o que a 1ª rodada mostrar.
-02. ⬜ **Custo dos hooks num projeto grande** (conversa nova, o owner indica o projeto) — texto pronto em [PROXIMO-PASSO.md](PROXIMO-PASSO.md)
+02. ✅ **Custo dos hooks num projeto grande** (2026-11-18) — medido no Claude real (`durationMs` das conversas do WhatsApp e do kit): 1 a 2 s por ação, sem depender do tamanho do projeto nem da conversa; a troca pra chamar o python sem o Git Bash foi medida e descartada (sem ganho).
 0. ⬜ **Decidir o conflito `UserPromptSubmit` exit 0 × exit 2** (a 0.64.0 já foi publicada).
 0a. ⬜ **Decidir como a regra 3 nova chega ao `.claude/rules/frontend.md` dos projetos** — o `upgrade` não sobrescreve o que existe; item no `to-dolist.md`.
 1. ⬜ **Provar a 0.61.0 no real** — conversa pelo + só com uma frase do assunto; e o owner regrava o plano de teste base (`/mss-spec:plano-teste`: ainda diz 1564; a suíte mudou na 0.65.0).
