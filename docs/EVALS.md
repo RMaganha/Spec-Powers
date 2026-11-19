@@ -83,6 +83,22 @@ Leia a coluna **gatilho**: se ela descreve o que você está prestes a fazer, o 
 | F-072 | 2026-11-17 | quando declarar uma parte do plano como feita | "parte 3 feita" com 4 de 54 arquivos de teste reescritos | proposto: contar o feito contra o total antes de dizer pronto | aberto |
 | F-073 | 2026-11-17 | quando rodar teste na máquina do owner | rodou 6 arquivos de teste ainda não reescritos (85 pastas temporárias) depois de reconhecer que eles criam pasta | regra 9 + `templates/testes_do_que_mudou.py`; proposto: teste não reescrito roda só no CI — anotação `memory/feedback_suite_inteira_so_no_ci.md` | aberto |
 | F-074 | 2026-11-18 | quando mover um teste de um arquivo para outro | o teste que guarda o F-047 perdeu a alternativa "ou o título" ao sair do `test_hook_memoria_da_proposta.py` (`ef7bd15`), contra a regra "mesmo nome E mesmo sentido"; só a rodada única pegou | proposto: antes do commit, comparar cada `assert` movido com o original (`git show <commit>~1:<arquivo>`) | aberto |
+| F-075 | 2026-11-18 | quando propor conserto de lentidão de hook | conserto ("ler só o fim da conversa") proposto a partir de medição por imitação; o tempo real que o Claude anota derrubou a causa | anotação `memory/reference_tempo_real_dos_hooks.md`; proposto: custo de hook se afirma pelo `durationMs` real | aberto |
+| F-076 | 2026-11-18 | quando rodar hooks ou scripts do kit contra outro projeto pra medir | o ensaio rodou os hooks sem isolar e gravou na tabela `~/mss-spec/memoria.sqlite3` e no registro dos hooks; o owner: nada pode gravar na memória do projeto | proposto: medir só com HOME, TEMP, `CLAUDE_CONFIG_DIR` e `MSS_MEMORIA_TABELA` numa pasta descartável e conferir no fim que nada mudou fora dela | aberto |
+
+### F-076 — medição rodou os hooks sem caixa de areia (aberto)
+
+- **Falhou:** pra medir o custo dos hooks no Transportes V2, rodei cada hook de verdade com o ambiente normal; o ensaio atualizou a tabela de memória compartilhada (`~/mss-spec/memoria.sqlite3`) e deixou 67 linhas no registro dos hooks e 11 arquivos na pasta temporária.
+- **Verdade:** o owner: nada pode gravar na memória do projeto. Os temporários e as linhas do registro foram apagados; a atualização da tabela não tinha cópia anterior pra desfazer.
+- **Guardrail:** proposto — medição só com HOME, TEMP, `CLAUDE_CONFIG_DIR` e `MSS_MEMORIA_TABELA` apontados pra uma pasta descartável (cópias da tabela e das conversas) e conferência no fim de que nada mudou fora dela.
+- **Teste:** nenhum.
+
+### F-075 — conserto proposto a partir de imitação, derrubado pelo real (aberto)
+
+- **Falhou:** a imitação dos hooks (`python hook.py` com JSON no stdin) mostrou o fim da resposta em 3,3 s com conversa de 18 MB, e propus "ler só o fim da conversa".
+- **Verdade:** no tempo que o próprio Claude anota (`durationMs`), a conversa não pesa (0,9 s acima de 10 MB); a imitação também não mandava o `last_assistant_message` que o Claude manda. O owner apontou que ler só o fim perderia coisa.
+- **Guardrail:** anotação `memory/reference_tempo_real_dos_hooks.md`; proposto — custo de hook se afirma pelo `durationMs` real antes de propor conserto.
+- **Teste:** nenhum.
 
 ### F-074 — teste do F-047 mudou de sentido ao mudar de arquivo (aberto)
 
