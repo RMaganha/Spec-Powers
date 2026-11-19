@@ -5,6 +5,7 @@
 
 ## 2026-11-18
 
+- [custo-dos-hooks] medido no Claude real pelo `durationMs` que ele anota na conversa: ~1 a 2 s por ação, sem depender de projeto nem de conversa; troca sem o Git Bash (exec form) medida e descartada; item do to-dolist fechado → `memory/sessions/2026-11-18-custo-dos-hooks.md`
 - [molde-de-ci] um molde de CI por plataforma (GitHub e Azure DevOps) levado pelo kickoff/upgrade; lista do que falhou, teste `externo` e "nenhum teste" no `conftest.py` do molde; 0.66.0, 1606 passed → `memory/sessions/2026-11-18-molde-de-ci.md`
 
 ## 2026-11-17
