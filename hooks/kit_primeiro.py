@@ -16,6 +16,11 @@ Contrato:
   porta certa (bug · nova-feature · duvida · analise); qualquer outra skill → libera;
 - `PreToolUse` em `Read`: `commands/<x>.md` do kit → marca (os comandos `disable-model-invocation` —
   `nova-feature`, `analise`, `memory`… — rodam por leitura do arquivo, não por `Skill`);
+- `PreToolUse` em `Write`/`Edit`/`MultiEdit`/`NotebookEdit` (0.67.0, caso F-077): arquivo DENTRO de um projeto que
+  usa o kit (`memory/MEMORY.md` ou `docs/superpowers/MAPA.md` no `cwd`) sem marca → **nega** apontando as portas.
+  Motivo: a conversa "Entrada Apólice e Boleto no Painel_V2" (Whats, 2026-11-23) abriu com um texto de continuação
+  colado sem comando, editou plano, MAPA, spec e teste e nunca chamou o superpowers — a cerca só de `Skill` nunca
+  agiu, e a busca na memória nunca rodou. Fora do projeto (rascunho) ou projeto sem o kit → libera;
 - estado por sessão no temp do SO (`mss_kit_primeiro_<sessao>.json`), como o `_memoria_de_acao.py`:
   duas conversas não se misturam;
 - negativa no mesmo formato do `git_publicacao.py` (JSON `deny` no stdout + motivo no stderr + exit 2) —
@@ -70,6 +75,36 @@ MOTIVO = (
     "- projeto que já existia e o kit ainda não conhece → /mss-spec:analise\n"
     "Escape consciente, só do owner: MSS_KIT_PRIMEIRO_OFF=1."
 )
+
+
+EDICAO = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+MARCAS_DO_KIT = (os.path.join("memory", "MEMORY.md"), os.path.join("docs", "superpowers", "MAPA.md"))
+
+MOTIVO_EDICAO = (
+    "[mss-spec] O kit entra primeiro: nesta conversa nenhum comando do kit rodou ainda, e editar arquivo do projeto "
+    "sem porta pula a busca na memória, a spec e o diário (regra crítica 11; caso F-077 — a conversa aberta por um "
+    "texto de continuação colado sem comando). Entre pela porta certa e repita a edição — `bug`, `duvida` e `tarefa` "
+    "você mesmo invoca pela ferramenta Skill (`mss-spec:tarefa`, por exemplo):\n"
+    "- tarefa do dia a dia ou continuação de trabalho já planejado → /mss-spec:tarefa\n"
+    "- comportamento novo, ou que muda o que uma spec promete → /mss-spec:nova-feature (leia commands/nova-feature.md "
+    "e siga os passos)\n"
+    "- erro, falha, algo que parou ou mudou de comportamento → /mss-spec:bug\n"
+    "Escape consciente, só do owner: MSS_KIT_PRIMEIRO_OFF=1."
+)
+
+
+def _projeto_do_kit(cwd, caminho):
+    """True se `cwd` é um projeto que usa o kit (`memory/MEMORY.md` ou `docs/superpowers/MAPA.md`) e `caminho` fica
+    dentro dele. Rascunho na pasta temporária, ou projeto sem o kit, não é cercado."""
+    try:
+        raiz = _texto(cwd)
+        if not raiz or not any(os.path.isfile(os.path.join(raiz, m)) for m in MARCAS_DO_KIT):
+            return False
+        raiz = os.path.normcase(os.path.abspath(raiz))
+        alvo = os.path.normcase(os.path.abspath(os.path.join(raiz, caminho)))
+        return os.path.commonpath([raiz, alvo]) == raiz
+    except Exception:                                # noqa: BLE001 — falha ABERTA
+        return False
 
 
 def _texto(valor):
@@ -141,6 +176,12 @@ def regra(evento, ambiente, entrou_na):
             if caminho and _e_comando_do_kit(caminho):
                 mudancas["marcar"] = "read " + os.path.basename(caminho)
             return None, mudancas
+        if ferramenta in EDICAO:
+            caminho = _texto(entrada.get("notebook_path" if ferramenta == "NotebookEdit" else "file_path"))
+            if not caminho or not _projeto_do_kit(evento.get("cwd"), caminho) or entrou_na(sessao):
+                return None, mudancas
+            mudancas["anotacoes"].append(("negou", ferramenta))
+            return MOTIVO_EDICAO, mudancas
         if ferramenta != "Skill":
             return None, mudancas
         skill = _texto(entrada.get("skill")).strip()

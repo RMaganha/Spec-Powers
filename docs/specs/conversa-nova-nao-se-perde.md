@@ -20,7 +20,11 @@ aprovação da troca de branch no app. Provado no real em 2026-11-12: a regra ch
 - **Quem entrega** (a conversa que passa o trabalho adiante): o texto pronto para outra conversa só sai com três
   partes de título fixo — `Já decidido — não reabrir:` (lista numerada), `Falta decidir:` (lista ou "nada") e
   `Regras desta conversa:`. Sem elas, ou com "um tópico por vez" dentro do texto, a resposta volta uma vez com o
-  molde.
+  molde. **0.67.0 (F-077):** a 1ª linha do bloco tem de ser `/mss-spec:<comando>` (`tarefa` pra continuação) — e
+  isso vale também para o bloco curto, de 2 a 4 linhas, que manda ler ou continuar algo (`Leia`, `siga`,
+  `continuação`, `docs/`, `memory/`). Recado de terminal continua passando. Motivo: o texto de 4 linhas da
+  conversa "Análise de consultas de apólice e boleto" (Whats, 2026-11-23) passou sem conferência, e a conversa
+  aberta com ele não entrou por porta nenhuma do kit.
 - **Quem recebe:** quando o pedido traz `Já decidido` (ou `O que eu já decidi`, a forma que o owner usou em
   2026-11-11) com itens, o kit guarda os itens daquela conversa e entrega a regra na hora: não reabrir, lista única
   só das escolhas do assistente, perguntas de uma vez no fim. Daí em diante, a resposta volta uma vez se anunciar

@@ -82,6 +82,18 @@ def tem_marca(raiz):
     return marca_no(DiscoReal.ler_claude(raiz))
 
 
+RAIZ_DO_KIT = Path(__file__).resolve().parent.parent
+
+
+def _com_caminho(texto, ambiente):
+    """`${CLAUDE_PLUGIN_ROOT}` trocado pelo caminho do kit, com barra `/` (0.67.0, caso F-077): o texto que entra
+    pelo hook não passa pela troca que o Claude faz nos comandos, e a regra "leia `commands/<x>.md`" sem caminho
+    mandou a conversa procurar o arquivo em `~/.claude/plugins`. A variável do ambiente vence; sem ela, a pasta
+    acima de `hooks/`."""
+    raiz = str(ambiente.get("CLAUDE_PLUGIN_ROOT") or "").strip() or str(RAIZ_DO_KIT)
+    return texto.replace("${CLAUDE_PLUGIN_ROOT}", raiz.replace("\\", "/").rstrip("/"))
+
+
 def _bloco_valido(texto):
     """O texto do bloco sem BOM; levanta se está vazio ou passa do limite."""
     texto = texto.lstrip("﻿")
@@ -111,7 +123,7 @@ def regra(evento, ambiente, bloco, disco):
         return None, anotacoes
     # Marca confirmada: daqui em diante, silêncio seria o defeito.
     try:
-        texto = _bloco_valido(disco.ler_bloco(BLOCOS[bloco]))
+        texto = _bloco_valido(_com_caminho(disco.ler_bloco(BLOCOS[bloco]), ambiente))
         anotacoes.append(("entregou", f"bloco={bloco} caracteres={len(texto)}"))
         return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": texto}}, anotacoes
     except Exception as erro:                        # noqa: BLE001 — falha VISÍVEL

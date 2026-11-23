@@ -26,7 +26,7 @@ PASTA_HOOKS = REPO / "hooks"
 PASSAGEM = PASTA_HOOKS / "passagem_de_conversa.py"
 
 BLOCO = (
-    "Tarefa: consertar o acento dos hooks\n"
+    "/mss-spec:tarefa consertar o acento dos hooks\n"           # 1ª linha com a porta do kit (0.67.0, F-077)
     "Já decidido — não reabrir:\n"
     "1. A entrada é lida em UTF-8.\n"
     "2. Texto que não é UTF-8 faz o hook falhar aberto.\n"
