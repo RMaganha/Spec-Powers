@@ -1,12 +1,14 @@
 # Mapa de contexto — mss-spec
 
 ## Onde estamos
-**0.66.0 (molde de CI) na `main`** — merge `--no-ff` em `b197f0e`; CI do kit verde na branch (`cfa2666`, run `44377466547`). Falta o push da `main` (owner). Spec: `docs/specs/molde-de-ci.md`; diário: `memory/sessions/2026-11-18-molde-de-ci.md`.
+**0.67.0 (o kit entra primeiro também na edição, F-077) na `main` e publicada** — merge `33ab9e6`. Branch `docs/captura-kit-de-fora-na-edicao` (captura, `8cb2624`) aguarda o merge. Diário: `memory/sessions/2026-11-23-kit-de-fora-na-edicao.md`.
 
 <!-- histórico do estado anterior -->
-Branch `feature/molde-de-ci` — 0.66.0 feita, 1606 passed, CI verde; faltava o merge.
+0.66.0 (molde de CI) na `main`, merge `b197f0e`; faltava o push (feito junto com o da 0.67.0).
 ## Próximo passo
-00. ⬜ **Owner: push da `main`** — `git push origin main` (merge `b197f0e`, 0.66.0); conferir o CI verde na `main`.
+000. ⬜ **Provar a 0.67.0 no real** — numa conversa nova de projeto do kit: editar sem porta é negado; o texto pronto sai com `/mss-spec:<comando>` na 1ª linha.
+001. ⬜ **Owner: decidir os hooks sem o Git Bash** — 19/11 ficaram 35 min desligados sem aviso; item no `to-dolist.md` (`memory/project_hooks_dependem_do_git_bash.md`).
+00. ✅ **Push da `main`** com a 0.66.0 (2026-11-23, junto da 0.67.0).
 01. ⬜ **Provar o molde de CI num projeto de verdade** — `/mss-spec:upgrade` num projeto do Azure DevOps (o owner liga o pipeline no portal) e marcar `externo` o que a 1ª rodada mostrar.
 02. ✅ **Custo dos hooks num projeto grande** (2026-11-18) — medido no Claude real (`durationMs` das conversas do WhatsApp e do kit): 1 a 2 s por ação, sem depender do tamanho do projeto nem da conversa; a troca pra chamar o python sem o Git Bash foi medida e descartada (sem ganho).
 0. ⬜ **Decidir o conflito `UserPromptSubmit` exit 0 × exit 2** (a 0.64.0 já foi publicada).
@@ -44,4 +46,4 @@ Branch `feature/molde-de-ci` — 0.66.0 feita, 1606 passed, CI verde; faltava o 
      não um serviço — logo não chama nem é chamado por outro sistema em runtime. Declarado honestamente. -->
 - nenhuma integração de runtime — o mss-spec é o **kit de scaffolding** (comandos-prosa que o assistente executa). A relação com os projetos MSIG é de **consumo** (eles instalam o kit) e de **catálogo de precedentes** (skill `precedentes-msig`), não de integração "o que vai pra onde".
 
-<!-- Atualizado em 2026-11-18 (0.66.0 molde de CI na main, merge b197f0e; falta o push) · regenerável com /mss-spec:mapa -->
+<!-- Atualizado em 2026-11-23 (0.67.0 na main e publicada, merge 33ab9e6; captura em docs/captura-kit-de-fora-na-edicao) · regenerável com /mss-spec:mapa -->
