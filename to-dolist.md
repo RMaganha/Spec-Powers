@@ -100,3 +100,5 @@
 - testes_do_que_mudou.py não escolhe teste que carrega módulo por nome entre aspas (import_module) nem teste que varre memory/ com glob — 2 regras no escolher, com teste em memória #fora-de-escopo (decidido: 2026-11-18, achado na rodada única da suíte em camadas)
 - CI dos projetos: subir um Postgres descartável no CI para os testes `externo` dos projetos com Postgres próprio (o SQL Server corporativo fica fora do alcance do CI de qualquer jeito) #fora-de-escopo (decidido: 2026-11-18, molde de CI: o CI pula o `externo` e ele roda na máquina)
 - CI dos projetos no Azure DevOps: token só de leitura para o assistente ler a rodada pela API #fora-de-escopo (decidido: 2026-11-18, molde de CI: quem lê é o owner, sem mais um segredo)
+- Decidir se os hooks voltam a chamar o python sem o Git Bash (d6a0c01): 19/11 ficaram 35 min desligados sem aviso; custo medido ~1 s por resposta — docs/decisoes.md:87 (add: 2026-11-23)
+- Cerca de edição do kit_primeiro não pega edição pelo Bash (sed -i, cat >) — F-077 (add: 2026-11-23)

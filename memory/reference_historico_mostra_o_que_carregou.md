@@ -33,3 +33,9 @@ trocou a opinião ("o índice deve funcionar") por número antes do desenho — 
 pasta do projeto, e o registro local (`~/.claude/mss-spec/registro-hooks.jsonl`, campo `sessao` = 8 primeiros
 caracteres do id) diz o que cada hook **achou** que fez — cruzar os dois é a prova. Relacionado:
 [[project_hook_stop_devolve_por_json_nao_por_exit_2]].
+
+**Como saber se uma conversa usou o kit** (2026-11-23, caso F-077): nos registros `assistant`, as chamadas
+`Skill` com `mss-spec:*` ou `superpowers:*`; nas falas do owner, `<command-name>/mss-spec:…`; um `Bash` com
+`memoria_tabela.py buscar`; e `attachment.type == "hook_non_blocking_error"`, que aponta hook que não rodou
+([[project_hooks_dependem_do_git_bash]]). Fala que o owner digita no meio do trabalho não é registro `user`
+comum ([[project_conversa_gravada_formato]]).

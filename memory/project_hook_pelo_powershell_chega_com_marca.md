@@ -42,3 +42,7 @@ conversa novo a cada prova: as conferências de "uma vez por conversa" guardam e
 num teste manual → confira primeiro como o evento chegou, antes de mexer no hook. Decidir se os hooks passam a
 tolerar a marca está no `to-dolist.md` (2026-11-12). Parente de
 [[project_rode_a_peca_com_os_padroes_antes_de_dizer_pronto]].
+
+Em 2026-11-23, pelo `echo '<json>' | python hooks/x.py` do Bash, o `regras_do_kit.py` e o `kit_primeiro.py`
+também saíram calados (causa não apurada); com o evento gravado em arquivo e passado como entrada do processo,
+os dois responderam certo (`memory/sessions/2026-11-23-kit-de-fora-na-edicao.md`). Prove sempre por arquivo.
