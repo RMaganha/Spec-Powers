@@ -16,7 +16,11 @@ Contrato — três conferências e uma busca, sem LLM:
    **uma vez por conversa** (e a de repetir, uma vez por item).
 2. **Quem entrega** (`Stop`, toda conversa): a resposta fala de outra conversa + colar/texto pronto e traz um bloco
    de texto de 5 linhas ou mais → o bloco tem de ter `Já decidido — não reabrir:`, `Falta decidir:` e `Regras desta
-   conversa:`, e não pode pedir "um tópico por vez". Senão **volta** com o molde.
+   conversa:`, e não pode pedir "um tópico por vez". Senão **volta** com o molde. **0.67.0 (caso F-077):** a 1ª
+   linha do bloco tem de ser `/mss-spec:<comando>` — e isso vale também para bloco curto (2 a 4 linhas) que manda
+   ler ou continuar algo (`Leia`, `siga`, `continuação`, `docs/`, `memory/`): o texto de 4 linhas da conversa
+   "Análise de consultas de apólice e boleto" (Whats, 2026-11-23) passou sem conferência, e a conversa aberta com
+   ele não entrou por porta nenhuma.
 3. **"O kit não aceita"** (`Stop`, toda conversa): a resposta diz que o kit, o plugin ou uma trava não aceita,
    negou ou bloqueou algo → só sai com um `arquivo:linha` e uma pergunta ao owner. Fora de bloco de código, de
    citação (`>`) e de aspas; "nada no kit proíbe" e descrição no presente ("a cerca nega push") não contam.
@@ -263,6 +267,8 @@ RE_COLAR = re.compile(r"(?i)\bcol(?:e|a|ar|ando)\b|\btexto pronto\b")
 RE_TOPICO_POR_VEZ = re.compile(r"(?i)\bum t[óo]pico (?:por|de cada) vez\b|\bt[óo]pico a t[óo]pico\b")
 LINGUAGENS_DE_TEXTO = ("", "text", "txt", "md", "markdown")
 MIN_LINHAS_DO_TEXTO = 5
+PREFIXO_KIT = "mss-spec:"
+RE_TRABALHO = re.compile(r"(?i)\bcontinua[çc][ãa]o\b|\bleia\b|\bsiga\b|\bdocs/|\bmemory/")
 
 MOTIVO_ENTREGA = (
     "[mss-spec] Antes de entregar — texto pronto para outra conversa (caso F-058): {problema}. A conversa que "
@@ -278,13 +284,22 @@ def _quem_entrega(texto):
     fora = RE_CERCADO.sub(" ", texto)
     if not (RE_OUTRA_CONVERSA.search(fora) and RE_COLAR.search(fora)):
         return None
-    blocos = [corpo for linguagem, corpo in RE_CERCADO.findall(texto)
-              if linguagem.lower() in LINGUAGENS_DE_TEXTO
-              and len([l for l in corpo.split("\n") if l.strip()]) >= MIN_LINHAS_DO_TEXTO]
-    if not blocos:
-        return None
     problemas = []
-    for corpo in blocos:
+    for linguagem, corpo in RE_CERCADO.findall(texto):
+        if linguagem.lower() not in LINGUAGENS_DE_TEXTO:
+            continue
+        linhas = [l.strip() for l in corpo.split("\n") if l.strip()]
+        grande = len(linhas) >= MIN_LINHAS_DO_TEXTO
+        # bloco curto só é passagem de trabalho se manda ler/continuar algo (F-077); recado de terminal não é
+        if not grande and not (len(linhas) >= 2 and RE_TRABALHO.search(corpo)):
+            continue
+        if not linhas[0].startswith("/" + PREFIXO_KIT):
+            problemas.append("o bloco não começa pelo comando do kit — a 1ª linha tem de ser `/mss-spec:<comando>` "
+                             "(`tarefa` pra continuação, `nova-feature`, `bug`…), senão a conversa nova não entra por "
+                             "porta nenhuma e pula a busca na memória (caso F-077)")
+            continue
+        if not grande:
+            return None                               # curto, com a porta: aponta o arquivo onde estão as decisões
         faltam = [nome for nome, rx in (("`Já decidido — não reabrir:`", RE_TITULO_DECIDIDO),
                                         ("`Falta decidir:`", RE_FALTA),
                                         ("`Regras desta conversa:`", RE_REGRAS)) if not rx.search(corpo)]
@@ -294,6 +309,8 @@ def _quem_entrega(texto):
             problemas.append("o bloco pede \"um tópico por vez\"")
         else:
             return None                               # um bloco no molde basta
+    if not problemas:
+        return None
     return MOTIVO_ENTREGA.format(problema=problemas[0], molde=MOLDE)
 
 

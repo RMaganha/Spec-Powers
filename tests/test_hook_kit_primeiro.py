@@ -244,3 +244,80 @@ def test_comando_citado_no_meio_do_colado_nao_conta(kit):
     kit.decidir(_prompt('<pasted_content id="1">\nolhe o log; depois rodo /mss-spec:bug\n</pasted_content>', "s"))
     assert kit.decidir(_skill("superpowers:systematic-debugging", "s")), \
         "comando citado no meio do texto colado contou como entrada"
+
+# --- 0.67.0: edição sem porta (conversa "Entrada Apólice e Boleto no Painel_V2", Whats, 2026-11-23) ---------------
+# A conversa abriu com um texto de continuação colado SEM comando do kit, leu MAPA e memória à mão e editou plano,
+# MAPA, INDEX, spec e teste — nunca chamou skill do superpowers, então a cerca (só `Skill`) nunca agiu, e a busca na
+# memória (`memoria_tabela.py buscar`, que só existe dentro das portas) nunca rodou.
+
+CONTINUACAO = ('<pasted_content id="fbc1">\nContinuação da feature financeiro-emissao-crm (consulta de apólice e '
+               'boleto) — não é feature nova. Leia docs/superpowers/plans/2026-11-19-consulta-apolice-boleto.md\n'
+               '</pasted_content>')
+
+
+@pytest.fixture()
+def projeto_do_kit(tmp_path):
+    """Um projeto que usa o kit: tem `memory/MEMORY.md`."""
+    (tmp_path / "memory").mkdir()
+    (tmp_path / "memory" / "MEMORY.md").write_text("# índice\n", encoding="utf-8")
+    return tmp_path
+
+
+def _editar(ferramenta, caminho, sessao, cwd):
+    chave = "notebook_path" if ferramenta == "NotebookEdit" else "file_path"
+    return {"hook_event_name": "PreToolUse", "tool_name": ferramenta, "session_id": sessao, "cwd": str(cwd),
+            "tool_input": {chave: str(caminho)}}
+
+
+def test_sequencia_real_da_entrada_no_painel_v2(kit, projeto_do_kit):
+    """Texto de continuação colado sem comando → editar o MAPA do projeto: NEGADO, apontando as portas. Depois de
+    entrar pelo `mss-spec:tarefa`, a mesma edição passa."""
+    assert kit.decidir(_prompt(CONTINUACAO, "e")) is None
+    alvo = projeto_do_kit / "docs" / "superpowers" / "MAPA.md"
+    motivo = kit.decidir(_editar("Edit", alvo, "e", projeto_do_kit))
+    assert motivo, "edição no projeto sem nenhum comando do kit passou"
+    for porta in ("/mss-spec:tarefa", "/mss-spec:nova-feature", "/mss-spec:bug"):
+        assert porta in motivo, f"a negativa da edição não aponta {porta}"
+    assert "MSS_KIT_PRIMEIRO_OFF" in motivo
+    assert kit.decidir(_skill("mss-spec:tarefa", "e")) is None
+    assert kit.decidir(_editar("Edit", alvo, "e", projeto_do_kit)) is None, "depois da porta, a edição seguiu negada"
+
+
+@pytest.mark.parametrize("ferramenta", ["Write", "Edit", "MultiEdit", "NotebookEdit"])
+def test_toda_ferramenta_de_edicao_e_cercada(kit, projeto_do_kit, ferramenta):
+    assert kit.decidir(_editar(ferramenta, projeto_do_kit / "app.py", "e", projeto_do_kit))
+
+
+def test_edicao_fora_do_projeto_passa(kit, projeto_do_kit, tmp_path_factory):
+    """Rascunho na pasta temporária da conversa não é o projeto."""
+    fora = tmp_path_factory.mktemp("rascunho") / "nota.py"
+    assert kit.decidir(_editar("Write", fora, "e", projeto_do_kit)) is None
+
+
+def test_projeto_sem_o_kit_passa(kit, tmp_path):
+    """Sem `memory/MEMORY.md` nem `docs/superpowers/MAPA.md`, o projeto não usa o kit: a cerca não age."""
+    assert kit.decidir(_editar("Edit", tmp_path / "app.py", "e", tmp_path)) is None
+
+
+def test_projeto_so_com_mapa_tambem_e_do_kit(kit, tmp_path):
+    (tmp_path / "docs" / "superpowers").mkdir(parents=True)
+    (tmp_path / "docs" / "superpowers" / "MAPA.md").write_text("# mapa\n", encoding="utf-8")
+    assert kit.decidir(_editar("Edit", tmp_path / "app.py", "e", tmp_path))
+
+
+def test_edicao_negada_fica_no_registro(kit, projeto_do_kit):
+    kit.decidir(_editar("Edit", projeto_do_kit / "app.py", "e", projeto_do_kit))
+    assert kit.anotacoes == [("negou", "Edit")], "a negativa da edição não ficou no registro (ou levou o caminho)"
+
+
+def test_escape_do_owner_vale_pra_edicao(kit, projeto_do_kit):
+    assert kit.decidir(_editar("Edit", projeto_do_kit / "app.py", "e", projeto_do_kit),
+                       {"MSS_KIT_PRIMEIRO_OFF": "1"}) is None
+
+
+def test_hook_registrado_nas_ferramentas_de_edicao():
+    cfg = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+    grupos = [g for g in cfg["PreToolUse"] if any("kit_primeiro.py" in h["command"] for h in g["hooks"])]
+    matcher = grupos[0].get("matcher", "")
+    for ferramenta in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
+        assert ferramenta in matcher, f"kit_primeiro não vê {ferramenta}: {matcher!r}"

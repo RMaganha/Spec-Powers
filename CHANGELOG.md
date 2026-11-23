@@ -2,6 +2,13 @@
 
 1 linha por mudança relevante; bump de versão no `plugin.json` a cada release.
 
+## 0.67.0 — 2026-11-23 (o kit não fica de fora: edição sem porta, texto pronto com o comando, caminho do kit)
+- **o que motivou:** caso F-077 — no Atendimento WhatsApp, o texto de continuação de 4 linhas saiu sem comando do kit, e a conversa aberta com ele editou plano, MAPA, spec e teste sem porta, sem busca na memória e sem superpowers; antes, *"Vamos rodar o /mss-spec:memory capturar"* virou 4 buscas do comando no lugar errado.
+- fix(**`hooks/kit_primeiro.py`**): `Write`/`Edit`/`MultiEdit`/`NotebookEdit` em arquivo dentro de projeto que usa o kit (`memory/MEMORY.md` ou `docs/superpowers/MAPA.md`) são negados até um comando do kit entrar; rascunho fora do projeto e projeto sem o kit passam. `hooks.json`: matcher com as ferramentas de edição.
+- fix(**`hooks/passagem_de_conversa.py`**): o texto pronto pra outra conversa só sai com `/mss-spec:<comando>` na 1ª linha — também o bloco curto (2 a 4 linhas) que manda ler ou continuar algo.
+- fix(**`hooks/regras_do_kit.py`**): `${CLAUDE_PLUGIN_ROOT}` trocado pelo caminho do kit; a regra do comando citado diz `<kit>/commands/<x>.md`.
+- test: `tests/test_hook_kit_primeiro.py` (+11), `tests/test_hook_passagem_de_conversa.py` (+4), `tests/test_hook_regras_do_kit.py` (+3).
+
 ## 0.66.0 — 2026-11-18 (molde de CI: a suíte inteira de cada projeto roda no CI, no GitHub ou no Azure DevOps)
 - **o que motivou:** a regra 9 manda a suíte inteira pro CI, mas só o kit tinha CI. O owner quer um molde pronto e padrão pros projetos grandes (ATM Transporte, Atendimento WhatsApp, mss-utils…); este fica no GitHub, a maioria no Azure DevOps. Decisões do owner em `docs/specs/molde-de-ci.md`.
 - feat(**`templates/ci/`**, novo): `github-testes.yml` → `.github/workflows/testes.yml` (push e pull request) e `azure-pipelines-testes.yml` → `azure-pipelines-testes.yml` (`trigger` explícito em todas as branches, sem conexão com o Azure, JUnit na aba Tests mesmo quando falha). Os dois: `ubuntu-latest`, Python do `.python-version` (3.12 sem ele), dependências do requirements.txt + requirements-dev.txt (senão pyproject.toml) e `pytest`, com o mesmo script.

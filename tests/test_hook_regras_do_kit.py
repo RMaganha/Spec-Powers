@@ -77,17 +77,44 @@ def _responder(mod, disco, bloco=1, ambiente=None, evento=PADRAO):
     return mod.regra(_evento() if evento is PADRAO else evento, ambiente or {}, bloco, disco)[0]
 
 
+def _com_caminho(texto, raiz=REPO.as_posix()):
+    """O bloco como sai: `${CLAUDE_PLUGIN_ROOT}` trocado pelo caminho do kit (0.67.0, caso F-077)."""
+    return texto.replace("${CLAUDE_PLUGIN_ROOT}", raiz)
+
+
+# --- 0.67.0: o caminho do kit chega pronto (caso F-077) ----------------------------------------
+# Na conversa "Análise de consultas de apólice e boleto" (Whats, 2026-11-23 12:57) o owner escreveu "Vamos rodar o
+# /mss-spec:memory capturar"; a regra mandava ler `commands/memory.md` sem dizer onde, e a conversa procurou 4 vezes
+# em `~/.claude/plugins` antes de achar em `~/.claude/skills/mss-spec` — o owner viu e achou que tudo tinha se perdido.
+
+def test_blocos_saem_sem_variavel_por_trocar(mod):
+    for bloco in (1, 2):
+        texto = _contexto(_responder(mod, Disco(), bloco))
+        assert "${CLAUDE_PLUGIN_ROOT}" not in texto, f"bloco {bloco} saiu com a variável sem trocar"
+
+
+def test_regra_do_comando_citado_diz_onde_esta_o_arquivo(mod):
+    texto = _contexto(_responder(mod, Disco(), 1))
+    linha = next(l for l in texto.splitlines() if "EXISTE" in l)
+    assert REPO.as_posix() + "/commands/<x>.md" in linha, f"a regra não diz onde fica commands/: {linha[:160]}"
+
+
+def test_caminho_do_ambiente_vence(mod):
+    texto = _contexto(_responder(mod, Disco(), 1, {"CLAUDE_PLUGIN_ROOT": "C:\\kit\\instalado"}))
+    assert "C:/kit/instalado/commands/<x>.md" in texto
+
+
 # --- entrega ----------------------------------------------------------------------------------
 
 def test_projeto_com_marca_recebe_bloco_1(mod):
     saida = _responder(mod, Disco(), 1)
-    assert _contexto(saida) == (BLOCOS_DIR / "1-modo-de-trabalho.md").read_text(encoding="utf-8")
+    assert _contexto(saida) == _com_caminho((BLOCOS_DIR / "1-modo-de-trabalho.md").read_text(encoding="utf-8"))
     assert saida["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
 
 def test_projeto_com_marca_recebe_bloco_2(mod):
     saida = _responder(mod, Disco(), 2)
-    assert _contexto(saida) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
+    assert _contexto(saida) == _com_caminho((BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8"))
 
 
 def test_projeto_sem_marca_fica_calado(mod):
@@ -210,7 +237,7 @@ def test_casca_le_o_claude_md_e_o_bloco_do_kit(mod, projetos):
     assert mod.tem_marca(str(com)) is True, "o CLAUDE.md em cp1252 perdeu a marca"
     assert mod.tem_marca(str(sem)) is False
     saida = mod.responder(_evento(com), {}, 2)
-    assert _contexto(saida) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
+    assert _contexto(saida) == _com_caminho((BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8"))
     assert mod.responder(_evento(sem), {}, 1) is None
 
 
@@ -219,10 +246,11 @@ def test_processo_entrega_json_e_sai_zero(projetos):
     amb = {**os.environ}
     amb.pop("MSS_REGRAS_KIT_OFF", None)
     amb.pop("CLAUDE_PROJECT_DIR", None)
+    amb.pop("CLAUDE_PLUGIN_ROOT", None)               # sem a variável, vale a pasta acima de hooks/
     r = subprocess.run([sys.executable, str(HOOK), "--bloco", "2"], input=json.dumps(_evento(com)), text=True,
                        capture_output=True, env=amb, encoding="utf-8", timeout=30)
     assert r.returncode == 0
-    assert _contexto(json.loads(r.stdout)) == (BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8")
+    assert _contexto(json.loads(r.stdout)) == _com_caminho((BLOCOS_DIR / "2-regras-criticas.md").read_text(encoding="utf-8"))
 
 
 # --- fiação -----------------------------------------------------------------------------------

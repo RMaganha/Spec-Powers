@@ -98,7 +98,7 @@
         ]
       },
       {
-        "matcher": "Skill|Read",
+        "matcher": "Skill|Read|Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",

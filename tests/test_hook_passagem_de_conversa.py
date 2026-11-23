@@ -333,6 +333,46 @@ def test_o_que_nao_e_texto_pronto_de_passagem_passa(hook, resposta):
     assert hook.avaliar(_fim(resposta, "s")) == (None, None)
 
 
+# --- 0.67.0: o texto pronto começa pelo comando do kit (caso F-077) --------------------------------------
+# A conversa "Análise de consultas de apólice e boleto" (Whats, 2026-11-23 13:30) entregou este bloco de 4 linhas —
+# abaixo do mínimo de 5, então nada o conferiu. A conversa aberta com ele não entrou por porta nenhuma do kit.
+
+TEXTO_CURTO_REAL = """Cole isto na janela nova, aberta na raiz do repositório:
+
+```text
+Continuação da feature financeiro-emissao-crm (consulta de apólice e boleto) — não é feature nova.
+Leia docs/superpowers/plans/2026-11-23-prompt-tela-apolice-boleto.md e siga.
+Quero uma entrada exclusiva de Apólice e Boleto no Painel_V2 para fazer o simulado e validar o decisor novo,
+parando de usar a planilha, e a chave liga/desliga dele nesse painel. Comece pelo desenho, sem código.
+```
+"""
+
+
+def test_texto_curto_real_sem_comando_do_kit_volta(hook):
+    tipo, motivo = hook.avaliar(_fim(TEXTO_CURTO_REAL, "s"))
+    assert tipo == "devolve", "o texto de continuação sem comando do kit saiu"
+    assert "/mss-spec:" in motivo and "1ª linha" in motivo
+
+
+def test_texto_curto_que_comeca_pelo_comando_sai(hook):
+    bom = ("Cole isto na janela nova:\n\n```text\n/mss-spec:tarefa continuação da consulta de apólice e boleto\n"
+           "Leia docs/superpowers/plans/2026-11-23-prompt-tela-apolice-boleto.md e siga.\n```\n")
+    assert hook.avaliar(_fim(bom, "s")) == (None, None)
+
+
+def test_texto_curto_real_com_comando_ainda_cobra_as_tres_partes(hook):
+    """Com o comando, o bloco real chega a 5 linhas: aí vale o molde inteiro (caso F-058), como antes."""
+    com = TEXTO_CURTO_REAL.replace("```text\n", "```text\n/mss-spec:tarefa continuação da consulta de apólice e boleto\n")
+    tipo, motivo = hook.avaliar(_fim(com, "s"))
+    assert tipo == "devolve" and "Já decidido" in motivo and "1ª linha" not in motivo
+
+
+def test_texto_grande_sem_comando_do_kit_volta(hook):
+    sem = TEXTO_PRONTO_BOM.replace("/mss-spec:nova-feature Memória em tabela — parte 2\n", "Memória em tabela — parte 2\n")
+    tipo, motivo = hook.avaliar(_fim(sem, "s"))
+    assert tipo == "devolve" and "/mss-spec:" in motivo
+
+
 # --- garantias ------------------------------------------------------------------------------------------
 
 def test_stop_hook_active_deixa_sair(hook):

@@ -8,6 +8,14 @@ ler **`memory/DIARIO.md`** (últimos 7 dias) e, quando o sintoma cita um ambient
 **`docs/AMBIENTES.md`** (nomes, valores, quem acessa o quê). Motivo: na conversa do Whats de 2026-10-30 o
 bug entrou direto no `systematic-debugging`, o diário nunca foi aberto e o nome do servidor foi chutado.
 
+**0.67.0 (F-077):** a cerca passou a cobrir também **edição** — `Write`, `Edit`, `MultiEdit` e `NotebookEdit` num
+arquivo dentro de um projeto que usa o kit (`memory/MEMORY.md` ou `docs/superpowers/MAPA.md` na pasta da conversa) são
+negados até um comando do kit entrar; rascunho fora do projeto e projeto sem o kit passam. Motivo: a conversa
+"Entrada Apólice e Boleto no Painel_V2" (Whats, 2026-11-23) abriu com texto de continuação colado sem comando,
+editou plano, MAPA, spec e teste sem chamar o superpowers, e a busca na memória nunca rodou. As regras do kit
+chegam com o caminho do kit resolvido (`<kit>/commands/<x>.md`), e o texto de continuação só sai com
+`/mss-spec:<comando>` na 1ª linha (`docs/specs/conversa-nova-nao-se-perde.md`).
+
 **0.50.0 — a 5ª porta, `/mss-spec:tarefa`** (`commands/tarefa.md`, sem a trava): o dia a dia — ajuste pequeno,
 operação, consulta, documentação, comando git — que não é bug, dúvida, feature nova nem análise, e que sem porta
 entrava direto pelo superpowers ou por nada. Trilho curto: é tarefa mesmo? → lê só o que a tarefa toca (MAPA,

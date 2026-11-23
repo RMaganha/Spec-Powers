@@ -18,12 +18,12 @@ entrada que não é UTF-8 → o hook sai calado (falha aberta). Teste: `tests/te
 | `regras_do_kit.py` | `SessionStart` (2 entradas: `--bloco 1` e `--bloco 2`) | **ligado por padrão** | não (só injeta) | rede: projeto com a marca `<!-- mss-spec:regras-do-kit -->` no `CLAUDE.md` recebe as regras do kit (modo de trabalho · regras críticas) em toda janela; **falha visível** |
 | `regra_antes_de_gravar.py` | `PreToolUse` Write/Edit/MultiEdit | **ligado por padrão** | **sim** (nega **uma vez** por sessão e por regra) | cerca: gravar arquivo que casa o `paths:` de uma regra de `.claude/rules/` (com subpastas; só em projeto com a marca) nega uma vez, com o texto da regra no motivo; a 2ª gravação passa; o `/compact` zera o estado · e **comando guardado inteiro** (`_comando_inteiro.py`, 0.60.0): anotação ou diário com comando ou SQL com reticências nega uma vez por arquivo e por conversa |
 | `sem_worktree.py` | `WorktreeCreate` + `PreToolUse` (EnterWorktree/Agent/Write/Edit/MultiEdit/NotebookEdit/abrir conversa) + `SessionStart` | **ligado por padrão** | **sim** (nega · criação falha) | cerca: nunca worktree, nunca conversa aberta a partir de outra (0.46.0) |
-| `kit_primeiro.py` | `PreToolUse` Skill/Read + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048) |
+| `kit_primeiro.py` | `PreToolUse` Skill/Read/Write/Edit/MultiEdit/NotebookEdit + `UserPromptSubmit` | **ligado por padrão** | **sim** (nega) | cerca: skill do `superpowers:*` só por dentro de um comando do kit — sem `/mss-spec:<x>` digitado, invocado ou lido na conversa, a skill é negada com a porta certa (bug · nova-feature · duvida · tarefa · analise) (0.50.0, F-048); e, desde a 0.67.0, editar arquivo de projeto que usa o kit também é negado até a conversa entrar por uma porta (F-077) |
 | `diario_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por memória nova) | cerca: gravou memória (`memory/*.md`, `docs/EVALS.md`, `docs/decisoes.md`) sem o diário da sessão (`memory/sessions/`) → a resposta volta pedindo o diário (0.50.0, F-048) |
 | `banco_producao.py` | `PreToolUse` Bash/PowerShell/`mcp__*` + `PostToolUse` (`--post`) | **ligado por padrão** | **sim** (nega escrita · pede aprovação pra leitura, uma vez por tarefa) | cerca: comando ou consulta MCP que cita host/alias de produção do `docs/AMBIENTES.md` (seção Produção) — SELECT pede o OK do owner e o OK vale 2 h (carimbo no `--post`, quando executou); DML/DDL é negado (vira `.sql` pro owner); rotina registrada em "Rotinas autorizadas" passa (benchmark MSIG_Agentes, 2026-11-06) |
 | `memoria_tabela_em_dia.py` | `SessionStart` + `PostToolUse` Write/Edit/MultiEdit | **ligado por padrão** (0.56.0) | não (atualiza calado) | rede: a **tabela de memória** (cópia pra busca) se atualiza sozinha — na abertura da conversa (montada na hora se não existir) e depois de gravar `.md`/`.html` de `memory/`, `docs/`, `to-dolist.md` ou `projeto.md`; em dia → não lê arquivo nem chama o git; recado só pro assistente, nunca pro owner; escape `MSS_MEMORIA_TABELA_OFF=1` |
 | `decisao_junto.py` | `Stop` | **ligado por padrão** | devolve a resposta (por arquivo de comportamento novo) | cerca: gravou arquivo de **comportamento** (`CLAUDE.md` da raiz, `.claude/rules/`, `.claude/settings.json`, `.claude/hooks/`; no kit `hooks/`, `commands/`, `templates/regras-do-kit/`, `templates/rules/`) sem decisão (`docs/decisoes.md` ou Histórico de spec) → a resposta volta pedindo a linha de decisão (benchmark MSIG_Agentes, 2026-11-06) |
-| `passagem_de_conversa.py` | `UserPromptSubmit` + `Stop` | **ligado por padrão** (0.59.0) | devolve a resposta **uma vez** | cerca: **conversa nova não se perde** — pedido com `Já decidido` + itens → os itens valem como decididos (tópico a tópico, pergunta repetida ou perguntas espalhadas voltam); texto pronto para outra conversa só sai no molde (`Já decidido — não reabrir:` · `Falta decidir:` · `Regras desta conversa:`); "o kit não aceita / negou / bloqueou" só sai com `arquivo:linha` e pergunta ao owner (F-058) |
+| `passagem_de_conversa.py` | `UserPromptSubmit` + `Stop` | **ligado por padrão** (0.59.0) | devolve a resposta **uma vez** | cerca: **conversa nova não se perde** — pedido com `Já decidido` + itens → os itens valem como decididos (tópico a tópico, pergunta repetida ou perguntas espalhadas voltam); texto pronto para outra conversa só sai no molde (`Já decidido — não reabrir:` · `Falta decidir:` · `Regras desta conversa:`) e com `/mss-spec:<comando>` na 1ª linha — também o bloco curto que manda ler ou continuar algo (0.67.0, F-077); "o kit não aceita / negou / bloqueou" só sai com `arquivo:linha` e pergunta ao owner (F-058) |
 
 ---
 
@@ -127,6 +127,15 @@ conversa. Entrar pelo kit é: o owner digitar `/mss-spec:<x>` (`UserPromptSubmit
 `mss-spec:<x>` pela ferramenta `Skill`, ou ler `commands/<x>.md` do kit (`PreToolUse` em `Read` — é assim
 que rodam os comandos `disable-model-invocation`, como o `nova-feature`). O estado é **por sessão**
 (`mss_kit_primeiro_<sessao>.json` no temp do SO).
+
+**0.67.0 (caso F-077) — edição sem porta também é negada.** `Write`, `Edit`, `MultiEdit` e `NotebookEdit` num
+arquivo **dentro** de um projeto que usa o kit (`memory/MEMORY.md` ou `docs/superpowers/MAPA.md` na pasta da
+conversa) são negados enquanto nenhum comando do kit entrou, com as portas na negativa — o assistente invoca
+`mss-spec:tarefa` sozinho e repete a edição. Rascunho fora do projeto e projeto sem o kit passam. Motivo: a
+conversa "Entrada Apólice e Boleto no Painel_V2" (Whats, 2026-11-23) abriu com um texto de continuação colado
+sem comando, editou plano, MAPA, spec e teste e nunca chamou o superpowers — a cerca só de `Skill` nunca agiu,
+e a busca na memória (`memoria_tabela.py buscar`, que só existe dentro das portas) nunca rodou. Edição por
+`Bash` (`sed -i`, `cat >`) não é coberta.
 
 **Por que existe (caso F-048):** na conversa "Validar mensagens WhatsApp em produção" (Whats, 2026-10-30),
 *"vamos tratar aqui mesmo o bug"* virou `superpowers:systematic-debugging` direto, sem o `/mss-spec:bug`; o
@@ -654,6 +663,11 @@ decisão do owner (`rodizio_partida.py`, dry-run, janela própria no projeto).
 cada projeto — cópia que envelhece e não acompanha o plugin. Agora moram em `templates/regras-do-kit/`
 (`1-modo-de-trabalho.md` · `2-regras-criticas.md`) e este hook as injeta. O `CLAUDE.md` do projeto só carrega
 a **marca**, numa linha sozinha: `<!-- mss-spec:regras-do-kit -->`.
+
+**0.67.0 (caso F-077):** o hook troca `${CLAUDE_PLUGIN_ROOT}` no texto pelo caminho do kit (a variável do
+ambiente; sem ela, a pasta acima de `hooks/`), com barra `/`. O texto que entra por hook não passa pela troca
+que o Claude faz nos comandos, e a regra "leia `commands/<x>.md`" sem caminho mandou a conversa procurar o
+arquivo em `~/.claude/plugins` (Whats, 2026-11-23: *"Vamos rodar o /mss-spec:memory capturar"*).
 
 Evento `SessionStart` (startup, resume, clear, compact), sem `matcher`. **Duas entradas** em `hooks.json`
 (`regras_do_kit.py --bloco 1` e `--bloco 2`): o Claude Code corta cada `additionalContext` em 10.000
