@@ -3,6 +3,10 @@
 
 # Diário de sessão — mss-spec
 
+## 2026-11-23
+
+- [kit-de-fora-na-edicao] duas conversas do Whats: a aberta por texto de continuação sem comando trabalhou inteira sem o kit (a cerca só olhava `Skill`); 0.67.0 nega edição sem porta, exige o comando na 1ª linha do texto pronto e resolve o caminho do kit nas regras (F-077); Git Bash sumido em 19/11 desligou as cercas sem aviso → `memory/sessions/2026-11-23-kit-de-fora-na-edicao.md`
+
 ## 2026-11-18
 
 - [custo-dos-hooks] medido no Claude real pelo `durationMs` que ele anota na conversa: ~1 a 2 s por ação, sem depender de projeto nem de conversa; troca sem o Git Bash (exec form) medida e descartada; item do to-dolist fechado → `memory/sessions/2026-11-18-custo-dos-hooks.md`
